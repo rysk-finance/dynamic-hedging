@@ -131,7 +131,9 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
 
               <Cell
                 cellClasses={`${
-                  callSellDisabled ? "text-gray-600" : "text-red-700"
+                  callSellDisabled
+                    ? "text-gray-600 !bg-red-100/40"
+                    : "text-red-900 !bg-red-100/80"
                 } !p-0`}
               >
                 <Quote
@@ -147,7 +149,9 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
 
               <Cell
                 cellClasses={`${
-                  callBuyDisabled ? "text-gray-600" : "text-green-1100"
+                  callBuyDisabled
+                    ? "text-gray-600 !bg-green-100/20"
+                    : "text-green-1100 !bg-green-100/60"
                 } !p-0`}
               >
                 <Quote
@@ -212,7 +216,9 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
 
               <Cell
                 cellClasses={`${
-                  putSellDisabled ? "text-gray-600" : "text-red-700"
+                  putSellDisabled
+                    ? "text-gray-600 !bg-red-100/40"
+                    : "text-red-900 !bg-red-100/80"
                 } !p-0`}
               >
                 <Quote
@@ -228,7 +234,9 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
 
               <Cell
                 cellClasses={`${
-                  putBuyDisabled ? "text-gray-600" : "text-green-1100"
+                  putBuyDisabled
+                    ? "text-gray-600 !bg-green-100/20"
+                    : "text-green-1100 !bg-green-100/60"
                 } !p-0`}
               >
                 <Quote
