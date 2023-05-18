@@ -114,6 +114,7 @@ export interface OptionExchangeInterface extends utils.Interface {
     "getOptionDetails(address,(uint64,uint128,bool,address,address,address))": FunctionFragment;
     "getPoolDenominatedValue()": FunctionFragment;
     "hedgeDelta(int256)": FunctionFragment;
+    "heldTokens(address,address)": FunctionFragment;
     "liquidityPool()": FunctionFragment;
     "maxTradeSize()": FunctionFragment;
     "migrateOtokens(address,address[])": FunctionFragment;
@@ -181,6 +182,10 @@ export interface OptionExchangeInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "hedgeDelta",
     values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "heldTokens",
+    values: [string, string]
   ): string;
   encodeFunctionData(
     functionFragment: "liquidityPool",
@@ -288,6 +293,7 @@ export interface OptionExchangeInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "hedgeDelta", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "heldTokens", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "liquidityPool",
     data: BytesLike
@@ -514,6 +520,12 @@ export interface OptionExchange extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
+    heldTokens(
+      arg0: string,
+      arg1: string,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber]>;
+
     liquidityPool(overrides?: CallOverrides): Promise<[string]>;
 
     maxTradeSize(overrides?: CallOverrides): Promise<[BigNumber]>;
@@ -649,6 +661,12 @@ export interface OptionExchange extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
+  heldTokens(
+    arg0: string,
+    arg1: string,
+    overrides?: CallOverrides
+  ): Promise<BigNumber>;
+
   liquidityPool(overrides?: CallOverrides): Promise<string>;
 
   maxTradeSize(overrides?: CallOverrides): Promise<BigNumber>;
@@ -781,6 +799,12 @@ export interface OptionExchange extends BaseContract {
 
     hedgeDelta(
       _delta: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    heldTokens(
+      arg0: string,
+      arg1: string,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
@@ -992,6 +1016,12 @@ export interface OptionExchange extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
+    heldTokens(
+      arg0: string,
+      arg1: string,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
     liquidityPool(overrides?: CallOverrides): Promise<BigNumber>;
 
     maxTradeSize(overrides?: CallOverrides): Promise<BigNumber>;
@@ -1128,6 +1158,12 @@ export interface OptionExchange extends BaseContract {
     hedgeDelta(
       _delta: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    heldTokens(
+      arg0: string,
+      arg1: string,
+      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     liquidityPool(overrides?: CallOverrides): Promise<PopulatedTransaction>;
