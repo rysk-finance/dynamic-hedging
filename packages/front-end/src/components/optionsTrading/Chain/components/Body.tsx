@@ -115,7 +115,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
 
           return (
             <motion.tr
-              className={`group/row grid even:bg-bone odd:bg-bone-light bg-[url('./assets/wave-lines.png')] even:bg-[top_right_-50%] even:lg:bg-[top_right_-15%] even:xl:bg-[top_right_0%] odd:bg-[top_left_-80%] odd:lg:bg-[top_left_-40%] odd:xl:bg-[top_left_-20%] bg-no-repeat bg-contain text-right [&_td]:col-span-1 [&_td]:border [&_td]:border-dashed [&_td]:border-gray-500 [&_td]:ease-in-out [&_td]:duration-100 [&_td]:cursor-default [&_td]:text-2xs [&_td]:xl:text-base ease-in-out duration-100 ${rowClasses} border-black border-dashed`}
+              className={`group/row grid even:bg-bone odd:bg-bone-light bg-[url('./assets/wave-lines.png')] even:bg-[top_right_-50%] even:lg:bg-[top_right_-15%] even:xl:bg-[top_right_0%] odd:bg-[top_left_-80%] odd:lg:bg-[top_left_-40%] odd:xl:bg-[top_left_-20%] bg-no-repeat bg-contain text-right [&_td]:col-span-1 [&_td]:border [&_td]:border-dashed [&_td]:border-gray-500 [&_td]:ease-in-out [&_td]:duration-100 [&_td]:cursor-default [&_td]:text-2xs [&_td]:xl:text-sm ease-in-out duration-100 ${rowClasses} border-black border-dashed`}
               key={option.strike}
               style={{
                 gridTemplateColumns: `repeat(${colSize}, minmax(0, 1fr))`,
@@ -131,7 +131,9 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
 
               <Cell
                 cellClasses={`${
-                  callSellDisabled ? "text-gray-600" : "text-red-700"
+                  callSellDisabled
+                    ? "text-gray-600 !bg-red-100/40"
+                    : "text-red-900 !bg-red-100/80"
                 } !p-0`}
               >
                 <Quote
@@ -147,7 +149,9 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
 
               <Cell
                 cellClasses={`${
-                  callBuyDisabled ? "text-gray-600" : "text-green-1100"
+                  callBuyDisabled
+                    ? "text-gray-600 !bg-green-100/20"
+                    : "text-green-1100 !bg-green-100/60"
                 } !p-0`}
               >
                 <Quote
@@ -212,7 +216,9 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
 
               <Cell
                 cellClasses={`${
-                  putSellDisabled ? "text-gray-600" : "text-red-700"
+                  putSellDisabled
+                    ? "text-gray-600 !bg-red-100/40"
+                    : "text-red-900 !bg-red-100/80"
                 } !p-0`}
               >
                 <Quote
@@ -228,7 +234,9 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
 
               <Cell
                 cellClasses={`${
-                  putBuyDisabled ? "text-gray-600" : "text-green-1100"
+                  putBuyDisabled
+                    ? "text-gray-600 !bg-green-100/20"
+                    : "text-green-1100 !bg-green-100/60"
                 } !p-0`}
               >
                 <Quote
