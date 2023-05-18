@@ -246,7 +246,10 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		}
 		// calculate the total premium
 		uint256 premium = order.amount.mul(order.price);
-
+		uint256 convertedAmount = OptionsCompute.convertToDecimals(
+			order.amount,
+			ERC20(order.seriesAddress).decimals()
+		);
 		uint256 convertedPrem = OptionsCompute.convertToDecimals(
 			premium,
 			ERC20(collateralAsset).decimals()
@@ -264,16 +267,6 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			address(liquidityPool),
 			convertedPrem
 		);
-		// write the option contract, includes sending the premium from the user to the pool, option series should be in e8
-		liquidityPool.handlerWriteOption(
-			order.optionSeries,
-			order.seriesAddress,
-			order.amount,
-			getOptionRegistry(),
-			convertedPrem,
-			0, // delta is not used in the liquidityPool unless the oracle implementation is used, so can be set to 0
-			msg.sender
-		);
 		// convert the strike to e18 decimals for storage
 		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
 			order.optionSeries.expiration,
@@ -283,12 +276,41 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			strikeAsset,
 			collateralAsset
 		);
-		getPortfolioValuesFeed().updateStores(
-			seriesToStore,
-			int256(order.amount),
-			0,
-			order.seriesAddress
-		);
+		if (ERC20(order.seriesAddress).balanceOf(address(this)) >= convertedAmount) {
+			// transfer otoken
+			SafeTransferLib.safeTransfer(ERC20(order.seriesAddress), msg.sender, convertedAmount);
+			// update stores
+			getPortfolioValuesFeed().updateStores(
+				seriesToStore,
+				0,
+				-int256(order.amount),
+				order.seriesAddress
+			);
+			// adjust variables
+			liquidityPool.adjustVariables(
+				0,
+				convertedPrem,
+				0,
+				true
+			);
+		} else {
+			// write the option contract, includes sending the premium from the user to the pool, option series should be in e8
+			liquidityPool.handlerWriteOption(
+				order.optionSeries,
+				order.seriesAddress,
+				order.amount,
+				getOptionRegistry(),
+				convertedPrem,
+				0, // delta is not used in the liquidityPool unless the oracle implementation is used, so can be set to 0
+				msg.sender
+			);
+			getPortfolioValuesFeed().updateStores(
+				seriesToStore,
+				int256(order.amount),
+				0,
+				order.seriesAddress
+			);
+		}
 		emit OptionsBought(order.seriesAddress, msg.sender, order.amount, convertedPrem, expectedFee);
 		emit OrderExecuted(_orderId);
 		// invalidate the order
