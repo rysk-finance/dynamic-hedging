@@ -15,6 +15,7 @@ import { readContract, readContracts } from "@wagmi/core";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import { BigNumber } from "ethers";
+import { getImpliedVolatility } from "implied-volatility";
 
 import { DHVLensMK1ABI } from "src/abis/DHVLensMK1_ABI";
 import { NewControllerABI } from "src/abis/NewController_ABI";
@@ -24,6 +25,7 @@ import {
   defaultTimesToExpiry,
 } from "src/state/GlobalContext";
 import {
+  SECONDS_IN_YEAR,
   fromE27toInt,
   fromUSDC,
   fromWei,
@@ -134,6 +136,7 @@ const getChainData = async (
     const createSide = (
       drill: readonly DHVLensMK1.OptionStrikeDrillStruct[],
       side: CallOrPut,
+      underlyingPrice: number,
       expiry: number
     ) => {
       return drill.reduce(
@@ -162,6 +165,20 @@ const getChainData = async (
               : { fee: 0, total: 0, quote: 0 };
           };
 
+          const _getIV = (quote: number) => {
+            const IV =
+              getImpliedVolatility(
+                quote,
+                underlyingPrice,
+                strikeUSDC,
+                (expiry - dayjs().unix()) / SECONDS_IN_YEAR,
+                0,
+                side
+              ) * 100;
+
+            return toTwoDecimalPlaces(IV);
+          };
+
           // Longs - each strike side has only one oToken so we pass tokenID for closing.
           // Shorts - each strike side has two tokens (WETH / USDC)
           // This could also include owning long and short positions for a strike side.
@@ -187,12 +204,12 @@ const getChainData = async (
             [side]: {
               sell: {
                 disabled: sell.disabled || sell.premiumTooSmall,
-                IV: fromWeiToInt(sell.iv) * 100,
+                IV: _getIV(Number(fromUSDC(sell.quote))),
                 quote: _getQuote(sell, true),
               },
               buy: {
                 disabled: buy.disabled,
-                IV: fromWeiToInt(buy.iv) * 100,
+                IV: _getIV(Number(fromUSDC(buy.quote))),
                 quote: _getQuote(buy, false),
               },
               delta: toTwoDecimalPlaces(Number(fromWei(delta))),
@@ -212,10 +229,14 @@ const getChainData = async (
 
     if (data.length && data.length === expiries.length) {
       return data.reduce(
-        (chainData, { callOptionDrill, expiration, putOptionDrill }) => {
+        (
+          chainData,
+          { callOptionDrill, expiration, putOptionDrill, underlyingPrice }
+        ) => {
           const expiry = expiration.toNumber();
-          const calls = createSide(callOptionDrill, "call", expiry);
-          const puts = createSide(putOptionDrill, "put", expiry);
+          const ethPrice = Number(fromWei(underlyingPrice));
+          const calls = createSide(callOptionDrill, "call", ethPrice, expiry);
+          const puts = createSide(putOptionDrill, "put", ethPrice, expiry);
           const strikes = Array.from(
             new Set([...Object.keys(calls), ...Object.keys(puts)])
           );
