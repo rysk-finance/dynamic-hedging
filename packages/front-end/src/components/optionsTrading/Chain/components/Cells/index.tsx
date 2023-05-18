@@ -14,7 +14,7 @@ import { Triangle } from "src/Icons";
 export const Cell = ({ children, cellClasses }: CellProps) => {
   return (
     <td
-      className={`py-4 xl:py-2.5 px-1 xl:px-2 group-hover/row:bg-green-100/50 ${cellClasses}`}
+      className={`py-4 xl:py-2.5 px-1 group-hover/row:bg-green-100/50 ${cellClasses}`}
     >
       {children}
     </td>
