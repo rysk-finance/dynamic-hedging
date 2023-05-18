@@ -5,12 +5,12 @@ import { useEffect } from "react";
  *
  * @param data - The data returned from an initial graph query.
  * @param startPolling - The startPolling function returned from the same query.
- * @param interval - The polling interval in ms, defaults to 15000ms.
+ * @param interval - The polling interval in ms, defaults to 60000ms.
  */
 export const useGraphPolling = (
   data: any,
   startPolling: (interval: number) => void,
-  interval: number = 15000
+  interval: number = 60000
 ) => {
   useEffect(() => {
     if (data) {
