@@ -12,13 +12,18 @@ import { ActionType, FullPosition } from "src/state/types";
 import { useGlobalContext } from "src/state/GlobalContext";
 
 export const UserOptions = () => {
-  const { dispatch } = useGlobalContext();
+  const {
+    dispatch,
+    state: {
+      dashboard: { activePositions, inactivePositions },
+    },
+  } = useGlobalContext();
 
   const { isConnected, isDisconnected } = useAccount();
 
   const [, setSearchParams] = useSearchParams();
 
-  const [activePositions, inactivePositions, loading, error] = usePositions();
+  const [loading, error] = usePositions();
   const [completeRedeem] = useRedeem();
   const [completeSettle] = useSettle();
 
@@ -71,9 +76,7 @@ export const UserOptions = () => {
         },
         {
           label:
-            loading && !inactivePositions
-              ? "Loading Closed..."
-              : "RYSK.Closed",
+            loading && !inactivePositions ? "Loading Closed..." : "RYSK.Closed",
           content: (
             <>
               <AnimatePresence initial={false} mode="wait">

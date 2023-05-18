@@ -1,4 +1,3 @@
-import type { ApolloError } from "@apollo/client";
 import type {
   CompleteRedeem,
   CompleteSettle,
@@ -41,16 +40,16 @@ import { getQuote } from "../../optionsTrading/Modals/Shared/utils/getQuote";
  * and sort them into consumable data. Also places the
  * users positions into global context state.
  *
- * @returns [positions, loading, error]
+ * @returns [ loading, error ]
  */
 const usePositions = () => {
-  const { dispatch } = useGlobalContext();
   const { address, isDisconnected } = useAccount();
 
   const { allOracleAssets } = useExpiryPriceData();
 
   // Global state.
   const {
+    dispatch,
     state: {
       ethPrice,
       options: { data: chainData, spotShock, timesToExpiry },
@@ -58,12 +57,6 @@ const usePositions = () => {
   } = useGlobalContext();
 
   const [hookLoading, setHookLoading] = useState(false);
-  const [activePositions, setActivePositions] = useState<
-    ParsedPosition[] | null
-  >(null);
-  const [inactivePositions, setInactivePositions] = useState<
-    ParsedPosition[] | null
-  >(null);
 
   // NOTE: Only getting positions opened after redeploy of contracts
   const { error, data, startPolling } = useQuery<{
@@ -179,8 +172,11 @@ const usePositions = () => {
       setHookLoading(true);
 
       if (isDisconnected) {
-        setActivePositions([]);
-        setInactivePositions([]);
+        dispatch({
+          type: ActionType.SET_DASHBOARD,
+          activePositions: [],
+          inactivePositions: [],
+        });
       }
 
       if (Object.keys(chainData).length && data && allOracleAssets) {
@@ -462,9 +458,6 @@ const usePositions = () => {
           );
         });
 
-        setActivePositions(parsedActivePositions);
-        setInactivePositions(parsedInactivePositions);
-
         dispatch({
           type: ActionType.SET_DASHBOARD,
           activePositions: parsedActivePositions,
@@ -478,12 +471,7 @@ const usePositions = () => {
     constructPositionsData();
   }, [chainData, data, allOracleAssets, isDisconnected, ethPrice]);
 
-  return [activePositions, inactivePositions, hookLoading, error] as [
-    ParsedPosition[] | null,
-    ParsedPosition[] | null,
-    boolean,
-    ApolloError | undefined
-  ];
+  return [hookLoading, error] as const;
 };
 
 /**
