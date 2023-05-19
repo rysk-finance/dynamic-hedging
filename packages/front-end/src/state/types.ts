@@ -163,8 +163,8 @@ export type GlobalState = {
   };
 
   dashboard: {
-    activePositions?: FullPosition[];
-    inactivePositions?: FullPosition[];
+    activePositions: FullPosition[];
+    inactivePositions: FullPosition[];
     modalPosition?: FullPosition;
   };
 
