@@ -41,11 +41,14 @@ export const UserOptions = () => {
       tabWidth={280}
       tabs={[
         {
-          label: loading && !activePositions ? "Loading Open..." : "RYSK.Open",
+          label:
+            loading && !activePositions.length
+              ? "Loading Open..."
+              : "RYSK.Open",
           content: (
             <>
               <AnimatePresence initial={false} mode="wait">
-                {!activePositions && (loading || error) && (
+                {!activePositions.length && (loading || error) && (
                   <LoadingOrError
                     key="loading-or-error"
                     error={error}
@@ -53,7 +56,7 @@ export const UserOptions = () => {
                   />
                 )}
 
-                {isConnected && activePositions && (
+                {isConnected && activePositions.length && (
                   <>
                     {activePositions.length ? (
                       <Table
@@ -76,11 +79,13 @@ export const UserOptions = () => {
         },
         {
           label:
-            loading && !inactivePositions ? "Loading Closed..." : "RYSK.Closed",
+            loading && !inactivePositions.length
+              ? "Loading Closed..."
+              : "RYSK.Closed",
           content: (
             <>
               <AnimatePresence initial={false} mode="wait">
-                {!inactivePositions && (loading || error) && (
+                {!inactivePositions.length && (loading || error) && (
                   <LoadingOrError
                     key="loading-or-error"
                     error={error}
@@ -88,7 +93,7 @@ export const UserOptions = () => {
                   />
                 )}
 
-                {isConnected && inactivePositions && (
+                {isConnected && inactivePositions.length && (
                   <>
                     {inactivePositions.length ? (
                       <Table
