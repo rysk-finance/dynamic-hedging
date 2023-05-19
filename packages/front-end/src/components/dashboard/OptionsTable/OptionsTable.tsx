@@ -12,13 +12,18 @@ import { ActionType, FullPosition } from "src/state/types";
 import { useGlobalContext } from "src/state/GlobalContext";
 
 export const UserOptions = () => {
-  const { dispatch } = useGlobalContext();
+  const {
+    dispatch,
+    state: {
+      dashboard: { activePositions, inactivePositions },
+    },
+  } = useGlobalContext();
 
   const { isConnected, isDisconnected } = useAccount();
 
   const [, setSearchParams] = useSearchParams();
 
-  const [activePositions, inactivePositions, loading, error] = usePositions();
+  const [loading, error] = usePositions();
   const [completeRedeem] = useRedeem();
   const [completeSettle] = useSettle();
 
@@ -36,11 +41,14 @@ export const UserOptions = () => {
       tabWidth={280}
       tabs={[
         {
-          label: loading && !activePositions ? "Loading Open..." : "RYSK.Open",
+          label:
+            loading && !activePositions.length
+              ? "Loading Open..."
+              : "RYSK.Open",
           content: (
             <>
               <AnimatePresence initial={false} mode="wait">
-                {!activePositions && (loading || error) && (
+                {!activePositions.length && (loading || error) && (
                   <LoadingOrError
                     key="loading-or-error"
                     error={error}
@@ -48,7 +56,7 @@ export const UserOptions = () => {
                   />
                 )}
 
-                {isConnected && activePositions && (
+                {isConnected && activePositions.length && (
                   <>
                     {activePositions.length ? (
                       <Table
@@ -71,13 +79,13 @@ export const UserOptions = () => {
         },
         {
           label:
-            loading && !inactivePositions
+            loading && !inactivePositions.length
               ? "Loading Closed..."
               : "RYSK.Closed",
           content: (
             <>
               <AnimatePresence initial={false} mode="wait">
-                {!inactivePositions && (loading || error) && (
+                {!inactivePositions.length && (loading || error) && (
                   <LoadingOrError
                     key="loading-or-error"
                     error={error}
@@ -85,7 +93,7 @@ export const UserOptions = () => {
                   />
                 )}
 
-                {isConnected && inactivePositions && (
+                {isConnected && inactivePositions.length && (
                   <>
                     {inactivePositions.length ? (
                       <Table
