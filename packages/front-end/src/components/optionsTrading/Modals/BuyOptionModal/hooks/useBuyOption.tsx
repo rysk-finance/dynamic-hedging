@@ -5,13 +5,13 @@ import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 
+import { BigNumber } from "ethers";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { toRysk, toUSDC, truncate } from "src/utils/conversion-helper";
+import { tFormatUSDC, toRysk, toUSDC } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
 import { getQuote } from "../../Shared/utils/getQuote";
-import { BigNumber } from "ethers";
 
 export const useBuyOption = (amountToBuy: string) => {
   // Global state.
@@ -68,7 +68,7 @@ export const useBuyOption = (amountToBuy: string) => {
           const remainingBalance =
             balances.USDC === 0 ? 0 : balances.USDC - quote;
 
-          const requiredApproval = String(truncate(quote * 1.05, 4));
+          const requiredApproval = String(tFormatUSDC(acceptablePremium, 4));
           const approved = toUSDC(requiredApproval).lte(allowance.amount);
 
           setPurchaseData({
