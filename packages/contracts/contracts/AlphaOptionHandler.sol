@@ -14,6 +14,7 @@ import "./libraries/SafeTransferLib.sol";
 
 import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IOptionRegistry.sol";
+import "./interfaces/OtokenInterface.sol";
 import "./interfaces/IPortfolioValuesFeed.sol";
 
 import "prb-math/contracts/PRBMathSD59x18.sol";
@@ -23,6 +24,7 @@ import "prb-math/contracts/PRBMathUD60x18.sol";
  *  @title Contract used for all user facing options interactions
  *  @dev Interacts with liquidityPool to write options and quote their prices.
  */
+ // TODO: do buyback so it try catches the handlerBuyback
 contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	using PRBMathSD59x18 for int256;
 	using PRBMathUD60x18 for uint256;
@@ -142,7 +144,17 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		}
 		IOptionRegistry optionRegistry = getOptionRegistry();
 		// issue the option type, all checks of the option validity should happen in _issue
-		address series = liquidityPool.handlerIssue(_optionSeries);
+		address series = optionRegistry.getOtoken(
+				optionSeries.underlying,
+				optionSeries.strikeAsset,
+				optionSeries.expiration,
+				optionSeries.isPut,
+				optionSeries.strike,
+				optionSeries.collateral
+		);
+		if (series == address(0) || ERC20(series).balanceOf(address(this)) < _amount) {
+			address series = liquidityPool.handlerIssue(_optionSeries);
+		}
 		uint256 spotPrice = _getUnderlyingPrice(underlyingAsset, strikeAsset);
 		// create the order struct, setting the series, amount, price, order expiry and buyer address
 		Types.Order memory order = Types.Order(
@@ -211,6 +223,23 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			_putSpotMovementRange
 		);
 		return (putOrderId, callOrderId);
+	}
+
+	/**
+	 * @notice migrate otokens held by this address to an option exchange
+	 * @param optionExchange the option exchange to send otokens to
+	 * @param otokens the otoken addresses to transfer
+	 */
+	function sendOtokens(address optionExchange, address[] memory otokens) external {
+		_onlyGovernor();
+		uint256 len = otokens.length;
+		for (uint256 i = 0; i < len; i++) {
+			if (OtokenInterface(otokens[i]).underlyingAsset() != underlyingAsset) {
+				revert CustomErrors.NonWhitelistedOtoken();
+			}
+			uint256 balance = ERC20(otokens[i]).balanceOf(address(this));
+			SafeTransferLib.safeTransfer(ERC20(otokens[i]), optionExchange, balance);
+		}
 	}
 
 	/////////////////////////////////////////////
