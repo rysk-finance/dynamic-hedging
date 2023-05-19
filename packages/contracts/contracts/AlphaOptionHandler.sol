@@ -15,7 +15,7 @@ import "./libraries/SafeTransferLib.sol";
 import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IOptionRegistry.sol";
 import "./interfaces/OtokenInterface.sol";
-import "./interfaces/IPortfolioValuesFeed.sol";
+import "./interfaces/IAlphaPortfolioValuesFeed.sol";
 
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
@@ -24,7 +24,7 @@ import "prb-math/contracts/PRBMathUD60x18.sol";
  *  @title Contract used for all user facing options interactions
  *  @dev Interacts with liquidityPool to write options and quote their prices.
  */
- // TODO: do buyback so it try catches the handlerBuyback
+ //TODO: fix create order so the option series isnt retrieved from the registry
 contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	using PRBMathSD59x18 for int256;
 	using PRBMathUD60x18 for uint256;
@@ -110,7 +110,9 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	//////////////////////////////////////////////////////
 	/// access-controlled state changing functionality ///
 	//////////////////////////////////////////////////////
+	function _getSeries(Types.OptionSeries memory _optionSeries) external returns (address) {
 
+	}
 	/**
 	 * @notice creates an order for a number of options from the pool to a specified user. The function
 	 *      is intended to be used to issue options to market makers/ OTC market participants
@@ -145,15 +147,15 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		IOptionRegistry optionRegistry = getOptionRegistry();
 		// issue the option type, all checks of the option validity should happen in _issue
 		address series = optionRegistry.getOtoken(
-				optionSeries.underlying,
-				optionSeries.strikeAsset,
-				optionSeries.expiration,
-				optionSeries.isPut,
-				optionSeries.strike,
-				optionSeries.collateral
+				_optionSeries.underlying,
+				_optionSeries.strikeAsset,
+				_optionSeries.expiration,
+				_optionSeries.isPut,
+				_optionSeries.strike,
+				_optionSeries.collateral
 		);
 		if (series == address(0) || ERC20(series).balanceOf(address(this)) < _amount) {
-			address series = liquidityPool.handlerIssue(_optionSeries);
+			series = liquidityPool.handlerIssue(_optionSeries);
 		}
 		uint256 spotPrice = _getUnderlyingPrice(underlyingAsset, strikeAsset);
 		// create the order struct, setting the series, amount, price, order expiry and buyer address
@@ -380,23 +382,6 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			premium,
 			ERC20(collateralAsset).decimals()
 		);
-		// transfer the oToken to the liquidityPool
-		SafeTransferLib.safeTransferFrom(
-			order.seriesAddress,
-			msg.sender,
-			address(liquidityPool),
-			OptionsCompute.convertToDecimals(order.amount, ERC20(order.seriesAddress).decimals())
-		);
-		// buyback the option contract, includes sending the premium from the pool to the user, option series should be in e8
-		liquidityPool.handlerBuybackOption(
-			order.optionSeries,
-			order.amount,
-			getOptionRegistry(),
-			order.seriesAddress,
-			convertedPrem,
-			0, // delta is not used in the liquidityPool unless the oracle implementation is used, so can be set to 0
-			msg.sender
-		);
 		// convert the strike to e18 decimals for storage
 		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
 			order.optionSeries.expiration,
@@ -406,12 +391,53 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			strikeAsset,
 			collateralAsset
 		);
-		getPortfolioValuesFeed().updateStores(
-			seriesToStore,
-			-int256(order.amount),
-			0,
-			order.seriesAddress
-		);
+		if (getPortfolioValuesFeed().storesForAddress(order.seriesAddress).shortExposure >= int256(order.amount)) {
+			// transfer the oToken to the liquidityPool
+			SafeTransferLib.safeTransferFrom(
+				order.seriesAddress,
+				msg.sender,
+				address(liquidityPool),
+				OptionsCompute.convertToDecimals(order.amount, ERC20(order.seriesAddress).decimals())
+			);
+			// buyback the option contract, includes sending the premium from the pool to the user, option series should be in e8
+			liquidityPool.handlerBuybackOption(
+				order.optionSeries,
+				order.amount,
+				getOptionRegistry(),
+				order.seriesAddress,
+				convertedPrem,
+				0, // delta is not used in the liquidityPool unless the oracle implementation is used, so can be set to 0
+				msg.sender
+			);
+			getPortfolioValuesFeed().updateStores(
+				seriesToStore,
+				-int256(order.amount),
+				0,
+				order.seriesAddress
+			);
+		} else {
+			// transfer the oToken to this address
+			SafeTransferLib.safeTransferFrom(
+				order.seriesAddress,
+				msg.sender,
+				address(this),
+				OptionsCompute.convertToDecimals(order.amount, ERC20(order.seriesAddress).decimals())
+			);
+						// update stores
+			getPortfolioValuesFeed().updateStores(
+				seriesToStore,
+				0,
+				int256(order.amount),
+				order.seriesAddress
+			);
+			// adjust variables
+			liquidityPool.adjustVariables(
+				0,
+				convertedPrem,
+				0,
+				false
+			);
+		}
 		emit OptionsSold(order.seriesAddress, msg.sender, order.amount, convertedPrem, 0);
 		emit OrderExecuted(_orderId);
 		// invalidate the order
@@ -443,8 +469,8 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	 * @notice get the portfolio values feed used by the liquidity pool
 	 * @return the portfolio values feed contract
 	 */
-	function getPortfolioValuesFeed() internal view returns (IPortfolioValuesFeed) {
-		return IPortfolioValuesFeed(protocol.portfolioValuesFeed());
+	function getPortfolioValuesFeed() internal view returns (IAlphaPortfolioValuesFeed) {
+		return IAlphaPortfolioValuesFeed(protocol.portfolioValuesFeed());
 	}
 
 	/**
