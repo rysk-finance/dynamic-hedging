@@ -17,7 +17,6 @@ import {
   tFormatEth,
   tFormatUSDC,
   toRysk,
-  truncate,
 } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
@@ -141,7 +140,7 @@ export const useShortPositionData = (amountToClose: string) => {
             // Ensure user has sufficient wallet balance to cover premium before collateral is released.
             const hasRequiredCapital = balances.USDC > quote;
 
-            const requiredApproval = String(truncate(quote * 1.05, 4));
+            const requiredApproval = String(tFormatUSDC(acceptablePremium, 4));
             const approved = collateralToRemove.lte(allowance.amount);
 
             setPositionData({
