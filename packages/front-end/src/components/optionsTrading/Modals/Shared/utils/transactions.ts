@@ -30,6 +30,17 @@ import RyskActionType from "src/enums/RyskActionType";
 import { fromWeiToOpyn } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 
+const waitForTransactionOrTimer = async (
+  hash: HexString,
+  confirmations: number = 2,
+  timerMs: number = 15000
+) => {
+  return Promise.race([
+    waitForTransaction({ hash, confirmations }),
+    new Promise((resolve) => setTimeout(resolve, timerMs)),
+  ]);
+};
+
 export const approveAllowance = async (
   addresses: AddressesRequired,
   amount: BigNumberType
@@ -47,7 +58,7 @@ export const approveAllowance = async (
   if (config.request.data) {
     const { hash } = await writeContract(config);
 
-    await waitForTransaction({ hash, confirmations: 1 });
+    await waitForTransactionOrTimer(hash, 1);
 
     return hash;
   }
@@ -103,7 +114,7 @@ export const buy = async (
   if (config.request.data) {
     const { hash } = await writeContract(config);
 
-    await waitForTransaction({ hash, confirmations: 1 });
+    await waitForTransactionOrTimer(hash);
 
     refresh();
 
@@ -149,7 +160,7 @@ export const closeLong = async (
   if (config.request.data) {
     const { hash } = await writeContract(config);
 
-    await waitForTransaction({ hash, confirmations: 1 });
+    await waitForTransactionOrTimer(hash);
 
     refresh();
 
@@ -270,7 +281,7 @@ export const sell = async (
   if (config.request.data) {
     const { hash } = await writeContract(config);
 
-    await waitForTransaction({ hash, confirmations: 1 });
+    await waitForTransactionOrTimer(hash);
 
     refresh();
 
@@ -288,7 +299,7 @@ export const setOperator = async (isOperator: boolean) => {
 
   const { hash } = await writeContract(config);
 
-  await waitForTransaction({ hash, confirmations: 1 });
+  await waitForTransactionOrTimer(hash, 1);
 
   return hash;
 };
@@ -360,7 +371,7 @@ export const vaultSell = async (
   if (config.request.data) {
     const { hash } = await writeContract(config);
 
-    await waitForTransaction({ hash, confirmations: 1 });
+    await waitForTransactionOrTimer(hash);
 
     refresh();
 
