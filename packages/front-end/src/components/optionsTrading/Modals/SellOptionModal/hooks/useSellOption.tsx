@@ -152,12 +152,15 @@ export const useSellOption = (amountToSell: string) => {
             ? balanceWETH
             : balanceWETH - collateral;
 
-          // Ensure user has sufficient wallet balance to cover collateral.
+          const approvalBuffer = 1.005;
+          // Ensure user has sufficient wallet balance to cover collateral + buffer.
           const hasRequiredCapital = USDCCollateral
-            ? balanceUSDC > collateral
-            : balanceWETH > collateral;
+            ? balanceUSDC > collateral * approvalBuffer
+            : balanceWETH > collateral * approvalBuffer;
 
-          const requiredApproval = String(truncate(collateral * 1.05, 4));
+          const requiredApproval = String(
+            truncate(collateral * approvalBuffer, 4)
+          );
           const approved = (
             USDCCollateral ? toUSDC(requiredApproval) : toRysk(requiredApproval)
           ).lte(allowance.amount);
