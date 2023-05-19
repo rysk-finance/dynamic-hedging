@@ -52,7 +52,13 @@ export const UserOptions = () => {
                   <LoadingOrError
                     key="loading-or-error"
                     error={error}
-                    extraStrings={["Processing options..."]}
+                    extraStrings={[
+                      "Fetching positions...",
+                      "Calculating P/L...",
+                      "Computing liquidation threshold...",
+                      "Determining status...",
+                    ]}
+                    stringSpeed={1000}
                   />
                 )}
 
@@ -89,7 +95,13 @@ export const UserOptions = () => {
                   <LoadingOrError
                     key="loading-or-error"
                     error={error}
-                    extraStrings={["Processing options..."]}
+                    extraStrings={[
+                      "Fetching positions...",
+                      "Calculating P/L...",
+                      "Computing liquidation threshold...",
+                      "Determining status...",
+                    ]}
+                    stringSpeed={1000}
                   />
                 )}
 
