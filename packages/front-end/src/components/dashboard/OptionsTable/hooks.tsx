@@ -377,9 +377,10 @@ const usePositions = () => {
             return 0;
           };
 
-          const liquidationPrice = vault.vaultId
-            ? await getVaultLiquidationPrice()
-            : 0;
+          const liquidationPrice =
+            amount && Boolean(vault.vaultId)
+              ? await getVaultLiquidationPrice()
+              : 0;
 
           // pnl
           const graphPnl = fromUSDC(realizedPnl);
