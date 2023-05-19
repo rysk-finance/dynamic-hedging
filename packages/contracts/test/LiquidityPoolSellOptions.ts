@@ -4443,6 +4443,271 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(before.netDhvExposure.sub(after.netDhvExposure)).to.equal(amount)
 			})
 		})
+		describe("Sells option to pool and then transfers to handler for otc trade", async () => {
+			let optionTokenAlt: Otoken
+			it("SUCCEEDS: LP Sells a ETH/USD call for premium with otoken created outside", async () => {
+				const amount = toWei("5")
+				const strikePrice = toWei("1750")
+				const proposedSeries = {
+					expiration: expiration,
+					strike: strikePrice,
+					isPut: CALL_FLAVOR,
+					strikeAsset: usd.address,
+					underlying: weth.address,
+					collateral: usd.address
+				}
+				const otoken = await exchange.callStatic.createOtoken(proposedSeries)
+				optionTokenAlt = (await ethers.getContractAt("Otoken", otoken)) as Otoken
+				const marginRequirement = await (
+					await optionRegistry.getCollateral(
+						{
+							expiration: proposedSeries.expiration,
+							strike: proposedSeries.strike.div(ethers.utils.parseUnits("1", 10)),
+							isPut: proposedSeries.isPut,
+							strikeAsset: proposedSeries.strikeAsset,
+							underlying: proposedSeries.underlying,
+							collateral: proposedSeries.collateral
+						},
+						amount
+					)
+				).add(toUSDC("100"))
+				await usd.approve(MARGIN_POOL[chainId], marginRequirement)
+				const vaultId = await (await controller.getAccountVaultCounter(senderAddress)).add(1)
+				const before = await getExchangeParams(
+					liquidityPool,
+					optionProtocol,
+					exchange,
+					usd,
+					wethERC20,
+					portfolioValuesFeed,
+					optionTokenAlt,
+					senderAddress,
+					amount
+				)
+				let quoteResponse = await pricer.quoteOptionPrice(
+					proposedSeries,
+					amount,
+					true,
+					before.netDhvExposure
+				)
+				await compareQuotes(
+					quoteResponse,
+					liquidityPool,
+					optionProtocol,
+					volFeed,
+					priceFeed,
+					proposedSeries,
+					amount,
+					true,
+					exchange,
+					optionRegistry,
+					usd,
+					pricer,
+					before.netDhvExposure
+				)
+				let quote = quoteResponse[0].sub(quoteResponse[2])
+				await exchange.operate([
+					{
+						operation: 0,
+						operationQueue: [
+							{
+								actionType: 0,
+								owner: senderAddress,
+								secondAddress: senderAddress,
+								asset: ZERO_ADDRESS,
+								vaultId: vaultId,
+								amount: 0,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: abiCode.encode(["uint256"], [1])
+							},
+							{
+								actionType: 5,
+								owner: senderAddress,
+								secondAddress: senderAddress,
+								asset: proposedSeries.collateral,
+								vaultId: vaultId,
+								amount: marginRequirement,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: ZERO_ADDRESS
+							},
+							{
+								actionType: 1,
+								owner: senderAddress,
+								secondAddress: exchange.address,
+								asset: otoken,
+								vaultId: vaultId,
+								amount: amount.div(ethers.utils.parseUnits("1", 10)),
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: ZERO_ADDRESS
+							}
+						]
+					},
+					{
+						operation: 1,
+						operationQueue: [
+							{
+								actionType: 2,
+								owner: ZERO_ADDRESS,
+								secondAddress: senderAddress,
+								asset: optionTokenAlt.address,
+								vaultId: 0,
+								amount: amount,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: "0x"
+							}
+						]
+					}
+				])
+				const after = await getExchangeParams(
+					liquidityPool,
+					optionProtocol,
+					exchange,
+					usd,
+					wethERC20,
+					portfolioValuesFeed,
+					optionTokenAlt,
+					senderAddress,
+					amount
+				)
+				quoteResponse = await pricer.quoteOptionPrice(
+					proposedSeries,
+					amount,
+					true,
+					before.netDhvExposure
+				)
+				await compareQuotes(
+					quoteResponse,
+					liquidityPool,
+					optionProtocol,
+					volFeed,
+					priceFeed,
+					proposedSeries,
+					amount,
+					true,
+					exchange,
+					optionRegistry,
+					usd,
+					pricer,
+					before.netDhvExposure
+				)
+				quote = quoteResponse[0].sub(quoteResponse[2])
+				expect(after.senderOtokenBalance).to.eq(0)
+				expect(
+					after.senderUSDBalance.sub(before.senderUSDBalance).add(marginRequirement).sub(quote)
+				).to.be.within(-10, 10)
+				expect(after.poolUSDBalance.sub(before.poolUSDBalance).add(quote)).to.be.within(-10, 10)
+				expect(after.exchangeOTokenBalance.sub(before.exchangeOTokenBalance)).to.equal(after.opynAmount)
+				expect(after.pfList.length - before.pfList.length).to.equal(0)
+				expect(after.seriesStores.longExposure.sub(before.seriesStores.longExposure)).to.equal(amount)
+				expect(after.seriesStores.shortExposure).to.equal(0)
+				expect(after.seriesStores.optionSeries.expiration).to.equal(proposedSeries.expiration)
+				expect(after.seriesStores.optionSeries.isPut).to.equal(proposedSeries.isPut)
+				expect(after.seriesStores.optionSeries.collateral)
+					.to.equal(proposedSeries.collateral)
+					.to.equal(usd.address)
+				expect(after.seriesStores.optionSeries.underlying)
+					.to.equal(proposedSeries.underlying)
+					.to.equal(weth.address)
+				expect(after.seriesStores.optionSeries.strikeAsset)
+					.to.equal(proposedSeries.strikeAsset)
+					.to.equal(usd.address)
+				expect(after.seriesStores.optionSeries.strike).to.equal(proposedSeries.strike)
+				expect(after.netDhvExposure.sub(before.netDhvExposure)).to.equal(amount)
+			})
+			it("SUCCEEDS: migrate option to handler", async () => {
+				const otokens = [optionTokenAlt]
+				const otokenArray = [optionTokenAlt.address]
+				let otokenBalancesEx = [toWei("0"), 0, 0]
+				let otokenBalancesMigEx = [toWei("0"), 0, 0]
+				for (let i = 0; i < otokenArray.length; i++) {
+					expect(await otokens[i].balanceOf(exchange.address)).to.be.gt(0)
+					otokenBalancesEx[i] = await otokens[i].balanceOf(exchange.address)
+					otokenBalancesMigEx[i] = await otokens[i].balanceOf(handler.address)
+				}
+				const tx = await exchange.migrateOtokens(handler.address, otokenArray)
+				for (let i = 0; i < otokenArray.length; i++) {
+					expect(otokenBalancesEx[i].sub(await otokens[i].balanceOf(handler.address))).to.equal(0)
+					expect(await otokens[i].balanceOf(exchange.address)).to.equal(0)
+				}
+				const receipt = await tx.wait()
+				const events = receipt.events
+				const migrateEvent = events?.find(x => x.event == "OtokenMigrated")
+				expect(migrateEvent?.args?.newOptionExchange).to.equal(handler.address)
+				expect(migrateEvent?.args?.otoken).to.equal(oTokenUSDCSXC.address)
+				expect(migrateEvent?.args?.amount).to.equal(otokenBalancesEx[0])
+			})
+			it("SETUP: Creates a buy order", async () => {
+				let customOrderPriceMultiplier = 1
+				const [sender, receiver] = signers
+				const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
+				const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
+				const amount = toWei("10")
+				const orderExpiry = 10
+				const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+				const strikePrice = toWei("1750")
+				const proposedSeries = {
+					expiration: expiration,
+					strike: strikePrice,
+					isPut: CALL_FLAVOR,
+					strikeAsset: usd.address,
+					underlying: weth.address,
+					collateral: usd.address
+				}
+				const localQuote = await calculateOptionQuoteLocallyAlpha(
+					liquidityPool,
+					optionRegistry,
+					usd,
+					priceFeed,
+					proposedSeries,
+					amount
+				)
+				const customOrderPrice = localQuote * customOrderPriceMultiplier
+				const createOrder = await handler.createOrder(
+					proposedSeries,
+					amount,
+					toWei(customOrderPrice.toString()).mul(toWei("1")).div(amount),
+					orderExpiry,
+					senderAddress,
+					false,
+					[toWei("1"), toWei("1")]
+				)
+				const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
+				const lpUSDBalanceAfter = await usd.balanceOf(liquidityPool.address)
+				const receipt = await createOrder.wait()
+				const events = receipt.events
+				const createOrderEvents = events?.find(x => x.event == "OrderCreated")
+				const customOrderId = createOrderEvents?.args?.orderId
+				const order = await handler.orderStores(customOrderId)
+				// check saved order details are correct
+				expect(order.optionSeries.expiration).to.eq(proposedSeries.expiration)
+				expect(order.optionSeries.isPut).to.eq(proposedSeries.isPut)
+				expect(
+					order.optionSeries.strike.sub(proposedSeries.strike.div(oTokenDecimalShift18))
+				).to.be.within(-100, 0)
+				expect(order.optionSeries.underlying).to.eq(proposedSeries.underlying)
+				expect(order.optionSeries.strikeAsset).to.eq(proposedSeries.strikeAsset)
+				expect(order.optionSeries.collateral).to.eq(proposedSeries.collateral)
+				expect(order.amount).to.eq(amount)
+				expect(order.price).to.eq(toWei(customOrderPrice.toString()).mul(toWei("1")).div(amount))
+				expect(order.buyer).to.eq(senderAddress)
+				expect(order.upperSpotMovementRange.sub(toWei("1"))).to.equal(priceQuote)
+				expect(order.lowerSpotMovementRange.add(toWei("1"))).to.equal(priceQuote)
+				expect(order.isBuyBack).to.be.false
+				const seriesInfo = await optionRegistry.getSeriesInfo(order.seriesAddress)
+				// check series info for OToken is correct
+				expect(order.optionSeries.expiration).to.eq(seriesInfo.expiration.toString())
+				expect(order.optionSeries.isPut).to.eq(seriesInfo.isPut)
+				expect(order.optionSeries.strike).to.eq(seriesInfo.strike)
+				expect(await handler.orderIdCounter()).to.eq(1)
+				oToken = (await ethers.getContractAt("Otoken", order.seriesAddress)) as Otoken
+				expect(collateralAllocatedBefore).to.eq(collateralAllocatedAfter)
+				expect(lpUSDBalanceBefore).to.eq(lpUSDBalanceAfter)
+			})
+		})
 		describe("Settles and redeems usd otoken", async () => {
 			it("settles an expired ITM vault", async () => {
 				optionToken = oTokenUSDCXC
@@ -4623,12 +4888,12 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				).to.be.revertedWithCustomError(exchange, "UNAUTHORIZED")
 			})
 			it("SUCCEEDS: migrate options", async () => {
-				const otokens = [oTokenUSDCSXC]
-				const otokenArray = [oTokenUSDCSXC.address]
+				const otokens = [oTokenETH1600C]
+				const otokenArray = [oTokenETH1600C.address]
 				let otokenBalancesEx = [toWei("0"), 0, 0]
 				let otokenBalancesMigEx = [toWei("0"), 0, 0]
 				for (let i = 0; i < otokenArray.length; i++) {
-					expect(await otokens[i].balanceOf(exchange.address)).to.be.gt(0)
+					expect(await otokens[i].balanceOf(exchange.address)).to.be.gt(BigNumber.from(0))
 					otokenBalancesEx[i] = await otokens[i].balanceOf(exchange.address)
 					otokenBalancesMigEx[i] = await otokens[i].balanceOf(migExchange.address)
 				}
@@ -4641,7 +4906,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				const events = receipt.events
 				const migrateEvent = events?.find(x => x.event == "OtokenMigrated")
 				expect(migrateEvent?.args?.newOptionExchange).to.equal(migExchange.address)
-				expect(migrateEvent?.args?.otoken).to.equal(oTokenUSDCSXC.address)
+				expect(migrateEvent?.args?.otoken).to.equal(oTokenETH1600C.address)
 				expect(migrateEvent?.args?.amount).to.equal(otokenBalancesEx[0])
 			})
 		})
