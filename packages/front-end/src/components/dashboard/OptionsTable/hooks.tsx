@@ -123,6 +123,9 @@ const usePositions = () => {
               settleActions {
                   id
               }
+              liquidateActions {
+                id
+              }
               oToken {
                   id
                   symbol
@@ -211,6 +214,8 @@ const usePositions = () => {
           const vault = (rest as ShortPosition)?.vault || { vaultId: "" };
           const settleActions = (rest as ShortPosition)?.settleActions || [];
           const redeemActions = (rest as LongPosition)?.redeemActions || [];
+          const liquidateActions =
+            (rest as ShortPosition)?.liquidateActions || [];
 
           const expired = timeNow > Number(expiryTimestamp);
 
@@ -265,10 +270,12 @@ const usePositions = () => {
           const getStatusMessage = (short: boolean) => {
             if (short) {
               switch (true) {
-                case !active:
-                  return "Closed";
+                case liquidatedShort:
+                  return "Liquidated";
                 case settledShort:
                   return "Settled";
+                case !active:
+                  return "Closed";
                 case buyDisabled:
                   return "Currently Untradeable";
                 case !expired:
@@ -290,10 +297,10 @@ const usePositions = () => {
               }
             } else {
               switch (true) {
-                case !active:
-                  return "Closed";
                 case hasRedeemed:
                   return "Redeemed";
+                case !active:
+                  return "Closed";
                 case sellDisabled:
                   return "Currently Untradeable";
                 case !expired:
@@ -334,6 +341,7 @@ const usePositions = () => {
             Boolean(vault.vaultId) &&
             settleActions.length === 0;
           const settledShort = settleActions.length > 0;
+          const liquidatedShort = liquidateActions.length > 0;
 
           const anyExpiredAction =
             isRedeemable || canSettleShort || settledShort || hasRedeemed;

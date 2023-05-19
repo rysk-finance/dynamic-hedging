@@ -72,6 +72,10 @@ interface ShortPosition {
   settleActions: {
     id: string;
   }[];
+  liquidateActions: {
+    id: string;
+  }[];
+
   oToken: {
     __typename: string;
     id: string;
