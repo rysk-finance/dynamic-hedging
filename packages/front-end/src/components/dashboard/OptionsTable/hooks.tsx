@@ -168,18 +168,18 @@ const usePositions = () => {
   useGraphPolling(data, startPolling);
 
   useEffect(() => {
+    if (isDisconnected) {
+      dispatch({
+        type: ActionType.SET_DASHBOARD,
+        activePositions: [],
+        inactivePositions: [],
+      });
+    }
+
     const constructPositionsData = async () => {
-      setHookLoading(true);
-
-      if (isDisconnected) {
-        dispatch({
-          type: ActionType.SET_DASHBOARD,
-          activePositions: [],
-          inactivePositions: [],
-        });
-      }
-
       if (Object.keys(chainData).length && data && allOracleAssets) {
+        setHookLoading(true);
+
         const timeNow = dayjs().unix();
 
         const parsedActivePositions = [] as ParsedPosition[];
