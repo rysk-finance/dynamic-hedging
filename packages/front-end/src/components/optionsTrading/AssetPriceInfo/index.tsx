@@ -1,4 +1,6 @@
+import dayjs from "dayjs";
 import { AnimatePresence, motion } from "framer-motion";
+import { useCallback } from "react";
 
 import { Question } from "src/Icons";
 import FadeInOut from "src/animation/FadeInOut";
@@ -9,7 +11,8 @@ import { AssetLogos } from "./components/AssetLogos";
 import { CurrentPrice } from "./components/CurrentPrice";
 import { Error } from "./components/Error";
 import { OneDayChange } from "./components/OneDayChange";
-import { usePrice } from "./hooks/usePrice";
+
+const MANUAL_LIMIT_SECONDS = 30;
 
 export const AssetPriceInfo = () => {
   const {
@@ -20,11 +23,23 @@ export const AssetPriceInfo = () => {
       eth24hLow,
       eth24hChange,
       ethPriceError,
+      ethLastUpdateTimestamp,
+      options: { refresh },
     },
     dispatch,
   } = useGlobalContext();
 
-  const [update] = usePrice();
+  const handleManualUpdate = useCallback(() => {
+    const now = dayjs().unix();
+
+    if (now >= ethLastUpdateTimestamp + MANUAL_LIMIT_SECONDS) {
+      refresh();
+      dispatch({
+        type: ActionType.SET_ETH_PRICE_LAST_UPDATED,
+        timestamp: dayjs().unix(),
+      });
+    }
+  }, [ethLastUpdateTimestamp]);
 
   const handleHelpClick = () => {
     dispatch({ type: ActionType.SET_CHAIN_TUTORIAL_INDEX, index: 0 });
@@ -37,7 +52,7 @@ export const AssetPriceInfo = () => {
       <button
         className="w-full h-24 flex items-stretch"
         id="chain-price-info"
-        onClick={update}
+        onClick={handleManualUpdate}
         title="Click to refetch price data."
       >
         <AssetLogos />
