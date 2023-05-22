@@ -18,7 +18,6 @@ import { NewControllerABI } from "src/abis/NewController_ABI";
 import { QueriesEnum } from "src/clients/Apollo/Queries";
 import { Button } from "src/components/shared/Button";
 import { OpynActionType } from "src/enums/OpynActionType";
-import { useGraphPolling } from "src/hooks/useGraphPolling";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
 import {
@@ -59,7 +58,7 @@ const usePositions = () => {
   const [hookLoading, setHookLoading] = useState(false);
 
   // NOTE: Only getting positions opened after redeploy of contracts
-  const { error, data, startPolling } = useQuery<{
+  const { error, data } = useQuery<{
     longPositions: LongPosition[];
     shortPositions: ShortPosition[];
     vaults: {
@@ -167,8 +166,6 @@ const usePositions = () => {
       skip: !address,
     }
   );
-
-  useGraphPolling(data, startPolling);
 
   useEffect(() => {
     if (isDisconnected) {
