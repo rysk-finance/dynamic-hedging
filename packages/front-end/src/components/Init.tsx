@@ -8,7 +8,9 @@ import { useSentry } from "src/hooks/useSentry";
  * Initialiser component to trigger onLoad events:
  * - Initialise Sentry.
  * - Initialise Fathom.
+ * - Initialise user balances.
  * - Initialise state with graph and contract data.
+ * - Initialise polling for latest Ether price.
  *
  * @returns void
  */
