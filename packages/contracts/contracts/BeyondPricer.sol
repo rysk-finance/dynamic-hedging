@@ -36,6 +36,15 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		int buyShort; // when someone buys puts from DHV (we need to short to hedge)
 	}
 
+	struct DeltaBandMultipliers {
+		// array of slippage multipliers for each delta band. e18
+		uint256[] callSlippageGradientMultipliers;
+		uint256[] putSlippageGradientMultipliers;
+		// array of spread multipliers for each delta band. e18
+		uint256[] callSpreadMultipliers;
+		uint256[] putSpreadMultipliers;
+	}
+
 	///////////////////////////
 	/// immutable variables ///
 	///////////////////////////
@@ -69,14 +78,13 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	// reflects the cost of increased collateral used to back these kind of options relative to their price.
 	// represents the width of delta bands to apply slippage multipliers to. e18
 	uint256 public deltaBandWidth;
-	// array of slippage multipliers for each delta band. e18
-	uint256[] public callSlippageGradientMultipliers;
-	uint256[] public putSlippageGradientMultipliers;
 
 	// represents the lending rate of collateral used to collateralise short options by the DHV. denominated in 6 dps
 	uint256 public collateralLendingRate;
 	//  delta borrow rates for spread func. All denominated in 6 dps
 	DeltaBorrowRates public deltaBorrowRates;
+	// multiplier values for spread and slippage delta bands
+	DeltaBandMultipliers internal deltaBandMultipliers;
 
 	//////////////////////////
 	/// constant variables ///
@@ -121,15 +129,18 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		address _addressBook,
 		uint256 _slippageGradient,
 		uint256 _deltaBandWidth,
-		uint256[] memory _callSlippageGradientMultipliers,
-		uint256[] memory _putSlippageGradientMultipliers,
+		DeltaBandMultipliers memory _deltaBandMultipliers,
+		// uint256[] memory _callSlippageGradientMultipliers,
+		// uint256[] memory _putSlippageGradientMultipliers,
+		// uint256[] memory _callSpreadMultipliers,
+		// uint256[] memory _putSpreadMultipliers,
 		uint256 _collateralLendingRate,
 		DeltaBorrowRates memory _deltaBorrowRates
 	) AccessControl(IAuthority(_authority)) {
 		// option delta can span a range of 100, so ensure delta bands match this range
 		if (
-			_callSlippageGradientMultipliers.length != ONE_DELTA / _deltaBandWidth ||
-			_putSlippageGradientMultipliers.length != ONE_DELTA / _deltaBandWidth
+			_deltaBandMultipliers.callSlippageGradientMultipliers.length != ONE_DELTA / _deltaBandWidth ||
+			_deltaBandMultipliers.putSlippageGradientMultipliers.length != ONE_DELTA / _deltaBandWidth
 		) {
 			revert InvalidSlippageGradientMultipliersArrayLength();
 		}
@@ -141,8 +152,17 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		strikeAsset = liquidityPool.strikeAsset();
 		slippageGradient = _slippageGradient;
 		deltaBandWidth = _deltaBandWidth;
-		callSlippageGradientMultipliers = _callSlippageGradientMultipliers;
-		putSlippageGradientMultipliers = _putSlippageGradientMultipliers;
+		// deltaBandMultipliers = DeltaBandMultipliers(
+		// 	_callSlippageGradientMultipliers,
+		// 	_putSlippageGradientMultipliers,
+		// 	_callSpreadMultipliers,
+		// 	_putSpreadMultipliers
+		// );
+		deltaBandMultipliers = _deltaBandMultipliers;
+		// callSlippageGradientMultipliers = _callSlippageGradientMultipliers;
+		// putSlippageGradientMultipliers = _putSlippageGradientMultipliers;
+		// callSpreadMultipliers = _callSpreadMultipliers;
+		// putSpreadMultipliers = _putSpreadMultipliers;
 		collateralLendingRate = _collateralLendingRate;
 		deltaBorrowRates = _deltaBorrowRates;
 	}
@@ -220,8 +240,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 				revert InvalidSlippageGradientMultiplierValue();
 			}
 		}
-		callSlippageGradientMultipliers = _callSlippageGradientMultipliers;
-		putSlippageGradientMultipliers = _putSlippageGradientMultipliers;
+		deltaBandMultipliers.callSlippageGradientMultipliers = _callSlippageGradientMultipliers;
+		deltaBandMultipliers.putSlippageGradientMultipliers = _putSlippageGradientMultipliers;
 		emit SlippageGradientMultipliersChanged();
 	}
 
@@ -281,11 +301,19 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	///////////////////////////
 
 	function getCallSlippageGradientMultipliers() external view returns (uint256[] memory) {
-		return callSlippageGradientMultipliers;
+		return deltaBandMultipliers.callSlippageGradientMultipliers;
 	}
 
 	function getPutSlippageGradientMultipliers() external view returns (uint256[] memory) {
-		return putSlippageGradientMultipliers;
+		return deltaBandMultipliers.putSlippageGradientMultipliers;
+	}
+
+	function getCallSpreadMultipliers() external view returns (uint256[] memory) {
+		return deltaBandMultipliers.callSpreadMultipliers;
+	}
+
+	function getPutSpreadMultipliers() external view returns (uint256[] memory) {
+		return deltaBandMultipliers.putSpreadMultipliers;
 	}
 
 	/**
@@ -336,9 +364,13 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		// integer division rounds down to nearest integer
 		uint256 deltaBandIndex = (uint256(_optionDelta.abs()) * 100) / deltaBandWidth;
 		if (_optionDelta > 0) {
-			modifiedSlippageGradient = slippageGradient.mul(callSlippageGradientMultipliers[deltaBandIndex]);
+			modifiedSlippageGradient = slippageGradient.mul(
+				deltaBandMultipliers.callSlippageGradientMultipliers[deltaBandIndex]
+			);
 		} else {
-			modifiedSlippageGradient = slippageGradient.mul(putSlippageGradientMultipliers[deltaBandIndex]);
+			modifiedSlippageGradient = slippageGradient.mul(
+				deltaBandMultipliers.putSlippageGradientMultipliers[deltaBandIndex]
+			);
 		}
 		if (slippageGradient == 0) {
 			slippageMultiplier = ONE_SCALE;
@@ -427,6 +459,17 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		}
 
 		spreadPremium += deltaBorrowPremium;
+
+		uint256 deltaBandIndex = (uint256(_optionDelta.abs()) * 100) / deltaBandWidth;
+		if (_optionDelta > 0) {
+			spreadPremium = spreadPremium.mul(
+				int(deltaBandMultipliers.callSpreadMultipliers[deltaBandIndex])
+			);
+		} else {
+			spreadPremium = spreadPremium.mul(
+				int(deltaBandMultipliers.putSpreadMultipliers[deltaBandIndex])
+			);
+		}
 	}
 
 	function _getCollateralRequirements(
