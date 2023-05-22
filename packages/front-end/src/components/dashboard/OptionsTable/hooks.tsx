@@ -396,12 +396,13 @@ const usePositions = () => {
                   fee: 0,
                 };
 
-          const diff =
-            anyExpiredAction && isPut
+          const diff = anyExpiredAction
+            ? isPut
               ? Number(fromOpyn(strikePrice)) -
                 Number(fromOpyn(expiryPrice || 0))
               : Number(fromOpyn(expiryPrice || 0)) -
-                Number(fromOpyn(strikePrice));
+                Number(fromOpyn(strikePrice))
+            : 0;
           const expectedPayout =
             diff > 0 ? diff * Number(fromWei(netAmount)) : 0;
 
