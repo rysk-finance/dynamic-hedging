@@ -19,30 +19,32 @@ export const useSentry = () => {
     }
   }, [address]);
 
-  if (appEnv) {
-    init({
-      attachStacktrace: true,
-      dsn: process.env.REACT_APP_SENTRY_DSN,
-      environment: `${appEnv}: client`,
-      ignoreErrors: [
-        /Error: Failed to fetch/,
-        /TypeError: Failed to fetch/,
-        /TypeError: Network request failed/,
-        /TypeError: Load failed/,
-        /ApolloError: Failed to fetch/,
-        /ApolloError: Load failed/,
-        /Non-Error exception captured/,
-        /Non-Error promise rejection/,
-        /NetworkError when attempting to fetch resource/,
-        /user rejected transaction/,
-      ],
-      release: process.env.REACT_APP_VERCEL_GIT_COMMIT_SHA,
-      tracesSampleRate:
-        process.env.REACT_APP_VERCEL_ENV === "production" ? 0.05 : 1,
+  useEffect(() => {
+    if (appEnv) {
+      init({
+        attachStacktrace: true,
+        dsn: process.env.REACT_APP_SENTRY_DSN,
+        environment: `${appEnv}: client`,
+        ignoreErrors: [
+          /Error: Failed to fetch/,
+          /TypeError: Failed to fetch/,
+          /TypeError: Network request failed/,
+          /TypeError: Load failed/,
+          /ApolloError: Failed to fetch/,
+          /ApolloError: Load failed/,
+          /Non-Error exception captured/,
+          /Non-Error promise rejection/,
+          /NetworkError when attempting to fetch resource/,
+          /user rejected transaction/,
+        ],
+        release: process.env.REACT_APP_VERCEL_GIT_COMMIT_SHA,
+        tracesSampleRate:
+          process.env.REACT_APP_VERCEL_ENV === "production" ? 0.05 : 1,
 
-      beforeBreadcrumb: (breadcrumb, hint) => {
-        return hint?.level === "warn" ? null : breadcrumb;
-      },
-    });
-  }
+        beforeBreadcrumb: (breadcrumb, hint) => {
+          return hint?.level === "warn" ? null : breadcrumb;
+        },
+      });
+    }
+  }, [appEnv]);
 };
