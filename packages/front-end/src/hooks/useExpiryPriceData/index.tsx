@@ -42,7 +42,6 @@ export function useExpiryPriceData() {
     {
       onCompleted: getOracleAssetsAndPricers,
       onError: logError,
-      context: { clientName: "opyn" },
     }
   );
 
