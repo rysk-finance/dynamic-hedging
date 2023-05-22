@@ -28,7 +28,7 @@
         "greeks": "^1.0.0"
     },
     "devDependencies": {
-        "@types/node": "^16.x.x",
+        "@types/node": "^18.x.x",
         "@typescript-eslint/eslint-plugin": "^5.59.6",
         "@typescript-eslint/parser": "^5.59.6",
         "dotenv": "^16.0.3",
