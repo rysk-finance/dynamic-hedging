@@ -32,6 +32,7 @@ export const defaultGlobalState: GlobalState = {
   eth24hLow: null,
   ethPriceUpdateTime: null,
   ethPriceError: false,
+  ethLastUpdateTimestamp: 0,
   userPositionValue: null,
   positionBreakdown: {
     redeemedShares: null,
