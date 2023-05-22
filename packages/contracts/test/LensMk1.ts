@@ -33,6 +33,7 @@ import {
 	OtokenFactory,
 	PriceFeed,
 	Protocol,
+	UserPositionLensMK1,
 	VolatilityFeed,
 	WETH
 } from "../types"
@@ -69,6 +70,7 @@ let pricer: BeyondPricer
 let authority: string
 let catalogue: OptionCatalogue
 let lens: DHVLensMK1
+let userLens: UserPositionLensMK1
 
 /* --- variables to change --- */
 
@@ -271,6 +273,13 @@ describe("Lens", async () => {
 				usd.address
 			)) as DHVLensMK1
 		})
+
+		it("SETUP: deploy user lens contract", async () => {
+			const lensFactory = await ethers.getContractFactory("UserPositionLensMK1")
+			userLens = (await lensFactory.deploy(
+				addressBook.address,
+			)) as UserPositionLensMK1
+		})
 	})
 	describe("Purchase a bunch of random options", async () => {
 		it("SETUP: approve series", async () => {
@@ -321,7 +330,7 @@ describe("Lens", async () => {
 				},
 				{
 					expiration: expiration,
-					isPut: PUT_FLAVOR,
+					isPut: CALL_FLAVOR,
 					strike: toWei("1650"),
 					isSellable: true,
 					isBuyable: true
@@ -495,6 +504,126 @@ describe("Lens", async () => {
 				}
 			])
 		})
+		it("SUCCEEDS: LP Sells a ETH/USD call for premium with otoken created outside", async () => {
+			const amount = toWei("5")
+			const strikePrice = toWei("1650")
+			const proposedSeries = {
+				expiration: expiration,
+				strike: strikePrice,
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
+			await compareQuotes(
+				quoteResponse,
+				liquidityPool,
+				optionProtocol,
+				volFeed,
+				priceFeed,
+				proposedSeries,
+				amount,
+				true,
+				exchange,
+				optionRegistry,
+				usd,
+				pricer,
+				toWei("0")
+			)
+			let quote = quoteResponse[0].sub(quoteResponse[2])
+			const otokenFactory = (await ethers.getContractAt(
+				"OtokenFactory",
+				await addressBook.getOtokenFactory()
+			)) as OtokenFactory
+			const otoken = await otokenFactory.callStatic.createOtoken(
+				proposedSeries.underlying,
+				proposedSeries.strikeAsset,
+				proposedSeries.collateral,
+				proposedSeries.strike.div(ethers.utils.parseUnits("1", 10)),
+				proposedSeries.expiration,
+				proposedSeries.isPut
+			)
+			await otokenFactory.createOtoken(
+				proposedSeries.underlying,
+				proposedSeries.strikeAsset,
+				proposedSeries.collateral,
+				proposedSeries.strike.div(ethers.utils.parseUnits("1", 10)),
+				proposedSeries.expiration,
+				proposedSeries.isPut
+			)
+			const marginRequirement = await (
+				await optionRegistry.getCollateral(
+					{
+						expiration: proposedSeries.expiration,
+						strike: proposedSeries.strike.div(ethers.utils.parseUnits("1", 10)),
+						isPut: proposedSeries.isPut,
+						strikeAsset: proposedSeries.strikeAsset,
+						underlying: proposedSeries.underlying,
+						collateral: proposedSeries.collateral
+					},
+					amount
+				)
+			).add(toUSDC("100"))
+			await usd.approve(MARGIN_POOL[chainId], marginRequirement)
+			const vaultId = await (await controller.getAccountVaultCounter(senderAddress)).add(1)
+			await exchange.operate([
+				{
+					operation: 0,
+					operationQueue: [
+						{
+							actionType: 0,
+							owner: senderAddress,
+							secondAddress: senderAddress,
+							asset: ZERO_ADDRESS,
+							vaultId: vaultId,
+							amount: 0,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: abiCode.encode(["uint256"], [1])
+						},
+						{
+							actionType: 5,
+							owner: senderAddress,
+							secondAddress: senderAddress,
+							asset: proposedSeries.collateral,
+							vaultId: vaultId,
+							amount: marginRequirement,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: ZERO_ADDRESS
+						},
+						{
+							actionType: 1,
+							owner: senderAddress,
+							secondAddress: exchange.address,
+							asset: otoken,
+							vaultId: vaultId,
+							amount: amount.div(ethers.utils.parseUnits("1", 10)),
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: ZERO_ADDRESS
+						}
+					]
+				},
+				{
+					operation: 1,
+					operationQueue: [
+						{
+							actionType: 2,
+							owner: ZERO_ADDRESS,
+							secondAddress: senderAddress,
+							asset: ZERO_ADDRESS,
+							vaultId: 0,
+							amount: amount,
+							optionSeries: proposedSeries,
+							indexOrAcceptablePremium: 0,
+							data: "0x"
+						}
+					]
+				}
+			])
+		})
 		it("buy option", async () => {
 			const amount = toWei("5")
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -538,6 +667,12 @@ describe("Lens", async () => {
 				}
 			])
 		})
+		describe("Hit the user Lens", async () => {
+			it("ping the lens contract", async () => {
+				const lensVals = await userLens.getVaultsForUser(senderAddress)
+				console.log({lensVals})
+			})
+		})
 		describe("Hit the Lens", async () => {
 			it("ping the lens contract", async () => {
 				const lensVals = await lens.getOptionChain()
@@ -578,5 +713,19 @@ describe("Lens", async () => {
 				// console.log({lensVals})
 			})
 		})
+
+		describe("Hit the user Lens", async () => {
+			it("ping the lens contract", async () => {
+				const lensVals = await userLens.getVaultsForUser(senderAddress)
+				console.log({lensVals})
+			})
+			it("ping the lens contract other func", async () => {
+				const lensValsI = await userLens.getVaultsForUser(senderAddress)
+				const lensVals = await userLens.getVaultsForUserAndOtoken(senderAddress, lensValsI[1].otoken)
+				console.log({lensVals})
+				console.log(await userLens.getVaultsForUserAndOtoken(senderAddress, senderAddress))
+			})
+		})
+
 	})
 })
