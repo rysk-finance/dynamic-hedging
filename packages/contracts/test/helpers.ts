@@ -770,11 +770,11 @@ export async function applySlippageLocally(
 	if (parseFloat(fromWei(optionDelta)) < 0) {
 		modifiedSlippageGradient =
 			parseFloat(fromWei(slippageGradient)) *
-			parseFloat(fromWei(await beyondPricer.putSlippageGradientMultipliers(deltaBandIndex)))
+			parseFloat(fromWei((await beyondPricer.getPutSlippageGradientMultipliers())[deltaBandIndex]))
 	} else {
 		modifiedSlippageGradient =
 			parseFloat(fromWei(slippageGradient)) *
-			parseFloat(fromWei(await beyondPricer.callSlippageGradientMultipliers(deltaBandIndex)))
+			parseFloat(fromWei((await beyondPricer.getCallSlippageGradientMultipliers())[deltaBandIndex]))
 	}
 	if (slippageGradient.eq(BigNumber.from(0))) {
 		return 1
