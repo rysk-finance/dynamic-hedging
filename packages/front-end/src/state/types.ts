@@ -132,6 +132,7 @@ export type GlobalState = {
   eth24hLow: number | null;
   ethPriceUpdateTime: Date | null;
   ethPriceError: boolean;
+  ethLastUpdateTimestamp: number;
   userPositionValue: BigNumber | null;
   positionBreakdown: {
     redeemedShares: BigNumber | null;
@@ -186,6 +187,7 @@ export type GlobalState = {
 export enum ActionType {
   SET_ETH_PRICE,
   SET_ETH_PRICE_ERROR,
+  SET_ETH_PRICE_LAST_UPDATED,
   SET_POSITION_VALUE,
   SET_POSITION_BREAKDOWN,
   SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE,
@@ -235,6 +237,10 @@ export type GlobalAction =
   | {
       type: ActionType.SET_ETH_PRICE_ERROR;
       error: boolean;
+    }
+  | {
+      type: ActionType.SET_ETH_PRICE_LAST_UPDATED;
+      timestamp: number;
     }
   | {
       type: ActionType.SET_POSITION_VALUE;
