@@ -387,7 +387,12 @@ describe("Authority tests", async () => {
 			expect(await pricer.collateralLendingRate()).to.eq(1000000)
 		})
 		it("SUCCEEDS: sets DeltaBorrowRate in beyond pricer", async () => {
-			await managerContract.setDeltaBorrowRates({sellLong: 1000001, sellShort:1000002, buyLong:1000003, buyShort:1000004})
+			await managerContract.setDeltaBorrowRates({
+				sellLong: 1000001,
+				sellShort: 1000002,
+				buyLong: 1000003,
+				buyShort: 1000004
+			})
 			expect((await pricer.deltaBorrowRates()).sellLong).to.eq(1000001)
 			expect((await pricer.deltaBorrowRates()).sellShort).to.eq(1000002)
 			expect((await pricer.deltaBorrowRates()).buyLong).to.eq(1000003)
@@ -402,7 +407,7 @@ describe("Authority tests", async () => {
 			expect(await pricer.deltaBandWidth()).to.eq(utils.parseEther("25"))
 		})
 		it("SUCCEEDS: sets slippageMultipliers in beyond pricer", async () => {
-			expect(await pricer.callSlippageGradientMultipliers(0)).to.eq(utils.parseEther("1"))
+			expect((await pricer.getCallSlippageGradientMultipliers())[0]).to.eq(utils.parseEther("1"))
 			await managerContract.setSlippageGradientMultipliers(
 				[
 					utils.parseEther("10"),
@@ -412,7 +417,7 @@ describe("Authority tests", async () => {
 				],
 				[utils.parseEther("10"), utils.parseEther("20"), utils.parseEther("30"), utils.parseEther("40")]
 			)
-			expect(await pricer.callSlippageGradientMultipliers(0)).to.eq(utils.parseEther("10"))
+			expect((await pricer.getCallSlippageGradientMultipliers())[0]).to.eq(utils.parseEther("10"))
 		})
 	})
 })
