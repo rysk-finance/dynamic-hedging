@@ -1,6 +1,7 @@
 import { useBalances } from "src/hooks/useBalances";
 import useFathom from "src/hooks/useFathom";
 import { useInitialData } from "src/hooks/useInitialData";
+import { useLatestEthPrice } from "src/hooks/useLatestEthPrice/useLatestEthPrice";
 import { useSentry } from "src/hooks/useSentry";
 
 /**
@@ -17,6 +18,7 @@ export const Init = () => {
 
   useBalances();
   useInitialData();
+  useLatestEthPrice();
 
   return null;
 };
