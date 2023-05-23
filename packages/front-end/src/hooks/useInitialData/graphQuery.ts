@@ -60,16 +60,5 @@ query ${QueriesEnum.INITIAL_DATA} ($address: String, $now: String) {
       } 
     }
   }
-
-  vaults(
-    orderBy: vaultId,
-    orderDirection: desc,
-    where: { owner: $address }
-  ) {
-    vaultId
-    shortOToken {
-      id 
-    }
-  }
 }
 `;
