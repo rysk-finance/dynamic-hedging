@@ -4703,7 +4703,6 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(order.optionSeries.isPut).to.eq(seriesInfo.isPut)
 				expect(order.optionSeries.strike).to.eq(seriesInfo.strike)
 				expect(await handler.orderIdCounter()).to.eq(2)
-				oToken = (await ethers.getContractAt("Otoken", order.seriesAddress)) as Otoken
 				expect(collateralAllocatedBefore).to.eq(collateralAllocatedAfter)
 				expect(lpUSDBalanceBefore).to.eq(lpUSDBalanceAfter)
 			})
