@@ -134,7 +134,6 @@ export const CloseOptionModal = () => {
               !addresses.token ||
               transactionPending
             }
-            requiresConnection
             {...FadeInOutQuick}
             {...getButtonProps(
               "sell",
