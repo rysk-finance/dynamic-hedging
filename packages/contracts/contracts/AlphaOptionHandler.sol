@@ -144,9 +144,8 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		if (_orderExpiry > maxOrderExpiry) {
 			revert CustomErrors.OrderExpiryTooLong();
 		}
-		IOptionRegistry optionRegistry = getOptionRegistry();
 		// issue the option type, all checks of the option validity should happen in _issue
-		address series = optionRegistry.getOtoken(
+		address series = getOptionRegistry().getOtoken(
 				_optionSeries.underlying,
 				_optionSeries.strikeAsset,
 				_optionSeries.expiration,
@@ -154,13 +153,22 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 				_optionSeries.strike,
 				_optionSeries.collateral
 		);
+		// TODO: test for non existent otoken to make sure it doesnt brick here
 		if (series == address(0) || ERC20(series).balanceOf(address(this)) < _amount) {
 			series = liquidityPool.handlerIssue(_optionSeries);
 		}
 		uint256 spotPrice = _getUnderlyingPrice(underlyingAsset, strikeAsset);
+		_optionSeries = Types.OptionSeries(
+				_optionSeries.expiration,
+				uint128(OptionsCompute.formatStrikePrice(_optionSeries.strike, collateralAsset)),
+				_optionSeries.isPut,
+				_optionSeries.underlying,
+				_optionSeries.strikeAsset,
+				_optionSeries.collateral
+		);
 		// create the order struct, setting the series, amount, price, order expiry and buyer address
 		Types.Order memory order = Types.Order(
-			optionRegistry.getSeriesInfo(series), // strike in e8
+			_optionSeries, // strike in e8
 			_amount, // amount in e18
 			_price, // in e18
 			block.timestamp + _orderExpiry,
