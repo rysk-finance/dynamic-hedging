@@ -1,11 +1,13 @@
 name: Hardhat
 
 on:
-  push:
+  pull_request:
     paths:
       - "packages/contracts/**"
       - "package.json"
       - ".github/workflows/hardhat.yml"
+
+  workflow_dispatch:
 
 defaults:
   run:
@@ -13,7 +15,9 @@ defaults:
 
 jobs:
   test:
+    name: Test
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       ALCHEMY: ${{ secrets.ALCHEMY }}
       TEST_MNEMONIC: ${{ secrets.TEST_MNEMONIC }}
@@ -21,6 +25,11 @@ jobs:
       ARBITRUM_GOERLI: ${{ secrets.ARBITRUM_GOERLI }}
 
     steps:
+      - name: Cancel old runs
+        uses: styfle/cancel-workflow-action@0.9.1
+        with:
+          access_token: ${{ github.token }}
+
       - uses: actions/checkout@v3
       - uses: actions/setup-node@v3
         with:
