@@ -146,7 +146,6 @@ export const CloseShortOptionModal = () => {
               transactionPending ||
               loading
             }
-            requiresConnection
             {...FadeInOutQuick}
             {...getButtonProps(
               "close",
