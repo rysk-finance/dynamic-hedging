@@ -20,6 +20,7 @@ import { getImpliedVolatility } from "implied-volatility";
 import { DHVLensMK1ABI } from "src/abis/DHVLensMK1_ABI";
 import { NewControllerABI } from "src/abis/NewController_ABI";
 import { NewMarginCalculatorABI } from "src/abis/NewMarginCalculator_ABI";
+import { UserPositionLensMK1ABI } from "src/abis/UserPositionLensMK1_ABI";
 import {
   defaultSpotShock,
   defaultTimesToExpiry,
@@ -294,15 +295,28 @@ const getOperatorStatus = async (address?: HexString) => {
   }
 };
 
-const getUserVaults = (vaults: Vault[]) => {
-  return vaults.reduce(
-    (acc, curr) => {
-      if (curr.shortOToken) {
-        acc[curr.shortOToken.id] = curr.vaultId;
-      }
-      acc.length++;
+const getUserVaults = async (address?: HexString) => {
+  const userPositionsLens = getContractAddress("UserPositionLens");
 
-      return acc;
+  if (!address) {
+    return { length: 0 };
+  }
+
+  const vaults = await readContract({
+    address: userPositionsLens,
+    abi: UserPositionLensMK1ABI,
+    functionName: "getVaultsForUser",
+    args: [address],
+  });
+
+  return vaults.reduce(
+    (userVaults, currentVault) => {
+      const address = currentVault.otoken.toLowerCase() as HexString;
+
+      userVaults[address] = currentVault.vaultId.toString();
+      userVaults.length = userVaults.length + 1;
+
+      return userVaults;
     },
     { length: 0 } as UserVaults
   );
@@ -393,7 +407,7 @@ export const getInitialData = async (
   const isOperator = await getOperatorStatus(address);
 
   // Get all user short position vaults.
-  const userVaults = getUserVaults(data.vaults);
+  const userVaults = await getUserVaults(address);
 
   // Get required parameters for calculating liquidation price of shorts.
   const liquidationParameters = await getLiquidationCalculationParameters();
