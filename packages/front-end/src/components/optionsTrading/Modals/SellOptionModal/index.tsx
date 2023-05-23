@@ -175,7 +175,6 @@ export const SellOptionModal = () => {
             transactionPending ||
             loading
           }
-          requiresConnection
           id="sell-button"
           {...getButtonProps(
             "sell",
