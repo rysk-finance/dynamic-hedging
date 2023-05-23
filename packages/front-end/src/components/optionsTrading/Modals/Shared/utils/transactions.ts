@@ -201,7 +201,7 @@ export const sell = async (
   // Get vaultId from global state or assign next available.
   const vaultId = hasVault
     ? BigNumber.from(vaults[vaultKey])
-    : BigNumber.from(++vaults.length);
+    : BigNumber.from(vaults.length + 1);
 
   const openVaultData = {
     actionType: BigNumber.from(OpynActionType.OpenVault),
