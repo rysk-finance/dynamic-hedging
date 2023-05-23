@@ -20,6 +20,7 @@ cp \
 ./types/OptionCatalogue.ts \
 ./types/BeyondPricer.ts \
 ./types/DHVLensMK1.ts \
+./types/UserPositionLensMK1.ts \
 ../front-end/src/types/
 
 # Clean out the ABIs directory.
@@ -40,7 +41,7 @@ do
 done
 
 # Copy lens contract ABIs.
-for FILE_NAME in 'DHVLensMK1'
+for FILE_NAME in 'DHVLensMK1' 'UserPositionLensMK1'
 do
     ABI=$(jq --indent 4 --tab '.abi' ./artifacts/contracts/lens/$FILE_NAME.sol/$FILE_NAME.json)
 
