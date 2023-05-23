@@ -50,6 +50,7 @@ export type RyskContractAddresses = {
   optionExchange: string;
   optionCatalogue: string;
   DHVLens: string;
+  UserPositionLens: string;
 };
 
 export type ExternalContractAddresses = {
