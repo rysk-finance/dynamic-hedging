@@ -4697,11 +4697,11 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(order.upperSpotMovementRange.sub(toWei("1"))).to.equal(priceQuote)
 				expect(order.lowerSpotMovementRange.add(toWei("1"))).to.equal(priceQuote)
 				expect(order.isBuyBack).to.be.false
-				const seriesInfo = await optionRegistry.getSeriesInfo(order.seriesAddress)
+				const seriesInfo = proposedSeries
 				// check series info for OToken is correct
 				expect(order.optionSeries.expiration).to.eq(seriesInfo.expiration.toString())
 				expect(order.optionSeries.isPut).to.eq(seriesInfo.isPut)
-				expect(order.optionSeries.strike).to.eq(seriesInfo.strike)
+				expect(fromOpyn(order.optionSeries.strike)).to.eq(fromWei(seriesInfo.strike))
 				expect(await handler.orderIdCounter()).to.eq(2)
 				expect(collateralAllocatedBefore).to.eq(collateralAllocatedAfter)
 				expect(lpUSDBalanceBefore).to.eq(lpUSDBalanceAfter)
