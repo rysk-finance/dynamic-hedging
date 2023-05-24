@@ -9,5 +9,6 @@ module.exports = {
 		cse: false,
 		constantOptimizer: false,
 		yul: false
-	}
+	},
+	skipFiles: ["vendor", "packages"]
 }
