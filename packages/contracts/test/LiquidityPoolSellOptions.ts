@@ -4640,8 +4640,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(migrateEvent?.args?.otoken).to.equal(oTokenUSDCSXC.address)
 				expect(migrateEvent?.args?.amount).to.equal(otokenBalancesEx[0])
 			})
+			let customOrderPrice: number
 			it("SETUP: Creates a buy order", async () => {
-				let customOrderPriceMultiplier = 1
 				const [sender, receiver] = signers
 				const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
 				const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
@@ -4665,7 +4665,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					proposedSeries,
 					amount
 				)
-				const customOrderPrice = localQuote * customOrderPriceMultiplier
+				customOrderPrice = localQuote
 				const createOrder = await handler.createOrder(
 					proposedSeries,
 					amount,
@@ -4705,6 +4705,103 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(await handler.orderIdCounter()).to.eq(2)
 				expect(collateralAllocatedBefore).to.eq(collateralAllocatedAfter)
 				expect(lpUSDBalanceBefore).to.eq(lpUSDBalanceAfter)
+				optionToken = (await ethers.getContractAt("Otoken", order.seriesAddress)) as Otoken
+			})
+			it("SETUP: Executes a buy order", async () => {
+				const lpUSDBalanceBefore = await usd.balanceOf(liquidityPool.address)
+				const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
+				const buyerBalBefore = await usd.balanceOf(senderAddress)
+				const senderBalBefore = await usd.balanceOf(senderAddress)
+				const senderOTokenBalBefore = await optionToken.balanceOf(senderAddress)
+				const orderDeets = await handler.orderStores(2)
+				const ephemeralLiabilitiesBefore = await liquidityPool.ephemeralLiabilities()
+				const addressSetLengthBefore = await portfolioValuesFeed.addressSetLength()
+				const netDhvExposureBefore = await getNetDhvExposure(
+					orderDeets.optionSeries.strike.mul(utils.parseUnits("1", 10)),
+					orderDeets.optionSeries.collateral,
+					catalogue,
+					portfolioValuesFeed,
+					orderDeets.optionSeries.expiration,
+					orderDeets.optionSeries.isPut
+				)
+				expect(netDhvExposureBefore).to.equal(toWei("10"))
+				const shortExposureBefore = (await portfolioValuesFeed.storesForAddress(orderDeets.seriesAddress)).shortExposure
+				const longExposureBefore = (await portfolioValuesFeed.storesForAddress(orderDeets.seriesAddress)).longExposure
+				const localQuote = await calculateOptionQuoteLocallyAlpha(
+					liquidityPool,
+					optionRegistry,
+					usd,
+					priceFeed,
+					{
+						expiration: orderDeets.optionSeries.expiration.toNumber(),
+						strike: orderDeets.optionSeries.strike.mul(10 ** 10), // format to e18
+						isPut: orderDeets.optionSeries.isPut,
+						underlying: orderDeets.optionSeries.underlying,
+						strikeAsset: orderDeets.optionSeries.strikeAsset,
+						collateral: orderDeets.optionSeries.collateral
+					},
+					orderDeets.amount,
+					false
+				)
+				await usd.approve(handler.address, 100000000000)
+				await optionToken.approve(handler.address, toOpyn(fromWei(orderDeets.amount)))
+				await handler.executeOrder(2)
+				// check ephemeral values update correctly
+				const ephemeralLiabilitiesDiff =
+					tFormatEth(await liquidityPool.ephemeralLiabilities()) - tFormatEth(ephemeralLiabilitiesBefore)
+				expect(percentDiff(ephemeralLiabilitiesDiff, localQuote)).to.be.within(-0.1, 0.1)
+				const senderOTokenBalAfter = await optionToken.balanceOf(senderAddress)
+				const lpUSDBalanceAfter = await usd.balanceOf(liquidityPool.address)
+				const lpOTokenBalAfter = await optionToken.balanceOf(liquidityPool.address)
+				const buyerBalAfter = await usd.balanceOf(senderAddress)
+				const senderBalAfter = await usd.balanceOf(senderAddress)
+				const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
+				const netDhvExposureAfter = await getNetDhvExposure(
+					orderDeets.optionSeries.strike.mul(utils.parseUnits("1", 10)),
+					orderDeets.optionSeries.collateral,
+					catalogue,
+					portfolioValuesFeed,
+					orderDeets.optionSeries.expiration,
+					orderDeets.optionSeries.isPut
+				)
+				const collateralAllocatedDiff = tFormatUSDC(
+					collateralAllocatedAfter.sub(collateralAllocatedBefore)
+				)
+				const buyerUSDBalanceDiff = buyerBalBefore.sub(buyerBalAfter)
+				const lpUSDBalanceDiff = lpUSDBalanceAfter.sub(lpUSDBalanceBefore)
+	
+				const order = await handler.orderStores(2)
+				const shortExposureAfter = (await portfolioValuesFeed.storesForAddress(orderDeets.seriesAddress)).shortExposure
+				const longExposureAfter = (await portfolioValuesFeed.storesForAddress(orderDeets.seriesAddress)).longExposure
+				// order should be non existant
+				expect(order.buyer).to.eq(ZERO_ADDRESS)
+				// check buyer's OToken balance increases by correct amount
+				expect(fromOpyn(senderOTokenBalAfter.sub(senderOTokenBalBefore).toString())).to.eq(
+					fromWei(orderDeets.amount.toString())
+				)
+				// liquidity pool holds no tokens
+				expect(lpOTokenBalAfter).to.eq(0)
+				expect(
+					tFormatUSDC(buyerUSDBalanceDiff) -
+						parseFloat(fromWei(orderDeets.amount)) * tFormatEth(orderDeets.price)
+				).to.be.within(-0.01, 0.01)
+				// check collateralAllocated is correct
+				expect(collateralAllocatedDiff).to.eq(0)
+				// check buyer's USD balance decreases by correct amount
+				expect(
+					senderBalBefore
+						.sub(senderBalAfter)
+						.sub(BigNumber.from(Math.floor(customOrderPrice * 10 ** 6).toString()))
+				).to.be.within(-1, 1)
+				// check liquidity pool USD balance increases by agreed price minus collateral
+				expect(
+					tFormatUSDC(lpUSDBalanceDiff) -
+						(tFormatEth(orderDeets.amount) * tFormatEth(orderDeets.price))
+				).to.be.within(-0.015, 0.015)
+				expect(await portfolioValuesFeed.addressSetLength()).to.equal(addressSetLengthBefore)
+				expect(netDhvExposureBefore.sub(netDhvExposureAfter)).to.equal(orderDeets.amount)
+				expect(shortExposureBefore).to.equal(shortExposureAfter)
+				expect(longExposureBefore.sub(orderDeets.amount)).to.equal(longExposureAfter)
 			})
 		})
 		describe("Settles and redeems usd otoken", async () => {
