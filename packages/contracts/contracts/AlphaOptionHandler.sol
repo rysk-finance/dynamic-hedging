@@ -20,6 +20,7 @@ import "./interfaces/IAlphaPortfolioValuesFeed.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 
+import "hardhat/console.sol";
 /**
  *  @title Contract used for all user facing options interactions
  *  @dev Interacts with liquidityPool to write options and quote their prices.
@@ -110,9 +111,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	//////////////////////////////////////////////////////
 	/// access-controlled state changing functionality ///
 	//////////////////////////////////////////////////////
-	function _getSeries(Types.OptionSeries memory _optionSeries) external returns (address) {
 
-	}
 	/**
 	 * @notice creates an order for a number of options from the pool to a specified user. The function
 	 *      is intended to be used to issue options to market makers/ OTC market participants
@@ -154,7 +153,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 				_optionSeries.collateral
 		);
 		// TODO: test for non existent otoken to make sure it doesnt brick here
-		if (series == address(0) || ERC20(series).balanceOf(address(this)) < _amount) {
+		if (series == address(0) || ERC20(series).balanceOf(address(this)) < OptionsCompute.convertToDecimals(_amount, OPYN_DECIMALS)) {
 			series = liquidityPool.handlerIssue(_optionSeries);
 		}
 		uint256 spotPrice = _getUnderlyingPrice(underlyingAsset, strikeAsset);
