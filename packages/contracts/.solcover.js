@@ -10,5 +10,5 @@ module.exports = {
 		constantOptimizer: false,
 		yul: false
 	},
-	skipFiles: ["vendor", "packages"]
+	skipFiles: ["vendor", "packages", "mocks", "tokens", "utils"]
 }
