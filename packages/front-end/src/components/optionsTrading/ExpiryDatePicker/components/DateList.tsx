@@ -2,11 +2,14 @@ import type { UserPositions } from "src/state/types";
 import type { DateListProps } from "../types";
 
 import dayjs from "dayjs";
+import duration from "dayjs/plugin/duration";
 import { AnimatePresence, motion } from "framer-motion";
 
 import FadeInOutFixedDelay from "src/animation/FadeInOutFixedDelay";
 import { DownChevron, UpChevron } from "src/Icons";
 import { useGlobalContext } from "src/state/GlobalContext";
+
+dayjs.extend(duration);
 
 const getTitle = (positions?: UserPositions["expiry"]) => {
   switch (true) {
@@ -39,6 +42,11 @@ export const DateList = ({
       <AnimatePresence initial={false} mode="popLayout">
         {expiries.map((timestamp, index) => {
           const datetime = dayjs.unix(Number(timestamp));
+          const duration = dayjs.duration(datetime.diff(dayjs()));
+          const daysRemaining = Math.floor(duration.asDays());
+          const hoursRemaining = duration.hours();
+          const minutesRemaining = duration.minutes();
+
           const [min, max] = visibleRange;
           const positions = userPositions[timestamp];
 
@@ -53,29 +61,35 @@ export const DateList = ({
                 {...FadeInOutFixedDelay}
               >
                 <button
-                  className="flex items-center justify-center w-full py-3"
+                  className="flex flex-col items-center justify-center w-full h-14"
                   title={getTitle(positions)}
                 >
-                  <UpChevron
-                    className={`min-w-6 h-6 stroke-green-500 ${
-                      !positions?.isLong && "opacity-0"
-                    }`}
-                    strokeWidth={4}
-                  />
+                  <div className="flex">
+                    <DownChevron
+                      className={`min-w-6 h-6 stroke-red-500 ${
+                        !positions?.isShort && "opacity-0"
+                      }`}
+                      strokeWidth={4}
+                    />
 
-                  <time
-                    className="mx-4 text-sm xl:text-base"
-                    dateTime={datetime.format("YYYY-MM-DD")}
-                  >
-                    {`${datetime.format("DD MMM YY")}`}
-                  </time>
+                    <time
+                      className="mx-2 text-sm xl:text-base"
+                      dateTime={datetime.format("YYYY-MM-DD")}
+                    >
+                      {`${datetime.format("DD MMM YY")}`}
+                    </time>
 
-                  <DownChevron
-                    className={`min-w-6 h-6 stroke-red-500 ${
-                      !positions?.isShort && "opacity-0"
-                    }`}
-                    strokeWidth={4}
-                  />
+                    <UpChevron
+                      className={`min-w-6 h-6 stroke-green-500 ${
+                        !positions?.isLong && "opacity-0"
+                      }`}
+                      strokeWidth={4}
+                    />
+                  </div>
+
+                  <small className={`text-xs mt-1 `}>
+                    {`${daysRemaining} days, ${hoursRemaining} hours, ${minutesRemaining} mins`}
+                  </small>
                 </button>
               </motion.li>
             );
