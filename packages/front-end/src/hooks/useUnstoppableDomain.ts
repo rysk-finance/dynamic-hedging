@@ -1,12 +1,33 @@
 import { Resolution } from "@unstoppabledomains/resolution";
 import { getAccount } from "@wagmi/core";
 import { useEffect } from "react";
+import { mainnet, polygon } from "wagmi/chains";
 
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
 import { logError } from "src/utils/logError";
 
-export const resolution = new Resolution();
+const [L1, L2] = [mainnet, polygon].map(
+  (network) =>
+    `${network.rpcUrls.alchemy.http}/${process.env.REACT_APP_ALCHEMY_KEY}/`
+);
+
+const resolution = new Resolution({
+  sourceConfig: {
+    uns: {
+      locations: {
+        Layer1: {
+          url: L1,
+          network: "mainnet",
+        },
+        Layer2: {
+          url: L2,
+          network: "polygon-mainnet",
+        },
+      },
+    },
+  },
+});
 
 export const useUnstoppableDomain = () => {
   const { dispatch } = useGlobalContext();
