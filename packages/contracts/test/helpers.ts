@@ -118,6 +118,7 @@ export async function compareQuotes(
 		amount,
 		isSell
 	)
+
 	const localQuote = await localQuoteOptionPrice(
 		liquidityPool,
 		volFeed,
@@ -747,6 +748,9 @@ export async function applySlippageLocally(
 	isSell: boolean = false, // from perspective of user
 	netDhvExposure: BigNumberish = 1
 ) {
+	const blockNum = await ethers.provider.getBlockNumber()
+	const block = await ethers.provider.getBlock(blockNum)
+	const { timestamp } = block
 	const formattedStrikePrice = optionSeries.strike
 		.div(ethers.utils.parseUnits("1", 12))
 		.mul(ethers.utils.parseUnits("1", 12))
@@ -767,14 +771,23 @@ export async function applySlippageLocally(
 		(parseFloat(fromWei(optionDelta.abs())) * 100) /
 			parseFloat(fromWei(await beyondPricer.deltaBandWidth()))
 	)
+	const maxTenorValue = await beyondPricer.maxTenorValue()
+	const tenorIndex = Math.round(
+		(Math.sqrt(optionSeries.expiration - timestamp) / maxTenorValue) * 10
+	)
+	console.log({ tenorIndex, maxTenorValue, expiration: optionSeries.expiration, timestamp })
 	if (parseFloat(fromWei(optionDelta)) < 0) {
 		modifiedSlippageGradient =
 			parseFloat(fromWei(slippageGradient)) *
-			parseFloat(fromWei((await beyondPricer.getPutSlippageGradientMultipliers())[deltaBandIndex]))
+			parseFloat(
+				fromWei((await beyondPricer.getPutSlippageGradientMultipliers(tenorIndex))[deltaBandIndex])
+			)
 	} else {
 		modifiedSlippageGradient =
 			parseFloat(fromWei(slippageGradient)) *
-			parseFloat(fromWei((await beyondPricer.getCallSlippageGradientMultipliers())[deltaBandIndex]))
+			parseFloat(
+				fromWei((await beyondPricer.getCallSlippageGradientMultipliers(tenorIndex))[deltaBandIndex])
+			)
 	}
 	if (slippageGradient.eq(BigNumber.from(0))) {
 		return 1
@@ -867,6 +880,26 @@ export async function applySpreadLocally(
 			dollarDelta *
 				(1 + (isSell ? sellShortDeltaBorrowRate : buyLongDeltaBorrowRate) / SIX_DPS) ** timeToExpiry -
 			dollarDelta
+	}
+	const maxTenorValue = await beyondPricer.maxTenorValue()
+	const tenorIndex = Math.round(
+		(Math.sqrt(optionSeries.expiration - timestamp) / maxTenorValue) * 10
+	)
+	const deltaBandIndex = Math.floor(
+		(parseFloat(fromWei(optionDelta.abs())) * 100) /
+			parseFloat(fromWei(await beyondPricer.deltaBandWidth()))
+	)
+
+	if (parseFloat(fromWei(optionDelta)) < 0) {
+		return (
+			(collateralLendingPremium + deltaBorrowPremium) *
+			parseFloat(fromWei((await beyondPricer.getPutSpreadMultipliers(tenorIndex))[deltaBandIndex]))
+		)
+	} else {
+		return (
+			(collateralLendingPremium + deltaBorrowPremium) *
+			parseFloat(fromWei((await beyondPricer.getCallSpreadMultipliers(tenorIndex))[deltaBandIndex]))
+		)
 	}
 
 	return collateralLendingPremium + deltaBorrowPremium

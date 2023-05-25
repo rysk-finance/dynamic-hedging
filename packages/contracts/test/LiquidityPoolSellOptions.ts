@@ -4681,52 +4681,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(await exchange.maxTradeSize()).to.equal(toWei("1000"))
 				expect(await exchange.minTradeSize()).to.equal(toWei("0.01"))
 			})
-			it("SUCCEEDS: set delta band width on pricer", async () => {
-				await pricer.setDeltaBandWidth(
-					toWei("20"),
-					[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")],
-					[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")]
-				)
-				expect(await pricer.deltaBandWidth()).to.equal(toWei("20"))
-			})
-			it("REVERTS: set delta band width on pricer when non governance calls", async () => {
-				await expect(
-					pricer
-						.connect(signers[1])
-						.setDeltaBandWidth(
-							toWei("20"),
-							[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")],
-							[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")]
-						)
-				).to.be.revertedWithCustomError(pricer, "UNAUTHORIZED")
-			})
-			it("REVERTS: set delta band width with incorrect length arrays", async () => {
-				await expect(
-					pricer.setDeltaBandWidth(
-						toWei("5"),
-						[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")],
-						[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")]
-					)
-				).to.be.revertedWithCustomError(pricer, "InvalidSlippageGradientMultipliersArrayLength")
-			})
-			it("REVERTS: set delta band width with incorrect length arrays", async () => {
-				await expect(
-					pricer.setDeltaBandWidth(
-						toWei("20"),
-						[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4")],
-						[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")]
-					)
-				).to.be.revertedWithCustomError(pricer, "InvalidSlippageGradientMultipliersArrayLength")
-			})
-			it("REVERTS: set delta band width with a param below 0", async () => {
-				await expect(
-					pricer.setDeltaBandWidth(
-						toWei("20"),
-						[toWei("0.9"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")],
-						[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")]
-					)
-				).to.be.revertedWithCustomError(pricer, "InvalidSlippageGradientMultiplierValue")
-			})
+
 			it("SUCCEEDS: set slippage gradient multipliers on pricer", async () => {
 				const slippageGradientMultipliers = [
 					utils.parseUnits("1.1", 18),
@@ -4736,11 +4691,12 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					utils.parseUnits("1.5", 18)
 				]
 				await pricer.setSlippageGradientMultipliers(
+					3,
 					slippageGradientMultipliers,
 					slippageGradientMultipliers
 				)
-				const acSlippageGradientMultipliers = await pricer.getCallSlippageGradientMultipliers()
-				const apSlippageGradientMultipliers = await pricer.getPutSlippageGradientMultipliers()
+				const acSlippageGradientMultipliers = await pricer.getCallSlippageGradientMultipliers(3)
+				const apSlippageGradientMultipliers = await pricer.getPutSlippageGradientMultipliers(3)
 
 				for (let i = 0; i < slippageGradientMultipliers.length; i++) {
 					expect(acSlippageGradientMultipliers[i]).to.equal(slippageGradientMultipliers[i])
@@ -4752,6 +4708,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					pricer
 						.connect(signers[1])
 						.setSlippageGradientMultipliers(
+							6,
 							[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")],
 							[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")]
 						)

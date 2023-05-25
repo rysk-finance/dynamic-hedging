@@ -398,26 +398,57 @@ describe("Authority tests", async () => {
 			expect((await pricer.deltaBorrowRates()).buyLong).to.eq(1000003)
 			expect((await pricer.deltaBorrowRates()).buyShort).to.eq(1000004)
 		})
-		it("SUCCEEDS: sets deltaBandwidth in beyond pricer", async () => {
-			await managerContract.setDeltaBandWidth(
-				utils.parseEther("25"),
-				[utils.parseEther("1"), utils.parseEther("2"), utils.parseEther("3"), utils.parseEther("4")],
-				[utils.parseEther("1"), utils.parseEther("2"), utils.parseEther("3"), utils.parseEther("4")]
-			)
-			expect(await pricer.deltaBandWidth()).to.eq(utils.parseEther("25"))
-		})
+
 		it("SUCCEEDS: sets slippageMultipliers in beyond pricer", async () => {
-			expect((await pricer.getCallSlippageGradientMultipliers())[0]).to.eq(utils.parseEther("1"))
+			expect((await pricer.getCallSlippageGradientMultipliers(0))[0]).to.eq(utils.parseEther("1"))
 			await managerContract.setSlippageGradientMultipliers(
+				0,
 				[
 					utils.parseEther("10"),
 					utils.parseEther("20"),
 					utils.parseEther("30"),
-					utils.parseEther("40")
+					utils.parseEther("40"),
+					utils.parseEther("50"),
+					utils.parseEther("60"),
+					utils.parseEther("70"),
+					utils.parseEther("80"),
+					utils.parseEther("90"),
+					utils.parseEther("100"),
+					utils.parseEther("110"),
+					utils.parseEther("120"),
+					utils.parseEther("130"),
+					utils.parseEther("140"),
+					utils.parseEther("150"),
+					utils.parseEther("160"),
+					utils.parseEther("170"),
+					utils.parseEther("180"),
+					utils.parseEther("190"),
+					utils.parseEther("200")
 				],
-				[utils.parseEther("10"), utils.parseEther("20"), utils.parseEther("30"), utils.parseEther("40")]
+				[
+					utils.parseEther("10"),
+					utils.parseEther("20"),
+					utils.parseEther("30"),
+					utils.parseEther("40"),
+					utils.parseEther("50"),
+					utils.parseEther("60"),
+					utils.parseEther("70"),
+					utils.parseEther("80"),
+					utils.parseEther("90"),
+					utils.parseEther("100"),
+					utils.parseEther("110"),
+					utils.parseEther("120"),
+					utils.parseEther("130"),
+					utils.parseEther("140"),
+					utils.parseEther("150"),
+					utils.parseEther("160"),
+					utils.parseEther("170"),
+					utils.parseEther("180"),
+					utils.parseEther("190"),
+					utils.parseEther("200")
+				]
 			)
-			expect((await pricer.getCallSlippageGradientMultipliers())[0]).to.eq(utils.parseEther("10"))
+			expect((await pricer.getCallSlippageGradientMultipliers(0))[7]).to.eq(utils.parseEther("80"))
 		})
 	})
 })

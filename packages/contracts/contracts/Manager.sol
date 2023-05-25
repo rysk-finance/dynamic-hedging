@@ -277,29 +277,34 @@ contract Manager is AccessControl {
 		beyondPricer.setDeltaBorrowRates(_deltaBorrowRates);
 	}
 
-	/// @dev must also update delta band arrays to fit the new delta band width
-	function setDeltaBandWidth(
-		uint256 _deltaBandWidth,
-		uint256[] memory _callSlippageGradientMultipliers,
-		uint256[] memory _putSlippageGradientMultipliers
+	function updateTenor(
+		uint16 _tenorIndex,
+		BeyondPricer.DeltaBandMultipliers calldata _singleTenorParams
 	) external {
 		_isProxyManager();
-		beyondPricer.setDeltaBandWidth(
-			_deltaBandWidth,
-			_callSlippageGradientMultipliers,
-			_putSlippageGradientMultipliers
-		);
+		beyondPricer.updateTenor(_tenorIndex, _singleTenorParams);
 	}
 
 	function setSlippageGradientMultipliers(
+		uint16 _tenorIndex,
 		uint256[] memory _callSlippageGradientMultipliers,
 		uint256[] memory _putSlippageGradientMultipliers
 	) public {
 		_isProxyManager();
 		beyondPricer.setSlippageGradientMultipliers(
+			_tenorIndex,
 			_callSlippageGradientMultipliers,
 			_putSlippageGradientMultipliers
 		);
+	}
+
+	function setSpreadMultipliers(
+		uint16 _tenorIndex,
+		uint256[] memory _callSpreadMultipliers,
+		uint256[] memory _putSpreadMultipliers
+	) public {
+		_isProxyManager();
+		beyondPricer.setSpreadMultipliers(_tenorIndex, _callSpreadMultipliers, _putSpreadMultipliers);
 	}
 
 	/// @dev keepers, managers or governors can access

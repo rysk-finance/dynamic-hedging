@@ -262,8 +262,17 @@ export async function deployLiquidityPool(
 		liquidityPool.address,
 		ADDRESS_BOOK[chainId],
 		0,
+		0,
+		{ sellLong: 0, sellShort: 0, buyLong: 0, buyShort: 0 }
+	)) as BeyondPricer
+	await pricer.setSlippageGradient(toWei("0.0001"))
+	await pricer.setBidAskIVSpread(toWei("0.01"))
+	console.log("before initialize")
+	await pricer.initializeTenorParams(
 		toWei("5"),
-		{
+		10,
+		2789,
+		Array(10).fill({
 			callSlippageGradientMultipliers: [
 				toWei("1"),
 				toWei("1.1"),
@@ -352,12 +361,11 @@ export async function deployLiquidityPool(
 				toWei("1"),
 				toWei("1")
 			]
-		},
-		0,
-		{ sellLong: 0, sellShort: 0, buyLong: 0, buyShort: 0 }
-	)) as BeyondPricer
-	await pricer.setSlippageGradient(toWei("0.0001"))
-	await pricer.setBidAskIVSpread(toWei("0.01"))
+		}),
+		{ gasLimit: 30000000 }
+	)
+	console.log("after initialize")
+
 	// deploy libraries
 	const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
 	const interactions = await interactionsFactory.deploy()

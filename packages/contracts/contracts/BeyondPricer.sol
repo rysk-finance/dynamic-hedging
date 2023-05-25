@@ -21,6 +21,8 @@ import "./interfaces/AddressBookInterface.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 
+import "hardhat/console.sol";
+
 /**
  *  @title Contract used for all user facing options interactions
  *  @dev Interacts with liquidityPool to write options and quote their prices.
@@ -78,13 +80,17 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	// reflects the cost of increased collateral used to back these kind of options relative to their price.
 	// represents the width of delta bands to apply slippage multipliers to. e18
 	uint256 public deltaBandWidth;
-
+	// represents the number of tenors for which we want to apply separate slippage and spread parameters to
+	uint256 public numberOfTenors;
+	//
 	// represents the lending rate of collateral used to collateralise short options by the DHV. denominated in 6 dps
 	uint256 public collateralLendingRate;
 	//  delta borrow rates for spread func. All denominated in 6 dps
 	DeltaBorrowRates public deltaBorrowRates;
 	// multiplier values for spread and slippage delta bands
-	DeltaBandMultipliers internal deltaBandMultipliers;
+	DeltaBandMultipliers[] internal tenorPricingParams;
+	// maximum tenor value. Units are in sqrt(seconds)
+	uint16 public maxTenorValue;
 
 	//////////////////////////
 	/// constant variables ///
@@ -104,7 +110,9 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	/// structs && events ///
 	/////////////////////////
 
-	event SlippageGradientMultipliersChanged();
+	event TenorParamsSet();
+	event SlippageGradientMultipliersChanged(uint16 tenorIndex);
+	event SpreadMultipliersChanged(uint16 tenorIndex);
 	event DeltaBandWidthChanged(uint256 newDeltaBandWidth, uint256 oldDeltaBandWidth);
 	event CollateralLendingRateChanged(
 		uint256 newCollateralLendingRate,
@@ -119,8 +127,10 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	event RiskFreeRateChanged(uint256 newRiskFreeRate, uint256 oldRiskFreeRate);
 	event BidAskIVSpreadChanged(uint256 newBidAskIVSpread, uint256 oldBidAskIVSpread);
 
-	error InvalidSlippageGradientMultipliersArrayLength();
+	error InvalidMultipliersArrayLength();
 	error InvalidSlippageGradientMultiplierValue();
+	error InvalidSpreadMultiplierValue();
+	error InvalidTenorArrayLength();
 
 	constructor(
 		address _authority,
@@ -128,22 +138,10 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		address _liquidityPool,
 		address _addressBook,
 		uint256 _slippageGradient,
-		uint256 _deltaBandWidth,
-		DeltaBandMultipliers memory _deltaBandMultipliers,
-		// uint256[] memory _callSlippageGradientMultipliers,
-		// uint256[] memory _putSlippageGradientMultipliers,
-		// uint256[] memory _callSpreadMultipliers,
-		// uint256[] memory _putSpreadMultipliers,
 		uint256 _collateralLendingRate,
 		DeltaBorrowRates memory _deltaBorrowRates
 	) AccessControl(IAuthority(_authority)) {
 		// option delta can span a range of 100, so ensure delta bands match this range
-		if (
-			_deltaBandMultipliers.callSlippageGradientMultipliers.length != ONE_DELTA / _deltaBandWidth ||
-			_deltaBandMultipliers.putSlippageGradientMultipliers.length != ONE_DELTA / _deltaBandWidth
-		) {
-			revert InvalidSlippageGradientMultipliersArrayLength();
-		}
 		protocol = Protocol(_protocol);
 		liquidityPool = ILiquidityPool(_liquidityPool);
 		addressBook = AddressBookInterface(_addressBook);
@@ -151,18 +149,6 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		underlyingAsset = liquidityPool.underlyingAsset();
 		strikeAsset = liquidityPool.strikeAsset();
 		slippageGradient = _slippageGradient;
-		deltaBandWidth = _deltaBandWidth;
-		// deltaBandMultipliers = DeltaBandMultipliers(
-		// 	_callSlippageGradientMultipliers,
-		// 	_putSlippageGradientMultipliers,
-		// 	_callSpreadMultipliers,
-		// 	_putSpreadMultipliers
-		// );
-		deltaBandMultipliers = _deltaBandMultipliers;
-		// callSlippageGradientMultipliers = _callSlippageGradientMultipliers;
-		// putSlippageGradientMultipliers = _putSlippageGradientMultipliers;
-		// callSpreadMultipliers = _callSpreadMultipliers;
-		// putSpreadMultipliers = _putSpreadMultipliers;
 		collateralLendingRate = _collateralLendingRate;
 		deltaBorrowRates = _deltaBorrowRates;
 	}
@@ -170,6 +156,61 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	///////////////
 	/// setters ///
 	///////////////
+
+	/** @notice function used to set the slippage and spread delta band multipliers initially, and
+	 *  also if the number of tenors or the delta band width is changed, since this would require
+	 *  all existing tenors to be adjusted.
+	 */
+
+	function initializeTenorParams(
+		uint256 _deltaBandWidth,
+		uint256 _numberOfTenors,
+		uint16 _maxTenorValue,
+		DeltaBandMultipliers[] calldata _tenorPricingParams
+	) external {
+		_onlyGovernor();
+		if (_tenorPricingParams.length != _numberOfTenors) {
+			revert InvalidTenorArrayLength();
+		}
+		for (uint16 i = 0; i < numberOfTenors; i++) {
+			if (
+				_tenorPricingParams[i].callSlippageGradientMultipliers.length != ONE_DELTA / _deltaBandWidth ||
+				_tenorPricingParams[i].putSlippageGradientMultipliers.length != ONE_DELTA / _deltaBandWidth ||
+				_tenorPricingParams[i].callSpreadMultipliers.length != ONE_DELTA / _deltaBandWidth ||
+				_tenorPricingParams[i].putSpreadMultipliers.length != ONE_DELTA / _deltaBandWidth
+			) {
+				revert InvalidMultipliersArrayLength();
+			}
+		}
+		numberOfTenors = _numberOfTenors;
+		maxTenorValue = _maxTenorValue;
+		deltaBandWidth = _deltaBandWidth;
+		delete tenorPricingParams;
+		for (uint i = 0; i < _numberOfTenors; i++) {
+			console.log(i);
+			tenorPricingParams.push(_tenorPricingParams[i]);
+		}
+		// tenorPricingParams = _tenorPricingParams;
+		emit TenorParamsSet();
+	}
+
+	function updateTenor(
+		uint16 _tenorIndex,
+		DeltaBandMultipliers calldata _singleTenorParams
+	) external {
+		_onlyManager();
+		if (
+			_singleTenorParams.callSlippageGradientMultipliers.length != ONE_DELTA / deltaBandWidth ||
+			_singleTenorParams.putSlippageGradientMultipliers.length != ONE_DELTA / deltaBandWidth ||
+			_singleTenorParams.callSpreadMultipliers.length != ONE_DELTA / deltaBandWidth ||
+			_singleTenorParams.putSpreadMultipliers.length != ONE_DELTA / deltaBandWidth
+		) {
+			revert InvalidMultipliersArrayLength();
+		}
+		emit SlippageGradientMultipliersChanged(_tenorIndex);
+		emit SpreadMultipliersChanged(_tenorIndex);
+		tenorPricingParams[_tenorIndex] = _singleTenorParams;
+	}
 
 	function setRiskFreeRate(uint256 _riskFreeRate) external {
 		_onlyGovernor();
@@ -207,19 +248,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		deltaBorrowRates = _deltaBorrowRates;
 	}
 
-	/// @dev must also update delta band arrays to fit the new delta band width
-	function setDeltaBandWidth(
-		uint256 _deltaBandWidth,
-		uint256[] memory _callSlippageGradientMultipliers,
-		uint256[] memory _putSlippageGradientMultipliers
-	) external {
-		_onlyManager();
-		emit DeltaBandWidthChanged(_deltaBandWidth, deltaBandWidth);
-		deltaBandWidth = _deltaBandWidth;
-		setSlippageGradientMultipliers(_callSlippageGradientMultipliers, _putSlippageGradientMultipliers);
-	}
-
 	function setSlippageGradientMultipliers(
+		uint16 _tenorIndex,
 		uint256[] memory _callSlippageGradientMultipliers,
 		uint256[] memory _putSlippageGradientMultipliers
 	) public {
@@ -228,7 +258,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			_callSlippageGradientMultipliers.length != ONE_DELTA / deltaBandWidth ||
 			_putSlippageGradientMultipliers.length != ONE_DELTA / deltaBandWidth
 		) {
-			revert InvalidSlippageGradientMultipliersArrayLength();
+			revert InvalidMultipliersArrayLength();
 		}
 		for (uint256 i = 0; i < _callSlippageGradientMultipliers.length; i++) {
 			// arrays must be same length so can check both in same loop
@@ -240,14 +270,51 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 				revert InvalidSlippageGradientMultiplierValue();
 			}
 		}
-		deltaBandMultipliers.callSlippageGradientMultipliers = _callSlippageGradientMultipliers;
-		deltaBandMultipliers.putSlippageGradientMultipliers = _putSlippageGradientMultipliers;
-		emit SlippageGradientMultipliersChanged();
+		tenorPricingParams[_tenorIndex]
+			.callSlippageGradientMultipliers = _callSlippageGradientMultipliers;
+		tenorPricingParams[_tenorIndex].putSlippageGradientMultipliers = _putSlippageGradientMultipliers;
+		emit SlippageGradientMultipliersChanged(_tenorIndex);
+	}
+
+	function setSpreadMultipliers(
+		uint16 _tenorIndex,
+		uint256[] memory _callSpreadMultipliers,
+		uint256[] memory _putSpreadMultipliers
+	) public {
+		_onlyManager();
+		if (
+			_callSpreadMultipliers.length != ONE_DELTA / deltaBandWidth ||
+			_putSpreadMultipliers.length != ONE_DELTA / deltaBandWidth
+		) {
+			revert InvalidMultipliersArrayLength();
+		}
+		for (uint256 i = 0; i < _callSpreadMultipliers.length; i++) {
+			// arrays must be same length so can check both in same loop
+			// ensure no multiplier is less than 1 due to human error.
+			if (_callSpreadMultipliers[i] < ONE_SCALE || _putSpreadMultipliers[i] < ONE_SCALE) {
+				revert InvalidSpreadMultiplierValue();
+			}
+		}
+		tenorPricingParams[_tenorIndex].callSpreadMultipliers = _callSpreadMultipliers;
+		tenorPricingParams[_tenorIndex].putSpreadMultipliers = _putSpreadMultipliers;
+		emit SpreadMultipliersChanged(_tenorIndex);
 	}
 
 	///////////////////////
 	/// complex getters ///
 	///////////////////////
+
+	function getTenorIndex(uint _expiration) internal view returns (uint16 tenor) {
+		// get the ratio of the square root of seconds to expiry and the max tenor value in e18 form
+		uint tenorIndexE18 = ((((_expiration - block.timestamp) * 1e18).sqrt()) / maxTenorValue);
+		// divide by 1e17 and round to nearest int to get the index in the array, however solidity always rounds down
+		if (tenorIndexE18 % 1e17 >= 5e16) {
+			// round up to nearest int
+			tenor = uint16(tenorIndexE18 / 1e17 + 1);
+		} else {
+			tenor = uint16(tenorIndexE18 / 1e17);
+		}
+	}
 
 	function quoteOptionPrice(
 		Types.OptionSeries memory _optionSeries,
@@ -270,17 +337,30 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			iv,
 			forward
 		);
+		console.log("got here");
 		vanillaPremium = vanillaPremium.mul(underlyingPrice).div(forward);
+		// calculate which tenor this option falls into by taking the square root of its
+		// seconds until expiry and finding the nearest tenor index to that value.
+		// uint256 sqrtSecondsToExpiry = (((_optionSeries.expiration - block.timestamp) * 1e18).sqrt());
+		// console.log("sqrt seconds", sqrtSecondsToExpiry);
+		// uint16 tenorIndex = uint16(sqrtSecondsToExpiry / maxTenorValue);
 		uint256 premium = vanillaPremium.mul(
-			_getSlippageMultiplier(_amount, delta, netDhvExposure, isSell)
+			_getSlippageMultiplier(
+				getTenorIndex(_optionSeries.expiration),
+				_amount,
+				isSell,
+				delta,
+				netDhvExposure
+			)
 		);
 		int spread = _getSpreadValue(
-			isSell,
+			getTenorIndex(_optionSeries.expiration),
 			_optionSeries,
 			_amount,
-			delta,
+			isSell,
 			netDhvExposure,
-			underlyingPrice
+			underlyingPrice,
+			delta
 		);
 		if (spread < 0) {
 			spread = 0;
@@ -300,20 +380,24 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	/// non-complex getters ///
 	///////////////////////////
 
-	function getCallSlippageGradientMultipliers() external view returns (uint256[] memory) {
-		return deltaBandMultipliers.callSlippageGradientMultipliers;
+	function getCallSlippageGradientMultipliers(
+		uint16 _tenorIndex
+	) external view returns (uint256[] memory) {
+		return tenorPricingParams[_tenorIndex].callSlippageGradientMultipliers;
 	}
 
-	function getPutSlippageGradientMultipliers() external view returns (uint256[] memory) {
-		return deltaBandMultipliers.putSlippageGradientMultipliers;
+	function getPutSlippageGradientMultipliers(
+		uint16 _tenorIndex
+	) external view returns (uint256[] memory) {
+		return tenorPricingParams[_tenorIndex].putSlippageGradientMultipliers;
 	}
 
-	function getCallSpreadMultipliers() external view returns (uint256[] memory) {
-		return deltaBandMultipliers.callSpreadMultipliers;
+	function getCallSpreadMultipliers(uint16 _tenorIndex) external view returns (uint256[] memory) {
+		return tenorPricingParams[_tenorIndex].callSpreadMultipliers;
 	}
 
-	function getPutSpreadMultipliers() external view returns (uint256[] memory) {
-		return deltaBandMultipliers.putSpreadMultipliers;
+	function getPutSpreadMultipliers(uint16 _tenorIndex) external view returns (uint256[] memory) {
+		return tenorPricingParams[_tenorIndex].putSpreadMultipliers;
 	}
 
 	/**
@@ -349,10 +433,11 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	 * @param _isSell true if someone is selling option to DHV. False if they're buying from DHV
 	 */
 	function _getSlippageMultiplier(
+		uint16 _tenorIndex,
 		uint256 _amount,
+		bool _isSell,
 		int256 _optionDelta,
-		int256 _netDhvExposure,
-		bool _isSell
+		int256 _netDhvExposure
 	) internal view returns (uint256 slippageMultiplier) {
 		// slippage will be exponential with the exponent being the DHV's net exposure
 		int256 newExposureExponent = _isSell
@@ -362,15 +447,24 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		uint256 modifiedSlippageGradient;
 		// not using math library here, want to reduce to a non e18 integer
 		// integer division rounds down to nearest integer
+		console.log("1", uint256(_optionDelta.abs()), deltaBandWidth);
 		uint256 deltaBandIndex = (uint256(_optionDelta.abs()) * 100) / deltaBandWidth;
+		console.log("2");
 		if (_optionDelta > 0) {
+			console.log("3");
+			console.log(tenorPricingParams[_tenorIndex].callSlippageGradientMultipliers[deltaBandIndex]);
 			modifiedSlippageGradient = slippageGradient.mul(
-				deltaBandMultipliers.callSlippageGradientMultipliers[deltaBandIndex]
+				tenorPricingParams[_tenorIndex].callSlippageGradientMultipliers[deltaBandIndex]
 			);
+			console.log("tenor index:", _tenorIndex);
 		} else {
+			console.log("3");
+			console.log(tenorPricingParams[_tenorIndex].callSlippageGradientMultipliers[deltaBandIndex]);
+
 			modifiedSlippageGradient = slippageGradient.mul(
-				deltaBandMultipliers.putSlippageGradientMultipliers[deltaBandIndex]
+				tenorPricingParams[uint256(_tenorIndex)].putSlippageGradientMultipliers[deltaBandIndex]
 			);
+			console.log("tenor index:", _tenorIndex);
 		}
 		if (slippageGradient == 0) {
 			slippageMultiplier = ONE_SCALE;
@@ -404,12 +498,13 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	 * @param _underlyingPrice the price of the underlying asset. e18
 	 */
 	function _getSpreadValue(
-		bool _isSell,
+		uint16 _tenorIndex,
 		Types.OptionSeries memory _optionSeries,
 		uint256 _amount,
-		int256 _optionDelta,
+		bool _isSell,
 		int256 _netDhvExposure,
-		uint256 _underlyingPrice
+		uint256 _underlyingPrice,
+		int256 _optionDelta
 	) internal view returns (int256 spreadPremium) {
 		// get duration of option in years
 		uint256 time = (_optionSeries.expiration - block.timestamp).div(ONE_YEAR_SECONDS);
@@ -463,11 +558,11 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		uint256 deltaBandIndex = (uint256(_optionDelta.abs()) * 100) / deltaBandWidth;
 		if (_optionDelta > 0) {
 			spreadPremium = spreadPremium.mul(
-				int(deltaBandMultipliers.callSpreadMultipliers[deltaBandIndex])
+				int(tenorPricingParams[_tenorIndex].callSpreadMultipliers[deltaBandIndex])
 			);
 		} else {
 			spreadPremium = spreadPremium.mul(
-				int(deltaBandMultipliers.putSpreadMultipliers[deltaBandIndex])
+				int(tenorPricingParams[_tenorIndex].putSpreadMultipliers[deltaBandIndex])
 			);
 		}
 	}
