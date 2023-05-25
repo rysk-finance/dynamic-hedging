@@ -88,7 +88,9 @@ export const DateList = ({
                   </div>
 
                   <small className={`text-xs mt-1 `}>
-                    {`${daysRemaining} days, ${hoursRemaining} hours, ${minutesRemaining} mins`}
+                    {daysRemaining === 0
+                      ? `Untradeable`
+                      : `${daysRemaining} days, ${hoursRemaining} hours, ${minutesRemaining} mins`}
                   </small>
                 </button>
               </motion.li>
