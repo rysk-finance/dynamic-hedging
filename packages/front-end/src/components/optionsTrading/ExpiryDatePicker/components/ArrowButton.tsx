@@ -8,6 +8,6 @@ export const ArrowButton = (
 ) => (
   <button
     {...props}
-    className="flex justify-center py-2 enabled:hover:bg-bone-dark ease-in-out duration-100 disabled:opacity-40"
+    className="flex justify-center py-3 enabled:hover:bg-bone-dark ease-in-out duration-100 disabled:opacity-40"
   />
 );
