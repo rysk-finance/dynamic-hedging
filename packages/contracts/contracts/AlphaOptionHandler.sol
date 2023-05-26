@@ -150,7 +150,6 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 				_optionSeries.strike,
 				_optionSeries.collateral
 		);
-		// TODO: test for non existent otoken to make sure it doesnt brick here
 		if (series == address(0) || ERC20(series).balanceOf(address(this)) < OptionsCompute.convertToDecimals(_amount, OPYN_DECIMALS)) {
 			series = liquidityPool.handlerIssue(_optionSeries);
 		}
