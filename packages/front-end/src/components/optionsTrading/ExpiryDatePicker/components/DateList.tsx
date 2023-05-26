@@ -27,7 +27,10 @@ const getTitle = (positions?: UserPositions["expiry"]) => {
   }
 };
 
-export const DateList = ({ visibleRange, handleExpirySelection }: DateListProps) => {
+export const DateList = ({
+  visibleRange,
+  handleExpirySelection,
+}: DateListProps) => {
   const {
     state: {
       options: { activeExpiry, expiries, userPositions },
@@ -54,19 +57,29 @@ export const DateList = ({ visibleRange, handleExpirySelection }: DateListProps)
                 onClick={handleExpirySelection(timestamp)}
                 {...FadeInOutFixedDelay}
               >
-                <button className="flex flex-col items-center justify-center w-full h-14" title={getTitle(positions)}>
+                <button
+                  className="flex flex-col items-center justify-center w-full h-14"
+                  title={getTitle(positions)}
+                >
                   <div className="flex">
                     <DownChevron
-                      className={`min-w-6 h-6 stroke-red-500 ${!positions?.isShort && "opacity-0"}`}
+                      className={`min-w-6 h-6 stroke-red-500 ${
+                        !positions?.isShort && "opacity-0"
+                      }`}
                       strokeWidth={4}
                     />
 
-                    <time className="mx-2 text-sm xl:text-base" dateTime={datetime.format("YYYY-MM-DD")}>
+                    <time
+                      className="mx-2 text-sm xl:text-base"
+                      dateTime={datetime.format("YYYY-MM-DD")}
+                    >
                       {`${datetime.format("DD MMM YY")}`}
                     </time>
 
                     <UpChevron
-                      className={`min-w-6 h-6 stroke-green-500 ${!positions?.isLong && "opacity-0"}`}
+                      className={`min-w-6 h-6 stroke-green-500 ${
+                        !positions?.isLong && "opacity-0"
+                      }`}
                       strokeWidth={4}
                     />
                   </div>
@@ -74,7 +87,9 @@ export const DateList = ({ visibleRange, handleExpirySelection }: DateListProps)
                   <small className={`text-xs mt-1 `}>
                     {duration.days() === 0
                       ? `Untradeable`
-                      : `${Math.floor(duration.asDays())} days, ${duration.hours()} hours, ${duration.minutes()} mins`}
+                      : `${Math.floor(
+                          duration.asDays()
+                        )}d ${duration.hours()}h ${duration.minutes()}m`}
                   </small>
                 </button>
               </motion.li>
