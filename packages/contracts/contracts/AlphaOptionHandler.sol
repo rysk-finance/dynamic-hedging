@@ -19,7 +19,7 @@ import "./interfaces/IAlphaPortfolioValuesFeed.sol";
 
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
-import "hardhat/console.sol";
+
 /**
  *  @title Contract used for all user facing options interactions
  *  @dev Interacts with liquidityPool to write options and quote their prices.
@@ -396,69 +396,29 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			strikeAsset,
 			collateralAsset
 		);
-		if (getPortfolioValuesFeed().storesForAddress(order.seriesAddress).shortExposure >= int256(order.amount)) {
-			// transfer the oToken to the liquidityPool
-			SafeTransferLib.safeTransferFrom(
-				order.seriesAddress,
-				msg.sender,
-				address(liquidityPool),
-				OptionsCompute.convertToDecimals(order.amount, ERC20(order.seriesAddress).decimals())
-			);
-			// buyback the option contract, includes sending the premium from the pool to the user, option series should be in e8
-			liquidityPool.handlerBuybackOption(
-				order.optionSeries,
-				order.amount,
-				getOptionRegistry(),
-				order.seriesAddress,
-				convertedPrem,
-				0, // delta is not used in the liquidityPool unless the oracle implementation is used, so can be set to 0
-				msg.sender
-			);
-			getPortfolioValuesFeed().updateStores(
-				seriesToStore,
-				-int256(order.amount),
-				0,
-				order.seriesAddress
-			);
-		} else {
-			console.log("x");
-			console.log(ERC20(order.seriesAddress).balanceOf(msg.sender));
-			// transfer the oToken to this address
-			SafeTransferLib.safeTransferFrom(
-				order.seriesAddress,
-				msg.sender,
-				address(this),
-				OptionsCompute.convertToDecimals(order.amount, ERC20(order.seriesAddress).decimals())
-			);
-			//TODO: finish this
-			// we need to make sure we arent eating into the withdraw partition with this trade
-			if (
-				ILiquidityPool(liquidityPool).getBalance(collateralAsset) < convertedPrem
-			) {
-				revert CustomErrors.WithdrawExceedsLiquidity();
-			}
-			// take the funds from the liquidity pool and pay them here
-			SafeTransferLib.safeTransferFrom(
-				collateralAsset,
-				address(liquidityPool),
-				address(this),
-				convertedPrem
-			);
-			// update stores
-			getPortfolioValuesFeed().updateStores(
-				seriesToStore,
-				0,
-				int256(order.amount),
-				order.seriesAddress
-			);
-			// adjust variables
-			liquidityPool.adjustVariables(
-				0,
-				convertedPrem,
-				0,
-				false
-			);
-		}
+		// transfer the oToken to the liquidityPool
+		SafeTransferLib.safeTransferFrom(
+			order.seriesAddress,
+			msg.sender,
+			address(liquidityPool),
+			OptionsCompute.convertToDecimals(order.amount, ERC20(order.seriesAddress).decimals())
+		);
+		// buyback the option contract, includes sending the premium from the pool to the user, option series should be in e8
+		liquidityPool.handlerBuybackOption(
+			order.optionSeries,
+			order.amount,
+			getOptionRegistry(),
+			order.seriesAddress,
+			convertedPrem,
+			0, // delta is not used in the liquidityPool unless the oracle implementation is used, so can be set to 0
+			msg.sender
+		);
+		getPortfolioValuesFeed().updateStores(
+			seriesToStore,
+			-int256(order.amount),
+			0,
+			order.seriesAddress
+		);
 		emit OptionsSold(order.seriesAddress, msg.sender, order.amount, convertedPrem, 0);
 		emit OrderExecuted(_orderId);
 		// invalidate the order
