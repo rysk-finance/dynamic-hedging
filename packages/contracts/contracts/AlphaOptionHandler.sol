@@ -19,13 +19,11 @@ import "./interfaces/IAlphaPortfolioValuesFeed.sol";
 
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
-
 import "hardhat/console.sol";
 /**
  *  @title Contract used for all user facing options interactions
  *  @dev Interacts with liquidityPool to write options and quote their prices.
  */
- //TODO: fix create order so the option series isnt retrieved from the registry
 contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	using PRBMathSD59x18 for int256;
 	using PRBMathUD60x18 for uint256;
@@ -239,7 +237,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	 * @param optionExchange the option exchange to send otokens to
 	 * @param otokens the otoken addresses to transfer
 	 */
-	function sendOtokens(address optionExchange, address[] memory otokens) external {
+	function migrateOtokens(address optionExchange, address[] memory otokens) external {
 		_onlyGovernor();
 		uint256 len = otokens.length;
 		for (uint256 i = 0; i < len; i++) {
@@ -423,6 +421,8 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 				order.seriesAddress
 			);
 		} else {
+			console.log("x");
+			console.log(ERC20(order.seriesAddress).balanceOf(msg.sender));
 			// transfer the oToken to this address
 			SafeTransferLib.safeTransferFrom(
 				order.seriesAddress,
@@ -430,7 +430,21 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 				address(this),
 				OptionsCompute.convertToDecimals(order.amount, ERC20(order.seriesAddress).decimals())
 			);
-						// update stores
+			//TODO: finish this
+			// we need to make sure we arent eating into the withdraw partition with this trade
+			if (
+				ILiquidityPool(liquidityPool).getBalance(collateralAsset) < convertedPrem
+			) {
+				revert CustomErrors.WithdrawExceedsLiquidity();
+			}
+			// take the funds from the liquidity pool and pay them here
+			SafeTransferLib.safeTransferFrom(
+				collateralAsset,
+				address(liquidityPool),
+				address(this),
+				convertedPrem
+			);
+			// update stores
 			getPortfolioValuesFeed().updateStores(
 				seriesToStore,
 				0,

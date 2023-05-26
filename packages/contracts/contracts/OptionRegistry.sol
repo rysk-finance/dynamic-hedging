@@ -585,6 +585,7 @@ contract OptionRegistry is AccessControl {
 		return collateralAmount;
 	}
 
+
 	/**
 	 * @notice Retrieves the option token if it exists
 	 * @param  underlying is the address of the underlying asset of the option
