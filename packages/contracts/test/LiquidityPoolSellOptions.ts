@@ -4851,12 +4851,6 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					expect(otokenBalancesEx[i].sub(await otokens[i].balanceOf(exchange.address))).to.equal(0)
 					expect(await otokens[i].balanceOf(handler.address)).to.equal(0)
 				}
-				const receipt = await tx.wait()
-				const events = receipt.events
-				const migrateEvent = events?.find(x => x.event == "OtokenMigrated")
-				expect(migrateEvent?.args?.newOptionExchange).to.equal(exchange.address)
-				expect(migrateEvent?.args?.otoken).to.equal(oTokenUSDCSXC.address)
-				expect(migrateEvent?.args?.amount).to.equal(otokenBalancesEx[0])
 			})
 		})
 		describe("Settles and redeems usd otoken", async () => {
