@@ -381,7 +381,7 @@ const usePositions = () => {
 
           // pnl
           const graphPnl = fromUSDC(realizedPnl);
-          const { acceptablePremium, fee } =
+          const { quote } =
             amount !== 0 && !anyExpiredAction
               ? await getQuote(
                   Number(expiryTimestamp),
@@ -392,16 +392,16 @@ const usePositions = () => {
                   collateralAssetSymbol
                 )
               : {
-                  acceptablePremium: 0,
-                  fee: 0,
+                  quote: 0,
                 };
 
-          const diff =
-            anyExpiredAction && isPut
+          const diff = anyExpiredAction
+            ? isPut
               ? Number(fromOpyn(strikePrice)) -
                 Number(fromOpyn(expiryPrice || 0))
               : Number(fromOpyn(expiryPrice || 0)) -
-                Number(fromOpyn(strikePrice));
+                Number(fromOpyn(strikePrice))
+            : 0;
           const expectedPayout =
             diff > 0 ? diff * Number(fromWei(netAmount)) : 0;
 
@@ -428,14 +428,8 @@ const usePositions = () => {
               amount === 0
                 ? Number(graphPnl) // if closed position just use graph data
                 : vault.vaultId // short pnl is opposite of long as totPremium represents the earnings
-                ? Number(graphPnl) -
-                  (expectedPayout
-                    ? expectedPayout
-                    : Number(fromUSDC(acceptablePremium)) - fee)
-                : Number(graphPnl) +
-                  (expectedPayout
-                    ? expectedPayout
-                    : Number(fromUSDC(acceptablePremium)) - fee),
+                ? Number(graphPnl) - (expectedPayout ? expectedPayout : quote)
+                : Number(graphPnl) + (expectedPayout ? expectedPayout : quote),
             underlyingAsset: underlyingAsset.id,
           };
 
