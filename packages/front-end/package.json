@@ -20,7 +20,7 @@
     "@sentry/react": "^7.43.0",
     "@unstoppabledomains/resolution": "^9.0.0",
     "fathom-client": "^3.5.0",
-    "framer-motion": "^10.6.1",
+    "framer-motion": "^8.0.0",
     "graphql": "^16.6.0",
     "hex-to-css-filter": "^5.4.0",
     "implied-volatility": "^1.0.0",
