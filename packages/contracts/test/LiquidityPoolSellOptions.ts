@@ -200,7 +200,6 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
 		receiverAddress = await signers[1].getAddress()
-		console.log(await usd.balanceOf(senderAddress))
 		await usd.transfer(receiverAddress, toUSDC("100000"))
 	})
 	describe("Setup add-on system features", async () => {
