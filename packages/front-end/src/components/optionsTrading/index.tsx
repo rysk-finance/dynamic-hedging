@@ -3,6 +3,7 @@ import { AnimatePresence, LayoutGroup } from "framer-motion";
 import { OptionChainModalActions } from "src/state/types";
 
 import { AssetPriceInfo } from "./AssetPriceInfo";
+import { ActiveExpiryAlerts } from "./ActiveExpiryAlerts";
 import { Chain } from "./Chain";
 import { ExpiryDatePicker } from "./ExpiryDatePicker";
 import { Filters } from "./Filters/Filters";
@@ -31,6 +32,7 @@ export const OptionsTradingContent = () => {
         <div className="relative border-2 border-black">
           <ExpiryDatePicker />
           <Filters />
+          <ActiveExpiryAlerts />
           <Chain />
         </div>
       </LayoutGroup>
