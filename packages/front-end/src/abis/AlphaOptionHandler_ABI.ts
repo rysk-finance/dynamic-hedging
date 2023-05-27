@@ -211,57 +211,6 @@ export const AlphaOptionHandlerABI = [
 		"type": "event"
 	},
 	{
-		"inputs": [
-			{
-				"components": [
-					{
-						"internalType": "uint64",
-						"name": "expiration",
-						"type": "uint64"
-					},
-					{
-						"internalType": "uint128",
-						"name": "strike",
-						"type": "uint128"
-					},
-					{
-						"internalType": "bool",
-						"name": "isPut",
-						"type": "bool"
-					},
-					{
-						"internalType": "address",
-						"name": "underlying",
-						"type": "address"
-					},
-					{
-						"internalType": "address",
-						"name": "strikeAsset",
-						"type": "address"
-					},
-					{
-						"internalType": "address",
-						"name": "collateral",
-						"type": "address"
-					}
-				],
-				"internalType": "struct Types.OptionSeries",
-				"name": "_optionSeries",
-				"type": "tuple"
-			}
-		],
-		"name": "_getSeries",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
 		"inputs": [],
 		"name": "authority",
 		"outputs": [
@@ -585,6 +534,24 @@ export const AlphaOptionHandlerABI = [
 		"type": "function"
 	},
 	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "optionExchange",
+				"type": "address"
+			},
+			{
+				"internalType": "address[]",
+				"name": "otokens",
+				"type": "address[]"
+			}
+		],
+		"name": "migrateOtokens",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
 		"inputs": [],
 		"name": "orderIdCounter",
 		"outputs": [
@@ -699,24 +666,6 @@ export const AlphaOptionHandlerABI = [
 			}
 		],
 		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "optionExchange",
-				"type": "address"
-			},
-			{
-				"internalType": "address[]",
-				"name": "otokens",
-				"type": "address[]"
-			}
-		],
-		"name": "sendOtokens",
-		"outputs": [],
-		"stateMutability": "nonpayable",
 		"type": "function"
 	},
 	{
