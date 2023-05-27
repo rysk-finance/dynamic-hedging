@@ -21,161 +21,119 @@ export const ADDRESSES = {
         weth: "0x3b3a1dE07439eeb04492Fa64A889eE25A130CDd3",
     },
 }
-
+const expiry = 1686297600
 const seriesToIssue = [
     {
-        expiration: 1685692800,
+        expiration: expiry,
         isPut: CALL_FLAVOR,
         strike: toWei("2000"),
-        isSellable: true,
-        isBuyable: true
+        isSellable: false,
+        isBuyable: false
     },
     {
-        expiration: 1685692800,
+        expiration: expiry,
         isPut: PUT_FLAVOR,
         strike: toWei("2000"),
         isSellable: false,
         isBuyable: false
     },
     {
-        expiration: 1685692800,
+        expiration: expiry,
         isPut: CALL_FLAVOR,
-        strike: toWei("1950"),
-        isSellable: true,
-        isBuyable: true
-    },
-    {
-        expiration: 1685692800,
-        isPut: PUT_FLAVOR,
         strike: toWei("1950"),
         isSellable: false,
         isBuyable: false
     },
     {
-        expiration: 1685692800,
+        expiration: expiry,
+        isPut: PUT_FLAVOR,
+        strike: toWei("1950"),
+        isSellable: false,
+        isBuyable: false
+    },
+    {
+        expiration: expiry,
         isPut: CALL_FLAVOR,
         strike: toWei("1900"),
-        isSellable: true,
-        isBuyable: true
+        isSellable: false,
+        isBuyable: false
     },
     {
-        expiration: 1685692800,
+        expiration: expiry,
         isPut: PUT_FLAVOR,
         strike: toWei("1900"),
-        isSellable: true,
-        isBuyable: true
+        isSellable: false,
+        isBuyable: false
     },
     {
-        expiration: 1685692800,
+        expiration: expiry,
         isPut: CALL_FLAVOR,
         strike: toWei("1850"),
-        isSellable: true,
-        isBuyable: true
+        isSellable: false,
+        isBuyable: false
     },
     {
-        expiration: 1685692800,
+        expiration: expiry,
         isPut: PUT_FLAVOR,
         strike: toWei("1850"),
-        isSellable: true,
-        isBuyable: true
+        isSellable: false,
+        isBuyable: false
     },
     {
-        expiration: 1685692800,
+        expiration: expiry,
         isPut: CALL_FLAVOR,
         strike: toWei("1800"),
-        isSellable: true,
-        isBuyable: true
+        isSellable: false,
+        isBuyable: false
     },
     {
-        expiration: 1685692800,
+        expiration: expiry,
         isPut: PUT_FLAVOR,
         strike: toWei("1800"),
-        isSellable: true,
-        isBuyable: true
+        isSellable: false,
+        isBuyable: false
     },
     {
-        expiration: 1685692800,
+        expiration: expiry,
         isPut: CALL_FLAVOR,
         strike: toWei("1750"),
-        isSellable: true,
-        isBuyable: true
+        isSellable: false,
+        isBuyable: false
     },
     {
-        expiration: 1685692800,
+        expiration: expiry,
         isPut: PUT_FLAVOR,
         strike: toWei("1750"),
-        isSellable: true,
-        isBuyable: true
+        isSellable: false,
+        isBuyable: false
     },
     {
-        expiration: 1685692800,
+        expiration: expiry,
         isPut: CALL_FLAVOR,
         strike: toWei("1700"),
-        isSellable: true,
-        isBuyable: true
+        isSellable: false,
+        isBuyable: false
     },
     {
-        expiration: 1685692800,
+        expiration: expiry,
         isPut: PUT_FLAVOR,
         strike: toWei("1700"),
-        isSellable: true,
-        isBuyable: true
+        isSellable: false,
+        isBuyable: false
     },
     {
-        expiration: 1685692800,
+        expiration: expiry,
         isPut: CALL_FLAVOR,
         strike: toWei("1650"),
-        isSellable: true,
-        isBuyable: true
+        isSellable: false,
+        isBuyable: false
     },
     {
-        expiration: 1685692800,
+        expiration: expiry,
         isPut: PUT_FLAVOR,
         strike: toWei("1650"),
-        isSellable: true,
-        isBuyable: true
-    },
-    {
-        expiration: 1685692800,
-        isPut: CALL_FLAVOR,
-        strike: toWei("1600"),
         isSellable: false,
         isBuyable: false
-    },
-    {
-        expiration: 1685692800,
-        isPut: PUT_FLAVOR,
-        strike: toWei("1600"),
-        isSellable: true,
-        isBuyable: true
-    },
-    {
-        expiration: 1685692800,
-        isPut: CALL_FLAVOR,
-        strike: toWei("1550"),
-        isSellable: false,
-        isBuyable: false
-    },
-    {
-        expiration: 1685692800,
-        isPut: PUT_FLAVOR,
-        strike: toWei("1550"),
-        isSellable: true,
-        isBuyable: true
-    },
-    {
-        expiration: 1685692800,
-        isPut: CALL_FLAVOR,
-        strike: toWei("1500"),
-        isSellable: false,
-        isBuyable: false
-    },
-    {
-        expiration: 1685692800,
-        isPut: PUT_FLAVOR,
-        strike: toWei("1500"),
-        isSellable: true,
-        isBuyable: true
     },
 ]
 // specific for Arbitrum Goerli as mainnet will likely need to be on safe board
