@@ -329,6 +329,9 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 				true
 			);
 		} else {
+			if (order.optionSeries.collateral != collateralAsset) {
+				revert CustomErrors.CollateralAssetInvalid();
+			}
 			// write the option contract, includes sending the premium from the user to the pool, option series should be in e8
 			liquidityPool.handlerWriteOption(
 				order.optionSeries,
@@ -373,6 +376,9 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		// check if the order is a buyback order
 		if (!order.isBuyBack) {
 			revert CustomErrors.InvalidOrder();
+		}
+		if (order.optionSeries.collateral != collateralAsset) {
+			revert CustomErrors.CollateralAssetInvalid();
 		}
 		uint256 spotPrice = _getUnderlyingPrice(underlyingAsset, strikeAsset);
 		// If spot price has deviated too much we want to void the order
