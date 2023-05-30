@@ -293,7 +293,7 @@ describe("Slippage Pricer testing", async () => {
 		it("SUCCEEDS: get quote for 1 option when buying", async () => {
 			proposedSeries = {
 				expiration: expiration,
-				strike: toWei("2000"),
+				strike: toWei("2400"),
 				isPut: PUT_FLAVOR,
 				strikeAsset: usd.address,
 				underlying: weth.address,

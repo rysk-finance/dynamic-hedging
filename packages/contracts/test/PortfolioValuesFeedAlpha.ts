@@ -3,7 +3,19 @@ import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
 import { BigNumber, Signer, utils } from "ethers"
 import hre, { ethers, network } from "hardhat"
-import { AlphaOptionHandler, AlphaPortfolioValuesFeed, LiquidityPool, MintableERC20, MockChainlinkAggregator, OptionRegistry, Oracle, PriceFeed, Protocol, VolatilityFeed, WETH } from "../types"
+import {
+	AlphaOptionHandler,
+	AlphaPortfolioValuesFeed,
+	LiquidityPool,
+	MintableERC20,
+	MockChainlinkAggregator,
+	OptionRegistry,
+	Oracle,
+	PriceFeed,
+	Protocol,
+	VolatilityFeed,
+	WETH
+} from "../types"
 import { deployLiquidityPool, deploySystem } from "../utils/alpha-system-deployer"
 import { CALL_FLAVOR, PUT_FLAVOR, tFormatEth, toUSDC, toWei } from "../utils/conversion-helper"
 import { deployOpyn } from "../utils/opyn-deployer"
@@ -212,21 +224,18 @@ describe("APVF gas tests", async () => {
 					expect(await portfolioValuesFeed.addressAtIndexInSet(n)).to.equal(order.seriesAddress)
 					expect(await portfolioValuesFeed.isAddressInSet(order.seriesAddress)).to.be.true
 					predictedDelta = predictedDelta.add(
-						await calculateOptionDeltaLocally(liquidityPool, priceFeed, convertedSeries, amount, true, true)
+						await calculateOptionDeltaLocally(
+							liquidityPool,
+							priceFeed,
+							convertedSeries,
+							amount,
+							true,
+							true
+						)
 					)
 					predictedQuote = predictedQuote.add(
 						toWei(
-							(
-								await getBlackScholesQuote(
-									liquidityPool,
-									optionRegistry,
-									usd,
-									priceFeed,
-									convertedSeries,
-									amount,
-									false
-								)
-							).toString()
+							(await getBlackScholesQuote(liquidityPool, priceFeed, convertedSeries, amount)).toString()
 						)
 					)
 					n += 1
@@ -519,15 +528,7 @@ describe("APVF gas tests", async () => {
 				predictedQuote = predictedQuote.add(
 					toWei(
 						(
-							await getBlackScholesQuote(
-								liquidityPool,
-								optionRegistry,
-								usd,
-								priceFeed,
-								proposedSeries,
-								stores.shortExposure,
-								false
-							)
+							await getBlackScholesQuote(liquidityPool, priceFeed, proposedSeries, stores.shortExposure)
 						).toString()
 					)
 				)
@@ -564,15 +565,7 @@ describe("APVF gas tests", async () => {
 			)
 			const expectedValueDiff = toWei(
 				(
-					await getBlackScholesQuote(
-						liquidityPool,
-						optionRegistry,
-						usd,
-						priceFeed,
-						proposedSeries,
-						shortExposureChange,
-						false
-					)
+					await getBlackScholesQuote(liquidityPool, priceFeed, proposedSeries, shortExposureChange)
 				).toString()
 			)
 			await portfolioValuesFeed.updateStores(storesBefore.optionSeries, shortExposureChange, 0, addy)
@@ -615,15 +608,7 @@ describe("APVF gas tests", async () => {
 			)
 			const expectedValueDiff = toWei(
 				(
-					await getBlackScholesQuote(
-						liquidityPool,
-						optionRegistry,
-						usd,
-						priceFeed,
-						proposedSeries,
-						longExposureChange,
-						false
-					)
+					await getBlackScholesQuote(liquidityPool, priceFeed, proposedSeries, longExposureChange)
 				).toString()
 			)
 			await portfolioValuesFeed.updateStores(storesBefore.optionSeries, 0, longExposureChange, addy)
@@ -666,15 +651,7 @@ describe("APVF gas tests", async () => {
 			)
 			const expectedValueDiff = toWei(
 				(
-					await getBlackScholesQuote(
-						liquidityPool,
-						optionRegistry,
-						usd,
-						priceFeed,
-						proposedSeries,
-						shortExposureChange,
-						false
-					)
+					await getBlackScholesQuote(liquidityPool, priceFeed, proposedSeries, shortExposureChange)
 				).toString()
 			)
 			await portfolioValuesFeed.updateStores(
