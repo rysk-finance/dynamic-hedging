@@ -19,11 +19,13 @@ export const ActiveExpiryAlerts = () => {
   const duration = dayjs.duration(datetime.diff(dayjs()));
 
   const getMessage = () => {
-    switch (duration.days()) {
-      case 0:
+    const days = duration.asDays();
+
+    switch (true) {
+      case days < 1:
         return "This expiry is now untradeable.";
 
-      case 1:
+      case days < 2:
         return `This expiry will become untradeable in ${duration.hours()}h ${duration.minutes()}m.`;
 
       default:
