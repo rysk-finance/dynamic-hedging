@@ -71,7 +71,8 @@ const AdjustCollateralModal = () => {
 
   // User allowance state for USDC.
   const [allowance, setAllowance] = useAllowance(
-    getContractAddress(collateralAssetSymbol)
+    getContractAddress(collateralAssetSymbol),
+    address
   );
 
   const [isWithdrawCollateral, setIsWithdrawCollateral] = useState(false);
@@ -281,7 +282,7 @@ const AdjustCollateralModal = () => {
             {...getButtonProps(
               "update",
               transactionPending,
-              allowance.approved,
+              allowance.approved || isWithdrawCollateral,
               handleApprove,
               handleCollateralUpdate
             )}
