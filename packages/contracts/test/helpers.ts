@@ -133,7 +133,11 @@ export async function compareQuotes(
 		localDelta.div(amount.div(toWei("1"))),
 		netDhvExposureOverride
 	)
-	expect(tFormatUSDC(quoteResponse[0]) - localQuote).to.be.within(-0.11, 0.11)
+	// use a mix of percentage for large values and absolute for small values where rounding errors have large effect
+	expect(tFormatUSDC(quoteResponse[0]) - localQuote).to.be.within(
+		Math.min(-localQuote * 0.002, -0.11),
+		Math.max(localQuote * 0.002, 0.11)
+	)
 	expect(parseFloat(fromWei(quoteResponse.totalDelta.abs().sub(localDelta.abs())))).to.be.within(
 		-0.005,
 		0.005
@@ -168,10 +172,6 @@ export async function getExchangeParams(
 ) {
 	const poolUSDBalance = await usd.balanceOf(liquidityPool.address)
 	const senderUSDBalance = await usd.balanceOf(senderAddress)
-	//
-	// const exchangeTempUSD = await ethers.provider.getStorageAt(exchange.address, keccak256())
-	// console.log({ exchangeTempUSD })
-
 	const exchangeTempUSD = await exchange.heldTokens(senderAddress, usd.address)
 	const senderWethBalance = await weth.balanceOf(senderAddress)
 	const pfList = await portfolioValuesFeed.getAddressSet()
@@ -626,7 +626,6 @@ export async function calculateOptionQuoteLocally(
 		optionSeries.strike,
 		optionSeries.expiration
 	)
-
 	const bidAskSpread = await pricer.bidAskIVSpread()
 	const rfr = await pricer.riskFreeRate()
 	const localBS =
@@ -734,7 +733,21 @@ export async function localQuoteOptionPrice(
 	if (spread < 0) {
 		spread = 0
 	}
-	return isSell ? bsQ * slip - spread : bsQ * slip + spread
+	const totalPremium = isSell ? Math.max(bsQ * slip - spread, 0) : bsQ * slip + spread
+	if (
+		isSell &&
+		Math.abs(parseFloat(fromWei(optionDelta))) < parseFloat(fromWei(await pricer.lowDeltaThreshold()))
+	) {
+		const overrideQuote = await getBlackScholesQuote(
+			liquidityPool,
+			priceFeed,
+			optionSeries,
+			amount,
+			await pricer.lowDeltaSellOptionFlatIV()
+		)
+		return overrideQuote > totalPremium ? totalPremium : overrideQuote
+	}
+	return totalPremium
 }
 
 export async function applySlippageLocally(
@@ -869,7 +882,15 @@ export async function applySpreadLocally(
 			dollarDelta
 	}
 
-	return collateralLendingPremium + deltaBorrowPremium
+	const deltaBandIndex = Math.floor(
+		(parseFloat(fromWei(optionDelta.abs())) * 100) /
+			parseFloat(fromWei(await beyondPricer.deltaBandWidth()))
+	)
+	const totalSlippage = collateralLendingPremium + deltaBorrowPremium
+	return (
+		totalSlippage *
+		parseFloat(fromWei((await beyondPricer.getCallSpreadMultipliers())[deltaBandIndex]))
+	)
 }
 
 export async function calculateOptionDeltaLocally(
@@ -923,8 +944,6 @@ export async function calculateOptionDeltaLocally(
 
 export async function getBlackScholesQuote(
 	liquidityPool: LiquidityPool,
-	optionRegistry: OptionRegistry,
-	collateralAsset: MintableERC20,
 	priceFeed: PriceFeed,
 	optionSeries: {
 		expiration: number
@@ -935,7 +954,7 @@ export async function getBlackScholesQuote(
 		collateral: string
 	},
 	amount: BigNumber,
-	isSell: boolean = false
+	overrideIV: BigNumber = toWei("0")
 ) {
 	const underlyingPrice = await priceFeed.getNormalizedRate(
 		WETH_ADDRESS[chainId],
@@ -945,7 +964,7 @@ export async function getBlackScholesQuote(
 		"VolatilityFeed",
 		await liquidityPool.getVolatilityFeed()
 	)) as VolatilityFeed
-	const iv = await volFeed.getImpliedVolatilityWithForward(
+	let iv = await volFeed.getImpliedVolatilityWithForward(
 		optionSeries.isPut,
 		underlyingPrice,
 		optionSeries.strike,
@@ -962,7 +981,7 @@ export async function getBlackScholesQuote(
 			priceNorm,
 			fromWei(optionSeries.strike),
 			timeToExpiration,
-			Number(fromWei(iv[0])),
+			Number(overrideIV.gt(0) ? fromWei(overrideIV) : fromWei(iv[0])),
 			rfr,
 			optionSeries.isPut ? "put" : "call"
 		) *
