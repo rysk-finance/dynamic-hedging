@@ -10,7 +10,6 @@ import { useAccount } from "wagmi";
 import { NewMarginCalculatorABI } from "src/abis/NewMarginCalculator_ABI";
 import { DECIMALS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { CollateralAmount } from "src/state/types";
 import {
   fromRyskToNumber,
   tFormatUSDC,
@@ -24,12 +23,6 @@ import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
 import { getLiquidationPrice } from "../../Shared/utils/getLiquidationPrice";
 import { getQuote } from "../../Shared/utils/getQuote";
-
-const multipliers = {
-  [CollateralAmount["1.5x"]]: 15,
-  [CollateralAmount["2x"]]: 20,
-  [CollateralAmount["3x"]]: 30,
-};
 
 export const useSellOption = (amountToSell: string) => {
   // Global state.
@@ -117,7 +110,7 @@ export const useSellOption = (amountToSell: string) => {
               ],
             });
 
-            if (collateralPreferences.amount === CollateralAmount["full"]) {
+            if (collateralPreferences.full) {
               if (USDCCollateral) {
                 return Number(strike) * Number(amount);
               } else {
@@ -125,7 +118,7 @@ export const useSellOption = (amountToSell: string) => {
               }
             } else {
               const multipliedCollateral = requiredCollateral
-                .mul(multipliers[collateralPreferences.amount])
+                .mul(collateralPreferences.amount * 10)
                 .div(10);
               const formatted = USDCCollateral
                 ? tFormatUSDC(multipliedCollateral)
@@ -165,17 +158,19 @@ export const useSellOption = (amountToSell: string) => {
             USDCCollateral ? toUSDC(requiredApproval) : toRysk(requiredApproval)
           ).lte(allowance.amount);
 
-          const liquidationPrice = await getLiquidationPrice(
-            amount,
-            selectedOption.callOrPut,
-            collateral,
-            collateralAddress,
-            ethPrice,
-            Number(activeExpiry),
-            spotShock,
-            selectedOption.strikeOptions.strike,
-            timesToExpiry
-          );
+          const liquidationPrice = collateralPreferences.full
+            ? 0
+            : await getLiquidationPrice(
+                amount,
+                selectedOption.callOrPut,
+                collateral,
+                collateralAddress,
+                ethPrice,
+                Number(activeExpiry),
+                spotShock,
+                selectedOption.strikeOptions.strike,
+                timesToExpiry
+              );
 
           setPurchaseData({
             acceptablePremium,
