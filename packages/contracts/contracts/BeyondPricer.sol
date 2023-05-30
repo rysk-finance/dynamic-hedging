@@ -85,6 +85,10 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	DeltaBorrowRates public deltaBorrowRates;
 	// multiplier values for spread and slippage delta bands
 	DeltaBandMultipliers internal deltaBandMultipliers;
+	// flat IV value which will override our pricing formula for bids on options below a low delta threshold
+	uint256 public lowDeltaSellOptionFlatIV = 30e16;
+	// threshold for delta of options below which lowDeltaSellOptionFlatIV kicks in
+	uint256 public lowDeltaThreshold = 5e16; //0.05 delta options
 
 	//////////////////////////
 	/// constant variables ///
@@ -105,6 +109,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	/////////////////////////
 
 	event SlippageGradientMultipliersChanged();
+	event SpreadMultipliersChanged();
 	event DeltaBandWidthChanged(uint256 newDeltaBandWidth, uint256 oldDeltaBandWidth);
 	event CollateralLendingRateChanged(
 		uint256 newCollateralLendingRate,
@@ -118,9 +123,15 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	event FeePerContractChanged(uint256 newFeePerContract, uint256 oldFeePerContract);
 	event RiskFreeRateChanged(uint256 newRiskFreeRate, uint256 oldRiskFreeRate);
 	event BidAskIVSpreadChanged(uint256 newBidAskIVSpread, uint256 oldBidAskIVSpread);
-
+	event LowDeltaSellOptionFlatIVChanged(
+		uint256 newLowDeltaSellOptionFlatIV,
+		uint256 oldLowDeltaSellOptionFlatIV
+	);
+	event LowDeltaThresholdChanged(uint256 newLowDeltaThreshold, uint256 oldLowDeltaThreshold);
 	error InvalidSlippageGradientMultipliersArrayLength();
 	error InvalidSlippageGradientMultiplierValue();
+	error InvalidSpreadMultipliersArrayLength();
+	error InvalidSpreadMultiplierValue();
 
 	constructor(
 		address _authority,
@@ -130,10 +141,6 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		uint256 _slippageGradient,
 		uint256 _deltaBandWidth,
 		DeltaBandMultipliers memory _deltaBandMultipliers,
-		// uint256[] memory _callSlippageGradientMultipliers,
-		// uint256[] memory _putSlippageGradientMultipliers,
-		// uint256[] memory _callSpreadMultipliers,
-		// uint256[] memory _putSpreadMultipliers,
 		uint256 _collateralLendingRate,
 		DeltaBorrowRates memory _deltaBorrowRates
 	) AccessControl(IAuthority(_authority)) {
@@ -152,17 +159,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		strikeAsset = liquidityPool.strikeAsset();
 		slippageGradient = _slippageGradient;
 		deltaBandWidth = _deltaBandWidth;
-		// deltaBandMultipliers = DeltaBandMultipliers(
-		// 	_callSlippageGradientMultipliers,
-		// 	_putSlippageGradientMultipliers,
-		// 	_callSpreadMultipliers,
-		// 	_putSpreadMultipliers
-		// );
 		deltaBandMultipliers = _deltaBandMultipliers;
-		// callSlippageGradientMultipliers = _callSlippageGradientMultipliers;
-		// putSlippageGradientMultipliers = _putSlippageGradientMultipliers;
-		// callSpreadMultipliers = _callSpreadMultipliers;
-		// putSpreadMultipliers = _putSpreadMultipliers;
 		collateralLendingRate = _collateralLendingRate;
 		deltaBorrowRates = _deltaBorrowRates;
 	}
@@ -170,6 +167,18 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	///////////////
 	/// setters ///
 	///////////////
+
+	function setLowDeltaSellOptionFlatIV(uint256 _lowDeltaSellOptionFlatIV) external {
+		_onlyGovernor();
+		emit LowDeltaSellOptionFlatIVChanged(_lowDeltaSellOptionFlatIV, lowDeltaSellOptionFlatIV);
+		lowDeltaSellOptionFlatIV = _lowDeltaSellOptionFlatIV;
+	}
+
+	function setLowDeltaThreshold(uint256 _lowDeltaThreshold) external {
+		_onlyGovernor();
+		emit LowDeltaThresholdChanged(_lowDeltaThreshold, lowDeltaThreshold);
+		lowDeltaThreshold = _lowDeltaThreshold;
+	}
 
 	function setRiskFreeRate(uint256 _riskFreeRate) external {
 		_onlyGovernor();
@@ -245,6 +254,29 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		emit SlippageGradientMultipliersChanged();
 	}
 
+	function setSpreadMultipliers(
+		uint256[] memory _callSpreadMultipliers,
+		uint256[] memory _putSpreadMultipliers
+	) public {
+		_onlyManager();
+		if (
+			_callSpreadMultipliers.length != ONE_DELTA / deltaBandWidth ||
+			_putSpreadMultipliers.length != ONE_DELTA / deltaBandWidth
+		) {
+			revert InvalidSpreadMultipliersArrayLength();
+		}
+		for (uint256 i = 0; i < _callSpreadMultipliers.length; i++) {
+			// arrays must be same length so can check both in same loop
+			// ensure no multiplier is less than 1 due to human error.
+			if (_callSpreadMultipliers[i] < ONE_SCALE || _putSpreadMultipliers[i] < ONE_SCALE) {
+				revert InvalidSpreadMultiplierValue();
+			}
+		}
+		deltaBandMultipliers.callSpreadMultipliers = _callSpreadMultipliers;
+		deltaBandMultipliers.putSpreadMultipliers = _putSpreadMultipliers;
+		emit SpreadMultipliersChanged();
+	}
+
 	///////////////////////
 	/// complex getters ///
 	///////////////////////
@@ -262,13 +294,15 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			_optionSeries.strike,
 			_optionSeries.expiration
 		);
+
 		(uint256 vanillaPremium, int256 delta) = OptionsCompute.quotePriceGreeks(
 			_optionSeries,
 			isSell,
 			bidAskIVSpread,
 			riskFreeRate,
 			iv,
-			forward
+			forward,
+			false
 		);
 		vanillaPremium = vanillaPremium.mul(underlyingPrice).div(forward);
 		uint256 premium = vanillaPremium.mul(
@@ -285,15 +319,35 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		if (spread < 0) {
 			spread = 0;
 		}
-
 		// the delta returned is the delta of a long position of the option the sign of delta should be handled elsewhere.
 
+		totalPremium = isSell
+			? uint(OptionsCompute.max(int(premium.mul(_amount)) - spread, 0))
+			: premium.mul(_amount) + uint(spread);
+
+		totalPremium = OptionsCompute.convertToDecimals(totalPremium, ERC20(collateralAsset).decimals());
 		totalDelta = delta.mul(int256(_amount));
 		totalFees = feePerContract.mul(_amount);
-		totalPremium = OptionsCompute.convertToDecimals(
-			isSell ? premium.mul(_amount) - uint(spread) : premium.mul(_amount) + uint(spread),
-			ERC20(collateralAsset).decimals()
-		);
+
+		if (isSell && uint256(delta.abs()) < lowDeltaThreshold) {
+			(uint overridePremium, ) = OptionsCompute.quotePriceGreeks(
+				_optionSeries,
+				isSell,
+				bidAskIVSpread,
+				riskFreeRate,
+				lowDeltaSellOptionFlatIV,
+				forward,
+				true // override IV
+			);
+
+			overridePremium = OptionsCompute.convertToDecimals(
+				overridePremium.mul(_amount),
+				ERC20(collateralAsset).decimals()
+			);
+			if (overridePremium < totalPremium) {
+				totalPremium = overridePremium;
+			}
+		}
 	}
 
 	///////////////////////////

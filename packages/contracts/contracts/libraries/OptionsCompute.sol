@@ -141,13 +141,14 @@ library OptionsCompute {
 		uint256 bidAskIVSpread,
 		uint256 riskFreeRate,
 		uint256 iv,
-		uint256 underlyingPrice
+		uint256 underlyingPrice,
+		bool overrideIV
 	) internal view returns (uint256 quote, int256 delta) {
 		if (iv == 0) {
 			revert CustomErrors.IVNotFound();
 		}
 		// reduce IV by a factor of bidAskIVSpread if we are buying the options
-		if (isBuying) {
+		if (isBuying && !overrideIV) {
 			iv = (iv * (SCALE_UP - (bidAskIVSpread))) / SCALE_UP;
 		}
 		// revert CustomErrors.if the expiry is in the past
@@ -166,6 +167,10 @@ library OptionsCompute {
 
 	function min(uint256 v1, uint256 v2) internal pure returns (uint256) {
 		return v1 > v2 ? v2 : v1;
+	}
+
+	function max(int256 v1, int256 v2) internal pure returns (int256) {
+		return v1 > v2 ? v1 : v2;
 	}
 
 	function toInt256(uint256 value) internal pure returns (int256) {
