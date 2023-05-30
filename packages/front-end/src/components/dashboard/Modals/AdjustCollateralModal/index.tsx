@@ -282,7 +282,7 @@ const AdjustCollateralModal = () => {
             {...getButtonProps(
               "update",
               transactionPending,
-              allowance.approved,
+              allowance.approved || isWithdrawCollateral,
               handleApprove,
               handleCollateralUpdate
             )}
