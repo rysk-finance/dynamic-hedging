@@ -176,10 +176,12 @@ export const Filters = () => {
 
       <div className="flex justify-between items-center">
         <div className="relative flex w-24 h-6 overflow-hidden rounded-xl">
-          <div className={`flex ease-in-out duration-200 absolute ${riskLeft}`}>
+          <div
+            className={`flex h-full ease-in-out duration-200 absolute ${riskLeft}`}
+          >
             {riskLevels.map(({ colorClasses, label, titleKey }) => (
               <em
-                className={`w-24 text-center ${colorClasses}`}
+                className={`w-24 leading-6 text-center text-sm ${colorClasses}`}
                 key={label}
                 title={`This amount of collateral carries ${titleKey} risk.`}
               >
