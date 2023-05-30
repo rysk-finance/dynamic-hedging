@@ -101,16 +101,10 @@ export type ColumNames =
 
 export type CollateralType = "USDC" | "WETH";
 
-export enum CollateralAmount {
-  "1.5x" = "1.5x",
-  "2x" = "2x",
-  "3x" = "3x",
-  "full" = "full",
-}
-
 export interface CollateralPreferences {
+  amount: number;
+  full: boolean;
   type: CollateralType;
-  amount: keyof typeof CollateralAmount;
 }
 
 export interface UserVaults {
