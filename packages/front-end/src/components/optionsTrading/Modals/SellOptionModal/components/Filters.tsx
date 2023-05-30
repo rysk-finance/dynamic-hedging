@@ -62,6 +62,9 @@ export const Filters = () => {
     }
   }, [fullCollateralRequired]);
 
+  // Risk icon
+  // Move collat/liquid figures above premium
+
   return (
     <div
       className="flex flex-col w-3/5 mx-auto pt-4 select-none"
@@ -148,7 +151,7 @@ export const Filters = () => {
       </div>
 
       <label
-        className="flex items-center ml-auto select-none cursor-pointer mt-2"
+        className="flex items-center ml-auto select-none cursor-pointer my-2"
         title={"Use full collateral."}
       >
         <input
