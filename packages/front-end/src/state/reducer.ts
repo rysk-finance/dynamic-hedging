@@ -2,7 +2,6 @@ import {
   GlobalAction,
   GlobalState,
   OptionChainModalActions,
-  OptionsTradingState,
   VaultAction,
   VaultState,
 } from "./types";
