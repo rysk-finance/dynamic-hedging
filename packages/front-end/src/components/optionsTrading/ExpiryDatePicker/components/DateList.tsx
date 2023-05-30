@@ -85,7 +85,7 @@ export const DateList = ({
                   </div>
 
                   <small className={`text-xs mt-1 `}>
-                    {duration.days() === 0
+                    {duration.asDays() < 1
                       ? `Untradeable`
                       : `${Math.floor(
                           duration.asDays()
