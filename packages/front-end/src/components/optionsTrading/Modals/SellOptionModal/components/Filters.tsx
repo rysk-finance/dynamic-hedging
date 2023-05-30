@@ -3,12 +3,23 @@ import type { ChangeEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import ReactSlider from "react-slider";
 import { useDebouncedCallback } from "use-debounce";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
 import { USDC, WETH } from "src/Icons";
 import FadeInOut from "src/animation/FadeInOut";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
+
+const riskLevels = [
+  { colorClasses: "bg-red-600 text-white", titleKey: "high", label: "Rysky" },
+  {
+    colorClasses: "bg-yellow-600 text-black",
+    titleKey: "moderate",
+    label: "Moderate",
+  },
+  { colorClasses: "bg-green-500 text-black", titleKey: "low", label: "Low" },
+  { colorClasses: "bg-black text-white", titleKey: "no", label: "None" },
+];
 
 export const Filters = () => {
   const {
@@ -23,6 +34,22 @@ export const Filters = () => {
       selectedOption?.callOrPut === "call");
 
   const toggleIsUSDC = collateralPreferences.type === "USDC";
+
+  const riskLeft = useMemo(() => {
+    switch (true) {
+      case collateralPreferences.full:
+        return "left-[-18rem]";
+
+      case collateralPreferences.amount <= 1.3:
+        return "left-0";
+
+      case collateralPreferences.amount <= 2:
+        return "left-[-6rem]";
+
+      default:
+        return "left-[-12rem]";
+    }
+  }, [collateralPreferences.amount, collateralPreferences.full]);
 
   const handleCollateralTypeChange = () => {
     const type = toggleIsUSDC ? "WETH" : "USDC";
@@ -61,9 +88,6 @@ export const Filters = () => {
       });
     }
   }, [fullCollateralRequired]);
-
-  // Risk icon
-  // Move collat/liquid figures above premium
 
   return (
     <div
@@ -115,7 +139,7 @@ export const Filters = () => {
       </div>
 
       <div
-        className="relative"
+        className="relative mb-1"
         title="Select the collateral multiplier you wish to use."
       >
         <ReactSlider
@@ -150,20 +174,40 @@ export const Filters = () => {
         </div>
       </div>
 
-      <label
-        className="flex items-center ml-auto select-none cursor-pointer my-2"
-        title={"Use full collateral."}
-      >
-        <input
-          className="w-4 h-4 cursor-pointer mr-2 accent-bone-dark hover:accent-bone-light"
-          disabled={!fullCollateralRequired}
-          name="full-collateral"
-          type="checkbox"
-          checked={collateralPreferences.full}
-          onChange={handleCheckboxChange}
-        />
-        {"Use full collateral"}
-      </label>
+      <div className="flex justify-between items-center">
+        <div className="relative flex w-24 h-6 overflow-hidden rounded-xl">
+          <div className={`flex ease-in-out duration-200 absolute ${riskLeft}`}>
+            {riskLevels.map(({ colorClasses, label, titleKey }) => (
+              <em
+                className={`w-24 text-center ${colorClasses}`}
+                key={label}
+                title={`This amount of collateral carries ${titleKey} risk.`}
+              >
+                {label}
+              </em>
+            ))}
+          </div>
+        </div>
+
+        <label
+          className={`flex items-center select-none my-2 ${
+            fullCollateralRequired
+              ? "cursor-pointer"
+              : "cursor-not-allowed opacity-50"
+          }`}
+          title={"Use full collateral."}
+        >
+          <input
+            className="w-4 h-4 cursor-pointer mr-2 accent-bone-dark hover:accent-bone-light disabled:cursor-not-allowed"
+            disabled={!fullCollateralRequired}
+            name="full-collateral"
+            type="checkbox"
+            checked={collateralPreferences.full}
+            onChange={handleCheckboxChange}
+          />
+          {"Use full collateral"}
+        </label>
+      </div>
 
       <small className="flex leading-6 text-gray-600 border-gray-600 border-b">
         {`Using ${collateralPreferences.type} to supply ${
