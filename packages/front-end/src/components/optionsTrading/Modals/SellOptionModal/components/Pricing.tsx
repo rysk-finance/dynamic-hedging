@@ -44,9 +44,37 @@ export const Pricing = ({ loading, positionData, type }: PricingProps) => {
   }, [collateralType, positionData]);
 
   return (
-    <div className="w-3/5 mx-auto py-4">
+    <div className="w-3/5 mx-auto pt-2 pb-4">
       <div id="sell-price-per-option">
-        <span className="flex">
+        <span className="flex" id="sell-collateral-required">
+          <p className="mr-auto">{`Collateral required:`}</p>
+          <AnimatePresence mode="wait">
+            <motion.p
+              className="font-medium"
+              key={collateralType}
+              {...FadeInOutQuick}
+            >
+              <RyskCountUp
+                value={collateral}
+                format={collateralType === "USDC" ? "USD" : "ETH"}
+              />
+              {collateralType === "USDC" ? ` USDC` : ` WETH`}
+            </motion.p>
+          </AnimatePresence>
+        </span>
+
+        <span
+          className="flex pb-2 border-gray-600 border-b"
+          id="sell-total-price"
+        >
+          <p className="mr-auto">{`Liquidation Price:`}</p>
+          <p className="font-medium">
+            <RyskCountUp fallback="Unliquidatable" value={liquidationPrice} />
+            {Boolean(liquidationPrice) && ` USDC`}
+          </p>
+        </span>
+
+        <span className="flex pt-2">
           <p className="mr-auto">{`Premium:`}</p>
           <p className="font-medium">
             <RyskCountUp value={premium} />
@@ -75,35 +103,7 @@ export const Pricing = ({ loading, positionData, type }: PricingProps) => {
         </small>
       </div>
 
-      <span className="flex pt-2" id="sell-collateral-required">
-        <p className="mr-auto">{`Collateral required:`}</p>
-        <AnimatePresence mode="wait">
-          <motion.p
-            className="font-medium"
-            key={collateralType}
-            {...FadeInOutQuick}
-          >
-            <RyskCountUp
-              value={collateral}
-              format={collateralType === "USDC" ? "USD" : "ETH"}
-            />
-            {collateralType === "USDC" ? ` USDC` : ` WETH`}
-          </motion.p>
-        </AnimatePresence>
-      </span>
-
-      <span className="flex" id="sell-total-price">
-        <p className="mr-auto">{`Liquidation Price:`}</p>
-        <p className="font-medium">
-          <RyskCountUp value={liquidationPrice} />
-          {` USDC`}
-        </p>
-      </span>
-
-      <span
-        className="flex pb-2 border-gray-600 border-b"
-        id="sell-total-price"
-      >
+      <span className="flex pt-2" id="sell-total-price">
         <p className="mr-auto">{`Premium received:`}</p>
         <p className="font-medium">
           <RyskCountUp value={quote} />
@@ -112,7 +112,7 @@ export const Pricing = ({ loading, positionData, type }: PricingProps) => {
       </span>
 
       <div id="sell-balances">
-        <span className="flex pt-2">
+        <span className="flex">
           <p className="mr-auto">{`Balances after:`}</p>
           <p className="font-medium">
             <RyskCountUp value={remainingBalanceUSDC} />

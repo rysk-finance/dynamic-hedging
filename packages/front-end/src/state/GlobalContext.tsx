@@ -12,13 +12,7 @@ import {
 import { LOCAL_STORAGE_SETTINGS_KEY } from "../components/dashboard/Settings";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { globalReducer } from "./reducer";
-import {
-  ActionType,
-  AppSettings,
-  CollateralAmount,
-  GlobalContext,
-  GlobalState,
-} from "./types";
+import { ActionType, AppSettings, GlobalContext, GlobalState } from "./types";
 
 export const defaultSpotShock = 0.7;
 export const defaultTimesToExpiry = [
@@ -89,8 +83,9 @@ export const defaultGlobalState: GlobalState = {
 
   // Options chain state.
   collateralPreferences: {
+    amount: 2,
+    full: false,
     type: "USDC",
-    amount: CollateralAmount["2x"],
   },
   selectedOption: undefined,
   optionChainModalOpen: undefined,

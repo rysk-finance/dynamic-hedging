@@ -1,14 +1,25 @@
 import type { ChangeEvent } from "react";
 
-import type { CollateralPreferences } from "src/state/types";
-
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect } from "react";
+import ReactSlider from "react-slider";
+import { useDebouncedCallback } from "use-debounce";
+import { useEffect, useMemo } from "react";
 
 import { USDC, WETH } from "src/Icons";
 import FadeInOut from "src/animation/FadeInOut";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { ActionType, CollateralAmount } from "src/state/types";
+import { ActionType } from "src/state/types";
+
+const riskLevels = [
+  { colorClasses: "bg-red-600 text-white", titleKey: "high", label: "Rysky" },
+  {
+    colorClasses: "bg-yellow-600 text-black",
+    titleKey: "moderate",
+    label: "Moderate",
+  },
+  { colorClasses: "bg-green-500 text-black", titleKey: "low", label: "Low" },
+  { colorClasses: "bg-black text-white", titleKey: "no", label: "None" },
+];
 
 export const Filters = () => {
   const {
@@ -16,46 +27,29 @@ export const Filters = () => {
     dispatch,
   } = useGlobalContext();
 
-  const fullCollateralNotRequired =
+  const fullCollateralRequired =
     (collateralPreferences.type === "USDC" &&
-      selectedOption?.callOrPut === "call") ||
+      selectedOption?.callOrPut === "put") ||
     (collateralPreferences.type === "WETH" &&
-      selectedOption?.callOrPut === "put");
-
-  const collateralCheckboxes = [
-    {
-      checked: collateralPreferences.amount === CollateralAmount["1.5x"],
-      disabled: false,
-      label: CollateralAmount["1.5x"],
-      name: CollateralAmount["1.5x"],
-      title: `Use ${CollateralAmount["1.5x"]} required Collateral.`,
-    },
-    {
-      checked: collateralPreferences.amount === CollateralAmount["2x"],
-      disabled: false,
-      label: CollateralAmount["2x"],
-      name: CollateralAmount["2x"],
-      title: `Use ${CollateralAmount["2x"]} required Collateral.`,
-    },
-    {
-      checked: collateralPreferences.amount === CollateralAmount["3x"],
-      disabled: false,
-      label: CollateralAmount["3x"],
-      name: CollateralAmount["3x"],
-      title: `Use ${CollateralAmount["3x"]} required Collateral.`,
-    },
-    {
-      checked: collateralPreferences.amount === CollateralAmount["full"],
-      disabled: fullCollateralNotRequired,
-      label: "Full",
-      name: CollateralAmount["full"],
-      title: fullCollateralNotRequired
-        ? "Full collateralization is not required for this position."
-        : `Use ${CollateralAmount["full"]} collateralization.`,
-    },
-  ];
+      selectedOption?.callOrPut === "call");
 
   const toggleIsUSDC = collateralPreferences.type === "USDC";
+
+  const riskLeft = useMemo(() => {
+    switch (true) {
+      case collateralPreferences.full:
+        return "left-[-18rem]";
+
+      case collateralPreferences.amount <= 1.3:
+        return "left-0";
+
+      case collateralPreferences.amount <= 2:
+        return "left-[-6rem]";
+
+      default:
+        return "left-[-12rem]";
+    }
+  }, [collateralPreferences.amount, collateralPreferences.full]);
 
   const handleCollateralTypeChange = () => {
     const type = toggleIsUSDC ? "WETH" : "USDC";
@@ -66,34 +60,40 @@ export const Filters = () => {
     });
   };
 
-  const handleCollateralAmountChange = (
-    event: ChangeEvent<HTMLInputElement>
-  ) => {
-    const amount = event.currentTarget.name as CollateralPreferences["amount"];
-
+  const handleSliderChange = useDebouncedCallback((value: number) => {
     dispatch({
       type: ActionType.SET_COLLATERAL_PREFERENCES,
-      collateralPreferences: { ...collateralPreferences, amount },
+      collateralPreferences: { ...collateralPreferences, amount: value },
+    });
+  }, 300);
+
+  const handleCheckboxChange = (event: ChangeEvent<HTMLInputElement>) => {
+    dispatch({
+      type: ActionType.SET_COLLATERAL_PREFERENCES,
+      collateralPreferences: {
+        ...collateralPreferences,
+        full: event.currentTarget.checked,
+      },
     });
   };
 
   useEffect(() => {
-    if (
-      fullCollateralNotRequired &&
-      collateralPreferences.amount === CollateralAmount["full"]
-    ) {
+    if (!fullCollateralRequired && collateralPreferences.full === true) {
       dispatch({
         type: ActionType.SET_COLLATERAL_PREFERENCES,
         collateralPreferences: {
           ...collateralPreferences,
-          amount: CollateralAmount["2x"],
+          full: false,
         },
       });
     }
-  }, [fullCollateralNotRequired]);
+  }, [fullCollateralRequired]);
 
   return (
-    <div className="flex flex-col w-3/5 mx-auto pt-4 select-none" id="sell-collateral">
+    <div
+      className="flex flex-col w-3/5 mx-auto pt-4 select-none"
+      id="sell-collateral"
+    >
       <p className="leading-6 border-gray-600 border-b">{`Collateral Preferences`}</p>
 
       <div
@@ -138,28 +138,89 @@ export const Filters = () => {
         </span>
       </div>
 
-      <div className="flex items-center justify-between [&>*]:py-2 [&_*]:ease-in-out [&_*]:duration-100 [&_label]:whitespace-nowrap">
-        {collateralCheckboxes.map((checkbox) => (
-          <label
-            className="flex items-center select-none cursor-pointer"
-            key={checkbox.name}
-            title={checkbox.title}
-          >
-            {checkbox.label}
-            <input
-              checked={checkbox.checked}
-              className="w-4 h-4 cursor-pointer ml-2 accent-bone-dark hover:accent-bone-light"
-              disabled={checkbox.disabled}
-              name={checkbox.name}
-              onChange={handleCollateralAmountChange}
-              type="checkbox"
+      <div
+        className="relative mb-1"
+        title="Select the collateral multiplier you wish to use."
+      >
+        <ReactSlider
+          ariaLabel="Adjust collateral"
+          className={`flex w-full h-12  ${
+            collateralPreferences.full
+              ? "cursor-not-allowed opacity-50"
+              : "cursor-pointer"
+          }`}
+          disabled={collateralPreferences.full}
+          defaultValue={collateralPreferences.amount}
+          onChange={handleSliderChange}
+          renderTrack={(props) => (
+            <div
+              {...props}
+              className="inset-0 bg-black h-0.5 rounded-full translate-y-[1.5rem]"
             />
-          </label>
-        ))}
+          )}
+          max={5}
+          min={1}
+          step={0.1}
+          renderThumb={(props) => {
+            return (
+              <div
+                {...props}
+                className={`w-6 h-6 rounded-full bg-bone border-2 border-black ease-in-out duration-200 translate-y-[0.8125rem]`}
+              />
+            );
+          }}
+        />
+
+        <div className="absolute pointer-events-none flex justify-between w-full bottom-[-0.4rem]">
+          {[1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map((value) => (
+            <small className="w-6 text-center" key={value}>{`${value}x`}</small>
+          ))}
+        </div>
       </div>
 
-      <small className="block leading-6 text-gray-600 border-gray-600 border-b">
-        {`Using ${collateralPreferences.type} to supply ${collateralPreferences.amount} collateral.`}
+      <div className="flex justify-between items-center">
+        <div className="relative flex w-24 h-6 overflow-hidden rounded-xl">
+          <div
+            className={`flex h-full ease-in-out duration-200 absolute ${riskLeft}`}
+          >
+            {riskLevels.map(({ colorClasses, label, titleKey }) => (
+              <em
+                className={`w-24 leading-6 text-center text-sm ${colorClasses}`}
+                key={label}
+                title={`This amount of collateral carries ${titleKey} risk.`}
+              >
+                {label}
+              </em>
+            ))}
+          </div>
+        </div>
+
+        <label
+          className={`flex items-center select-none my-2 ${
+            fullCollateralRequired
+              ? "cursor-pointer"
+              : "cursor-not-allowed opacity-50"
+          }`}
+          title={"Use full collateral."}
+        >
+          <input
+            className="w-4 h-4 cursor-pointer mr-2 accent-bone-dark hover:accent-bone-light disabled:cursor-not-allowed"
+            disabled={!fullCollateralRequired}
+            name="full-collateral"
+            type="checkbox"
+            checked={collateralPreferences.full}
+            onChange={handleCheckboxChange}
+          />
+          {"Use full collateral"}
+        </label>
+      </div>
+
+      <small className="flex leading-6 text-gray-600 border-gray-600 border-b">
+        {`Using ${collateralPreferences.type} to supply ${
+          collateralPreferences.full
+            ? "full"
+            : `${collateralPreferences.amount}x`
+        } collateral.`}
       </small>
     </div>
   );
