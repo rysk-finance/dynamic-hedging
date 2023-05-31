@@ -1,8 +1,21 @@
 import { PricingProps } from "../types";
 
+import { AnimatePresence, motion } from "framer-motion";
+import { useMemo } from "react";
+
+import FadeInOutQuick from "src/animation/FadeInOutQuick";
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
+import { useGlobalContext } from "src/state/GlobalContext";
 
 export const Pricing = ({ positionData }: PricingProps) => {
+  const {
+    state: {
+      options: {
+        liquidityPool: { remainingBeforeBuffer },
+      },
+    },
+  } = useGlobalContext();
+
   const {
     callOrPut,
     expiry,
@@ -14,6 +27,16 @@ export const Pricing = ({ positionData }: PricingProps) => {
     slippage,
     strike,
   } = positionData;
+
+  const errorMessage = useMemo(() => {
+    switch (true) {
+      case remainingBeforeBuffer <= 0:
+        return "DHV utilisation is high. Some TXs may fail.";
+
+      default:
+        return "";
+    }
+  }, [positionData]);
 
   return (
     <div className="flex flex-col">
@@ -55,7 +78,10 @@ export const Pricing = ({ positionData }: PricingProps) => {
           </small>
         </div>
 
-        <span className="flex py-2 border-gray-600 border-b" id="buy-total-price">
+        <span
+          className="flex py-2 border-gray-600 border-b"
+          id="buy-total-price"
+        >
           <p className="mr-auto">{`Total to pay:`}</p>
           <p className="font-medium">
             <RyskCountUp value={quote} />
@@ -70,6 +96,17 @@ export const Pricing = ({ positionData }: PricingProps) => {
             {` USDC`}
           </p>
         </span>
+
+        <AnimatePresence mode="wait">
+          {errorMessage && (
+            <motion.small
+              className="block leading-6 text-red-500 text-right"
+              {...FadeInOutQuick}
+            >
+              {errorMessage}
+            </motion.small>
+          )}
+        </AnimatePresence>
       </div>
 
       <small className="flex flex-col pb-4 text-center leading-6 text-gray-600">
