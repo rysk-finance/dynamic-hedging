@@ -11,7 +11,7 @@ dayjs.extend(duration);
 export const ActiveExpiryAlerts = () => {
   const {
     state: {
-      options: { activeExpiry },
+      options: { activeExpiry, loading },
     },
   } = useGlobalContext();
 
@@ -33,14 +33,14 @@ export const ActiveExpiryAlerts = () => {
     }
   };
 
-  const message = useMemo(() => getMessage(), [activeExpiry]);
+  const message = useMemo(() => getMessage(), [activeExpiry, loading]);
 
   return (
     <AnimatePresence mode="wait">
       {message ? (
         <motion.span
           className="block text-center py-3 border-t-2 border-black"
-          key={message}
+          key={activeExpiry}
           {...FadeInOut()}
         >
           {message}
