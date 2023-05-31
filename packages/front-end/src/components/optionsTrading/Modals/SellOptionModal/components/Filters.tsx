@@ -159,7 +159,7 @@ export const Filters = () => {
             />
           )}
           max={5}
-          min={1}
+          min={1.1}
           step={0.1}
           renderThumb={(props) => {
             return (
