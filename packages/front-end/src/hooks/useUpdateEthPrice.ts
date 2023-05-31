@@ -34,7 +34,7 @@ export const priceFeedGetRate = async () => {
  * To update the Ether price along with historical data
  * you can call updatePriceData.
  *
- * To explicitly update jus the Ether price you
+ * To explicitly update just the Ether price you
  * can call updatePrice.
  *
  * @returns { updatePriceData, updatePrice }
