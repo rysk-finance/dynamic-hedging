@@ -86,6 +86,7 @@ export const useInitialData = () => {
           isOperator,
           userVaults,
           liquidationParameters,
+          liquidityPoolInfo,
         ]) => {
           dispatch({
             type: ActionType.SET_OPTIONS,
@@ -94,6 +95,7 @@ export const useInitialData = () => {
             error,
             expiries: validExpiries,
             isOperator,
+            liquidityPool: liquidityPoolInfo,
             loading,
             refresh,
             spotShock: liquidationParameters.spotShock,

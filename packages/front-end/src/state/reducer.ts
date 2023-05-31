@@ -70,6 +70,7 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
           error: action.error || state.options.error,
           expiries: action.expiries || state.options.expiries,
           isOperator: action.isOperator ?? state.options.isOperator,
+          liquidityPool: action.liquidityPool || state.options.liquidityPool,
           loading: action.loading ?? state.options.loading,
           refresh: action.refresh || state.options.refresh,
           spotShock: action.spotShock || state.options.spotShock,
