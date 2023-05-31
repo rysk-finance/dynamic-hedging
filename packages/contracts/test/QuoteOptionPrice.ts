@@ -906,4 +906,16 @@ describe("Quote Option price", async () => {
 			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.lt(localQuoteNoSpread)
 		})
 	})
+	describe("set flat IV params", async () => {
+		it("set low delta threshold to 0.1", async () => {
+			expect(await pricer.lowDeltaThreshold()).to.eq(toWei("0.05"))
+			await pricer.setLowDeltaThreshold(toWei("0.1"))
+			expect(await pricer.lowDeltaThreshold()).to.eq(toWei("0.1"))
+		})
+		it("set risk free rate to 3%", async () => {
+			expect(await pricer.riskFreeRate()).to.eq(toWei("0"))
+			await pricer.setRiskFreeRate(toWei("0.03"))
+			expect(await pricer.riskFreeRate()).to.eq(toWei("0.03"))
+		})
+	})
 })
