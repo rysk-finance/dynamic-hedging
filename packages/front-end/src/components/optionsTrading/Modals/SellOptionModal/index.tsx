@@ -144,11 +144,7 @@ export const SellOptionModal = () => {
 
         <Filters />
 
-        <Pricing
-          loading={loading}
-          positionData={positionData}
-          type={collateralPreferences.type}
-        />
+        <Pricing loading={loading} positionData={positionData} />
       </div>
 
       <Wrapper>

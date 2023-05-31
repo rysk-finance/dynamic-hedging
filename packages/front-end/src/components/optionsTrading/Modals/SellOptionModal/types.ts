@@ -23,7 +23,6 @@ export interface PositionDataState {
 export interface PricingProps {
   loading: boolean;
   positionData: PositionDataState;
-  type: CollateralType;
 }
 
 export interface SymbolProps {

@@ -1,14 +1,21 @@
 import type { PricingProps } from "../types";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import FadeInOutQuick from "src/animation/FadeInOutQuick";
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
+import { useGlobalContext } from "src/state/GlobalContext";
 
-export const Pricing = ({ loading, positionData, type }: PricingProps) => {
+export const Pricing = ({ loading, positionData }: PricingProps) => {
+  const {
+    state: {
+      collateralPreferences: { full, type },
+    },
+  } = useGlobalContext();
+
   const [collateralType, setCollateralType] = useState(type);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [collateralFull, setCollateralFull] = useState(full);
 
   const {
     collateral,
@@ -26,54 +33,64 @@ export const Pricing = ({ loading, positionData, type }: PricingProps) => {
   useEffect(() => {
     if (!loading) {
       setCollateralType(type);
+      setCollateralFull(full);
     }
   }, [loading]);
 
-  useEffect(() => {
+  const errorMessage = useMemo(() => {
     const negativeBalance =
       (collateralType === "USDC" && remainingBalanceUSDC <= 0) ||
       (collateralType === "WETH" && remainingBalanceWETH <= 0);
 
     if (!hasRequiredCapital && quote) {
-      setErrorMessage("Insufficient balance to cover collateral.");
+      return "Insufficient balance to cover collateral.";
     } else if (negativeBalance && quote) {
-      setErrorMessage("Final balance cannot be negative.");
+      return "Final balance cannot be negative.";
     } else {
-      setErrorMessage("");
+      return "";
     }
   }, [collateralType, positionData]);
 
   return (
     <div className="w-3/5 mx-auto pt-2 pb-4">
+      <span className="flex" id="sell-collateral-required">
+        <p className="mr-auto">{`Collateral required:`}</p>
+        <AnimatePresence mode="wait">
+          <motion.p
+            className="font-medium"
+            key={collateralType}
+            {...FadeInOutQuick}
+          >
+            <RyskCountUp
+              value={collateral}
+              format={collateralType === "USDC" ? "USD" : "ETH"}
+            />
+            {collateralType === "USDC" ? ` USDC` : ` WETH`}
+          </motion.p>
+        </AnimatePresence>
+      </span>
+
+      <span
+        className="flex pb-2 border-gray-600 border-b"
+        id="sell-liquidation-price"
+      >
+        <p className="mr-auto">{`Liquidation Price:`}</p>
+        <AnimatePresence mode="wait">
+          <motion.p
+            className="font-medium"
+            key={collateralFull ? "full-enabled" : "full-disabled"}
+            {...FadeInOutQuick}
+          >
+            <RyskCountUp
+              fallback={collateralFull && quote ? "" : "-"}
+              value={collateralFull && quote ? 0 : liquidationPrice}
+            />
+            {collateralFull && quote ? `Unliquidatable` : ` USDC`}
+          </motion.p>
+        </AnimatePresence>
+      </span>
+
       <div id="sell-price-per-option">
-        <span className="flex" id="sell-collateral-required">
-          <p className="mr-auto">{`Collateral required:`}</p>
-          <AnimatePresence mode="wait">
-            <motion.p
-              className="font-medium"
-              key={collateralType}
-              {...FadeInOutQuick}
-            >
-              <RyskCountUp
-                value={collateral}
-                format={collateralType === "USDC" ? "USD" : "ETH"}
-              />
-              {collateralType === "USDC" ? ` USDC` : ` WETH`}
-            </motion.p>
-          </AnimatePresence>
-        </span>
-
-        <span
-          className="flex pb-2 border-gray-600 border-b"
-          id="sell-total-price"
-        >
-          <p className="mr-auto">{`Liquidation Price:`}</p>
-          <p className="font-medium">
-            <RyskCountUp fallback="Unliquidatable" value={liquidationPrice} />
-            {Boolean(liquidationPrice) && ` USDC`}
-          </p>
-        </span>
-
         <span className="flex pt-2">
           <p className="mr-auto">{`Premium:`}</p>
           <p className="font-medium">
