@@ -1,5 +1,4 @@
 import dayjs from "dayjs";
-import { useBlockNumber } from "wagmi";
 
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
 import { Refresh } from "src/Icons";
@@ -7,10 +6,17 @@ import { useGlobalContext } from "src/state/GlobalContext";
 
 export const CurrentPrice = () => {
   const {
-    state: { ethPrice, ethPriceUpdateTime },
+    state: {
+      ethPrice,
+      ethPriceUpdateTime,
+      options: {
+        loading,
+        liquidityPool: { remainingBeforeBuffer },
+      },
+    },
   } = useGlobalContext();
 
-  const { data: blockHeight } = useBlockNumber({ watch: true });
+  const liquidityPoolLow = remainingBeforeBuffer <= 0 && !loading;
 
   return (
     <div className="flex items-center justify-between grow px-4">
@@ -20,9 +26,19 @@ export const CurrentPrice = () => {
           <Refresh className="w-6 h-6 ml-2" />
         </h4>
 
-        <small className="text-gray-600 text-xs text-left my-1">
-          {`Block Height: `}
-          <RyskCountUp format="Integer" value={blockHeight || 0} />
+        <small
+          className={`text-xs text-left mt-2 ${
+            liquidityPoolLow ? "text-red-500" : "text-gray-600"
+          }`}
+        >
+          {liquidityPoolLow ? (
+            <>{`DHV utilisation is high. Some TXs may fail.`}</>
+          ) : (
+            <>
+              {`Liquidity Pool Balance: $ `}
+              <RyskCountUp value={remainingBeforeBuffer} />
+            </>
+          )}
         </small>
 
         <small className="text-gray-600 text-xs text-left">
