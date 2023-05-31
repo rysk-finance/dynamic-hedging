@@ -69,8 +69,8 @@ export const Pricing = ({ loading, positionData, type }: PricingProps) => {
         >
           <p className="mr-auto">{`Liquidation Price:`}</p>
           <p className="font-medium">
-            <RyskCountUp value={liquidationPrice} />
-            {` USDC`}
+            <RyskCountUp fallback="Unliquidatable" value={liquidationPrice} />
+            {Boolean(liquidationPrice) && ` USDC`}
           </p>
         </span>
 
