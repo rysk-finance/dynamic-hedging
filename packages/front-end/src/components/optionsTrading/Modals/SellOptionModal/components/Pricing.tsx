@@ -45,35 +45,35 @@ export const Pricing = ({ loading, positionData, type }: PricingProps) => {
 
   return (
     <div className="w-3/5 mx-auto pt-2 pb-4">
+      <span className="flex" id="sell-collateral-required">
+        <p className="mr-auto">{`Collateral required:`}</p>
+        <AnimatePresence mode="wait">
+          <motion.p
+            className="font-medium"
+            key={collateralType}
+            {...FadeInOutQuick}
+          >
+            <RyskCountUp
+              value={collateral}
+              format={collateralType === "USDC" ? "USD" : "ETH"}
+            />
+            {collateralType === "USDC" ? ` USDC` : ` WETH`}
+          </motion.p>
+        </AnimatePresence>
+      </span>
+
+      <span
+        className="flex pb-2 border-gray-600 border-b"
+        id="sell-liquidation-price"
+      >
+        <p className="mr-auto">{`Liquidation Price:`}</p>
+        <p className="font-medium">
+          <RyskCountUp fallback="Unliquidatable" value={liquidationPrice} />
+          {Boolean(liquidationPrice) && ` USDC`}
+        </p>
+      </span>
+
       <div id="sell-price-per-option">
-        <span className="flex" id="sell-collateral-required">
-          <p className="mr-auto">{`Collateral required:`}</p>
-          <AnimatePresence mode="wait">
-            <motion.p
-              className="font-medium"
-              key={collateralType}
-              {...FadeInOutQuick}
-            >
-              <RyskCountUp
-                value={collateral}
-                format={collateralType === "USDC" ? "USD" : "ETH"}
-              />
-              {collateralType === "USDC" ? ` USDC` : ` WETH`}
-            </motion.p>
-          </AnimatePresence>
-        </span>
-
-        <span
-          className="flex pb-2 border-gray-600 border-b"
-          id="sell-total-price"
-        >
-          <p className="mr-auto">{`Liquidation Price:`}</p>
-          <p className="font-medium">
-            <RyskCountUp fallback="Unliquidatable" value={liquidationPrice} />
-            {Boolean(liquidationPrice) && ` USDC`}
-          </p>
-        </span>
-
         <span className="flex pt-2">
           <p className="mr-auto">{`Premium:`}</p>
           <p className="font-medium">

@@ -37,14 +37,19 @@ export const SellModalTutorial = () => {
             "To sell an option you will be required to post collateral. These filters allow you to specify the type of collateral you wish to use and how much you will add.",
         },
         {
-          target: "#sell-price-per-option",
-          content:
-            "These prices represent the total amount you receive per option. The premium and fees are displayed separately for transparency, and you can also see how the premium is impacted by slippage based on order size.",
-        },
-        {
           target: "#sell-collateral-required",
           content:
             "This price represents the total amount of collateral you must provide to sell the options.",
+        },
+        {
+          target: "#sell-liquidation-price",
+          content:
+            "This price represents the underlying asset value in USDC that you will be liquidated.",
+        },
+        {
+          target: "#sell-price-per-option",
+          content:
+            "These prices represent the total amount you receive per option. The premium and fees are displayed separately for transparency, and you can also see how the premium is impacted by slippage based on order size.",
         },
         {
           target: "#sell-total-price",
