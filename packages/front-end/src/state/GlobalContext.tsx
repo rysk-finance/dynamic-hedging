@@ -49,6 +49,9 @@ export const defaultGlobalState: GlobalState = {
     error: undefined,
     expiries: [],
     isOperator: false,
+    liquidityPool: {
+      remainingBeforeBuffer: 0,
+    },
     loading: true,
     refresh: () => {},
     spotShock: {
