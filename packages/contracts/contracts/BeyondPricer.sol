@@ -147,7 +147,9 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		// option delta can span a range of 100, so ensure delta bands match this range
 		if (
 			_deltaBandMultipliers.callSlippageGradientMultipliers.length != ONE_DELTA / _deltaBandWidth ||
-			_deltaBandMultipliers.putSlippageGradientMultipliers.length != ONE_DELTA / _deltaBandWidth
+			_deltaBandMultipliers.putSlippageGradientMultipliers.length != ONE_DELTA / _deltaBandWidth ||
+			_deltaBandMultipliers.callSpreadMultipliers.length != ONE_DELTA / _deltaBandWidth ||
+			_deltaBandMultipliers.putSpreadMultipliers.length != ONE_DELTA / _deltaBandWidth
 		) {
 			revert InvalidSlippageGradientMultipliersArrayLength();
 		}
@@ -294,7 +296,6 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			_optionSeries.strike,
 			_optionSeries.expiration
 		);
-
 		(uint256 vanillaPremium, int256 delta) = OptionsCompute.quotePriceGreeks(
 			_optionSeries,
 			isSell,
@@ -344,9 +345,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 				overridePremium.mul(_amount),
 				ERC20(collateralAsset).decimals()
 			);
-			if (overridePremium < totalPremium) {
-				totalPremium = overridePremium;
-			}
+			totalPremium = OptionsCompute.min(totalPremium, overridePremium);
 		}
 	}
 
