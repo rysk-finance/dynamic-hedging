@@ -26,112 +26,42 @@ const seriesToIssue = [
     {
         expiration: expiry,
         isPut: CALL_FLAVOR,
-        strike: toWei("2000"),
+        strike: toWei("2050"),
         isSellable: false,
         isBuyable: false
     },
     {
         expiration: expiry,
         isPut: PUT_FLAVOR,
-        strike: toWei("2000"),
+        strike: toWei("2050"),
         isSellable: false,
         isBuyable: false
     },
     {
         expiration: expiry,
         isPut: CALL_FLAVOR,
-        strike: toWei("1950"),
+        strike: toWei("2100"),
         isSellable: false,
         isBuyable: false
     },
     {
         expiration: expiry,
         isPut: PUT_FLAVOR,
-        strike: toWei("1950"),
+        strike: toWei("2100"),
         isSellable: false,
         isBuyable: false
     },
     {
         expiration: expiry,
         isPut: CALL_FLAVOR,
-        strike: toWei("1900"),
+        strike: toWei("2200"),
         isSellable: false,
         isBuyable: false
     },
     {
         expiration: expiry,
         isPut: PUT_FLAVOR,
-        strike: toWei("1900"),
-        isSellable: false,
-        isBuyable: false
-    },
-    {
-        expiration: expiry,
-        isPut: CALL_FLAVOR,
-        strike: toWei("1850"),
-        isSellable: false,
-        isBuyable: false
-    },
-    {
-        expiration: expiry,
-        isPut: PUT_FLAVOR,
-        strike: toWei("1850"),
-        isSellable: false,
-        isBuyable: false
-    },
-    {
-        expiration: expiry,
-        isPut: CALL_FLAVOR,
-        strike: toWei("1800"),
-        isSellable: false,
-        isBuyable: false
-    },
-    {
-        expiration: expiry,
-        isPut: PUT_FLAVOR,
-        strike: toWei("1800"),
-        isSellable: false,
-        isBuyable: false
-    },
-    {
-        expiration: expiry,
-        isPut: CALL_FLAVOR,
-        strike: toWei("1750"),
-        isSellable: false,
-        isBuyable: false
-    },
-    {
-        expiration: expiry,
-        isPut: PUT_FLAVOR,
-        strike: toWei("1750"),
-        isSellable: false,
-        isBuyable: false
-    },
-    {
-        expiration: expiry,
-        isPut: CALL_FLAVOR,
-        strike: toWei("1700"),
-        isSellable: false,
-        isBuyable: false
-    },
-    {
-        expiration: expiry,
-        isPut: PUT_FLAVOR,
-        strike: toWei("1700"),
-        isSellable: false,
-        isBuyable: false
-    },
-    {
-        expiration: expiry,
-        isPut: CALL_FLAVOR,
-        strike: toWei("1650"),
-        isSellable: false,
-        isBuyable: false
-    },
-    {
-        expiration: expiry,
-        isPut: PUT_FLAVOR,
-        strike: toWei("1650"),
+        strike: toWei("2200"),
         isSellable: false,
         isBuyable: false
     },
