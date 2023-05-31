@@ -680,13 +680,10 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		}
 		// this accounts for premium sent from buyback as well as any rounding errors from the dhv buyback
 		if (sellParams.premium > sellParams.premiumSent) {
-			// we need to make sure we arent eating into the withdraw partition with this trade
-			if (
-				ILiquidityPool(liquidityPool).getBalance(collateralAsset) <
-				(sellParams.premium - sellParams.premiumSent)
-			) {
-				revert CustomErrors.WithdrawExceedsLiquidity();
-			}
+			// we need to make sure we arent eating into the withdraw partition or the liquidity buffer with this trade
+			if (ILiquidityPool(liquidityPool).checkBuffer() < int256((sellParams.premium - sellParams.premiumSent))) {
+				revert CustomErrors.MaxLiquidityBufferReached();
+		}
 			// take the funds from the liquidity pool and pay them here
 			SafeTransferLib.safeTransferFrom(
 				collateralAsset,
