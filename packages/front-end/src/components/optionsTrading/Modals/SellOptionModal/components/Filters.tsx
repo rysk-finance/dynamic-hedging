@@ -144,7 +144,11 @@ export const Filters = () => {
       >
         <ReactSlider
           ariaLabel="Adjust collateral"
-          className="flex w-full h-12 cursor-pointer"
+          className={`flex w-full h-12  ${
+            collateralPreferences.full
+              ? "cursor-not-allowed opacity-50"
+              : "cursor-pointer"
+          }`}
           disabled={collateralPreferences.full}
           defaultValue={collateralPreferences.amount}
           onChange={handleSliderChange}
