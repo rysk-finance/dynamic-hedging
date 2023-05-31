@@ -66,6 +66,7 @@ export const getLiquidationPrice = async (
     address: getContractAddress("OpynNewCalculator"),
     functionName: "getMaxPrice",
     args: [WETH, USDC, collateralAddress, isPut, BigNumber.from(timeToExpiry)],
+    
   });
   const maxPrice = fromE27toInt(getMaxPriceResponse);
 
