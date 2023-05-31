@@ -1,19 +1,22 @@
-import type { CurrentPriceProps } from "../types";
-
 import dayjs from "dayjs";
 import { useBlockNumber } from "wagmi";
 
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
 import { Refresh } from "src/Icons";
+import { useGlobalContext } from "src/state/GlobalContext";
 
-export const CurrentPrice = ({ price, latestUpdate }: CurrentPriceProps) => {
+export const CurrentPrice = () => {
+  const {
+    state: { ethPrice, ethPriceUpdateTime },
+  } = useGlobalContext();
+
   const { data: blockHeight } = useBlockNumber({ watch: true });
 
   return (
     <div className="flex items-center justify-between grow px-4">
       <span className="flex flex-col">
         <h4 className="flex font-medium font-dm-mono text-lg lg:text-xl before:content-['Ether:_$'] before:mr-1">
-          <RyskCountUp value={price || 0} />
+          <RyskCountUp value={ethPrice || 0} />
           <Refresh className="w-6 h-6 ml-2" />
         </h4>
 
@@ -23,7 +26,7 @@ export const CurrentPrice = ({ price, latestUpdate }: CurrentPriceProps) => {
         </small>
 
         <small className="text-gray-600 text-xs text-left">
-          {`Latest Update: ${dayjs(latestUpdate).format("HH:mm:ss A")}`}
+          {`Latest Update: ${dayjs(ethPriceUpdateTime).format("HH:mm:ss A")}`}
         </small>
       </span>
     </div>

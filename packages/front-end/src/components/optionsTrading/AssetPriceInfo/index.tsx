@@ -63,10 +63,7 @@ export const AssetPriceInfo = () => {
               className="flex w-full bg-[url('./assets/white-ascii-50.png')] bg-cover bg-center"
               {...FadeInOutFixedDelay}
             >
-              <CurrentPrice
-                price={ethPrice}
-                latestUpdate={ethPriceUpdateTime}
-              />
+              <CurrentPrice />
 
               <OneDayChange
                 high={eth24hHigh}
