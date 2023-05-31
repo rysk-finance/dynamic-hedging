@@ -118,6 +118,10 @@ export interface Balances {
   WETH: number;
 }
 
+export interface LiquidityPool {
+  remainingBeforeBuffer: number;
+}
+
 // Global context
 export type GlobalState = {
   ethPrice: number | null;
@@ -149,6 +153,7 @@ export type GlobalState = {
     error?: ApolloError;
     expiries: Expiries;
     isOperator: boolean;
+    liquidityPool: LiquidityPool;
     loading: boolean;
     refresh: () => void;
     spotShock: SpotShock;
@@ -263,6 +268,7 @@ export type GlobalAction =
       error?: ApolloError;
       expiries?: Expiries;
       isOperator?: boolean;
+      liquidityPool?: LiquidityPool;
       loading?: boolean;
       refresh?: () => void;
       spotShock?: SpotShock;
