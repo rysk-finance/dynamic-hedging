@@ -469,7 +469,7 @@ export const getInitialData = async (
   data: InitialDataQuery,
   address?: HexString
 ) => {
-  const { expiries, longPositions, shortPositions } = data;
+  const { longPositions, shortPositions } = data;
 
   // Get expiries.
   const validExpiries = await getExpiries();
