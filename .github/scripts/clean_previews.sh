@@ -26,7 +26,7 @@ do
   -s \
   "https://api.vercel.com/v13/deployments/undefined?teamId=$VERCEL_TEAM_ID&url=$url"
 
-  sleep 1
+  sleep 2
 done
 
 echo Finished cleaning stale preview apps.
