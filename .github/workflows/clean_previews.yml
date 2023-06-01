@@ -16,7 +16,13 @@ jobs:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
     steps:
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: extract_branch
+
       - name: Clean
+        shell: bash
         run: |
           deployments=$(
             curl \
@@ -24,5 +30,4 @@ jobs:
             -H "Authorization: Bearer $VERCEL_TOKEN" \
             "https://api.vercel.com/v6/deployments?teamId=$VERCEL_TEAM_ID&projectId=$VERCEL_PROJECT&limit=100&target=preview"
           )
-          # echo $deployments
-          echo ::set-output name=short_ref::${GITHUB_REF#refs/*/}
+          echo ${{ steps.extract_branch.outputs.branch }}
