@@ -396,6 +396,8 @@ const getLiquidityPoolInfo = async () => {
     functionName: "checkBuffer",
   });
 
+
+
   return {
     remainingBeforeBuffer: tFormatUSDC(data, 2),
   };

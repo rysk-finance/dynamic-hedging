@@ -46,7 +46,7 @@ export const Pricing = ({ loading, positionData }: PricingProps) => {
       (collateralType === "WETH" && remainingBalanceWETH <= 0);
 
     switch (true) {
-      case remainingBeforeBuffer <= 0:
+      case remainingBeforeBuffer <= 100000:
         return "DHV utilisation is high. Some TXs may fail.";
 
       case negativeBalance && Boolean(quote):

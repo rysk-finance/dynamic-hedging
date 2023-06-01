@@ -16,7 +16,7 @@ export const CurrentPrice = () => {
     },
   } = useGlobalContext();
 
-  const liquidityPoolLow = remainingBeforeBuffer <= 0 && !loading;
+  const liquidityPoolLow = remainingBeforeBuffer <= 100000 && !loading;
 
   return (
     <div className="flex items-center justify-between grow px-4">

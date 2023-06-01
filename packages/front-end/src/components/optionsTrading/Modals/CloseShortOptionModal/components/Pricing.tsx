@@ -36,7 +36,7 @@ export const Pricing = ({
 
   const errorMessage = useMemo(() => {
     switch (true) {
-      case remainingBeforeBuffer <= 0:
+      case remainingBeforeBuffer <= 100000:
         return "DHV utilisation is high. Some TXs may fail.";
 
       case !hasRequiredCapital && Boolean(quote):

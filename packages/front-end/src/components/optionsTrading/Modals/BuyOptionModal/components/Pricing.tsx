@@ -30,7 +30,7 @@ export const Pricing = ({ positionData }: PricingProps) => {
 
   const errorMessage = useMemo(() => {
     switch (true) {
-      case remainingBeforeBuffer <= 0:
+      case remainingBeforeBuffer <= 100000:
         return "DHV utilisation is high. Some TXs may fail.";
 
       default:
