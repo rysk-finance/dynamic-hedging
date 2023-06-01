@@ -44,14 +44,14 @@ import { toTwoDecimalPlaces } from "src/utils/rounding";
 
 dayjs.extend(utc);
 
-const getExpiries = (expiries: InitialDataQuery["expiries"]): string[] => {
-  return expiries.reduce((expiryList: string[], { timestamp }) => {
-    if (dayjs.unix(Number(timestamp)).utc().hour() === 8) {
-      expiryList.push(timestamp);
-    }
+const getExpiries = async (): Promise<string[]> => {
+  const expiries = await readContract({
+    address: getContractAddress("DHVLens"),
+    abi: DHVLensMK1ABI,
+    functionName: "getExpirations",
+  });
 
-    return expiryList;
-  }, []);
+  return expiries.map((expiry) => expiry.toString()).sort();
 };
 
 const getUserPositions = (
@@ -472,7 +472,7 @@ export const getInitialData = async (
   const { expiries, longPositions, shortPositions } = data;
 
   // Get expiries.
-  const validExpiries = getExpiries(expiries);
+  const validExpiries = await getExpiries();
 
   // Get user positions.
   const userPositions = getUserPositions([...longPositions, ...shortPositions]);
