@@ -1,0 +1,27 @@
+name: Clean Stale Preview Apps
+
+on:
+  pull_request:
+    types:
+      # - closed
+      - synchronize
+
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      VERCEL_PROJECT: ${{ secrets.VERCEL_PROJECT }}
+      VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+    steps:
+      - name: Clean
+        run: |
+          deployments=$(
+            curl \
+            -X GET \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v6/deployments?teamId=$VERCEL_TEAM_ID&projectId=$VERCEL_PROJECT&limit=100&target=preview"
+          )
+          echo $deployments
