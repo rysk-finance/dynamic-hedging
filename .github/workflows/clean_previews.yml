@@ -31,3 +31,4 @@ jobs:
             "https://api.vercel.com/v6/deployments?teamId=$VERCEL_TEAM_ID&projectId=$VERCEL_PROJECT&limit=100&target=preview"
           )
           echo ${{ steps.extract_branch.outputs.branch }}
+          echo
