@@ -1,9 +1,5 @@
 import { BigNumberish } from "ethers";
 
-interface Expiry {
-  timestamp: string;
-}
-
 export interface PositionOToken {
   createdAt: string;
   expiryTimestamp: string;
@@ -38,7 +34,6 @@ export interface Vault {
 }
 
 export interface InitialDataQuery {
-  expiries: Expiry[];
   longPositions: Position[];
   shortPositions: Position[];
 }
