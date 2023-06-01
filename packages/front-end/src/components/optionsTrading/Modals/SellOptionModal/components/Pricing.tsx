@@ -12,7 +12,7 @@ export const Pricing = ({ loading, positionData }: PricingProps) => {
     state: {
       collateralPreferences: { full, type },
       options: {
-        liquidityPool: { remainingBeforeBuffer },
+        liquidityPool: { utilisationLow },
       },
     },
   } = useGlobalContext();
@@ -46,7 +46,7 @@ export const Pricing = ({ loading, positionData }: PricingProps) => {
       (collateralType === "WETH" && remainingBalanceWETH <= 0);
 
     switch (true) {
-      case remainingBeforeBuffer <= 100000:
+      case utilisationLow:
         return "DHV utilisation is high. Some TXs may fail.";
 
       case negativeBalance && Boolean(quote):

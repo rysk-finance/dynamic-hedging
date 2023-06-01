@@ -120,6 +120,8 @@ export interface Balances {
 
 export interface LiquidityPool {
   remainingBeforeBuffer: number;
+  totalAssets: number;
+  utilisationLow: boolean;
 }
 
 // Global context
