@@ -1,0 +1,36 @@
+name: Clean Stale Preview Apps
+
+on:
+  pull_request:
+    types:
+      - closed
+      - synchronize
+
+jobs:
+  Clean:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      VERCEL_PROJECT: ${{ secrets.VERCEL_PROJECT }}
+      VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+    steps:
+      - name: Extract branch name
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: extract_branch
+
+      - uses: actions/checkout@v3
+
+      - name: Clean
+        shell: bash
+        run: |
+          export BRANCH=${{ steps.extract_branch.outputs.branch }}
+
+          if [ ${{ github.event.action }} == 'synchronize' ]; then
+            export STATE=ERROR,READY,CANCELED
+          elif [ ${{ github.event.action }} == 'closed' ]; then
+            export STATE=BUILDING,ERROR,INITIALIZING,QUEUED,READY,CANCELED
+          fi
+
+          ./.github/scripts/clean_previews.sh
