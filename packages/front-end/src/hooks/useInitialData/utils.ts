@@ -390,16 +390,29 @@ const getLiquidationCalculationParameters = async () => {
 };
 
 const getLiquidityPoolInfo = async () => {
-  const data = await readContract({
-    address: getContractAddress("liquidityPool"),
-    abi: LiquidityPoolABI,
-    functionName: "checkBuffer",
+  const [checkBuffer, getAssets] = await readContracts({
+    contracts: [
+      {
+        address: getContractAddress("liquidityPool"),
+        abi: LiquidityPoolABI,
+        functionName: "checkBuffer",
+      },
+      {
+        address: getContractAddress("liquidityPool"),
+        abi: LiquidityPoolABI,
+        functionName: "getAssets",
+      },
+    ],
   });
 
-
+  const remainingBeforeBuffer = tFormatUSDC(checkBuffer, 2);
+  const totalAssets = fromWeiToInt(getAssets);
+  const utilisationLow = (remainingBeforeBuffer / totalAssets) * 100 <= 3;
 
   return {
-    remainingBeforeBuffer: tFormatUSDC(data, 2),
+    remainingBeforeBuffer,
+    totalAssets,
+    utilisationLow,
   };
 };
 

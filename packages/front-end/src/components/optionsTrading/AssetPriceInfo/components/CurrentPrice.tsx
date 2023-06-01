@@ -11,12 +11,12 @@ export const CurrentPrice = () => {
       ethPriceUpdateTime,
       options: {
         loading,
-        liquidityPool: { remainingBeforeBuffer },
+        liquidityPool: { remainingBeforeBuffer, utilisationLow },
       },
     },
   } = useGlobalContext();
 
-  const liquidityPoolLow = remainingBeforeBuffer <= 100000 && !loading;
+  const liquidityPoolLow = utilisationLow && !loading;
 
   return (
     <div className="flex items-center justify-between grow px-4">

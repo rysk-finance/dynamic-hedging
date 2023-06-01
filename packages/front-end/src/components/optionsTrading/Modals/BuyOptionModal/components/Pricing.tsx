@@ -11,7 +11,7 @@ export const Pricing = ({ positionData }: PricingProps) => {
   const {
     state: {
       options: {
-        liquidityPool: { remainingBeforeBuffer },
+        liquidityPool: { utilisationLow },
       },
     },
   } = useGlobalContext();
@@ -30,7 +30,7 @@ export const Pricing = ({ positionData }: PricingProps) => {
 
   const errorMessage = useMemo(() => {
     switch (true) {
-      case remainingBeforeBuffer <= 100000:
+      case utilisationLow:
         return "DHV utilisation is high. Some TXs may fail.";
 
       default:
