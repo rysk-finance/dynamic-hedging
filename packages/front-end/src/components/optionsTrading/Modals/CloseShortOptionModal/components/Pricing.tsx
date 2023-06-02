@@ -22,6 +22,7 @@ export const Pricing = ({
   } = useGlobalContext();
 
   const {
+    collateralReleased,
     fee,
     hasRequiredCapital,
     now,
@@ -53,15 +54,12 @@ export const Pricing = ({
 
   return (
     <div className="flex flex-col">
-      <p
-        className="text-center py-4 bg-white border-b-2 border-black font-dm-mono"
-        id="buy-symbol"
-      >
+      <p className="text-center py-4 bg-white border-b-2 border-black font-dm-mono">
         {title}
       </p>
 
       <div className="w-3/5 mx-auto py-4">
-        <div id="buy-price-per-option">
+        <div>
           <span className="flex">
             <p className="mr-auto">{`Premium:`}</p>
             <p className="font-medium">
@@ -91,10 +89,7 @@ export const Pricing = ({
           </small>
         </div>
 
-        <span
-          className="flex py-2 border-gray-600 border-b"
-          id="buy-total-price"
-        >
+        <span className="flex pt-2">
           <p className="mr-auto">{`Premium paid:`}</p>
           <p className="font-medium">
             <RyskCountUp value={quote} />
@@ -102,8 +97,24 @@ export const Pricing = ({
           </p>
         </span>
 
+        <span className="flex">
+          <p className="mr-auto">{`Collateral released:`}</p>
+          <p className="font-medium">
+            <RyskCountUp value={collateralReleased} />
+            {` USDC`}
+          </p>
+        </span>
+
+        <span className="flex pb-2 border-gray-600 border-b">
+          <p className="mr-auto">{`Collateral remaining:`}</p>
+          <p className="font-medium">
+            <RyskCountUp value={remainingCollateral} />
+            {isWeth ? " WETH" : " USDC"}
+          </p>
+        </span>
+
         <div>
-          <span className="flex pt-2" id="buy-balance">
+          <span className="flex pt-2">
             <p className="mr-auto">{`Balances after:`}</p>
             <p className="font-medium">
               <RyskCountUp value={remainingBalanceUSDC} />
@@ -119,14 +130,6 @@ export const Pricing = ({
             </p>
           </span>
         </div>
-
-        <span className="flex" id="collateral-balance">
-          <p className="mr-auto">{`Collateral after:`}</p>
-          <p className="font-medium">
-            <RyskCountUp value={remainingCollateral} />
-            {isWeth ? " WETH" : " USDC"}
-          </p>
-        </span>
 
         <AnimatePresence mode="wait">
           {errorMessage && (

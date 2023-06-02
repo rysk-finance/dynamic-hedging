@@ -47,6 +47,7 @@ export const useShortPositionData = (amountToClose: string) => {
   // User position state.
   const [positionData, setPositionData] = useState<PositionDataState>({
     acceptablePremium: BigNumber.from(0),
+    collateralReleased:0,
     collateralToRemove: BigNumber.from(0),
     fee: 0,
     hasRequiredCapital: false,
@@ -157,6 +158,7 @@ export const useShortPositionData = (amountToClose: string) => {
 
             setPositionData({
               acceptablePremium,
+              collateralReleased,
               collateralToRemove,
               fee,
               hasRequiredCapital,
@@ -175,6 +177,7 @@ export const useShortPositionData = (amountToClose: string) => {
           } else {
             setPositionData({
               acceptablePremium: BigNumber.from(0),
+              collateralReleased:0,
               collateralToRemove: BigNumber.from(0),
               fee: 0,
               hasRequiredCapital: false,
