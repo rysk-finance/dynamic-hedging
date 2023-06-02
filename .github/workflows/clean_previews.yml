@@ -26,6 +26,7 @@ jobs:
         shell: bash
         run: |
           export BRANCH=${{ steps.extract_branch.outputs.branch }}
+          export TARGET=preview
 
           if [ ${{ github.event.action }} == 'synchronize' ]; then
             export STATE=ERROR,READY,CANCELED

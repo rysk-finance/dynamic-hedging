@@ -1,5 +1,6 @@
 BRANCH=$(printenv BRANCH)
 STATE=$(printenv STATE)
+TARGET=$(printenv TARGET)
 VERCEL_TEAM_ID=$(printenv VERCEL_TEAM_ID)
 VERCEL_TOKEN=$(printenv VERCEL_TOKEN)
 VERCEL_PROJECT=$(printenv VERCEL_PROJECT)
@@ -11,7 +12,7 @@ deployments=$(
   -X GET \
   -H "Authorization: Bearer $VERCEL_TOKEN" \
   -s \
-  "https://api.vercel.com/v6/deployments?teamId=$VERCEL_TEAM_ID&projectId=$VERCEL_PROJECT&limit=100&target=preview&state=$STATE"
+  "https://api.vercel.com/v6/deployments?teamId=$VERCEL_TEAM_ID&projectId=$VERCEL_PROJECT&limit=100&target=$TARGET&state=$STATE"
 )
 
 matching=$(
