@@ -4,6 +4,8 @@ VERCEL_TEAM_ID=$(printenv VERCEL_TEAM_ID)
 VERCEL_TOKEN=$(printenv VERCEL_TOKEN)
 VERCEL_PROJECT=$(printenv VERCEL_PROJECT)
 
+IFS=$' \t\r\n'
+
 deployments=$(
   curl \
   -X GET \
@@ -13,20 +15,21 @@ deployments=$(
 )
 
 matching=$(
-  echo $deployments | jq -c '.deployments | map(select(.meta.githubCommitRef == "'"$BRANCH"'") | .url)'
+  echo $deployments | jq -c '.deployments | map(select(.meta.githubCommitRef == "'"$BRANCH"'") | .uid)'
 )
 
-for url in $(echo "${matching}" | jq -r .[]);
-do
-  echo Removing $url...
+for uid in $(echo "${matching}" | jq -r .[] | xargs);
+do 
+  echo "Removing deployment..."
 
   curl \
   -X DELETE \
   -H "Authorization: Bearer $VERCEL_TOKEN" \
   -s \
-  "https://api.vercel.com/v13/deployments/undefined?teamId=$VERCEL_TEAM_ID&url=$url"
+  "https://api.vercel.com/v13/deployments/$uid?teamId=$VERCEL_TEAM_ID"
 
   sleep 2
+  echo $'\n'
 done
 
 echo Finished cleaning stale preview apps.
