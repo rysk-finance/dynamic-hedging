@@ -148,7 +148,7 @@ export const BuyOptionModal = () => {
         </Label>
 
         <Button
-          className="w-1/3 !border-0"
+          className="w-1/4 !border-0"
           disabled={
             !Number(amountToBuy) ||
             !addresses.user ||
