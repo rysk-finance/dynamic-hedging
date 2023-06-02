@@ -999,14 +999,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				delete pendingDecreaseOrders[positionKey];
 			}
 		}
-		// if (isIncrease) {
-		// 	pendingIncreaseCallback--;
-		// 	delete increaseOrderDeltaChange[positionKey];
-		// 	delete pendingIncreaseCollateralValue;
-		// } else {
-		// 	pendingDecreaseCallback--;
-		// 	delete decreaseOrderDeltaChange[positionKey];
-		// }
 	}
 
 	/**
