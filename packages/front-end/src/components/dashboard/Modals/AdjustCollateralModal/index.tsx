@@ -11,7 +11,7 @@ import {
   fromUSDC,
   fromWei,
 } from "src/utils/conversion-helper";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { Button } from "src/components/shared/Button";
 import FadeInOutQuick from "src/animation/FadeInOutQuick";
@@ -79,6 +79,18 @@ const AdjustCollateralModal = () => {
   const [newCollateralAmount, setNewCollateralAmount] = useState("");
   const [transactionPending, setTransactionPending] = useState(false);
   const [newLiquidationPrice, setNewLiquidationPrice] = useState(0);
+
+  useEffect(() => {
+    if (newCollateralAmount) {
+      const amount = isWETHVault
+        ? toWei(newCollateralAmount)
+        : toUSDC(newCollateralAmount);
+
+      const allowanceApproved = allowance.amount.gt(amount);
+
+      setAllowance({ approved: allowanceApproved, amount: allowance.amount });
+    }
+  }, [newCollateralAmount]);
 
   const handleApprove = async () => {
     setTransactionPending(true);
