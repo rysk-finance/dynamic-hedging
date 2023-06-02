@@ -8,7 +8,8 @@ export interface PositionDataState {
   now: string;
   premium: number;
   quote: number;
-  remainingBalance: number;
+  remainingBalanceUSDC: number;
+  remainingBalanceWETH: number;
   remainingCollateral: number;
   slippage: number;
   totalSize: number;

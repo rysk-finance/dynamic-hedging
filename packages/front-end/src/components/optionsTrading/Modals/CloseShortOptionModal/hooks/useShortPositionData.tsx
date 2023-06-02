@@ -53,7 +53,8 @@ export const useShortPositionData = (amountToClose: string) => {
     now: dayjs().format("MMM DD, YYYY HH:mm A"),
     premium: 0,
     quote: 0,
-    remainingBalance: 0,
+    remainingBalanceUSDC: 0,
+    remainingBalanceWETH: 0,
     remainingCollateral: 0,
     slippage: 0,
     totalSize: 0,
@@ -111,10 +112,6 @@ export const useShortPositionData = (amountToClose: string) => {
                   : "WETH"
               );
 
-            // Closing a short is buying back the oToken, hence the minus USDC.
-            const remainingBalance =
-              balances.USDC === 0 ? 0 : balances.USDC - quote;
-
             // Calculate collateral to remove and remaining collateral.
             const collateralAmount = BigNumber.from(
               vault?.collateralAmount || "1"
@@ -129,13 +126,28 @@ export const useShortPositionData = (amountToClose: string) => {
                 : BigNumber.from(0);
 
             const collateralToRemove = collateralPerOption
-              .mul(amount * 100)
+              .mul(Math.round(amount * 100))
               .div(100);
             const remainingCollateral = collateralToRemove.isZero()
               ? 0
               : collateralAsset === getContractAddress("WETH")
               ? tFormatEth(collateralAmount.sub(collateralToRemove))
               : tFormatUSDC(collateralAmount.sub(collateralToRemove));
+            const collateralReleased =
+              collateralAsset === getContractAddress("WETH")
+                ? tFormatEth(collateralToRemove)
+                : tFormatUSDC(collateralToRemove);
+
+            // Closing a short is buying back the oToken, hence minus the quote.
+            const remainingBalanceUSDC =
+              balances.USDC === 0
+                ? 0
+                : balances.USDC - quote + collateralReleased;
+            // Show WETH balance when closing part of a WETH collateralised position.
+            const remainingBalanceWETH =
+              collateralAsset === getContractAddress("WETH")
+                ? balances.WETH + collateralReleased
+                : balances.WETH;
 
             // Ensure user has sufficient wallet balance to cover premium before collateral is released.
             const hasRequiredCapital = balances.USDC > quote;
@@ -151,7 +163,8 @@ export const useShortPositionData = (amountToClose: string) => {
               now,
               premium,
               quote,
-              remainingBalance,
+              remainingBalanceUSDC,
+              remainingBalanceWETH,
               remainingCollateral,
               slippage,
               totalSize,
@@ -168,7 +181,8 @@ export const useShortPositionData = (amountToClose: string) => {
               now,
               premium: 0,
               quote: 0,
-              remainingBalance: balances.USDC,
+              remainingBalanceUSDC: balances.USDC,
+              remainingBalanceWETH: balances.WETH,
               remainingCollateral: 0,
               slippage: 0,
               totalSize,
