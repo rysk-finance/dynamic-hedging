@@ -1011,28 +1011,28 @@ describe("UniswapV3RangeOrderReactor", () => {
 	it("Properly gets price to use when inversed and direction is above - Uniswap Conversions", async () => {
 		const price0 = BigNumber.from("1000000000000000000")
 		const price1 = price0.add(100)
-		const priceToUse = await uniswapConversions.testPriceToUse(price0, price1, true, Direction.ABOVE)
+		const priceToUse = await uniswapConversions.mockPriceToUse(price0, price1, true, Direction.ABOVE)
 		expect(priceToUse).to.eq(price0)
 	})
 
 	it("Properly gets price to use when inversed and direction is below - Uniswap Conversions", async () => {
 		const price0 = BigNumber.from("1000000000000000000")
 		const price1 = price0.add(100)
-		const priceToUse = await uniswapConversions.testPriceToUse(price0, price1, true, Direction.BELOW)
+		const priceToUse = await uniswapConversions.mockPriceToUse(price0, price1, true, Direction.BELOW)
 		expect(priceToUse).to.eq(price1)
 	})
 
 	it("Properly gets price to use when not inversed and direction is above - Uniswap Conversions", async () => {
 		const price0 = BigNumber.from("1000000000000000000")
 		const price1 = price0.add(100)
-		const priceToUse = await uniswapConversions.testPriceToUse(price0, price1, false, Direction.ABOVE)
+		const priceToUse = await uniswapConversions.mockPriceToUse(price0, price1, false, Direction.ABOVE)
 		expect(priceToUse).to.eq(price1)
 	})
 
 	it("Properly gets price to use when not inversed and direction is below - Uniswap Conversions", async () => {
 		const price0 = BigNumber.from("1000000000000000000")
 		const price1 = price0.add(100)
-		const priceToUse = await uniswapConversions.testPriceToUse(price0, price1, false, Direction.BELOW)
+		const priceToUse = await uniswapConversions.mockPriceToUse(price0, price1, false, Direction.BELOW)
 		expect(priceToUse).to.eq(price0)
 	})
 
@@ -1040,7 +1040,7 @@ describe("UniswapV3RangeOrderReactor", () => {
 		const tick = "195361"
 		// weth/usdc in usdc decimals which is the cost of 1 weth in usdc
 		const expectedPrice = "3280981373"
-		const price = await uniswapConversions.testTickToTokenPrice(tick, 6, true)
+		const price = await uniswapConversions.mockTickToTokenPrice(tick, 6, true)
 		const normalizedExpected = utils.formatUnits(expectedPrice, 6)
 		const normalizedPrice = utils.formatUnits(price, 6)
 		const difference = Math.abs(Number(normalizedExpected) - Number(normalizedPrice))
@@ -1052,7 +1052,7 @@ describe("UniswapV3RangeOrderReactor", () => {
 	it("Properly converts tick to token price WETH/USDT (not inversed) - Uniswap Conversions", async () => {
 		const tick = "-195368"
 		const expectedPrice = "3278685604"
-		const price = await uniswapConversions.testTickToTokenPrice(tick, 18, false)
+		const price = await uniswapConversions.mockTickToTokenPrice(tick, 18, false)
 		const normalizedExpected = fromWei(expectedPrice)
 		const normalizedPrice = fromWei(price)
 		const difference = Math.abs(Number(normalizedExpected) - Number(normalizedPrice))
@@ -1064,7 +1064,7 @@ describe("UniswapV3RangeOrderReactor", () => {
 	it("Properly converts tick to token price DAI/WETH (inversed) - Uniswap Conversions", async () => {
 		const tick = "-80961"
 		const expectedPrice = "3280316602869370632259"
-		const price = await uniswapConversions.testTickToTokenPrice(tick, 18, true)
+		const price = await uniswapConversions.mockTickToTokenPrice(tick, 18, true)
 		const normalizedExpected = utils.formatUnits(expectedPrice, 18)
 		const normalizedPrice = utils.formatUnits(price, 18)
 		const difference = Math.abs(Number(normalizedExpected) - Number(normalizedPrice))
@@ -1076,7 +1076,7 @@ describe("UniswapV3RangeOrderReactor", () => {
 	it("Properly converts tick to token price WBTC/USDT (not inversed) - Uniswap Conversions", async () => {
 		const tick = "61132"
 		const expectedPrice = "45164404583"
-		const price = await uniswapConversions.testTickToTokenPrice(tick, 8, false)
+		const price = await uniswapConversions.mockTickToTokenPrice(tick, 8, false)
 		const normalizedExpected = utils.formatUnits(expectedPrice, 6)
 		const normalizedPrice = utils.formatUnits(price, 6)
 		const difference = Math.abs(Number(normalizedExpected) - Number(normalizedPrice))
@@ -1088,7 +1088,7 @@ describe("UniswapV3RangeOrderReactor", () => {
 	it("Properly converts tick to token price USDC/WBTC (inversed)- Uniswap Conversions", async () => {
 		const tick = "61132"
 		const expectedPrice = "2214133030719511"
-		const price = await uniswapConversions.testTickToTokenPrice(tick, 8, true)
+		const price = await uniswapConversions.mockTickToTokenPrice(tick, 8, true)
 		const normalizedExpected = utils.formatUnits(expectedPrice, 8)
 		const normalizedPrice = utils.formatUnits(price, 8)
 		const difference = Math.abs(Number(normalizedExpected) - Number(normalizedPrice))
