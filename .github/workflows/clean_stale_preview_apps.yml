@@ -32,4 +32,4 @@ jobs:
 
       - name: Clean stale apps
         shell: bash
-        run: ./.github/scripts/clean_previews.sh
+        run: ./.github/scripts/clean_deployments.sh
