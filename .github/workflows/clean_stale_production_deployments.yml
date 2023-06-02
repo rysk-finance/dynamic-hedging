@@ -1,0 +1,31 @@
+name: Clean Stale Production Deployments
+
+on:
+  schedule:
+    - cron: '0 12 * * 1'
+
+jobs:
+  Clean:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      VERCEL_PROJECT: ${{ secrets.VERCEL_PROJECT }}
+      VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Export env vars
+        run: |
+          echo "TARGET=$(echo production)" >> $GITHUB_ENV
+
+          if [ ${{ github.event.action }} == 'synchronize' ]; then
+            echo "STATE=$(echo ERROR,READY,CANCELED)" >> $GITHUB_ENV
+          elif [ ${{ github.event.action }} == 'closed' ]; then
+            echo "STATE=$(echo BUILDING,ERROR,INITIALIZING,QUEUED,READY,CANCELED)" >> $GITHUB_ENV
+          fi
+
+      - name: Clean stale apps
+        shell: bash
+        run: ./.github/scripts/clean_deployments.sh
