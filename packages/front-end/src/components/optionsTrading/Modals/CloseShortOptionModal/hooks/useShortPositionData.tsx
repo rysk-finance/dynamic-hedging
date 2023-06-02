@@ -169,7 +169,7 @@ export const useShortPositionData = (amountToClose: string) => {
               remainingBalanceWETH,
               remainingCollateral,
               slippage,
-              totalSize,
+              totalSize: Math.abs(totalSize),
               title,
               requiredApproval,
             });
@@ -188,7 +188,7 @@ export const useShortPositionData = (amountToClose: string) => {
               remainingBalanceWETH: balances.WETH,
               remainingCollateral: 0,
               slippage: 0,
-              totalSize,
+              totalSize: Math.abs(totalSize),
               title,
               requiredApproval: "",
             });
