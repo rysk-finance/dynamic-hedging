@@ -27,7 +27,8 @@ export const Pricing = ({
     now,
     premium,
     quote,
-    remainingBalance,
+    remainingBalanceUSDC,
+    remainingBalanceWETH,
     slippage,
     title,
   } = positionData;
@@ -42,7 +43,7 @@ export const Pricing = ({
       case !hasRequiredCapital && Boolean(quote):
         return "Insufficient balance to cover collateral.";
 
-      case remainingBalance <= 0 && Boolean(quote):
+      case remainingBalanceUSDC <= 0 && Boolean(quote):
         return "Final balance cannot be negative.";
 
       default:
@@ -101,13 +102,23 @@ export const Pricing = ({
           </p>
         </span>
 
-        <span className="flex pt-2" id="buy-balance">
-          <p className="mr-auto">{`Balance after:`}</p>
-          <p className="font-medium">
-            <RyskCountUp value={remainingBalance} />
-            {` USDC`}
-          </p>
-        </span>
+        <div>
+          <span className="flex pt-2" id="buy-balance">
+            <p className="mr-auto">{`Balances after:`}</p>
+            <p className="font-medium">
+              <RyskCountUp value={remainingBalanceUSDC} />
+              {` USDC`}
+            </p>
+          </span>
+
+          <span className="flex">
+            <span className="mr-auto" />
+            <p className="font-medium">
+              <RyskCountUp value={remainingBalanceWETH} format="ETH" />
+              {` WETH`}
+            </p>
+          </span>
+        </div>
 
         <span className="flex" id="collateral-balance">
           <p className="mr-auto">{`Collateral after:`}</p>
