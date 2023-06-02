@@ -1,10 +1,11 @@
 import type { PricingProps } from "../types";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 
 import FadeInOutQuick from "src/animation/FadeInOutQuick";
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
+import { useGlobalContext } from "src/state/GlobalContext";
 import { getContractAddress } from "src/utils/helpers";
 
 export const Pricing = ({
@@ -12,7 +13,13 @@ export const Pricing = ({
   remainingCollateral,
   positionData,
 }: PricingProps) => {
-  const [errorMessage, setErrorMessage] = useState("");
+  const {
+    state: {
+      options: {
+        liquidityPool: { utilisationLow },
+      },
+    },
+  } = useGlobalContext();
 
   const {
     fee,
@@ -27,13 +34,19 @@ export const Pricing = ({
 
   const isWeth = collateralAddress === getContractAddress("WETH");
 
-  useEffect(() => {
-    if (!hasRequiredCapital && quote) {
-      setErrorMessage("Insufficient balance to cover collateral.");
-    } else if (remainingBalance <= 0 && quote) {
-      setErrorMessage("Final balance cannot be negative.");
-    } else {
-      setErrorMessage("");
+  const errorMessage = useMemo(() => {
+    switch (true) {
+      case utilisationLow:
+        return "DHV utilisation is high. Some TXs may fail.";
+
+      case !hasRequiredCapital && Boolean(quote):
+        return "Insufficient balance to cover collateral.";
+
+      case remainingBalance <= 0 && Boolean(quote):
+        return "Final balance cannot be negative.";
+
+      default:
+        return "";
     }
   }, [positionData]);
 

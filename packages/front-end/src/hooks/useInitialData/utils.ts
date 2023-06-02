@@ -9,7 +9,7 @@ import type {
   UserVaults,
 } from "src/state/types";
 import type { DHVLensMK1 } from "src/types/DHVLensMK1";
-import type { InitialDataQuery, OptionsTransaction, Vault } from "./types";
+import type { InitialDataQuery, OptionsTransaction } from "./types";
 
 import { readContract, readContracts } from "@wagmi/core";
 import dayjs from "dayjs";
@@ -18,6 +18,7 @@ import { BigNumber } from "ethers";
 import { getImpliedVolatility } from "implied-volatility";
 
 import { DHVLensMK1ABI } from "src/abis/DHVLensMK1_ABI";
+import { LiquidityPoolABI } from "src/abis/LiquidityPool_ABI";
 import { NewControllerABI } from "src/abis/NewController_ABI";
 import { NewMarginCalculatorABI } from "src/abis/NewMarginCalculator_ABI";
 import { UserPositionLensMK1ABI } from "src/abis/UserPositionLensMK1_ABI";
@@ -388,6 +389,33 @@ const getLiquidationCalculationParameters = async () => {
   };
 };
 
+const getLiquidityPoolInfo = async () => {
+  const [checkBuffer, getAssets] = await readContracts({
+    contracts: [
+      {
+        address: getContractAddress("liquidityPool"),
+        abi: LiquidityPoolABI,
+        functionName: "checkBuffer",
+      },
+      {
+        address: getContractAddress("liquidityPool"),
+        abi: LiquidityPoolABI,
+        functionName: "getAssets",
+      },
+    ],
+  });
+
+  const remainingBeforeBuffer = tFormatUSDC(checkBuffer, 2);
+  const totalAssets = fromWeiToInt(getAssets);
+  const utilisationLow = (remainingBeforeBuffer / totalAssets) * 100 <= 3;
+
+  return {
+    remainingBeforeBuffer,
+    totalAssets,
+    utilisationLow,
+  };
+};
+
 export const getInitialData = async (
   data: InitialDataQuery,
   address?: HexString
@@ -412,6 +440,9 @@ export const getInitialData = async (
   // Get required parameters for calculating liquidation price of shorts.
   const liquidationParameters = await getLiquidationCalculationParameters();
 
+  // Get information about the liquidity pool.
+  const liquidityPoolInfo = await getLiquidityPoolInfo();
+
   return [
     validExpiries,
     userPositions,
@@ -419,5 +450,6 @@ export const getInitialData = async (
     isOperator,
     userVaults,
     liquidationParameters,
+    liquidityPoolInfo,
   ] as const;
 };

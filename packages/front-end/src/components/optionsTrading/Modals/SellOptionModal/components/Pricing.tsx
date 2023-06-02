@@ -11,6 +11,9 @@ export const Pricing = ({ loading, positionData }: PricingProps) => {
   const {
     state: {
       collateralPreferences: { full, type },
+      options: {
+        liquidityPool: { utilisationLow },
+      },
     },
   } = useGlobalContext();
 
@@ -42,12 +45,18 @@ export const Pricing = ({ loading, positionData }: PricingProps) => {
       (collateralType === "USDC" && remainingBalanceUSDC <= 0) ||
       (collateralType === "WETH" && remainingBalanceWETH <= 0);
 
-    if (!hasRequiredCapital && quote) {
-      return "Insufficient balance to cover collateral.";
-    } else if (negativeBalance && quote) {
-      return "Final balance cannot be negative.";
-    } else {
-      return "";
+    switch (true) {
+      case utilisationLow:
+        return "DHV utilisation is high. Some TXs may fail.";
+
+      case negativeBalance && Boolean(quote):
+        return "Final balance cannot be negative.";
+
+      case !hasRequiredCapital && Boolean(quote):
+        return "Insufficient balance to cover collateral.";
+
+      default:
+        return "";
     }
   }, [collateralType, positionData]);
 
