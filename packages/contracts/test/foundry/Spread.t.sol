@@ -1904,56 +1904,81 @@ contract SpreadTest is Test {
 
 	// FUNCTION TO BE FUZZED
 
-	/**
-	 * @notice function to add slippage to orders to prevent over-exposure to a single option type
-	 * @param _amount amount of options contracts being traded. e18
-	 * @param _optionDelta the delta exposure of the option
+/**
+	 * @notice function to apply an additive spread premium to the order. Is applied to whole _amount and not per contract.
+	 * @param _optionSeries the series detail of the option - strike decimals in e18
+	 * @param _amount number of contracts being traded. e18
+	 * @param _optionDelta the delta exposure of the option. e18
 	 * @param _netDhvExposure how many contracts of this series the DHV is already exposed to. e18. negative if net short.
-	 * @param _underlyingPrice e18 price of ETH
+	 * @param _underlyingPrice the price of the underlying asset. e18
 	 */
 	function _getSpreadValue(
+		bool _isSell,
 		Types.OptionSeries memory _optionSeries,
 		uint256 _amount,
 		int256 _optionDelta,
 		int256 _netDhvExposure,
 		uint256 _underlyingPrice
-	) internal view returns (uint256 spreadPremium) {
-		uint256 netShortContracts;
-		if (_netDhvExposure <= 0) {
-			// dhv is already short so apply collateral lending spread to all traded contracts
-			netShortContracts = _amount;
-		} else {
-			// dhv is long so only apply spread to those contracts which make it net short.
-			netShortContracts = int256(_amount) - _netDhvExposure < 0
-				? 0
-				: _amount - uint256(_netDhvExposure);
-		}
-		// find collateral requirements for net short options
-		uint256 collateralToLend = _getCollateralRequirements();
+	) internal view returns (int256 spreadPremium) {
 		// get duration of option in years
 		uint256 time = (_optionSeries.expiration - block.timestamp).div(ONE_YEAR_SECONDS);
-		// calculate the collateral cost portion of the spread
-		uint256 collateralLendingPremium = ((1e18 + (collateralLendingRate * 1e18) / MAX_BPS).pow(time))
-			.mul(collateralToLend) - collateralToLend;
+		if (!_isSell) {
+			uint256 netShortContracts;
+			if (_netDhvExposure <= 0) {
+				// dhv is already short so apply collateral lending spread to all traded contracts
+				netShortContracts = _amount;
+			} else {
+				// dhv is long so only apply spread to those contracts which make it net short.
+				netShortContracts = int256(_amount) - _netDhvExposure < 0
+					? 0
+					: _amount - uint256(_netDhvExposure);
+			}
+			if (_optionSeries.collateral == collateralAsset) {
+				// find collateral requirements for net short options
+				uint256 collateralToLend = _getCollateralRequirements(_optionSeries, netShortContracts);
+				// calculate the collateral cost portion of the spread
+				uint256 collateralLendingPremium = (
+					(ONE_SCALE + (collateralLendingRate * ONE_SCALE) / SIX_DPS).pow(time)
+				).mul(collateralToLend) - collateralToLend;
+				spreadPremium += int(collateralLendingPremium);
+			}
+		}
+		// calculate delta borrow premium on both buy and sells
 		// this is just a magnitude value, sign doesnt matter
-		uint256 dollarDelta = uint256(_optionDelta.abs()).mul(_amount).mul(_underlyingPrice);
-		uint256 deltaBorrowPremium;
+		int256 dollarDelta = int(uint256(_optionDelta.abs()).mul(_amount).mul(_underlyingPrice));
+		int256 deltaBorrowPremium;
 		if (_optionDelta < 0) {
 			// option is negative delta, resulting in long delta exposure for DHV. needs hedging with a short pos
 			deltaBorrowPremium =
-				dollarDelta.mul((1e18 + (shortDeltaBorrowRate * 1e18) / MAX_BPS).pow(time)) -
+				dollarDelta.mul(
+					(ONE_SCALE_INT +
+						((_isSell ? deltaBorrowRates.sellLong : deltaBorrowRates.buyShort) * ONE_SCALE_INT) /
+						SIX_DPS_INT).pow(int(time))
+				) -
 				dollarDelta;
 		} else {
 			// option is positive delta, resulting in short delta exposure for DHV. needs hedging with a long pos
 			deltaBorrowPremium =
-				dollarDelta.mul((1e18 + (longDeltaBorrowRate * 1e18) / MAX_BPS).pow(time)) -
+				dollarDelta.mul(
+					(ONE_SCALE_INT +
+						((_isSell ? deltaBorrowRates.sellShort : deltaBorrowRates.buyLong) * ONE_SCALE_INT) /
+						SIX_DPS_INT).pow(int(time))
+				) -
 				dollarDelta;
 		}
-		console.log("net short contracts:", netShortContracts);
-		console.log("collateral lending premium:", collateralLendingPremium);
-		console.log("delta borrow premium:", deltaBorrowPremium);
-		console.log("total spread premium:", collateralLendingPremium + deltaBorrowPremium);
-		return collateralLendingPremium + deltaBorrowPremium;
+
+		spreadPremium += deltaBorrowPremium;
+
+		uint256 deltaBandIndex = (uint256(_optionDelta.abs()) * 100) / deltaBandWidth;
+		if (_optionDelta > 0) {
+			spreadPremium = spreadPremium.mul(
+				int(deltaBandMultipliers.callSpreadMultipliers[deltaBandIndex])
+			);
+		} else {
+			spreadPremium = spreadPremium.mul(
+				int(deltaBandMultipliers.putSpreadMultipliers[deltaBandIndex])
+			);
+		}
 	}
 
 	function _getCollateralRequirements() internal view returns (uint256) {

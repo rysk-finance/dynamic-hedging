@@ -373,7 +373,6 @@ contract SlippageTest is Test {
 		int256 _netDhvExposure,
 		bool _isSell
 	) internal view returns (uint256 slippageMultiplier) {
-		// divide _amount by 2 to obtain the average exposure throughout the tx. Stops large orders being disproportionately penalised.
 		// slippage will be exponential with the exponent being the DHV's net exposure
 		int256 newExposureExponent = _isSell
 			? _netDhvExposure + int256(_amount)
@@ -382,20 +381,24 @@ contract SlippageTest is Test {
 		uint256 modifiedSlippageGradient;
 		// not using math library here, want to reduce to a non e18 integer
 		// integer division rounds down to nearest integer
-
 		uint256 deltaBandIndex = (uint256(_optionDelta.abs()) * 100) / deltaBandWidth;
 		if (_optionDelta > 0) {
-			modifiedSlippageGradient = slippageGradient.mul(callSlippageGradientMultipliers[deltaBandIndex]);
+			modifiedSlippageGradient = slippageGradient.mul(
+				deltaBandMultipliers.callSlippageGradientMultipliers[deltaBandIndex]
+			);
 		} else {
-			modifiedSlippageGradient = slippageGradient.mul(putSlippageGradientMultipliers[deltaBandIndex]);
+			modifiedSlippageGradient = slippageGradient.mul(
+				deltaBandMultipliers.putSlippageGradientMultipliers[deltaBandIndex]
+			);
 		}
 		if (slippageGradient == 0) {
-			slippageMultiplier = 1e18;
+			slippageMultiplier = ONE_SCALE;
 			return slippageMultiplier;
 		}
+		// integrate the exponential function to get the slippage multiplier as this represents the average exposure
 		// if it is a sell then we need to do lower bound is old exposure exponent, upper bound is new exposure exponent
 		// if it is a buy then we need to do lower bound is new exposure exponent, upper bound is old exposure exponent
-		int256 slippageFactor = int256(1e18 + modifiedSlippageGradient);
+		int256 slippageFactor = int256(ONE_SCALE + modifiedSlippageGradient);
 		if (_isSell) {
 			slippageMultiplier = uint256(
 				(slippageFactor.pow(-oldExposureExponent) - slippageFactor.pow(-newExposureExponent)).div(
