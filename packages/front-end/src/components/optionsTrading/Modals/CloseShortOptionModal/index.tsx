@@ -17,7 +17,13 @@ import { toRysk, toUSDC } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { useDebounce } from "use-debounce";
 import { Disclaimer } from "../Shared/components/Disclaimer";
-import { Button, Input, Label, Wrapper } from "../Shared/components/Form";
+import {
+  Button,
+  Checkbox,
+  Input,
+  Label,
+  Wrapper,
+} from "../Shared/components/Form";
 import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
 import { useNotifications } from "../Shared/hooks/useNotifications";
@@ -44,6 +50,14 @@ export const CloseShortOptionModal = () => {
 
   const [addresses, allowance, setAllowance, positionData, vaultId, loading] =
     useShortPositionData(debouncedAmountToSell);
+
+  const handleCloseMax = (event: ChangeEvent<HTMLInputElement>) => {
+    if (event.currentTarget.checked) {
+      setAmountToSell(positionData.totalSize.toString());
+    } else {
+      setAmountToSell("");
+    }
+  };
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const amount = event.currentTarget.value;
@@ -122,10 +136,7 @@ export const CloseShortOptionModal = () => {
       />
 
       <Wrapper>
-        <Label
-          className="grow"
-          title="Enter how much of your position you would like to close."
-        >
+        <Label title="Enter how much of your position you would like to close.">
           <Input
             name="sell-amount"
             onChange={handleChange}
@@ -134,13 +145,24 @@ export const CloseShortOptionModal = () => {
           />
         </Label>
 
+        <Label
+          className="flex items-center justify-center select-none cursor-pointer w-min border-black border-r-2 px-2"
+          title="Select to close the entire position."
+        >
+          <Checkbox
+            checked={amountToSell === positionData.totalSize.toString()}
+            name="close-max"
+            onChange={handleCloseMax}
+          />
+          {`Max`}
+        </Label>
+
         <AnimatePresence mode="wait">
           <Button
-            className="w-1/3 !border-0"
+            className="w-1/4 !border-0"
             disabled={
               !Number(debouncedAmountToSell) ||
-              Number(debouncedAmountToSell) >
-                Math.abs(positionData.totalSize) ||
+              Number(debouncedAmountToSell) > positionData.totalSize ||
               !addresses.token ||
               !positionData.hasRequiredCapital ||
               transactionPending ||
