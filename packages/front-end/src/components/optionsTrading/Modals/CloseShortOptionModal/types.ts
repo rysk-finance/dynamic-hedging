@@ -2,6 +2,7 @@ import { BigNumber } from "ethers";
 
 export interface PositionDataState {
   acceptablePremium: BigNumber;
+  collateralReleased: number;
   collateralToRemove: BigNumber;
   fee: number;
   hasRequiredCapital: boolean;
