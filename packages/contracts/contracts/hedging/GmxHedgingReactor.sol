@@ -54,6 +54,8 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	uint8 public pendingDecreaseCallback;
 	mapping(bytes32 => int256) public increaseOrderDeltaChange;
 	mapping(bytes32 => int256) public decreaseOrderDeltaChange;
+	mapping(bytes32 => bool) public pendingIncreaseOrders;
+	mapping(bytes32 => bool) public pendingDecreaseOrders;
 	/// @notice value of any tokens that have been sent to GMX contract for positions that have not been executed/cancelled yet
 	uint public pendingIncreaseCollateralValue;
 	/// @notice indicates whether we have a long position open at the same time as a short
@@ -553,7 +555,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				(positionKey, deltaChange) = _decreasePosition(adjustedPositionSize, collateralToRemove, true);
 				// update deltaChange for callback function
 				decreaseOrderDeltaChange[positionKey] += deltaChange;
-
 				// remove the adjustedPositionSize from _amount to get remaining amount of delta to hedge to open shorts with
 				_amount = _amount + int256(adjustedPositionSize); // _amount is negative so addition needed
 				if (_amount == 0) return;
@@ -627,6 +628,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		emit CreateIncreasePosition(positionKey);
 		pendingIncreaseCallback++;
 		pendingIncreaseCollateralValue = _collateralSize;
+		pendingIncreaseOrders[positionKey] = true;
 		return (positionKey, _isLong ? int256(_size) : -int256(_size));
 	}
 
@@ -669,6 +671,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		);
 		emit CreateDecreasePosition(positionKey);
 		pendingDecreaseCallback++;
+		pendingDecreaseOrders[positionKey] = true;
 		return (positionKey, _isLong ? -int256(_size) : int256(_size));
 	}
 
@@ -931,7 +934,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			revert CustomErrors.InvalidGmxCallback();
 		}
 		if (isExecuted) {
-			if (isIncrease) {
+			if (isIncrease && pendingIncreaseOrders[positionKey]) {
 				int deltaChange = increaseOrderDeltaChange[positionKey];
 				internalDelta += deltaChange;
 				if (deltaChange > 0) {
@@ -948,8 +951,12 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 						longAndShortOpen = true;
 					}
 				}
+				pendingIncreaseCallback--;
+				delete increaseOrderDeltaChange[positionKey];
+				delete pendingIncreaseOrders[positionKey];
+				delete pendingIncreaseCollateralValue;
 				emit PositionExecuted(deltaChange);
-			} else {
+			} else if (!isIncrease && pendingDecreaseOrders[positionKey]) {
 				int deltaChange = decreaseOrderDeltaChange[positionKey];
 				internalDelta += deltaChange;
 				if (deltaChange > 0) {
@@ -966,7 +973,10 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 						longAndShortOpen = false;
 					}
 				}
-				emit PositionExecuted(decreaseOrderDeltaChange[positionKey]);
+				pendingDecreaseCallback--;
+				delete decreaseOrderDeltaChange[positionKey];
+				delete pendingDecreaseOrders[positionKey];
+				emit PositionExecuted(deltaChange);
 			}
 		} else {
 			// in the case of a failure there might be some collateral left over, we need to
@@ -976,20 +986,27 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				SafeTransferLib.safeTransfer(ERC20(collateralAsset), parentLiquidityPool, balance);
 			}
 			// if there was a failure record the failure by emitting an event
-			if (isIncrease) {
+			if (isIncrease && pendingIncreaseOrders[positionKey]) {
 				emit RebalancePortfolioDeltaFailed(increaseOrderDeltaChange[positionKey]);
-			} else {
+				pendingIncreaseCallback--;
+				delete increaseOrderDeltaChange[positionKey];
+				delete pendingIncreaseOrders[positionKey];
+				delete pendingIncreaseCollateralValue;
+			} else if (!isIncrease && pendingDecreaseOrders[positionKey]) {
 				emit RebalancePortfolioDeltaFailed(decreaseOrderDeltaChange[positionKey]);
+				pendingDecreaseCallback--;
+				delete decreaseOrderDeltaChange[positionKey];
+				delete pendingDecreaseOrders[positionKey];
 			}
 		}
-		if (isIncrease) {
-			pendingIncreaseCallback--;
-			delete increaseOrderDeltaChange[positionKey];
-			delete pendingIncreaseCollateralValue;
-		} else {
-			pendingDecreaseCallback--;
-			delete decreaseOrderDeltaChange[positionKey];
-		}
+		// if (isIncrease) {
+		// 	pendingIncreaseCallback--;
+		// 	delete increaseOrderDeltaChange[positionKey];
+		// 	delete pendingIncreaseCollateralValue;
+		// } else {
+		// 	pendingDecreaseCallback--;
+		// 	delete decreaseOrderDeltaChange[positionKey];
+		// }
 	}
 
 	/**
