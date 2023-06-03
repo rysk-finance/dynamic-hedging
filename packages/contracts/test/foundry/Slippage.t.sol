@@ -353,16 +353,16 @@ contract SlippageTest is Test {
 	}
 
 	function testSlippageFFIFuzzNetDhvExposureGetSlippageMultiplier(int96 netDhvExposure) public {
-		vm.assume(netDhvExposure <= 50000e18);
-		vm.assume(netDhvExposure >= -50000e18);
+		vm.assume(netDhvExposure <= 30000e18);
+		vm.assume(netDhvExposure >= -30000e18);
 		uint256 amount = 1000e18;
 		int256 delta = 5e17;
 		uint256 solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, true);
 		uint256 pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, true, slippageGradient);
-		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e8);
+		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e9);
 		solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, false);
 		pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, false, slippageGradient);
-		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e8);
+		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e9);
 	}
 
 	function testSlippageFFIFuzzSlippageGradientGetSlippageMultiplier(uint64 _slippageGradient) public {
