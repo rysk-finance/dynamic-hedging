@@ -98,13 +98,18 @@ def get_spread(
         buy_short_rate: float,
         underlying_price: float
         ):
-    if (net_dhv_exposure > 0):
-        if (amount - net_dhv_exposure < 0):
-            amount = 0
+    spread = 0
+    if (not is_sell):
+        net_short_contracts = 0
+        if (net_dhv_exposure <= 0):
+            net_short_contracts = amount
         else:
-            amount -= net_dhv_exposure
-    margin_requirement = margin_requirement_per_contract * amount
-    spread = get_collat_spread(time, margin_requirement, collat_lending_rate)
+            if (amount - net_dhv_exposure < 0):
+                net_short_contracts = 0
+            else:
+                net_short_contracts = amount - net_dhv_exposure
+        margin_requirement = margin_requirement_per_contract * net_short_contracts
+        spread = get_collat_spread(time, margin_requirement, collat_lending_rate)
     spread += get_delta_spread(time, is_sell, sell_long_rate, sell_short_rate, buy_long_rate, buy_short_rate, delta, amount, underlying_price)
     spread = get_spread_multiplier(spread, delta)
     return spread
