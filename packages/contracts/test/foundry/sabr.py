@@ -1,5 +1,5 @@
 import numpy as np
-from eth_abi import encode_single
+from eth_abi import encode
 import argparse
 import math
 
@@ -29,7 +29,7 @@ def main(args):
     # convert values to numbers from decimals
     vol *= 1e18
     # encode
-    enc = encode_single('uint256', int(vol))
+    enc = encode(['uint256'], [int(vol)])
     print("0x" + enc.hex())
 
 def _x(rho, z):

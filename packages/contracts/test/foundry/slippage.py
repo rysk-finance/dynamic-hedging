@@ -1,5 +1,5 @@
 import numpy as np
-from eth_abi import encode_single
+from eth_abi import encode
 import argparse
 import math
 
@@ -74,7 +74,7 @@ def main(args):
         Decimal(delta) / Decimal(1e18)
     ) * Decimal(1e18)
     # encode
-    enc = encode_single('uint256', int(slippage_multiplier))
+    enc = encode(['uint256'], [int(slippage_multiplier)])
     print("0x" + enc.hex())
 
 def get_slippage_multiplier(amount: float, net_dhv_exposure: float, is_sell: bool, slippage_gradient: float, delta: float):
