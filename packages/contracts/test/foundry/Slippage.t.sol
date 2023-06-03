@@ -12,16 +12,40 @@ contract SlippageTest is Test {
 	using PRBMathSD59x18 for int256;
 	using PRBMathUD60x18 for uint256;
 
+	struct DeltaBorrowRates {
+		int sellLong; // when someone sells puts to DHV (we need to long to hedge)
+		int sellShort; // when someone sells calls to DHV (we need to short to hedge)
+		int buyLong; // when someone buys calls from DHV (we need to long to hedge)
+		int buyShort; // when someone buys puts from DHV (we need to short to hedge)
+	}
+	struct DeltaBandMultipliers {
+		// array of slippage multipliers for each delta band. e18
+		uint256[20] callSlippageGradientMultipliers;
+		uint256[20] putSlippageGradientMultipliers;
+		// array of spread multipliers for each delta band. e18
+		uint256[20] callSpreadMultipliers;
+		uint256[20] putSpreadMultipliers;
+	}
+
 	uint256 minAmount;
 	uint256 slippageGradient;
-	uint256[] public callSlippageGradientMultipliers;
-	uint256[] public putSlippageGradientMultipliers;
+	// multiplier values for spread and slippage delta bands
+	DeltaBandMultipliers internal deltaBandMultipliers;
 	uint256 deltaBandWidth;
+	// BIPS
+	uint256 private constant SIX_DPS = 1_000_000;
+	uint256 private constant ONE_YEAR_SECONDS = 31557600;
+	// used to convert e18 to e8
+	uint256 private constant SCALE_FROM = 10 ** 10;
+	uint256 private constant ONE_DELTA = 100e18;
+	uint256 private constant ONE_SCALE = 1e18;
+	int256 private constant ONE_SCALE_INT = 1e18;
+	int256 private constant SIX_DPS_INT = 1_000_000;
 
 	function setUp() public {
 		minAmount = 1e15;
-		callSlippageGradientMultipliers = [
-			1e18,
+		deltaBandMultipliers = DeltaBandMultipliers([
+			uint256(1e18),
 			1.1e18,
 			1.2e18,
 			1.3e18,
@@ -41,9 +65,8 @@ contract SlippageTest is Test {
 			2.7e18,
 			2.8e18,
 			2.9e18
-		];
-		putSlippageGradientMultipliers = [
-			1e18,
+		], [
+			uint256(1e18),
 			1.1e18,
 			1.2e18,
 			1.3e18,
@@ -63,7 +86,49 @@ contract SlippageTest is Test {
 			2.7e18,
 			2.8e18,
 			2.9e18
-		];
+		], [
+			uint256(1e18),
+			1.1e18,
+			1.2e18,
+			1.3e18,
+			1.4e18,
+			1.5e18,
+			1.6e18,
+			1.7e18,
+			1.8e18,
+			1.9e18,
+			2.0e18,
+			2.1e18,
+			2.2e18,
+			2.3e18,
+			2.4e18,
+			2.5e18,
+			2.6e18,
+			2.7e18,
+			2.8e18,
+			2.9e18
+		], [
+			uint256(1e18),
+			1.1e18,
+			1.2e18,
+			1.3e18,
+			1.4e18,
+			1.5e18,
+			1.6e18,
+			1.7e18,
+			1.8e18,
+			1.9e18,
+			2.0e18,
+			2.1e18,
+			2.2e18,
+			2.3e18,
+			2.4e18,
+			2.5e18,
+			2.6e18,
+			2.7e18,
+			2.8e18,
+			2.9e18
+		]);
 		deltaBandWidth = 5e18;
 		slippageGradient = 1e15;
 	}
