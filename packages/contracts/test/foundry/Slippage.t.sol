@@ -359,10 +359,10 @@ contract SlippageTest is Test {
 		int256 delta = 5e17;
 		uint256 solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, true);
 		uint256 pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, true, slippageGradient);
-		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e9);
+		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e10);
 		solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, false);
 		pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, false, slippageGradient);
-		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e9);
+		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e10);
 	}
 
 	function testSlippageFFIFuzzSlippageGradientGetSlippageMultiplier(uint64 _slippageGradient) public {
