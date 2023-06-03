@@ -1,5 +1,5 @@
 import numpy as np
-from eth_abi import encode_single
+from eth_abi import encode
 import argparse
 import math
 
@@ -81,7 +81,7 @@ def main(args):
         Decimal(args.underlyingPrice) / Decimal(1e18)
         ) * Decimal(1e18)
     # encode
-    enc = encode_single('uint256', int(spread))
+    enc = encode(['uint256'], [int(spread)])
     print("0x" + enc.hex())
 
 def get_spread(
