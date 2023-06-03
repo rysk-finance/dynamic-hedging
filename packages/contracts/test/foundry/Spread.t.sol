@@ -2125,8 +2125,8 @@ contract SpreadTest is Test {
 	}
 
 	function testSpreadFFIFuzzUnderlyingPriceGetSpread(uint96 underlyingPrice) public {
-		vm.assume(underlyingPrice <= 0e18);
-		vm.assume(underlyingPrice >= 30000e18);
+		vm.assume(underlyingPrice > 0e18);
+		vm.assume(underlyingPrice < 30000e18);
 		uint256 amount = 1000e18;
 		int256 delta = 5e17;
 		int256 netDhvExposure = -1000e18;
@@ -2256,7 +2256,6 @@ contract SpreadTest is Test {
 				spreadPremium += int(collateralLendingPremium);
 			}
 		}
-		console.logInt(spreadPremium);
 		// calculate delta borrow premium on both buy and sells
 		// this is just a magnitude value, sign doesnt matter
 		int256 dollarDelta = int(uint256(_optionDelta.abs()).mul(_amount).mul(_underlyingPrice));
@@ -2282,7 +2281,6 @@ contract SpreadTest is Test {
 		}
 
 		spreadPremium += deltaBorrowPremium;
-		console.logInt(spreadPremium);
 		uint256 deltaBandIndex = (uint256(_optionDelta.abs()) * 100) / deltaBandWidth;
 		if (_optionDelta > 0) {
 			spreadPremium = spreadPremium.mul(
@@ -2293,7 +2291,6 @@ contract SpreadTest is Test {
 				int(deltaBandMultipliers.putSpreadMultipliers[deltaBandIndex])
 			);
 		}
-		console.logInt(spreadPremium);
 		if (spreadPremium < 0) {
 			spreadPremium = 0;
 		}
