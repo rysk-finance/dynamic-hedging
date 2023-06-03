@@ -2005,11 +2005,155 @@ contract SpreadTest is Test {
 		uint256 solSpreadMul = uint256(_getSpreadValue(true, optionSeries, amount, delta, netDhvExposure, underlyingPrice));
 		uint256 pySpreadMul = getSpreadValue(true, optionSeries, amount, delta, netDhvExposure, underlyingPrice);
 		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
-		console.log(solSpreadMul, pySpreadMul);
 		solSpreadMul = uint256(_getSpreadValue(false, optionSeries, amount, delta, netDhvExposure, underlyingPrice));
 		pySpreadMul = getSpreadValue(false, optionSeries, amount, delta, netDhvExposure, underlyingPrice);
 		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
-		console.log(solSpreadMul, pySpreadMul);
+		solSpreadMul = uint256(_getSpreadValue(true, optionSeries, amount, -delta, netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(true, optionSeries, amount, -delta, netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(false, optionSeries, amount, -delta, netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(false, optionSeries, amount, -delta, netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(true, optionSeries, amount, delta, -netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(true, optionSeries, amount, delta, -netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(false, optionSeries, amount, delta, -netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(false, optionSeries, amount, delta, -netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(true, optionSeries, amount, -delta, -netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(true, optionSeries, amount, -delta, -netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(false, optionSeries, amount, -delta, -netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(false, optionSeries, amount, -delta, -netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+	}
+
+	function testSpreadFFIFuzzDeltaGetSpread(int64 delta) public {
+		vm.assume(delta <= 1e18);
+		vm.assume(delta >= -1e18);
+		uint256 amount = 100e18;
+		int256 netDhvExposure = -1000e18;
+		uint256 underlyingPrice = 1800e18;
+		uint256 solSpreadMul = uint256(_getSpreadValue(true, optionSeries, amount, delta, netDhvExposure, underlyingPrice));
+		uint256 pySpreadMul = getSpreadValue(true, optionSeries, amount, delta, netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(false, optionSeries, amount, delta, netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(false, optionSeries, amount, delta, netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(true, optionSeries, amount, -delta, netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(true, optionSeries, amount, -delta, netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(false, optionSeries, amount, -delta, netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(false, optionSeries, amount, -delta, netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(true, optionSeries, amount, delta, -netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(true, optionSeries, amount, delta, -netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(false, optionSeries, amount, delta, -netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(false, optionSeries, amount, delta, -netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(true, optionSeries, amount, -delta, -netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(true, optionSeries, amount, -delta, -netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(false, optionSeries, amount, -delta, -netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(false, optionSeries, amount, -delta, -netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+	}
+	
+	function testSpreadFFIFuzzAmountGetSpread(uint128 amount) public {
+		vm.assume(amount > 1e16);
+		vm.assume(amount < 1000e18);
+		int256 delta = 5e17;
+		int256 netDhvExposure = -1000e18;
+		uint256 underlyingPrice = 1800e18;
+		uint256 solSpreadMul = uint256(_getSpreadValue(true, optionSeries, amount, delta, netDhvExposure, underlyingPrice));
+		uint256 pySpreadMul = getSpreadValue(true, optionSeries, amount, delta, netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(false, optionSeries, amount, delta, netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(false, optionSeries, amount, delta, netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(true, optionSeries, amount, -delta, netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(true, optionSeries, amount, -delta, netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(false, optionSeries, amount, -delta, netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(false, optionSeries, amount, -delta, netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(true, optionSeries, amount, delta, -netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(true, optionSeries, amount, delta, -netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(false, optionSeries, amount, delta, -netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(false, optionSeries, amount, delta, -netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(true, optionSeries, amount, -delta, -netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(true, optionSeries, amount, -delta, -netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(false, optionSeries, amount, -delta, -netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(false, optionSeries, amount, -delta, -netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+	}
+
+	function testSpreadFFIFuzzNetDhvExposureGetSpread(int96 netDhvExposure) public {
+		vm.assume(netDhvExposure <= 50000e18);
+		vm.assume(netDhvExposure >= -50000e18);
+		uint256 amount = 1000e18;
+		int256 delta = 5e17;
+		uint256 underlyingPrice = 1800e18;
+		uint256 solSpreadMul = uint256(_getSpreadValue(true, optionSeries, amount, delta, netDhvExposure, underlyingPrice));
+		uint256 pySpreadMul = getSpreadValue(true, optionSeries, amount, delta, netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(false, optionSeries, amount, delta, netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(false, optionSeries, amount, delta, netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(true, optionSeries, amount, -delta, netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(true, optionSeries, amount, -delta, netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(false, optionSeries, amount, -delta, netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(false, optionSeries, amount, -delta, netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(true, optionSeries, amount, delta, -netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(true, optionSeries, amount, delta, -netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(false, optionSeries, amount, delta, -netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(false, optionSeries, amount, delta, -netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(true, optionSeries, amount, -delta, -netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(true, optionSeries, amount, -delta, -netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(false, optionSeries, amount, -delta, -netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(false, optionSeries, amount, -delta, -netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+	}
+
+	function testSpreadFFIFuzzUnderlyingPriceGetSpread(uint96 underlyingPrice) public {
+		vm.assume(underlyingPrice <= 0e18);
+		vm.assume(underlyingPrice >= 30000e18);
+		uint256 amount = 1000e18;
+		int256 delta = 5e17;
+		int256 netDhvExposure = -1000e18;
+		uint256 solSpreadMul = uint256(_getSpreadValue(true, optionSeries, amount, delta, netDhvExposure, underlyingPrice));
+		uint256 pySpreadMul = getSpreadValue(true, optionSeries, amount, delta, netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(false, optionSeries, amount, delta, netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(false, optionSeries, amount, delta, netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(true, optionSeries, amount, -delta, netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(true, optionSeries, amount, -delta, netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(false, optionSeries, amount, -delta, netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(false, optionSeries, amount, -delta, netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(true, optionSeries, amount, delta, -netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(true, optionSeries, amount, delta, -netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(false, optionSeries, amount, delta, -netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(false, optionSeries, amount, delta, -netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(true, optionSeries, amount, -delta, -netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(true, optionSeries, amount, -delta, -netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		solSpreadMul = uint256(_getSpreadValue(false, optionSeries, amount, -delta, -netDhvExposure, underlyingPrice));
+		pySpreadMul = getSpreadValue(false, optionSeries, amount, -delta, -netDhvExposure, underlyingPrice);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
 	}
 
 	function getSpreadValue(
@@ -2112,6 +2256,7 @@ contract SpreadTest is Test {
 				spreadPremium += int(collateralLendingPremium);
 			}
 		}
+		console.logInt(spreadPremium);
 		// calculate delta borrow premium on both buy and sells
 		// this is just a magnitude value, sign doesnt matter
 		int256 dollarDelta = int(uint256(_optionDelta.abs()).mul(_amount).mul(_underlyingPrice));
@@ -2137,7 +2282,7 @@ contract SpreadTest is Test {
 		}
 
 		spreadPremium += deltaBorrowPremium;
-
+		console.logInt(spreadPremium);
 		uint256 deltaBandIndex = (uint256(_optionDelta.abs()) * 100) / deltaBandWidth;
 		if (_optionDelta > 0) {
 			spreadPremium = spreadPremium.mul(
@@ -2148,12 +2293,13 @@ contract SpreadTest is Test {
 				int(deltaBandMultipliers.putSpreadMultipliers[deltaBandIndex])
 			);
 		}
+		console.logInt(spreadPremium);
 		if (spreadPremium < 0) {
 			spreadPremium = 0;
 		}
 	}
 
 	function _getCollateralRequirements(Types.OptionSeries memory _optionSeries, uint256 netShortContracts) internal view returns (uint256) {
-		return collateralRequirements * netShortContracts;
+		return collateralRequirements.mul(netShortContracts);
 	}
 }
