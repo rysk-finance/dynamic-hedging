@@ -1,0 +1,14 @@
+[tool.poetry]
+name = "tests"
+version = "1.2.39"
+description = "Rysk"
+authors = ["jib"]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.12"
+eth-abi = "*"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
