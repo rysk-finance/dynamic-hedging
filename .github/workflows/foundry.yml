@@ -44,4 +44,4 @@ jobs:
           poetry install
         
       - name: Run tests
-        run: forge test --ffi -vvv
+        run: poetry run forge test --ffi -vvv
