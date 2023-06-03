@@ -6,6 +6,7 @@ authors = ["jib"]
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.12"
+numpy = "^1.23.3"
 eth-abi = "*"
 
 
