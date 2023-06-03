@@ -369,9 +369,9 @@ contract SlippageTest is Test {
 		vm.assume(_slippageGradient >= 1e12);
 		vm.assume(_slippageGradient <= 5e15);
 		slippageGradient = _slippageGradient;
-		uint256 amount = 1000e18;
+		uint256 amount = 100e18;
 		int256 delta = 5e17;
-		int256 netDhvExposure = -1000e18;
+		int256 netDhvExposure = -100e18;
 		uint256 solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, true);
 		uint256 pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, true, slippageGradient);
 		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e11);
