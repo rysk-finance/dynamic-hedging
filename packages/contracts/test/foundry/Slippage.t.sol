@@ -355,7 +355,7 @@ contract SlippageTest is Test {
 	function testSlippageFFIFuzzNetDhvExposureGetSlippageMultiplier(int96 netDhvExposure) public {
 		vm.assume(netDhvExposure <= 5000e18);
 		vm.assume(netDhvExposure >= -5000e18);
-		uint256 amount = 1000e18;
+		uint256 amount = 100e18;
 		int256 delta = 5e17;
 		uint256 solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, true);
 		uint256 pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, true, slippageGradient);
