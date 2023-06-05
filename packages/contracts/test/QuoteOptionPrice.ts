@@ -231,7 +231,7 @@ describe("Quote Option price", async () => {
 		let proposedSeries: any
 		let singleSellQuote: BigNumber
 		it("sets lowDeltaSellOptionFlatIV to 25%", async () => {
-			expect(await pricer.lowDeltaSellOptionFlatIV()).to.eq(utils.parseEther("0.3"))
+			expect(await pricer.lowDeltaSellOptionFlatIV()).to.eq(utils.parseEther("0.35"))
 			await pricer.setLowDeltaSellOptionFlatIV(utils.parseEther("0.25"))
 			expect(await pricer.lowDeltaSellOptionFlatIV()).to.eq(utils.parseEther("0.25"))
 		})

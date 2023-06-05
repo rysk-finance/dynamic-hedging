@@ -86,7 +86,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	// multiplier values for spread and slippage delta bands
 	DeltaBandMultipliers internal deltaBandMultipliers;
 	// flat IV value which will override our pricing formula for bids on options below a low delta threshold
-	uint256 public lowDeltaSellOptionFlatIV = 30e16;
+	uint256 public lowDeltaSellOptionFlatIV = 35e16;
 	// threshold for delta of options below which lowDeltaSellOptionFlatIV kicks in
 	uint256 public lowDeltaThreshold = 5e16; //0.05 delta options
 
@@ -171,25 +171,25 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	///////////////
 
 	function setLowDeltaSellOptionFlatIV(uint256 _lowDeltaSellOptionFlatIV) external {
-		_onlyGovernor();
+		_onlyManager();
 		emit LowDeltaSellOptionFlatIVChanged(_lowDeltaSellOptionFlatIV, lowDeltaSellOptionFlatIV);
 		lowDeltaSellOptionFlatIV = _lowDeltaSellOptionFlatIV;
 	}
 
 	function setLowDeltaThreshold(uint256 _lowDeltaThreshold) external {
-		_onlyGovernor();
+		_onlyManager();
 		emit LowDeltaThresholdChanged(_lowDeltaThreshold, lowDeltaThreshold);
 		lowDeltaThreshold = _lowDeltaThreshold;
 	}
 
 	function setRiskFreeRate(uint256 _riskFreeRate) external {
-		_onlyGovernor();
+		_onlyManager();
 		emit RiskFreeRateChanged(_riskFreeRate, riskFreeRate);
 		riskFreeRate = _riskFreeRate;
 	}
 
 	function setBidAskIVSpread(uint256 _bidAskIVSpread) external {
-		_onlyGovernor();
+		_onlyManager();
 		emit BidAskIVSpreadChanged(_bidAskIVSpread, bidAskIVSpread);
 		bidAskIVSpread = _bidAskIVSpread;
 	}
@@ -222,12 +222,15 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	function setDeltaBandWidth(
 		uint256 _deltaBandWidth,
 		uint256[] memory _callSlippageGradientMultipliers,
-		uint256[] memory _putSlippageGradientMultipliers
+		uint256[] memory _putSlippageGradientMultipliers,
+		uint256[] memory _callSpreadMultipliers,
+		uint256[] memory _putSpreadMultipliers
 	) external {
 		_onlyManager();
 		emit DeltaBandWidthChanged(_deltaBandWidth, deltaBandWidth);
 		deltaBandWidth = _deltaBandWidth;
 		setSlippageGradientMultipliers(_callSlippageGradientMultipliers, _putSlippageGradientMultipliers);
+		setSpreadMultipliers(_callSpreadMultipliers, _putSpreadMultipliers);
 	}
 
 	function setSlippageGradientMultipliers(
