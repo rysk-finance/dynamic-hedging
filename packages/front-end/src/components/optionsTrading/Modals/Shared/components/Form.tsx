@@ -44,3 +44,11 @@ export const Button = ({ ...props }: ButtonProps) => (
     />
   </AnimatePresence>
 );
+
+export const Checkbox = ({ ...props }: HTMLProps<HTMLInputElement>) => (
+  <input
+    className="w-4 h-4 cursor-pointer mr-2 accent-bone-dark hover:accent-bone-light"
+    type="checkbox"
+    {...props}
+  />
+);

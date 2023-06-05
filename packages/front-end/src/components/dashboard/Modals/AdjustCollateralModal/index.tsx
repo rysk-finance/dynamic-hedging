@@ -287,7 +287,7 @@ const AdjustCollateralModal = () => {
 
         <AnimatePresence mode="wait">
           <Button
-            className="w-1/3 !border-0"
+            className="w-1/4 !border-0"
             disabled={!Number(newCollateralAmount) || transactionPending}
             requiresConnection
             {...FadeInOutQuick}
