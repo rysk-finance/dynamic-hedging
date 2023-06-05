@@ -2,13 +2,15 @@ import { BigNumber } from "ethers";
 
 export interface PositionDataState {
   acceptablePremium: BigNumber;
+  collateralReleased: number;
   collateralToRemove: BigNumber;
   fee: number;
   hasRequiredCapital: boolean;
   now: string;
   premium: number;
   quote: number;
-  remainingBalance: number;
+  remainingBalanceUSDC: number;
+  remainingBalanceWETH: number;
   remainingCollateral: number;
   slippage: number;
   totalSize: number;
