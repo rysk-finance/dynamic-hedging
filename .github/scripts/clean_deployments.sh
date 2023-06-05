@@ -52,4 +52,4 @@ do
   echo $'\n'
 done
 
-echo Finished cleaning stale preview apps.
+echo Finished cleaning stale deployments.
