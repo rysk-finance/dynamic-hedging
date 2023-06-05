@@ -4734,8 +4734,12 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					orderDeets.optionSeries.isPut
 				)
 				expect(netDhvExposureBefore).to.equal(toWei("10"))
-				const shortExposureBefore = (await portfolioValuesFeed.storesForAddress(orderDeets.seriesAddress)).shortExposure
-				const longExposureBefore = (await portfolioValuesFeed.storesForAddress(orderDeets.seriesAddress)).longExposure
+				const shortExposureBefore = (
+					await portfolioValuesFeed.storesForAddress(orderDeets.seriesAddress)
+				).shortExposure
+				const longExposureBefore = (
+					await portfolioValuesFeed.storesForAddress(orderDeets.seriesAddress)
+				).longExposure
 				const localQuote = await calculateOptionQuoteLocallyAlpha(
 					liquidityPool,
 					optionRegistry,
@@ -4777,10 +4781,13 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				)
 				const buyerUSDBalanceDiff = buyerBalBefore.sub(buyerBalAfter)
 				const lpUSDBalanceDiff = lpUSDBalanceAfter.sub(lpUSDBalanceBefore)
-	
+
 				const order = await handler.orderStores(2)
-				const shortExposureAfter = (await portfolioValuesFeed.storesForAddress(orderDeets.seriesAddress)).shortExposure
-				const longExposureAfter = (await portfolioValuesFeed.storesForAddress(orderDeets.seriesAddress)).longExposure
+				const shortExposureAfter = (
+					await portfolioValuesFeed.storesForAddress(orderDeets.seriesAddress)
+				).shortExposure
+				const longExposureAfter = (await portfolioValuesFeed.storesForAddress(orderDeets.seriesAddress))
+					.longExposure
 				// order should be non existant
 				expect(order.buyer).to.eq(ZERO_ADDRESS)
 				// check buyer's OToken balance increases by correct amount
@@ -4803,8 +4810,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				).to.be.within(-1, 1)
 				// check liquidity pool USD balance increases by agreed price minus collateral
 				expect(
-					tFormatUSDC(lpUSDBalanceDiff) -
-						(tFormatEth(orderDeets.amount) * tFormatEth(orderDeets.price))
+					tFormatUSDC(lpUSDBalanceDiff) - tFormatEth(orderDeets.amount) * tFormatEth(orderDeets.price)
 				).to.be.within(-0.015, 0.015)
 				expect(await portfolioValuesFeed.addressSetLength()).to.equal(addressSetLengthBefore)
 				expect(netDhvExposureBefore.sub(netDhvExposureAfter)).to.equal(orderDeets.amount)
@@ -4832,15 +4838,17 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					amount
 				)
 				customOrderPrice = localQuote
-				await expect(handler.createOrder(
-					proposedSeries,
-					amount,
-					toWei(customOrderPrice.toString()).mul(toWei("1")).div(amount),
-					orderExpiry,
-					senderAddress,
-					false,
-					[toWei("1"), toWei("1")]
-				)).to.be.revertedWithCustomError(liquidityPool, "CollateralAssetInvalid")
+				await expect(
+					handler.createOrder(
+						proposedSeries,
+						amount,
+						toWei(customOrderPrice.toString()).mul(toWei("1")).div(amount),
+						orderExpiry,
+						senderAddress,
+						false,
+						[toWei("1"), toWei("1")]
+					)
+				).to.be.revertedWithCustomError(liquidityPool, "CollateralAssetInvalid")
 			})
 			it("SUCCEEDS: migrate option to exchange", async () => {
 				const otokens = [optionTokenAlt]
@@ -5014,9 +5022,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				)
 				quote = quoteResponse[0].sub(quoteResponse[2])
 				expect(after.senderOtokenBalance).to.eq(0)
-				expect(
-					after.senderUSDBalance.sub(before.senderUSDBalance).sub(quote)
-				).to.be.within(-10, 10)
+				expect(after.senderUSDBalance.sub(before.senderUSDBalance).sub(quote)).to.be.within(-10, 10)
 				expect(after.poolUSDBalance.sub(before.poolUSDBalance).add(quote)).to.be.within(-10, 10)
 				expect(after.exchangeOTokenBalance.sub(before.exchangeOTokenBalance)).to.equal(after.opynAmount)
 				expect(after.pfList.length - before.pfList.length).to.equal(1)
@@ -5143,8 +5149,12 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					orderDeets.optionSeries.isPut
 				)
 				expect(netDhvExposureBefore).to.equal(toWei("10"))
-				const shortExposureBefore = (await portfolioValuesFeed.storesForAddress(orderDeets.seriesAddress)).shortExposure
-				const longExposureBefore = (await portfolioValuesFeed.storesForAddress(orderDeets.seriesAddress)).longExposure
+				const shortExposureBefore = (
+					await portfolioValuesFeed.storesForAddress(orderDeets.seriesAddress)
+				).shortExposure
+				const longExposureBefore = (
+					await portfolioValuesFeed.storesForAddress(orderDeets.seriesAddress)
+				).longExposure
 				const localQuote = await calculateOptionQuoteLocallyAlpha(
 					liquidityPool,
 					optionRegistry,
@@ -5186,10 +5196,13 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				)
 				const buyerUSDBalanceDiff = buyerBalBefore.sub(buyerBalAfter)
 				const lpUSDBalanceDiff = lpUSDBalanceAfter.sub(lpUSDBalanceBefore)
-	
+
 				const order = await handler.orderStores(2)
-				const shortExposureAfter = (await portfolioValuesFeed.storesForAddress(orderDeets.seriesAddress)).shortExposure
-				const longExposureAfter = (await portfolioValuesFeed.storesForAddress(orderDeets.seriesAddress)).longExposure
+				const shortExposureAfter = (
+					await portfolioValuesFeed.storesForAddress(orderDeets.seriesAddress)
+				).shortExposure
+				const longExposureAfter = (await portfolioValuesFeed.storesForAddress(orderDeets.seriesAddress))
+					.longExposure
 				// order should be non existant
 				expect(order.buyer).to.eq(ZERO_ADDRESS)
 				// check buyer's OToken balance increases by correct amount
@@ -5212,8 +5225,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				).to.be.within(-1, 1)
 				// check liquidity pool USD balance increases by agreed price minus collateral
 				expect(
-					tFormatUSDC(lpUSDBalanceDiff) -
-						(tFormatEth(orderDeets.amount) * tFormatEth(orderDeets.price))
+					tFormatUSDC(lpUSDBalanceDiff) - tFormatEth(orderDeets.amount) * tFormatEth(orderDeets.price)
 				).to.be.within(-0.015, 0.015)
 				expect(await portfolioValuesFeed.addressSetLength()).to.equal(addressSetLengthBefore)
 				expect(netDhvExposureBefore.sub(netDhvExposureAfter)).to.equal(orderDeets.amount)
@@ -5375,9 +5387,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				)
 				quote = quoteResponse[0].sub(quoteResponse[2])
 				expect(after.senderOtokenBalance).to.eq(0)
-				expect(
-					after.senderUSDBalance.sub(before.senderUSDBalance).sub(quote)
-				).to.be.within(-10, 10)
+				expect(after.senderUSDBalance.sub(before.senderUSDBalance).sub(quote)).to.be.within(-10, 10)
 				expect(after.poolUSDBalance.sub(before.poolUSDBalance).add(quote)).to.be.within(-10, 10)
 				expect(after.exchangeOTokenBalance.sub(before.exchangeOTokenBalance)).to.equal(after.opynAmount)
 				expect(after.pfList.length - before.pfList.length).to.equal(1)
@@ -5493,7 +5503,10 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			})
 			it("REVERTS: Executes a buy order for weth collat token held by handler but there are no tokens left", async () => {
 				await usd.connect(signers[1]).approve(handler.address, 100000000000)
-				await expect(handler.connect(signers[1]).executeOrder(4)).to.be.revertedWithCustomError(handler, "CollateralAssetInvalid")
+				await expect(handler.connect(signers[1]).executeOrder(4)).to.be.revertedWithCustomError(
+					handler,
+					"CollateralAssetInvalid"
+				)
 			})
 		})
 		describe("Settles and redeems usd otoken", async () => {
@@ -5738,6 +5751,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				await pricer.setDeltaBandWidth(
 					toWei("20"),
 					[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")],
+					[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")],
+					[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")],
 					[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")]
 				)
 				expect(await pricer.deltaBandWidth()).to.equal(toWei("20"))
@@ -5749,6 +5764,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						.setDeltaBandWidth(
 							toWei("20"),
 							[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")],
+							[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")],
+							[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")],
 							[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")]
 						)
 				).to.be.revertedWithCustomError(pricer, "UNAUTHORIZED")
@@ -5757,6 +5774,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				await expect(
 					pricer.setDeltaBandWidth(
 						toWei("5"),
+						[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")],
+						[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")],
 						[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")],
 						[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")]
 					)
@@ -5767,18 +5786,33 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					pricer.setDeltaBandWidth(
 						toWei("20"),
 						[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4")],
-						[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")]
+						[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4")],
+						[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4")],
+						[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4")]
 					)
 				).to.be.revertedWithCustomError(pricer, "InvalidSlippageGradientMultipliersArrayLength")
 			})
-			it("REVERTS: set delta band width with a param below 0", async () => {
+			it("REVERTS: set delta band width with a slippage param below 1", async () => {
 				await expect(
 					pricer.setDeltaBandWidth(
 						toWei("20"),
-						[toWei("0.9"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")],
+						[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("0.1"), toWei("1.5")],
+						[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")],
+						[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")],
 						[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")]
 					)
 				).to.be.revertedWithCustomError(pricer, "InvalidSlippageGradientMultiplierValue")
+			})
+			it("REVERTS: set delta band width with a spread param below 1", async () => {
+				await expect(
+					pricer.setDeltaBandWidth(
+						toWei("20"),
+						[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")],
+						[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")],
+						[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("0.8"), toWei("1.5")],
+						[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")]
+					)
+				).to.be.revertedWithCustomError(pricer, "InvalidSpreadMultiplierValue")
 			})
 			it("SUCCEEDS: set slippage gradient multipliers on pricer", async () => {
 				const slippageGradientMultipliers = [
@@ -5844,7 +5878,10 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(await handler.feePerContract()).to.equal(0)
 			})
 			it("REVERTS: sets fee to 0 but not governor", async () => {
-				await expect(handler.connect(signers[1]).setFeePerContract(0)).to.be.revertedWithCustomError(handler, "UNAUTHORIZED")
+				await expect(handler.connect(signers[1]).setFeePerContract(0)).to.be.revertedWithCustomError(
+					handler,
+					"UNAUTHORIZED"
+				)
 			})
 		})
 		describe("Unwinds a hedging reactor", async () => {

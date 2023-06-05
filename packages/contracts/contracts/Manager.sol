@@ -262,6 +262,26 @@ contract Manager is AccessControl {
 	/// Beyond Pricer ///
 	/////////////////////
 
+	function setLowDeltaSellOptionFlatIV(uint256 _lowDeltaSellOptionFlatIV) external {
+		_isProxyManager();
+		beyondPricer.setLowDeltaSellOptionFlatIV(_lowDeltaSellOptionFlatIV);
+	}
+
+	function setLowDeltaThreshold(uint256 _lowDeltaThreshold) external {
+		_isProxyManager();
+		beyondPricer.setLowDeltaThreshold(_lowDeltaThreshold);
+	}
+
+	function setRiskFreeRate(uint256 _riskFreeRate) external {
+		_isProxyManager();
+		beyondPricer.setRiskFreeRate(_riskFreeRate);
+	}
+
+	function setBidAskIVSpread(uint256 _bidAskIVSpread) external {
+		_isProxyManager();
+		beyondPricer.setBidAskIVSpread(_bidAskIVSpread);
+	}
+
 	function setSlippageGradient(uint256 _slippageGradient) external {
 		_isProxyManager();
 		beyondPricer.setSlippageGradient(_slippageGradient);
@@ -281,13 +301,17 @@ contract Manager is AccessControl {
 	function setDeltaBandWidth(
 		uint256 _deltaBandWidth,
 		uint256[] memory _callSlippageGradientMultipliers,
-		uint256[] memory _putSlippageGradientMultipliers
+		uint256[] memory _putSlippageGradientMultipliers,
+		uint256[] memory _callSpreadMultipliers,
+		uint256[] memory _putSpreadMultipliers
 	) external {
 		_isProxyManager();
 		beyondPricer.setDeltaBandWidth(
 			_deltaBandWidth,
 			_callSlippageGradientMultipliers,
-			_putSlippageGradientMultipliers
+			_putSlippageGradientMultipliers,
+			_callSpreadMultipliers,
+			_putSpreadMultipliers
 		);
 	}
 
@@ -300,6 +324,14 @@ contract Manager is AccessControl {
 			_callSlippageGradientMultipliers,
 			_putSlippageGradientMultipliers
 		);
+	}
+
+	function setSpreadMultipliers(
+		uint256[] memory _callSpreadMultipliers,
+		uint256[] memory _putSpreadMultipliers
+	) public {
+		_isProxyManager();
+		beyondPricer.setSpreadMultipliers(_callSpreadMultipliers, _putSpreadMultipliers);
 	}
 
 	/// @dev keepers, managers or governors can access
