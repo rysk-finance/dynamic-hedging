@@ -16,21 +16,20 @@ jobs:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
     steps:
-      - name: Extract branch name
-        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
-        id: extract_branch
-
       - uses: actions/checkout@v3
 
-      - name: Clean
-        shell: bash
+      - name: Export env vars
         run: |
-          export BRANCH=${{ steps.extract_branch.outputs.branch }}
+          echo "BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_ENV
+
+          echo "TARGET=$(echo preview)" >> $GITHUB_ENV
 
           if [ ${{ github.event.action }} == 'synchronize' ]; then
-            export STATE=ERROR,READY,CANCELED
+            echo "STATE=$(echo ERROR,READY,CANCELED)" >> $GITHUB_ENV
           elif [ ${{ github.event.action }} == 'closed' ]; then
-            export STATE=BUILDING,ERROR,INITIALIZING,QUEUED,READY,CANCELED
+            echo "STATE=$(echo BUILDING,ERROR,INITIALIZING,QUEUED,READY,CANCELED)" >> $GITHUB_ENV
           fi
 
-          ./.github/scripts/clean_previews.sh
+      - name: Clean stale apps
+        shell: bash
+        run: ./.github/scripts/clean_deployments.sh
