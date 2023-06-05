@@ -29,6 +29,7 @@ import { Modal } from "src/components/optionsTrading/Modals/Shared/components/Mo
 import { useAllowance } from "src/components/optionsTrading/Modals/Shared/hooks/useAllowance";
 import { getLiquidationPrice } from "src/components/optionsTrading/Modals/Shared/utils/getLiquidationPrice";
 import { useDebouncedCallback } from "use-debounce";
+import { toast } from "react-toastify";
 
 const calculateNewCollateralAmount = (
   symbol: "USDC" | "WETH",
@@ -123,6 +124,20 @@ const AdjustCollateralModal = () => {
   };
 
   const handleCollateralUpdate = async () => {
+    if (
+      ethPrice &&
+      ((isPut && newLiquidationPrice > ethPrice) ||
+        (!isPut && newLiquidationPrice < ethPrice))
+    ) {
+      toast("❌ That's too much collateral to remove, transaction would fail.");
+      return;
+    }
+
+    if (ethPrice && Math.abs(newLiquidationPrice - ethPrice) < 50) {
+      toast("❌ Liquidation price is too close to current price of ETH.");
+      return;
+    }
+
     setTransactionPending(true);
 
     try {
