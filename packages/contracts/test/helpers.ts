@@ -822,6 +822,15 @@ export async function applySpreadLocally(
 		WETH_ADDRESS[chainId],
 		USDC_ADDRESS[chainId]
 	)
+	const deltaBandIndex = Math.floor(
+		(parseFloat(fromWei(optionDelta.abs())) * 100) /
+			parseFloat(fromWei(await beyondPricer.deltaBandWidth()))
+	)
+	let realOptionDelta = optionDelta
+	// option delta is flipped in case of sale, so flip back
+	if (isSell) {
+		realOptionDelta = -optionDelta
+	}
 	if (!isSell) {
 		let netShortContracts
 		if (netDhvExposure < toWei("0")) {
@@ -853,6 +862,16 @@ export async function applySpreadLocally(
 		const collateralLendingRate = await beyondPricer.collateralLendingRate()
 		collateralLendingPremium =
 			(1 + collateralLendingRate / SIX_DPS) ** timeToExpiry * collateralToLend - collateralToLend
+
+		if (realOptionDelta < toWei("0")) {
+			collateralLendingPremium =
+				collateralLendingPremium *
+				parseFloat(fromWei((await beyondPricer.getPutSpreadCollateralMultipliers())[deltaBandIndex]))
+		} else {
+			collateralLendingPremium =
+				collateralLendingPremium *
+				parseFloat(fromWei((await beyondPricer.getCallSpreadCollateralMultipliers())[deltaBandIndex]))
+		}
 	}
 
 	const dollarDelta =
@@ -864,12 +883,7 @@ export async function applySpreadLocally(
 	const sellShortDeltaBorrowRate = (await beyondPricer.deltaBorrowRates()).sellShort
 	const buyLongDeltaBorrowRate = (await beyondPricer.deltaBorrowRates()).buyLong
 	const buyShortDeltaBorrowRate = (await beyondPricer.deltaBorrowRates()).buyShort
-	let realOptionDelta = optionDelta
-	if (isSell) {
-		realOptionDelta = -optionDelta
-	}
 
-	// option delta is flipped in case of sale, so flip back
 	if (realOptionDelta < toWei("0")) {
 		deltaBorrowPremium =
 			dollarDelta *
@@ -881,16 +895,17 @@ export async function applySpreadLocally(
 				(1 + (isSell ? sellShortDeltaBorrowRate : buyLongDeltaBorrowRate) / SIX_DPS) ** timeToExpiry -
 			dollarDelta
 	}
+	if (realOptionDelta < toWei("0")) {
+		deltaBorrowPremium =
+			deltaBorrowPremium *
+			parseFloat(fromWei((await beyondPricer.getPutSpreadDeltaMultipliers())[deltaBandIndex]))
+	} else {
+		deltaBorrowPremium =
+			deltaBorrowPremium *
+			parseFloat(fromWei((await beyondPricer.getCallSpreadDeltaMultipliers())[deltaBandIndex]))
+	}
 
-	const deltaBandIndex = Math.floor(
-		(parseFloat(fromWei(optionDelta.abs())) * 100) /
-			parseFloat(fromWei(await beyondPricer.deltaBandWidth()))
-	)
-	const totalSlippage = collateralLendingPremium + deltaBorrowPremium
-	return (
-		totalSlippage *
-		parseFloat(fromWei((await beyondPricer.getCallSpreadMultipliers())[deltaBandIndex]))
-	)
+	return collateralLendingPremium + deltaBorrowPremium
 }
 
 export async function calculateOptionDeltaLocally(
