@@ -81,8 +81,16 @@ export const Pricing = ({ positionData }: PricingProps) => {
           </small>
         </div>
 
+        <span className="flex pt-2">
+          <p className="mr-auto">{`Break even:`}</p>
+          <p className="font-medium">
+            <RyskCountUp value={breakEven} />
+            {` USDC`}
+          </p>
+        </span>
+
         <span
-          className="flex py-2 border-gray-600 border-b"
+          className="flex pb-2 border-gray-600 border-b"
           id="buy-total-price"
         >
           <p className="mr-auto">{`Total to pay:`}</p>
