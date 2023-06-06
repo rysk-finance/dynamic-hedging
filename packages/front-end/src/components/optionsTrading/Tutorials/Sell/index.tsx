@@ -57,6 +57,11 @@ export const SellModalTutorial = () => {
             "This price represents the total amount in USDC you will receive as premium after fees.",
         },
         {
+          target: "#sell-break-even",
+          content:
+            "This price represents the break even point for your position. It accounts for premium, fees and price impact.",
+        },
+        {
           target: "#sell-balances",
           content:
             "These prices represent the estimated remaining balance of the USDC and WETH in your wallet after the transaction.",

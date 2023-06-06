@@ -138,7 +138,7 @@ export const Pricing = ({ loading, positionData }: PricingProps) => {
         </p>
       </span>
 
-      <span className="flex" id="sell-total-price">
+      <span className="flex" id="sell-break-even">
         <p className="mr-auto">{`Break even:`}</p>
         <p className="font-medium">
           <RyskCountUp value={breakEven} />
