@@ -4,6 +4,7 @@ import type { CallOrPut, CollateralType } from "src/state/types";
 
 export interface PositionDataState {
   acceptablePremium: BigNumber;
+  breakEven: number;
   callOrPut?: CallOrPut;
   collateral: number;
   expiry: string;

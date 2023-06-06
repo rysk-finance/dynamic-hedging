@@ -17,6 +17,7 @@ export const Pricing = ({ positionData }: PricingProps) => {
   } = useGlobalContext();
 
   const {
+    breakEven,
     callOrPut,
     expiry,
     fee,
