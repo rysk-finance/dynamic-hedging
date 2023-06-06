@@ -300,24 +300,28 @@ contract Manager is AccessControl {
 	/// @dev must also update delta band arrays to fit the new delta band width
 	function setDeltaBandWidth(
 		uint256 _deltaBandWidth,
-		uint256[] memory _callSlippageGradientMultipliers,
-		uint256[] memory _putSlippageGradientMultipliers,
-		uint256[] memory _callSpreadMultipliers,
-		uint256[] memory _putSpreadMultipliers
+		uint80[] memory _callSlippageGradientMultipliers,
+		uint80[] memory _putSlippageGradientMultipliers,
+		uint80[] memory _callSpreadCollateralMultipliers,
+		uint80[] memory _putSpreadCollateralMultipliers,
+		uint80[] memory _callSpreadDeltaMultipliers,
+		uint80[] memory _putSpreadDeltaMultipliers
 	) external {
 		_isProxyManager();
 		beyondPricer.setDeltaBandWidth(
 			_deltaBandWidth,
 			_callSlippageGradientMultipliers,
 			_putSlippageGradientMultipliers,
-			_callSpreadMultipliers,
-			_putSpreadMultipliers
+			_callSpreadCollateralMultipliers,
+			_putSpreadCollateralMultipliers,
+			_callSpreadDeltaMultipliers,
+			_putSpreadDeltaMultipliers
 		);
 	}
 
 	function setSlippageGradientMultipliers(
-		uint256[] memory _callSlippageGradientMultipliers,
-		uint256[] memory _putSlippageGradientMultipliers
+		uint80[] memory _callSlippageGradientMultipliers,
+		uint80[] memory _putSlippageGradientMultipliers
 	) public {
 		_isProxyManager();
 		beyondPricer.setSlippageGradientMultipliers(
@@ -326,12 +330,23 @@ contract Manager is AccessControl {
 		);
 	}
 
-	function setSpreadMultipliers(
-		uint256[] memory _callSpreadMultipliers,
-		uint256[] memory _putSpreadMultipliers
+	function setSpreadCollateralMultipliers(
+		uint80[] memory _callSpreadCollateralMultipliers,
+		uint80[] memory _putSpreadCollateralMultipliers
 	) public {
 		_isProxyManager();
-		beyondPricer.setSpreadMultipliers(_callSpreadMultipliers, _putSpreadMultipliers);
+		beyondPricer.setSpreadCollateralMultipliers(
+			_callSpreadCollateralMultipliers,
+			_putSpreadCollateralMultipliers
+		);
+	}
+
+	function setSpreadDeltaMultipliers(
+		uint80[] memory _callSpreadDeltaMultipliers,
+		uint80[] memory _putSpreadDeltaMultipliers
+	) public {
+		_isProxyManager();
+		beyondPricer.setSpreadDeltaMultipliers(_callSpreadDeltaMultipliers, _putSpreadDeltaMultipliers);
 	}
 
 	/// @dev keepers, managers or governors can access

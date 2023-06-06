@@ -308,7 +308,7 @@ export async function deployLiquidityPool(
 				toWei("2.8"),
 				toWei("2.9")
 			],
-			callSpreadMultipliers: [
+			callSpreadCollateralMultipliers: [
 				toWei("1.9"),
 				toWei("1.8"),
 				toWei("1.7"),
@@ -330,7 +330,51 @@ export async function deployLiquidityPool(
 				toWei("1.8"),
 				toWei("1.9")
 			],
-			putSpreadMultipliers: [
+			putSpreadCollateralMultipliers: [
+				toWei("1.9"),
+				toWei("1.8"),
+				toWei("1.7"),
+				toWei("1.6"),
+				toWei("1.5"),
+				toWei("1.4"),
+				toWei("1.3"),
+				toWei("1.2"),
+				toWei("1.1"),
+				toWei("1.0"),
+				toWei("1.0"),
+				toWei("1.1"),
+				toWei("1.2"),
+				toWei("1.3"),
+				toWei("1.4"),
+				toWei("1.5"),
+				toWei("1.6"),
+				toWei("1.7"),
+				toWei("1.8"),
+				toWei("1.9")
+			],
+			callSpreadDeltaMultipliers: [
+				toWei("1.9"),
+				toWei("1.8"),
+				toWei("1.7"),
+				toWei("1.6"),
+				toWei("1.5"),
+				toWei("1.4"),
+				toWei("1.3"),
+				toWei("1.2"),
+				toWei("1.1"),
+				toWei("1.0"),
+				toWei("1.0"),
+				toWei("1.1"),
+				toWei("1.2"),
+				toWei("1.3"),
+				toWei("1.4"),
+				toWei("1.5"),
+				toWei("1.6"),
+				toWei("1.7"),
+				toWei("1.8"),
+				toWei("1.9")
+			],
+			putSpreadDeltaMultipliers: [
 				toWei("1.9"),
 				toWei("1.8"),
 				toWei("1.7"),
@@ -391,10 +435,11 @@ export async function deployLiquidityPool(
 	await exchange.changeApprovedCollateral(weth.address, false, true)
 
 	await liquidityPool.changeHandler(exchange.address, true)
-	const handlerFactory = await ethers.getContractFactory("AlphaOptionHandler", {		
+	const handlerFactory = await ethers.getContractFactory("AlphaOptionHandler", {
 		libraries: {
-		OptionsCompute: compute.address
-	}})
+			OptionsCompute: compute.address
+		}
+	})
 	const handler = (await handlerFactory.deploy(
 		authority,
 		optionProtocol.address,

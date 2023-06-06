@@ -38,11 +38,14 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 	struct DeltaBandMultipliers {
 		// array of slippage multipliers for each delta band. e18
-		uint256[] callSlippageGradientMultipliers;
-		uint256[] putSlippageGradientMultipliers;
-		// array of spread multipliers for each delta band. e18
-		uint256[] callSpreadMultipliers;
-		uint256[] putSpreadMultipliers;
+		uint80[] callSlippageGradientMultipliers;
+		uint80[] putSlippageGradientMultipliers;
+		// array of collateral lending spread multipliers for each delta band. e18
+		uint80[] callSpreadCollateralMultipliers;
+		uint80[] putSpreadCollateralMultipliers;
+		// array of delta borrow spread multipliers for each delta band. e18
+		uint80[] callSpreadDeltaMultipliers;
+		uint80[] putSpreadDeltaMultipliers;
 	}
 
 	///////////////////////////
@@ -109,7 +112,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	/////////////////////////
 
 	event SlippageGradientMultipliersChanged();
-	event SpreadMultipliersChanged();
+	event SpreadCollateralMultipliersChanged();
+	event SpreadDeltaMultipliersChanged();
 	event DeltaBandWidthChanged(uint256 newDeltaBandWidth, uint256 oldDeltaBandWidth);
 	event CollateralLendingRateChanged(
 		uint256 newCollateralLendingRate,
@@ -130,8 +134,10 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	event LowDeltaThresholdChanged(uint256 newLowDeltaThreshold, uint256 oldLowDeltaThreshold);
 	error InvalidSlippageGradientMultipliersArrayLength();
 	error InvalidSlippageGradientMultiplierValue();
-	error InvalidSpreadMultipliersArrayLength();
-	error InvalidSpreadMultiplierValue();
+	error InvalidSpreadCollateralMultipliersArrayLength();
+	error InvalidSpreadCollateralMultiplierValue();
+	error InvalidSpreadDeltaMultipliersArrayLength();
+	error InvalidSpreadDeltaMultiplierValue();
 
 	constructor(
 		address _authority,
@@ -148,8 +154,10 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		if (
 			_deltaBandMultipliers.callSlippageGradientMultipliers.length != ONE_DELTA / _deltaBandWidth ||
 			_deltaBandMultipliers.putSlippageGradientMultipliers.length != ONE_DELTA / _deltaBandWidth ||
-			_deltaBandMultipliers.callSpreadMultipliers.length != ONE_DELTA / _deltaBandWidth ||
-			_deltaBandMultipliers.putSpreadMultipliers.length != ONE_DELTA / _deltaBandWidth
+			_deltaBandMultipliers.callSpreadCollateralMultipliers.length != ONE_DELTA / _deltaBandWidth ||
+			_deltaBandMultipliers.putSpreadCollateralMultipliers.length != ONE_DELTA / _deltaBandWidth ||
+			_deltaBandMultipliers.callSpreadDeltaMultipliers.length != ONE_DELTA / _deltaBandWidth ||
+			_deltaBandMultipliers.putSpreadDeltaMultipliers.length != ONE_DELTA / _deltaBandWidth
 		) {
 			revert InvalidSlippageGradientMultipliersArrayLength();
 		}
@@ -221,21 +229,24 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	/// @dev must also update delta band arrays to fit the new delta band width
 	function setDeltaBandWidth(
 		uint256 _deltaBandWidth,
-		uint256[] memory _callSlippageGradientMultipliers,
-		uint256[] memory _putSlippageGradientMultipliers,
-		uint256[] memory _callSpreadMultipliers,
-		uint256[] memory _putSpreadMultipliers
+		uint80[] memory _callSlippageGradientMultipliers,
+		uint80[] memory _putSlippageGradientMultipliers,
+		uint80[] memory _callSpreadCollateralMultipliers,
+		uint80[] memory _putSpreadCollateralMultipliers,
+		uint80[] memory _callSpreadDeltaMultipliers,
+		uint80[] memory _putSpreadDeltaMultipliers
 	) external {
 		_onlyManager();
 		emit DeltaBandWidthChanged(_deltaBandWidth, deltaBandWidth);
 		deltaBandWidth = _deltaBandWidth;
 		setSlippageGradientMultipliers(_callSlippageGradientMultipliers, _putSlippageGradientMultipliers);
-		setSpreadMultipliers(_callSpreadMultipliers, _putSpreadMultipliers);
+		setSpreadCollateralMultipliers(_callSpreadCollateralMultipliers, _putSpreadCollateralMultipliers);
+		setSpreadDeltaMultipliers(_callSpreadDeltaMultipliers, _putSpreadDeltaMultipliers);
 	}
 
 	function setSlippageGradientMultipliers(
-		uint256[] memory _callSlippageGradientMultipliers,
-		uint256[] memory _putSlippageGradientMultipliers
+		uint80[] memory _callSlippageGradientMultipliers,
+		uint80[] memory _putSlippageGradientMultipliers
 	) public {
 		_onlyManager();
 		if (
@@ -259,27 +270,53 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		emit SlippageGradientMultipliersChanged();
 	}
 
-	function setSpreadMultipliers(
-		uint256[] memory _callSpreadMultipliers,
-		uint256[] memory _putSpreadMultipliers
+	function setSpreadCollateralMultipliers(
+		uint80[] memory _callSpreadCollateralMultipliers,
+		uint80[] memory _putSpreadCollateralMultipliers
 	) public {
 		_onlyManager();
 		if (
-			_callSpreadMultipliers.length != ONE_DELTA / deltaBandWidth ||
-			_putSpreadMultipliers.length != ONE_DELTA / deltaBandWidth
+			_callSpreadCollateralMultipliers.length != ONE_DELTA / deltaBandWidth ||
+			_putSpreadCollateralMultipliers.length != ONE_DELTA / deltaBandWidth
 		) {
-			revert InvalidSpreadMultipliersArrayLength();
+			revert InvalidSpreadCollateralMultipliersArrayLength();
 		}
-		for (uint256 i = 0; i < _callSpreadMultipliers.length; i++) {
+		for (uint256 i = 0; i < _callSpreadCollateralMultipliers.length; i++) {
 			// arrays must be same length so can check both in same loop
 			// ensure no multiplier is less than 1 due to human error.
-			if (_callSpreadMultipliers[i] < ONE_SCALE || _putSpreadMultipliers[i] < ONE_SCALE) {
-				revert InvalidSpreadMultiplierValue();
+			if (
+				_callSpreadCollateralMultipliers[i] < ONE_SCALE ||
+				_putSpreadCollateralMultipliers[i] < ONE_SCALE
+			) {
+				revert InvalidSpreadCollateralMultiplierValue();
 			}
 		}
-		deltaBandMultipliers.callSpreadMultipliers = _callSpreadMultipliers;
-		deltaBandMultipliers.putSpreadMultipliers = _putSpreadMultipliers;
-		emit SpreadMultipliersChanged();
+		deltaBandMultipliers.callSpreadCollateralMultipliers = _callSpreadCollateralMultipliers;
+		deltaBandMultipliers.putSpreadCollateralMultipliers = _putSpreadCollateralMultipliers;
+		emit SpreadCollateralMultipliersChanged();
+	}
+
+	function setSpreadDeltaMultipliers(
+		uint80[] memory _callSpreadDeltaMultipliers,
+		uint80[] memory _putSpreadDeltaMultipliers
+	) public {
+		_onlyManager();
+		if (
+			_callSpreadDeltaMultipliers.length != ONE_DELTA / deltaBandWidth ||
+			_putSpreadDeltaMultipliers.length != ONE_DELTA / deltaBandWidth
+		) {
+			revert InvalidSpreadDeltaMultipliersArrayLength();
+		}
+		for (uint256 i = 0; i < _callSpreadDeltaMultipliers.length; i++) {
+			// arrays must be same length so can check both in same loop
+			// ensure no multiplier is less than 1 due to human error.
+			if (_callSpreadDeltaMultipliers[i] < ONE_SCALE || _putSpreadDeltaMultipliers[i] < ONE_SCALE) {
+				revert InvalidSpreadDeltaMultiplierValue();
+			}
+		}
+		deltaBandMultipliers.callSpreadDeltaMultipliers = _callSpreadDeltaMultipliers;
+		deltaBandMultipliers.putSpreadDeltaMultipliers = _putSpreadDeltaMultipliers;
+		emit SpreadDeltaMultipliersChanged();
 	}
 
 	///////////////////////
@@ -356,20 +393,28 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	/// non-complex getters ///
 	///////////////////////////
 
-	function getCallSlippageGradientMultipliers() external view returns (uint256[] memory) {
+	function getCallSlippageGradientMultipliers() external view returns (uint80[] memory) {
 		return deltaBandMultipliers.callSlippageGradientMultipliers;
 	}
 
-	function getPutSlippageGradientMultipliers() external view returns (uint256[] memory) {
+	function getPutSlippageGradientMultipliers() external view returns (uint80[] memory) {
 		return deltaBandMultipliers.putSlippageGradientMultipliers;
 	}
 
-	function getCallSpreadMultipliers() external view returns (uint256[] memory) {
-		return deltaBandMultipliers.callSpreadMultipliers;
+	function getCallSpreadCollateralMultipliers() external view returns (uint80[] memory) {
+		return deltaBandMultipliers.callSpreadCollateralMultipliers;
 	}
 
-	function getPutSpreadMultipliers() external view returns (uint256[] memory) {
-		return deltaBandMultipliers.putSpreadMultipliers;
+	function getPutSpreadCollateralMultipliers() external view returns (uint80[] memory) {
+		return deltaBandMultipliers.putSpreadCollateralMultipliers;
+	}
+
+	function getCallSpreadDeltaMultipliers() external view returns (uint80[] memory) {
+		return deltaBandMultipliers.callSpreadDeltaMultipliers;
+	}
+
+	function getPutSpreadDeltaMultipliers() external view returns (uint80[] memory) {
+		return deltaBandMultipliers.putSpreadDeltaMultipliers;
 	}
 
 	/**
@@ -469,30 +514,80 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	) internal view returns (int256 spreadPremium) {
 		// get duration of option in years
 		uint256 time = (_optionSeries.expiration - block.timestamp).div(ONE_YEAR_SECONDS);
+		uint256 deltaBandIndex = (uint256(_optionDelta.abs()) * 100) / deltaBandWidth;
+
 		if (!_isSell) {
-			uint256 netShortContracts;
-			if (_netDhvExposure <= 0) {
-				// dhv is already short so apply collateral lending spread to all traded contracts
-				netShortContracts = _amount;
-			} else {
-				// dhv is long so only apply spread to those contracts which make it net short.
-				netShortContracts = int256(_amount) - _netDhvExposure < 0
-					? 0
-					: _amount - uint256(_netDhvExposure);
-			}
-			if (_optionSeries.collateral == collateralAsset) {
-				// find collateral requirements for net short options
-				uint256 collateralToLend = _getCollateralRequirements(_optionSeries, netShortContracts);
-				// calculate the collateral cost portion of the spread
-				uint256 collateralLendingPremium = (
-					(ONE_SCALE + (collateralLendingRate * ONE_SCALE) / SIX_DPS).pow(time)
-				).mul(collateralToLend) - collateralToLend;
-				spreadPremium += int(collateralLendingPremium);
-			}
+			spreadPremium += int(
+				_getCollateralLendingPremium(
+					_optionSeries,
+					_amount,
+					_optionDelta,
+					_netDhvExposure,
+					time,
+					deltaBandIndex
+				)
+			);
 		}
+
+		spreadPremium += _getDeltaBorrowPremium(
+			_isSell,
+			_amount,
+			_optionDelta,
+			time,
+			deltaBandIndex,
+			_underlyingPrice
+		);
+	}
+
+	function _getCollateralLendingPremium(
+		Types.OptionSeries memory _optionSeries,
+		uint _amount,
+		int256 _optionDelta,
+		int256 _netDhvExposure,
+		uint256 _time,
+		uint256 _deltaBandIndex
+	) internal view returns (uint256) {
+		uint256 netShortContracts;
+		if (_netDhvExposure <= 0) {
+			// dhv is already short so apply collateral lending spread to all traded contracts
+			netShortContracts = _amount;
+		} else {
+			// dhv is long so only apply spread to those contracts which make it net short.
+			netShortContracts = int256(_amount) - _netDhvExposure < 0
+				? 0
+				: _amount - uint256(_netDhvExposure);
+		}
+		if (_optionSeries.collateral == collateralAsset) {
+			// find collateral requirements for net short options
+			uint256 collateralToLend = _getCollateralRequirements(_optionSeries, netShortContracts);
+			// calculate the collateral cost portion of the spread
+			uint256 collateralLendingPremium = (
+				(ONE_SCALE + (collateralLendingRate * ONE_SCALE) / SIX_DPS).pow(_time)
+			).mul(collateralToLend) - collateralToLend;
+			if (_optionDelta > 0) {
+				collateralLendingPremium = collateralLendingPremium.mul(
+					deltaBandMultipliers.callSpreadCollateralMultipliers[_deltaBandIndex]
+				);
+			} else {
+				collateralLendingPremium = collateralLendingPremium.mul(
+					deltaBandMultipliers.putSpreadCollateralMultipliers[_deltaBandIndex]
+				);
+			}
+			return collateralLendingPremium;
+		}
+	}
+
+	function _getDeltaBorrowPremium(
+		bool _isSell,
+		uint _amount,
+		int256 _optionDelta,
+		uint256 _time,
+		uint256 _deltaBandIndex,
+		uint256 _underlyingPrice
+	) internal view returns (int256) {
 		// calculate delta borrow premium on both buy and sells
-		// this is just a magnitude value, sign doesnt matter
-		int256 dollarDelta = int(uint256(_optionDelta.abs()).mul(_amount).mul(_underlyingPrice));
+		// dollarDelta is just a magnitude value, sign doesnt matter
+		int256 dollarDelta = int256(uint256(_optionDelta.abs()).mul(_amount).mul(_underlyingPrice));
 		int256 deltaBorrowPremium;
 		if (_optionDelta < 0) {
 			// option is negative delta, resulting in long delta exposure for DHV. needs hedging with a short pos
@@ -500,31 +595,28 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 				dollarDelta.mul(
 					(ONE_SCALE_INT +
 						((_isSell ? deltaBorrowRates.sellLong : deltaBorrowRates.buyShort) * ONE_SCALE_INT) /
-						SIX_DPS_INT).pow(int(time))
+						SIX_DPS_INT).pow(int(_time))
 				) -
 				dollarDelta;
+
+			return
+				deltaBorrowPremium.mul(
+					int256(int80(deltaBandMultipliers.putSpreadDeltaMultipliers[_deltaBandIndex]))
+				);
 		} else {
 			// option is positive delta, resulting in short delta exposure for DHV. needs hedging with a long pos
 			deltaBorrowPremium =
 				dollarDelta.mul(
 					(ONE_SCALE_INT +
 						((_isSell ? deltaBorrowRates.sellShort : deltaBorrowRates.buyLong) * ONE_SCALE_INT) /
-						SIX_DPS_INT).pow(int(time))
+						SIX_DPS_INT).pow(int(_time))
 				) -
 				dollarDelta;
-		}
 
-		spreadPremium += deltaBorrowPremium;
-
-		uint256 deltaBandIndex = (uint256(_optionDelta.abs()) * 100) / deltaBandWidth;
-		if (_optionDelta > 0) {
-			spreadPremium = spreadPremium.mul(
-				int(deltaBandMultipliers.callSpreadMultipliers[deltaBandIndex])
-			);
-		} else {
-			spreadPremium = spreadPremium.mul(
-				int(deltaBandMultipliers.putSpreadMultipliers[deltaBandIndex])
-			);
+			return
+				deltaBorrowPremium.mul(
+					int256(int80(deltaBandMultipliers.callSpreadDeltaMultipliers[_deltaBandIndex]))
+				);
 		}
 	}
 

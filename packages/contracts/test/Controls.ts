@@ -420,6 +420,8 @@ describe("Authority tests", async () => {
 				[utils.parseEther("1"), utils.parseEther("2"), utils.parseEther("3"), utils.parseEther("4")],
 				[utils.parseEther("1"), utils.parseEther("2"), utils.parseEther("3"), utils.parseEther("4")],
 				[utils.parseEther("1"), utils.parseEther("2"), utils.parseEther("3"), utils.parseEther("4")],
+				[utils.parseEther("1"), utils.parseEther("2"), utils.parseEther("3"), utils.parseEther("4")],
+				[utils.parseEther("1"), utils.parseEther("2"), utils.parseEther("3"), utils.parseEther("4")],
 				[utils.parseEther("1"), utils.parseEther("2"), utils.parseEther("3"), utils.parseEther("4")]
 			)
 			expect(await pricer.deltaBandWidth()).to.eq(utils.parseEther("25"))
@@ -437,9 +439,9 @@ describe("Authority tests", async () => {
 			)
 			expect((await pricer.getCallSlippageGradientMultipliers())[0]).to.eq(utils.parseEther("10"))
 		})
-		it("SUCCEEDS: sets spreadMultipliers in beyond pricer", async () => {
-			expect((await pricer.getCallSpreadMultipliers())[0]).to.eq(utils.parseEther("1"))
-			await managerContract.setSpreadMultipliers(
+		it("SUCCEEDS: sets spreadCollateralMultipliers in beyond pricer", async () => {
+			expect((await pricer.getCallSpreadCollateralMultipliers())[0]).to.eq(utils.parseEther("1"))
+			await managerContract.setSpreadCollateralMultipliers(
 				[
 					utils.parseEther("10"),
 					utils.parseEther("20"),
@@ -448,7 +450,20 @@ describe("Authority tests", async () => {
 				],
 				[utils.parseEther("10"), utils.parseEther("20"), utils.parseEther("30"), utils.parseEther("40")]
 			)
-			expect((await pricer.getCallSpreadMultipliers())[0]).to.eq(utils.parseEther("10"))
+			expect((await pricer.getCallSpreadCollateralMultipliers())[0]).to.eq(utils.parseEther("10"))
+		})
+		it("SUCCEEDS: sets spreadDeltaMultipliers in beyond pricer", async () => {
+			expect((await pricer.getCallSpreadDeltaMultipliers())[0]).to.eq(utils.parseEther("1"))
+			await managerContract.setSpreadDeltaMultipliers(
+				[
+					utils.parseEther("10"),
+					utils.parseEther("20"),
+					utils.parseEther("30"),
+					utils.parseEther("40")
+				],
+				[utils.parseEther("10"), utils.parseEther("20"), utils.parseEther("30"), utils.parseEther("40")]
+			)
+			expect((await pricer.getCallSpreadDeltaMultipliers())[0]).to.eq(utils.parseEther("10"))
 		})
 	})
 })
