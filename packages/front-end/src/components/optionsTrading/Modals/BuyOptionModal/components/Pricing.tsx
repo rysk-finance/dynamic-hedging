@@ -33,6 +33,9 @@ export const Pricing = ({ positionData }: PricingProps) => {
       case utilisationLow:
         return "DHV utilisation is high. Some TXs may fail.";
 
+      case remainingBalance <= 0 && Boolean(quote):
+        return "Final balance cannot be negative.";
+
       default:
         return "";
     }
