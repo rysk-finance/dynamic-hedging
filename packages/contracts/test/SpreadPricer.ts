@@ -373,9 +373,11 @@ describe("Spread Pricer testing", async () => {
 		})
 
 		it("set spread multipliers to 2x their previous values", async () => {
-			expect((await pricer.getCallSpreadMultipliers())[0]).to.eq(toWei("1.9"))
-			expect((await pricer.getPutSpreadMultipliers())[7]).to.eq(toWei("1.2"))
-			await pricer.setSpreadMultipliers(
+			expect((await pricer.getCallSpreadCollateralMultipliers())[0]).to.eq(toWei("1.9"))
+			expect((await pricer.getPutSpreadCollateralMultipliers())[7]).to.eq(toWei("1.2"))
+			expect((await pricer.getCallSpreadDeltaMultipliers())[0]).to.eq(toWei("1.9"))
+			expect((await pricer.getPutSpreadDeltaMultipliers())[7]).to.eq(toWei("1.2"))
+			await pricer.setSpreadCollateralMultipliers(
 				[
 					toWei("3.8"),
 					toWei("3.6"),
@@ -421,8 +423,56 @@ describe("Spread Pricer testing", async () => {
 					toWei("3.8")
 				]
 			)
-			expect((await pricer.getCallSpreadMultipliers())[0]).to.eq(toWei("3.8"))
-			expect((await pricer.getPutSpreadMultipliers())[7]).to.eq(toWei("2.4"))
+			await pricer.setSpreadDeltaMultipliers(
+				[
+					toWei("3.8"),
+					toWei("3.6"),
+					toWei("3.4"),
+					toWei("3.2"),
+					toWei("3.0"),
+					toWei("2.8"),
+					toWei("2.6"),
+					toWei("2.4"),
+					toWei("2.2"),
+					toWei("2.0"),
+					toWei("2.0"),
+					toWei("2.2"),
+					toWei("2.4"),
+					toWei("2.6"),
+					toWei("2.8"),
+					toWei("3.0"),
+					toWei("3.2"),
+					toWei("3.4"),
+					toWei("3.6"),
+					toWei("3.8")
+				],
+				[
+					toWei("3.8"),
+					toWei("3.6"),
+					toWei("3.4"),
+					toWei("3.2"),
+					toWei("3.0"),
+					toWei("2.8"),
+					toWei("2.6"),
+					toWei("2.4"),
+					toWei("2.2"),
+					toWei("2.0"),
+					toWei("2.0"),
+					toWei("2.2"),
+					toWei("2.4"),
+					toWei("2.6"),
+					toWei("2.8"),
+					toWei("3.0"),
+					toWei("3.2"),
+					toWei("3.4"),
+					toWei("3.6"),
+					toWei("3.8")
+				]
+			)
+			expect((await pricer.getCallSpreadCollateralMultipliers())[0]).to.eq(toWei("3.8"))
+			expect((await pricer.getPutSpreadCollateralMultipliers())[7]).to.eq(toWei("2.4"))
+			expect((await pricer.getCallSpreadDeltaMultipliers())[0]).to.eq(toWei("3.8"))
+			expect((await pricer.getPutSpreadDeltaMultipliers())[7]).to.eq(toWei("2.4"))
 		})
 		it("SUCCEEDS: get quote for 1 option when buying", async () => {
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -575,9 +625,11 @@ describe("Spread Pricer testing", async () => {
 	})
 	describe("Get quotes successfully for small and big puts", async () => {
 		it("set spread multipliers their original values", async () => {
-			expect((await pricer.getCallSpreadMultipliers())[0]).to.eq(toWei("3.8"))
-			expect((await pricer.getPutSpreadMultipliers())[7]).to.eq(toWei("2.4"))
-			await pricer.setSpreadMultipliers(
+			expect((await pricer.getCallSpreadCollateralMultipliers())[0]).to.eq(toWei("3.8"))
+			expect((await pricer.getPutSpreadCollateralMultipliers())[7]).to.eq(toWei("2.4"))
+			expect((await pricer.getCallSpreadDeltaMultipliers())[0]).to.eq(toWei("3.8"))
+			expect((await pricer.getPutSpreadDeltaMultipliers())[7]).to.eq(toWei("2.4"))
+			await pricer.setSpreadCollateralMultipliers(
 				[
 					toWei("1.9"),
 					toWei("1.8"),
@@ -623,8 +675,56 @@ describe("Spread Pricer testing", async () => {
 					toWei("1.9")
 				]
 			)
-			expect((await pricer.getCallSpreadMultipliers())[0]).to.eq(toWei("1.9"))
-			expect((await pricer.getPutSpreadMultipliers())[7]).to.eq(toWei("1.2"))
+			await pricer.setSpreadDeltaMultipliers(
+				[
+					toWei("1.9"),
+					toWei("1.8"),
+					toWei("1.7"),
+					toWei("1.6"),
+					toWei("1.5"),
+					toWei("1.4"),
+					toWei("1.3"),
+					toWei("1.2"),
+					toWei("1.1"),
+					toWei("1.0"),
+					toWei("1.0"),
+					toWei("1.1"),
+					toWei("1.2"),
+					toWei("1.3"),
+					toWei("1.4"),
+					toWei("1.5"),
+					toWei("1.6"),
+					toWei("1.7"),
+					toWei("1.8"),
+					toWei("1.9")
+				],
+				[
+					toWei("1.9"),
+					toWei("1.8"),
+					toWei("1.7"),
+					toWei("1.6"),
+					toWei("1.5"),
+					toWei("1.4"),
+					toWei("1.3"),
+					toWei("1.2"),
+					toWei("1.1"),
+					toWei("1.0"),
+					toWei("1.0"),
+					toWei("1.1"),
+					toWei("1.2"),
+					toWei("1.3"),
+					toWei("1.4"),
+					toWei("1.5"),
+					toWei("1.6"),
+					toWei("1.7"),
+					toWei("1.8"),
+					toWei("1.9")
+				]
+			)
+			expect((await pricer.getCallSpreadCollateralMultipliers())[0]).to.eq(toWei("1.9"))
+			expect((await pricer.getPutSpreadCollateralMultipliers())[7]).to.eq(toWei("1.2"))
+			expect((await pricer.getCallSpreadDeltaMultipliers())[0]).to.eq(toWei("1.9"))
+			expect((await pricer.getPutSpreadDeltaMultipliers())[7]).to.eq(toWei("1.2"))
 		})
 		let proposedSeries: any
 		let singleBuyQuote: BigNumber
@@ -777,9 +877,11 @@ describe("Spread Pricer testing", async () => {
 			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.lt(localQuoteNoSpread)
 		})
 		it("set spread multipliers to 2x their previous values", async () => {
-			expect((await pricer.getCallSpreadMultipliers())[0]).to.eq(toWei("1.9"))
-			expect((await pricer.getPutSpreadMultipliers())[7]).to.eq(toWei("1.2"))
-			await pricer.setSpreadMultipliers(
+			expect((await pricer.getCallSpreadCollateralMultipliers())[0]).to.eq(toWei("1.9"))
+			expect((await pricer.getPutSpreadCollateralMultipliers())[7]).to.eq(toWei("1.2"))
+			expect((await pricer.getCallSpreadDeltaMultipliers())[0]).to.eq(toWei("1.9"))
+			expect((await pricer.getPutSpreadDeltaMultipliers())[7]).to.eq(toWei("1.2"))
+			await pricer.setSpreadCollateralMultipliers(
 				[
 					toWei("3.8"),
 					toWei("3.6"),
@@ -825,8 +927,56 @@ describe("Spread Pricer testing", async () => {
 					toWei("3.8")
 				]
 			)
-			expect((await pricer.getCallSpreadMultipliers())[0]).to.eq(toWei("3.8"))
-			expect((await pricer.getPutSpreadMultipliers())[7]).to.eq(toWei("2.4"))
+			await pricer.setSpreadDeltaMultipliers(
+				[
+					toWei("3.8"),
+					toWei("3.6"),
+					toWei("3.4"),
+					toWei("3.2"),
+					toWei("3.0"),
+					toWei("2.8"),
+					toWei("2.6"),
+					toWei("2.4"),
+					toWei("2.2"),
+					toWei("2.0"),
+					toWei("2.0"),
+					toWei("2.2"),
+					toWei("2.4"),
+					toWei("2.6"),
+					toWei("2.8"),
+					toWei("3.0"),
+					toWei("3.2"),
+					toWei("3.4"),
+					toWei("3.6"),
+					toWei("3.8")
+				],
+				[
+					toWei("3.8"),
+					toWei("3.6"),
+					toWei("3.4"),
+					toWei("3.2"),
+					toWei("3.0"),
+					toWei("2.8"),
+					toWei("2.6"),
+					toWei("2.4"),
+					toWei("2.2"),
+					toWei("2.0"),
+					toWei("2.0"),
+					toWei("2.2"),
+					toWei("2.4"),
+					toWei("2.6"),
+					toWei("2.8"),
+					toWei("3.0"),
+					toWei("3.2"),
+					toWei("3.4"),
+					toWei("3.6"),
+					toWei("3.8")
+				]
+			)
+			expect((await pricer.getCallSpreadCollateralMultipliers())[0]).to.eq(toWei("3.8"))
+			expect((await pricer.getPutSpreadCollateralMultipliers())[7]).to.eq(toWei("2.4"))
+			expect((await pricer.getCallSpreadDeltaMultipliers())[0]).to.eq(toWei("3.8"))
+			expect((await pricer.getPutSpreadDeltaMultipliers())[7]).to.eq(toWei("2.4"))
 		})
 		it("SUCCEEDS: get quote for 1 option when buying", async () => {
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -1409,9 +1559,9 @@ describe("Spread Pricer testing", async () => {
 		})
 	})
 	describe("invalid spread params", async () => {
-		it("REVERTS: set spread value below 1", async () => {
+		it("REVERTS: set collateral spread value below 1", async () => {
 			await expect(
-				pricer.setSpreadMultipliers(
+				pricer.setSpreadCollateralMultipliers(
 					[
 						toWei("3.8"),
 						toWei("3.6"),
@@ -1457,11 +1607,61 @@ describe("Spread Pricer testing", async () => {
 						toWei("3.8")
 					]
 				)
-			).to.be.revertedWithCustomError(pricer, "InvalidSpreadMultiplierValue")
+			).to.be.revertedWithCustomError(pricer, "InvalidSpreadCollateralMultiplierValue")
 		})
-		it("REVERTS: set array length of 19 ", async () => {
+		it("REVERTS: set delta spread value below 1", async () => {
 			await expect(
-				pricer.setSpreadMultipliers(
+				pricer.setSpreadDeltaMultipliers(
+					[
+						toWei("3.8"),
+						toWei("3.6"),
+						toWei("3.4"),
+						toWei("3.2"),
+						toWei("3.0"),
+						toWei("2.8"),
+						toWei("2.6"),
+						toWei("2.4"),
+						toWei("2.2"),
+						toWei("2.0"),
+						toWei("2.0"),
+						toWei("2.2"),
+						toWei("2.4"),
+						toWei("2.6"),
+						toWei("2.8"),
+						toWei("3.0"),
+						toWei("3.2"),
+						toWei("3.4"),
+						toWei("3.6"),
+						toWei("3.8")
+					],
+					[
+						toWei("3.8"),
+						toWei("3.6"),
+						toWei("3.4"),
+						toWei("3.2"),
+						toWei("3.0"),
+						toWei("2.8"),
+						toWei("2.6"),
+						toWei("2.4"),
+						toWei("2.2"),
+						toWei("2.0"),
+						toWei("2.0"),
+						toWei("2.2"),
+						toWei("0.4"),
+						toWei("2.6"),
+						toWei("2.8"),
+						toWei("3.0"),
+						toWei("3.2"),
+						toWei("3.4"),
+						toWei("3.6"),
+						toWei("3.8")
+					]
+				)
+			).to.be.revertedWithCustomError(pricer, "InvalidSpreadDeltaMultiplierValue")
+		})
+		it("REVERTS: set spread collateral array length of 19 ", async () => {
+			await expect(
+				pricer.setSpreadCollateralMultipliers(
 					[
 						toWei("3.8"),
 						toWei("3.6"),
@@ -1506,7 +1706,56 @@ describe("Spread Pricer testing", async () => {
 						toWei("3.8")
 					]
 				)
-			).to.be.revertedWithCustomError(pricer, "InvalidSpreadMultipliersArrayLength")
+			).to.be.revertedWithCustomError(pricer, "InvalidSpreadCollateralMultipliersArrayLength")
+		})
+		it("REVERTS: set spread delta array length of 19 ", async () => {
+			await expect(
+				pricer.setSpreadDeltaMultipliers(
+					[
+						toWei("3.8"),
+						toWei("3.6"),
+						toWei("3.4"),
+						toWei("3.2"),
+						toWei("3.0"),
+						toWei("2.8"),
+						toWei("2.6"),
+						toWei("2.4"),
+						toWei("2.2"),
+						toWei("2.0"),
+						toWei("2.0"),
+						toWei("2.2"),
+						toWei("2.4"),
+						toWei("2.6"),
+						toWei("2.8"),
+						toWei("3.0"),
+						toWei("3.2"),
+						toWei("3.4"),
+						toWei("3.6"),
+						toWei("3.8")
+					],
+					[
+						toWei("3.8"),
+						toWei("3.6"),
+						toWei("3.4"),
+						toWei("3.2"),
+						toWei("3.0"),
+						toWei("2.8"),
+						toWei("2.6"),
+						toWei("2.4"),
+						toWei("2.2"),
+						toWei("2.0"),
+						toWei("2.0"),
+						toWei("2.2"),
+						toWei("2.6"),
+						toWei("2.8"),
+						toWei("3.0"),
+						toWei("3.2"),
+						toWei("3.4"),
+						toWei("3.6"),
+						toWei("3.8")
+					]
+				)
+			).to.be.revertedWithCustomError(pricer, "InvalidSpreadDeltaMultipliersArrayLength")
 		})
 	})
 })
