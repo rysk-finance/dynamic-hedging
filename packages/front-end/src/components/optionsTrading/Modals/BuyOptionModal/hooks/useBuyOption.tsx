@@ -122,7 +122,7 @@ export const useBuyOption = (amountToBuy: string) => {
     };
 
     setPriceData(Number(amountToBuy));
-  }, [amountToBuy, ethPrice, selectedOption]);
+  }, [amountToBuy, allowance.amount, ethPrice]);
 
   const addresses: Addresses = {
     exchange: exchangeAddress,
