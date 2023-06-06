@@ -1,4 +1,4 @@
-name: foundry fuzzing
+name: Foundry Fuzzing
 
 on:   
   pull_request:
@@ -38,9 +38,7 @@ jobs:
         run: pip install poetry
       - name: Install python dependencies
         run: |
-          echo 0
           rm -f poetry.lock
-          echo 1
           poetry install
         
       - name: Run tests
