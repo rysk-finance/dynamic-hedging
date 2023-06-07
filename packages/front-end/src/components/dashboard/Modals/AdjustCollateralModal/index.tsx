@@ -133,7 +133,10 @@ const AdjustCollateralModal = () => {
       return;
     }
 
-    if (ethPrice && Math.abs(newLiquidationPrice - ethPrice) < ethPrice * 0.1) {
+    if (
+      ethPrice &&
+      Math.abs(newLiquidationPrice - ethPrice) < ethPrice * 0.03
+    ) {
       toast("❌ Liquidation price is too close to current price of ETH.");
       return;
     }
