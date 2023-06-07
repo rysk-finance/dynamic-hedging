@@ -158,7 +158,7 @@ export const useShortPositionData = (amountToClose: string) => {
             const hasRequiredCapital = balances.USDC > quote;
 
             const requiredApproval = String(tFormatUSDC(acceptablePremium, 4));
-            const approved = collateralToRemove.lte(allowance.amount);
+            const approved = acceptablePremium.lte(allowance.amount);
 
             setPositionData({
               acceptablePremium,
