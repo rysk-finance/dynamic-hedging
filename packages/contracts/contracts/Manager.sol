@@ -300,23 +300,10 @@ contract Manager is AccessControl {
 	/// @dev must also update delta band arrays to fit the new delta band width
 	function setDeltaBandWidth(
 		uint256 _deltaBandWidth,
-		uint80[] memory _callSlippageGradientMultipliers,
-		uint80[] memory _putSlippageGradientMultipliers,
-		uint80[] memory _callSpreadCollateralMultipliers,
-		uint80[] memory _putSpreadCollateralMultipliers,
-		uint80[] memory _callSpreadDeltaMultipliers,
-		uint80[] memory _putSpreadDeltaMultipliers
+		BeyondPricer.DeltaBandMultipliers memory _deltaBandMultipliers
 	) external {
 		_isProxyManager();
-		beyondPricer.setDeltaBandWidth(
-			_deltaBandWidth,
-			_callSlippageGradientMultipliers,
-			_putSlippageGradientMultipliers,
-			_callSpreadCollateralMultipliers,
-			_putSpreadCollateralMultipliers,
-			_callSpreadDeltaMultipliers,
-			_putSpreadDeltaMultipliers
-		);
+		beyondPricer.setDeltaBandWidth(_deltaBandWidth, _deltaBandMultipliers);
 	}
 
 	function setSlippageGradientMultipliers(
@@ -342,8 +329,8 @@ contract Manager is AccessControl {
 	}
 
 	function setSpreadDeltaMultipliers(
-		uint80[] memory _callSpreadDeltaMultipliers,
-		uint80[] memory _putSpreadDeltaMultipliers
+		int80[] memory _callSpreadDeltaMultipliers,
+		int80[] memory _putSpreadDeltaMultipliers
 	) public {
 		_isProxyManager();
 		beyondPricer.setSpreadDeltaMultipliers(_callSpreadDeltaMultipliers, _putSpreadDeltaMultipliers);
