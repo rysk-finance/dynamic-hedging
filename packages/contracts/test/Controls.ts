@@ -415,15 +415,44 @@ describe("Authority tests", async () => {
 			expect((await pricer.deltaBorrowRates()).buyShort).to.eq(1000004)
 		})
 		it("SUCCEEDS: sets deltaBandwidth in beyond pricer", async () => {
-			await managerContract.setDeltaBandWidth(
-				utils.parseEther("25"),
-				[utils.parseEther("1"), utils.parseEther("2"), utils.parseEther("3"), utils.parseEther("4")],
-				[utils.parseEther("1"), utils.parseEther("2"), utils.parseEther("3"), utils.parseEther("4")],
-				[utils.parseEther("1"), utils.parseEther("2"), utils.parseEther("3"), utils.parseEther("4")],
-				[utils.parseEther("1"), utils.parseEther("2"), utils.parseEther("3"), utils.parseEther("4")],
-				[utils.parseEther("1"), utils.parseEther("2"), utils.parseEther("3"), utils.parseEther("4")],
-				[utils.parseEther("1"), utils.parseEther("2"), utils.parseEther("3"), utils.parseEther("4")]
-			)
+			await managerContract.setDeltaBandWidth(utils.parseEther("25"), {
+				callSlippageGradientMultipliers: [
+					utils.parseEther("1"),
+					utils.parseEther("2"),
+					utils.parseEther("3"),
+					utils.parseEther("4")
+				],
+				putSlippageGradientMultipliers: [
+					utils.parseEther("1"),
+					utils.parseEther("2"),
+					utils.parseEther("3"),
+					utils.parseEther("4")
+				],
+				callSpreadCollateralMultipliers: [
+					utils.parseEther("1"),
+					utils.parseEther("2"),
+					utils.parseEther("3"),
+					utils.parseEther("4")
+				],
+				putSpreadCollateralMultipliers: [
+					utils.parseEther("1"),
+					utils.parseEther("2"),
+					utils.parseEther("3"),
+					utils.parseEther("4")
+				],
+				callSpreadDeltaMultipliers: [
+					utils.parseEther("1"),
+					utils.parseEther("2"),
+					utils.parseEther("3"),
+					utils.parseEther("4")
+				],
+				putSpreadDeltaMultipliers: [
+					utils.parseEther("1"),
+					utils.parseEther("2"),
+					utils.parseEther("3"),
+					utils.parseEther("4")
+				]
+			})
 			expect(await pricer.deltaBandWidth()).to.eq(utils.parseEther("25"))
 		})
 		it("SUCCEEDS: sets slippageMultipliers in beyond pricer", async () => {
