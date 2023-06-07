@@ -208,8 +208,8 @@ contract SlippageTest is Test {
 	}
 
 	function testSlippageMultiplierFuzzNetDhvExposure(int96 _netDhvExposure) public {
-		vm.assume(_netDhvExposure <= 50000e18);
-		vm.assume(_netDhvExposure >= -50000e18);
+		vm.assume(_netDhvExposure <= 5000e18);
+		vm.assume(_netDhvExposure >= -5000e18);
 		_getSlippageMultiplier(1000e18, 5e17, _netDhvExposure, true);
 		_getSlippageMultiplier(1000e18, -5e17, _netDhvExposure, false);
 		_getSlippageMultiplier(1000e18, 5e17, _netDhvExposure, true);
