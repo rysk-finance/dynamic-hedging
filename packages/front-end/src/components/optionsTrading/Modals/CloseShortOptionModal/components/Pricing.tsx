@@ -23,6 +23,7 @@ export const Pricing = ({
 
   const {
     collateralReleased,
+    collateralType,
     fee,
     hasRequiredCapital,
     now,
@@ -100,8 +101,11 @@ export const Pricing = ({
         <span className="flex">
           <p className="mr-auto">{`Collateral released:`}</p>
           <p className="font-medium">
-            <RyskCountUp value={collateralReleased} />
-            {` USDC`}
+            <RyskCountUp
+              format={collateralType === "USDC" ? "USD" : "ETH"}
+              value={collateralReleased}
+            />
+            {collateralType === "USDC" ? ` USDC` : ` WETH`}
           </p>
         </span>
 
