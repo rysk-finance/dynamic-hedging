@@ -6,10 +6,15 @@ import NumberFormat from "react-number-format";
 
 import FadeInOut from "src/animation/FadeInOut";
 import FadeInUpDelayed from "src/animation/FadeInUpDelayed";
-import { renameOtoken, fromUSDC, fromWei } from "src/utils/conversion-helper";
-import { fromOpynHumanised } from "src/utils/conversion-helper";
 import { Button } from "src/components/shared/Button";
+import { useGlobalContext } from "src/state/GlobalContext";
 import { optionSymbolFromOToken } from "src/utils";
+import {
+  fromOpynHumanised,
+  fromUSDC,
+  fromWei,
+  renameOtoken,
+} from "src/utils/conversion-helper";
 
 const tableHeadings = [
   {
@@ -62,6 +67,10 @@ const Table = ({
   adjustCollateral,
   active,
 }: TableProps) => {
+  const {
+    state: { ethPrice },
+  } = useGlobalContext();
+
   return (
     <motion.table
       key="table"
@@ -111,148 +120,155 @@ const Table = ({
             },
             index,
             arr
-          ) => {
-            return (
-              <motion.tr
-                key={id}
-                {...FadeInUpDelayed(Math.min(index * 0.1, 2))}
-                className="w-auto h-16 grid grid-cols-12 items-center px-4 ease-in-out duration-100 odd:bg-bone-light hover:bg-bone-dark"
+          ) => (
+            <motion.tr
+              key={id}
+              {...FadeInUpDelayed(Math.min(index * 0.1, 2))}
+              className="w-auto h-16 grid grid-cols-12 items-center px-4 ease-in-out duration-100 odd:bg-bone-light hover:bg-bone-dark"
+            >
+              <td
+                className={`col-span-1 text-center ${
+                  side === "LONG" ? "text-green-700" : "text-red-500"
+                }`}
               >
-                <td
-                  className={`col-span-1 text-center ${
-                    side === "LONG" ? "text-green-700" : "text-red-500"
-                  }`}
-                >
-                  {side}
-                </td>
-                <td className="col-span-1 text-center text-sm">
-                  {symbol
-                    ? renameOtoken(symbol)
-                    : optionSymbolFromOToken(
-                        isPut,
-                        expiryTimestamp,
-                        strikePrice
-                      )}
-                </td>
-                <NumberFormat
-                  value={fromOpynHumanised(BigNumber.from(amount))}
-                  displayType={"text"}
-                  decimalScale={2}
-                  renderText={(value) => (
-                    <td className="col-span-1 text-center">
-                      {amount ? value : "-"}
-                    </td>
-                  )}
-                />
-                <NumberFormat
-                  value={fromUSDC(BigNumber.from(totalPremium))}
-                  prefix="$ "
-                  displayType={"text"}
-                  decimalScale={2}
-                  renderText={(value) => (
-                    <td className="col-span-1 text-center">
-                      {totalPremium ? value : "-"}
-                    </td>
-                  )}
-                />
-                <NumberFormat
-                  value={entryPrice}
-                  displayType={"text"}
-                  prefix="$ "
-                  decimalScale={2}
-                  renderText={(value) => (
-                    <td className="col-span-1 text-center">
-                      {Number(entryPrice) ? value : "-"}
-                    </td>
-                  )}
-                />
-                <NumberFormat
-                  value={pnl}
-                  displayType={"text"}
-                  prefix="$ "
-                  decimalScale={2}
-                  renderText={(value) => (
+                {side}
+              </td>
+              <td className="col-span-1 text-center text-sm">
+                {symbol
+                  ? renameOtoken(symbol)
+                  : optionSymbolFromOToken(isPut, expiryTimestamp, strikePrice)}
+              </td>
+              <NumberFormat
+                value={fromOpynHumanised(BigNumber.from(amount))}
+                displayType={"text"}
+                decimalScale={2}
+                renderText={(value) => (
+                  <td className="col-span-1 text-center">
+                    {amount ? value : "-"}
+                  </td>
+                )}
+              />
+              <NumberFormat
+                value={fromUSDC(BigNumber.from(totalPremium))}
+                prefix="$ "
+                displayType={"text"}
+                decimalScale={2}
+                renderText={(value) => (
+                  <td className="col-span-1 text-center">
+                    {totalPremium ? value : "-"}
+                  </td>
+                )}
+              />
+              <NumberFormat
+                value={entryPrice}
+                displayType={"text"}
+                prefix="$ "
+                decimalScale={2}
+                renderText={(value) => (
+                  <td className="col-span-1 text-center">
+                    {Number(entryPrice) ? value : "-"}
+                  </td>
+                )}
+              />
+              <NumberFormat
+                value={pnl}
+                displayType={"text"}
+                prefix="$ "
+                decimalScale={2}
+                renderText={(value) => (
+                  <td
+                    className={`col-span-1 text-center ${
+                      pnl > 0 ? "text-green-700" : "text-red-500"
+                    }`}
+                  >
+                    {value || "-"}
+                  </td>
+                )}
+              />
+              <NumberFormat
+                value={breakEven}
+                displayType={"text"}
+                decimalScale={2}
+                renderText={(value) => (
+                  <td className="col-span-1 text-center">
+                    {Number(value) ? `$ ${value}` : "-"}
+                  </td>
+                )}
+              />
+              <NumberFormat
+                value={
+                  collateralAsset
+                    ? {
+                        USDC: fromUSDC(collateralAmount),
+                        "Wrapped Ether": fromWei(collateralAmount),
+                      }[collateralAsset]
+                    : null
+                }
+                displayType={"text"}
+                prefix={collateralAsset === "USDC" ? "$ " : "Ξ "}
+                decimalScale={2}
+                renderText={(value) => (
+                  <td className="col-span-2 text-center">
+                    {value && !isSettleable ? (
+                      <Button
+                        color="white"
+                        onClick={() => adjustCollateral(arr[index])}
+                        className="min-w-[80%]"
+                        title="Click to adjust"
+                      >
+                        {value}
+                      </Button>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                )}
+              />
+              <NumberFormat
+                value={
+                  active ? liquidationPrice : fromOpynHumanised(expiryPrice)
+                }
+                displayType={"text"}
+                decimalScale={2}
+                renderText={(value) => {
+                  const price = Number(value);
+                  const threshold = 1.03;
+                  const inDanger = ethPrice
+                    ? isPut
+                      ? ethPrice < price * threshold
+                      : ethPrice > price / threshold
+                    : false;
+
+                  return (
                     <td
                       className={`col-span-1 text-center ${
-                        pnl > 0 ? "text-green-700" : "text-red-500"
+                        inDanger ? "text-red-500" : "text-black"
                       }`}
                     >
-                      {value || "-"}
+                      {liquidationPrice ? `$ ${value}` : "-"}
                     </td>
-                  )}
-                />
-                <NumberFormat
-                  value={breakEven}
-                  displayType={"text"}
-                  decimalScale={2}
-                  renderText={(value) => (
-                    <td className="col-span-1 text-center">
-                      {Number(value) ? `$ ${value}` : "-"}
-                    </td>
-                  )}
-                />
-                <NumberFormat
-                  value={
-                    collateralAsset
-                      ? {
-                          USDC: fromUSDC(collateralAmount),
-                          "Wrapped Ether": fromWei(collateralAmount),
-                        }[collateralAsset]
-                      : null
-                  }
-                  displayType={"text"}
-                  prefix={collateralAsset === "USDC" ? "$ " : "Ξ "}
-                  decimalScale={2}
-                  renderText={(value) => (
-                    <td className="col-span-2 text-center">
-                      {value && !isSettleable ? (
-                        <Button
-                          color="white"
-                          onClick={() => adjustCollateral(arr[index])}
-                          className="min-w-[80%]"
-                          title="Click to adjust"
-                        >
-                          {value}
-                        </Button>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-                  )}
-                />
-                <NumberFormat
-                  value={
-                    active ? liquidationPrice : fromOpynHumanised(expiryPrice)
-                  }
-                  displayType={"text"}
-                  decimalScale={2}
-                  prefix={"$ "}
-                  renderText={(value) => (
-                    <td className="col-span-1 text-center">
-                      {liquidationPrice ? value : "-"}
-                    </td>
-                  )}
-                />
-                {isRedeemable || isSettleable ? (
-                  <td className="col-span-2 text-center">
-                    <Button
-                      onClick={() =>
-                        isRedeemable
-                          ? completeRedeem(otokenId, amount)
-                          : completeSettle(vaultId)
-                      }
-                      className="min-w-[80%]"
-                      title={`Click to ${isRedeemable ? "Redeem" : "Settle"}`}
-                    >
-                      {isRedeemable ? `Redeem` : `Settle`}
-                    </Button>
-                  </td>
-                ) : (
-                  <td className="col-span-2 text-center">{status}</td>
-                )}
-              </motion.tr>
-            );
-          }
+                  );
+                }}
+              />
+              {isRedeemable || isSettleable ? (
+                <td className="col-span-2 text-center">
+                  <Button
+                    onClick={() =>
+                      isRedeemable
+                        ? completeRedeem(otokenId, amount)
+                        : completeSettle(vaultId)
+                    }
+                    className="min-w-[80%]"
+                    title={`Click to ${isRedeemable ? "Redeem" : "Settle"}`}
+                  >
+                    {isRedeemable ? `Redeem` : `Settle`}
+                  </Button>
+                </td>
+              ) : (
+                <td className="col-span-2 text-center">{status}</td>
+              )}
+            </motion.tr>
+          )
         )}
       </tbody>
     </motion.table>
