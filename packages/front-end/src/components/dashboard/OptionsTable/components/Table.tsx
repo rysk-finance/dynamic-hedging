@@ -14,36 +14,40 @@ import { optionSymbolFromOToken } from "src/utils";
 const tableHeadings = [
   {
     children: "Side",
-    className: "col-span-1",
+    className: "col-span-1 text-center",
   },
   {
     children: "Option",
-    className: "col-span-2",
+    className: "col-span-1 text-center",
   },
   {
     children: "Size",
-    className: "col-span-1 text-right",
+    className: "col-span-1 text-center",
   },
   {
     children: "Premium",
-    className: "col-span-1 text-right",
+    className: "col-span-1 text-center",
   },
   {
     children: "Entry",
-    className: "col-span-1 text-right",
+    className: "col-span-1 text-center",
   },
   {
     children: "P/L",
-    className: "col-span-1 text-right",
+    className: "col-span-1 text-center",
+  },
+  {
+    children: "Break even",
+    className: "col-span-1 text-center",
   },
   {
     children: "Collateral",
-    className: "col-span-2 text-right",
+    className: "col-span-2 text-center",
   },
   {
     children: (active: boolean): string =>
       active ? "Liq. price" : "Settlement",
-    className: "col-span-1 text-right",
+    className: "col-span-1 text-center",
   },
   {
     children: "Status",
@@ -57,181 +61,201 @@ const Table = ({
   completeSettle,
   adjustCollateral,
   active,
-}: TableProps) => (
-  <motion.table
-    key="table"
-    {...FadeInOut()}
-    className="block [&>*]:block [&_th]:font-medium"
-  >
-    <thead>
-      <tr className="grid grid-cols-12 gap-4 text-left text-lg p-4 border-b-2 border-black ">
-        {tableHeadings.map((heading) => {
-          const thContent =
-            typeof heading.children === "function"
-              ? heading.children(active)
-              : heading.children;
-          return (
-            <th key={thContent} className={heading.className}>
-              {thContent}
-            </th>
-          );
-        })}
-      </tr>
-    </thead>
+}: TableProps) => {
+  return (
+    <motion.table
+      key="table"
+      {...FadeInOut()}
+      className="block [&>*]:block [&_th]:font-medium"
+    >
+      <thead>
+        <tr className="grid grid-cols-12 text-left text-lg p-4 border-b-2 border-black ">
+          {tableHeadings.map((heading) => {
+            const thContent =
+              typeof heading.children === "function"
+                ? heading.children(active)
+                : heading.children;
+            return (
+              <th key={thContent} className={heading.className}>
+                {thContent}
+              </th>
+            );
+          })}
+        </tr>
+      </thead>
 
-    <tbody>
-      {positions.map(
-        (
-          {
-            status,
-            amount,
-            entryPrice,
-            expiryPrice,
-            liquidationPrice,
-            id,
-            isRedeemable,
-            isSettleable,
-            vaultId,
-            otokenId,
-            side,
-            symbol,
-            strikePrice,
-            isPut,
-            totalPremium,
-            collateralAmount,
-            expiryTimestamp,
-            collateralAsset,
-            pnl,
-          },
-          index,
-          arr
-        ) => (
-          <motion.tr
-            key={id}
-            {...FadeInUpDelayed(Math.min(index * 0.1, 2))}
-            className="w-auto h-16 grid grid-cols-12 gap-4 items-center px-4 ease-in-out duration-100 odd:bg-bone-light  hover:bg-bone-dark"
-          >
-            <td
-              className={`col-span-1 ${
-                side === "LONG" ? "text-green-700" : "text-red-500"
-              }`}
-            >
-              {side}
-            </td>
-            <td className="col-span-2">
-              {symbol
-                ? renameOtoken(symbol)
-                : optionSymbolFromOToken(isPut, expiryTimestamp, strikePrice)}
-            </td>
-            <NumberFormat
-              value={fromOpynHumanised(BigNumber.from(amount))}
-              displayType={"text"}
-              decimalScale={2}
-              renderText={(value) => (
-                <td className="col-span-1 text-right">
-                  {amount ? value : "-"}
-                </td>
-              )}
-            />
-            <NumberFormat
-              value={fromUSDC(BigNumber.from(totalPremium))}
-              prefix="$"
-              displayType={"text"}
-              decimalScale={2}
-              renderText={(value) => (
-                <td className="col-span-1 text-right">
-                  {totalPremium ? value : "-"}
-                </td>
-              )}
-            />
-            <NumberFormat
-              value={entryPrice}
-              displayType={"text"}
-              prefix="$"
-              decimalScale={2}
-              renderText={(value) => (
-                <td className="col-span-1 text-right">
-                  {Number(entryPrice) ? value : "-"}
-                </td>
-              )}
-            />
-            <NumberFormat
-              value={pnl}
-              displayType={"text"}
-              prefix="$"
-              decimalScale={2}
-              renderText={(value) => (
+      <tbody>
+        {positions.map(
+          (
+            {
+              status,
+              amount,
+              breakEven,
+              entryPrice,
+              expiryPrice,
+              liquidationPrice,
+              id,
+              isRedeemable,
+              isSettleable,
+              vaultId,
+              otokenId,
+              side,
+              symbol,
+              strikePrice,
+              isPut,
+              totalPremium,
+              collateralAmount,
+              expiryTimestamp,
+              collateralAsset,
+              pnl,
+            },
+            index,
+            arr
+          ) => {
+            return (
+              <motion.tr
+                key={id}
+                {...FadeInUpDelayed(Math.min(index * 0.1, 2))}
+                className="w-auto h-16 grid grid-cols-12 items-center px-4 ease-in-out duration-100 odd:bg-bone-light hover:bg-bone-dark"
+              >
                 <td
-                  className={`col-span-1 ${
-                    pnl > 0 ? "text-green-700" : "text-red-500"
-                  } text-right`}
+                  className={`col-span-1 text-center ${
+                    side === "LONG" ? "text-green-700" : "text-red-500"
+                  }`}
                 >
-                  {value || "-"}
+                  {side}
                 </td>
-              )}
-            />
-            <NumberFormat
-              value={
-                collateralAsset
-                  ? {
-                      USDC: fromUSDC(collateralAmount),
-                      "Wrapped Ether": fromWei(collateralAmount),
-                    }[collateralAsset]
-                  : null
-              }
-              displayType={"text"}
-              prefix={collateralAsset === "USDC" ? "$" : "Ξ"}
-              decimalScale={2}
-              renderText={(value) => (
-                <td className="col-span-2 text-right">
-                  {value && !isSettleable ? (
-                    <Button
-                      color="white"
-                      onClick={() => adjustCollateral(arr[index])}
-                      className="min-w-[50%]"
-                      title="Click to adjust"
-                    >
-                      {value}
-                    </Button>
-                  ) : (
-                    "-"
+                <td className="col-span-1 text-center text-sm">
+                  {symbol
+                    ? renameOtoken(symbol)
+                    : optionSymbolFromOToken(
+                        isPut,
+                        expiryTimestamp,
+                        strikePrice
+                      )}
+                </td>
+                <NumberFormat
+                  value={fromOpynHumanised(BigNumber.from(amount))}
+                  displayType={"text"}
+                  decimalScale={2}
+                  renderText={(value) => (
+                    <td className="col-span-1 text-center">
+                      {amount ? value : "-"}
+                    </td>
                   )}
-                </td>
-              )}
-            />
-            <NumberFormat
-              value={active ? liquidationPrice : fromOpynHumanised(expiryPrice)}
-              displayType={"text"}
-              decimalScale={2}
-              prefix={"$"}
-              renderText={(value) => (
-                <td className="col-span-1 text-right">
-                  {liquidationPrice ? value : "-"}
-                </td>
-              )}
-            />
-            {isRedeemable || isSettleable ? (
-              <td className="col-span-2 text-center">
-                <Button
-                  onClick={() =>
-                    isRedeemable
-                      ? completeRedeem(otokenId, amount)
-                      : completeSettle(vaultId)
+                />
+                <NumberFormat
+                  value={fromUSDC(BigNumber.from(totalPremium))}
+                  prefix="$"
+                  displayType={"text"}
+                  decimalScale={2}
+                  renderText={(value) => (
+                    <td className="col-span-1 text-center">
+                      {totalPremium ? value : "-"}
+                    </td>
+                  )}
+                />
+                <NumberFormat
+                  value={entryPrice}
+                  displayType={"text"}
+                  prefix="$"
+                  decimalScale={2}
+                  renderText={(value) => (
+                    <td className="col-span-1 text-center">
+                      {Number(entryPrice) ? value : "-"}
+                    </td>
+                  )}
+                />
+                <NumberFormat
+                  value={pnl}
+                  displayType={"text"}
+                  prefix="$"
+                  decimalScale={2}
+                  renderText={(value) => (
+                    <td
+                      className={`col-span-1 text-center ${
+                        pnl > 0 ? "text-green-700" : "text-red-500"
+                      }`}
+                    >
+                      {value || "-"}
+                    </td>
+                  )}
+                />
+                <NumberFormat
+                  value={breakEven}
+                  displayType={"text"}
+                  prefix="$"
+                  decimalScale={2}
+                  renderText={(value) => (
+                    <td className="col-span-1 text-center">{value || "-"}</td>
+                  )}
+                />
+                <NumberFormat
+                  value={
+                    collateralAsset
+                      ? {
+                          USDC: fromUSDC(collateralAmount),
+                          "Wrapped Ether": fromWei(collateralAmount),
+                        }[collateralAsset]
+                      : null
                   }
-                  className="min-w-[50%]"
-                  title={`Click to ${isRedeemable ? "Redeem" : "Settle"}`}
-                >
-                  {isRedeemable ? `Redeem` : `Settle`}
-                </Button>
-              </td>
-            ) : (
-              <td className="col-span-2 text-center">{status}</td>
-            )}
-          </motion.tr>
-        )
-      )}
-    </tbody>
-  </motion.table>
-);
+                  displayType={"text"}
+                  prefix={collateralAsset === "USDC" ? "$" : "Ξ"}
+                  decimalScale={2}
+                  renderText={(value) => (
+                    <td className="col-span-2 text-center">
+                      {value && !isSettleable ? (
+                        <Button
+                          color="white"
+                          onClick={() => adjustCollateral(arr[index])}
+                          className="min-w-[80%]"
+                          title="Click to adjust"
+                        >
+                          {value}
+                        </Button>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                  )}
+                />
+                <NumberFormat
+                  value={
+                    active ? liquidationPrice : fromOpynHumanised(expiryPrice)
+                  }
+                  displayType={"text"}
+                  decimalScale={2}
+                  prefix={"$"}
+                  renderText={(value) => (
+                    <td className="col-span-1 text-center">
+                      {liquidationPrice ? value : "-"}
+                    </td>
+                  )}
+                />
+                {isRedeemable || isSettleable ? (
+                  <td className="col-span-2 text-center">
+                    <Button
+                      onClick={() =>
+                        isRedeemable
+                          ? completeRedeem(otokenId, amount)
+                          : completeSettle(vaultId)
+                      }
+                      className="min-w-[80%]"
+                      title={`Click to ${isRedeemable ? "Redeem" : "Settle"}`}
+                    >
+                      {isRedeemable ? `Redeem` : `Settle`}
+                    </Button>
+                  </td>
+                ) : (
+                  <td className="col-span-2 text-center">{status}</td>
+                )}
+              </motion.tr>
+            );
+          }
+        )}
+      </tbody>
+    </motion.table>
+  );
+};
 
 export default Table;

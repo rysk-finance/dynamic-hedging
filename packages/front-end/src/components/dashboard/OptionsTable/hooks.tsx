@@ -22,9 +22,11 @@ import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
 import {
   fromOpyn,
+  fromOpynToNumber,
   fromRysk,
   fromUSDC,
   fromWei,
+  tFormatUSDC,
   toRysk,
 } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
@@ -238,6 +240,7 @@ const usePositions = () => {
                 0
               )
             : 0;
+          const totPremiumUSDC = tFormatUSDC(BigNumber.from(totPremium));
 
           // Total premium converted to 1e18 - TODO: does not account for sales
           // const totalPremium = totPremium / 10 ** DECIMALS.RYSK;
@@ -245,7 +248,7 @@ const usePositions = () => {
           // per token premium converted to 1e18
           // average price to 1e18 - TODO: review before merge
           const entryPrice = (
-            Number(fromUSDC(totPremium.toString())) /
+            totPremiumUSDC /
             Number(
               fromRysk((vault.vaultId ? sellAmount : buyAmount).toString())
             )
@@ -258,11 +261,6 @@ const usePositions = () => {
           const expiryPrice = asset?.prices.find(
             ({ expiry }: { expiry: string }) => expiry === expiryTimestamp
           )?.price;
-
-          // Determine action
-          const inTheMoney = isPut
-            ? Number(expiryPrice) <= Number(strikePrice)
-            : Number(expiryPrice) >= Number(strikePrice);
 
           const getStatusMessage = (short: boolean) => {
             if (short) {
@@ -282,7 +280,7 @@ const usePositions = () => {
                     >
                       <Button
                         color="white"
-                        className="min-w-[50%]"
+                        className="min-w-[80%]"
                         title="Click to close position"
                       >
                         {`Close`}
@@ -325,6 +323,7 @@ const usePositions = () => {
               .div(BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.OPYN))
               .toNumber()
           );
+          const humanisedAmount = fromOpynToNumber(amount);
 
           const isRedeemable =
             amount != 0 &&
@@ -355,7 +354,7 @@ const usePositions = () => {
           const getVaultLiquidationPrice = async () => {
             if (ethPrice) {
               const liquidationPrice = await getLiquidationPrice(
-                Number(fromOpyn(amount)),
+                humanisedAmount,
                 putOrCall,
                 Number(
                   vault.collateralAsset?.name === "USDC"
@@ -387,7 +386,7 @@ const usePositions = () => {
                   Number(expiryTimestamp),
                   toRysk(fromOpyn(strikePrice)),
                   isPut,
-                  Number(fromOpyn(amount)),
+                  humanisedAmount,
                   vault.vaultId ? false : true,
                   collateralAssetSymbol
                 )
@@ -397,17 +396,21 @@ const usePositions = () => {
 
           const diff = anyExpiredAction
             ? isPut
-              ? Number(fromOpyn(strikePrice)) -
-                Number(fromOpyn(expiryPrice || 0))
-              : Number(fromOpyn(expiryPrice || 0)) -
-                Number(fromOpyn(strikePrice))
+              ? humanisedStrikePrice - Number(fromOpyn(expiryPrice || 0))
+              : Number(fromOpyn(expiryPrice || 0)) - humanisedStrikePrice
             : 0;
           const expectedPayout =
             diff > 0 ? diff * Number(fromWei(netAmount)) : 0;
 
+          const premiumPerPosition = Math.abs(totPremiumUSDC) / humanisedAmount;
+          const breakEven = isPut
+            ? humanisedStrikePrice - premiumPerPosition
+            : humanisedStrikePrice + premiumPerPosition;
+
           const position = {
             ...oToken,
             amount,
+            breakEven,
             entryPrice,
             expired,
             expiryPrice,
