@@ -23,6 +23,7 @@ export const Pricing = ({
 
   const {
     collateralReleased,
+    collateralType,
     fee,
     hasRequiredCapital,
     now,
@@ -38,14 +39,14 @@ export const Pricing = ({
 
   const errorMessage = useMemo(() => {
     switch (true) {
-      case utilisationLow:
-        return "DHV utilisation is high. Some TXs may fail.";
-
       case !hasRequiredCapital && Boolean(quote):
         return "Insufficient balance to cover collateral.";
 
       case remainingBalanceUSDC <= 0 && Boolean(quote):
         return "Final balance cannot be negative.";
+
+      case utilisationLow:
+        return "DHV utilisation is high. Some TXs may fail.";
 
       default:
         return "";
@@ -100,8 +101,11 @@ export const Pricing = ({
         <span className="flex">
           <p className="mr-auto">{`Collateral released:`}</p>
           <p className="font-medium">
-            <RyskCountUp value={collateralReleased} />
-            {` USDC`}
+            <RyskCountUp
+              format={collateralType === "USDC" ? "USD" : "ETH"}
+              value={collateralReleased}
+            />
+            {collateralType === "USDC" ? ` USDC` : ` WETH`}
           </p>
         </span>
 

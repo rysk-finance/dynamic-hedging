@@ -47,8 +47,9 @@ export const useShortPositionData = (amountToClose: string) => {
   // User position state.
   const [positionData, setPositionData] = useState<PositionDataState>({
     acceptablePremium: BigNumber.from(0),
-    collateralReleased:0,
+    collateralReleased: 0,
     collateralToRemove: BigNumber.from(0),
+    collateralType: undefined,
     fee: 0,
     hasRequiredCapital: false,
     now: dayjs().format("MMM DD, YYYY HH:mm A"),
@@ -76,6 +77,11 @@ export const useShortPositionData = (amountToClose: string) => {
 
   // At the moment this is either going to be USDC or WETH.
   const collateralAsset = vault?.collateralAsset.id as HexString | undefined;
+  const collateralType = !collateralAsset
+    ? undefined
+    : collateralAsset === getContractAddress("USDC").toLowerCase()
+    ? "USDC"
+    : "WETH";
 
   // User allowance state for usdc.
   const [allowance, setAllowance] = useAllowance(USDCAddress, address);
@@ -108,9 +114,7 @@ export const useShortPositionData = (amountToClose: string) => {
                 userPosition.isPut,
                 amount,
                 false,
-                collateralAsset === getContractAddress("USDC").toLowerCase()
-                  ? "USDC"
-                  : "WETH"
+                collateralType
               );
 
             // Calculate collateral to remove and remaining collateral.
@@ -154,12 +158,13 @@ export const useShortPositionData = (amountToClose: string) => {
             const hasRequiredCapital = balances.USDC > quote;
 
             const requiredApproval = String(tFormatUSDC(acceptablePremium, 4));
-            const approved = collateralToRemove.lte(allowance.amount);
+            const approved = acceptablePremium.lte(allowance.amount);
 
             setPositionData({
               acceptablePremium,
               collateralReleased,
               collateralToRemove,
+              collateralType,
               fee,
               hasRequiredCapital,
               now,
@@ -177,8 +182,9 @@ export const useShortPositionData = (amountToClose: string) => {
           } else {
             setPositionData({
               acceptablePremium: BigNumber.from(0),
-              collateralReleased:0,
+              collateralReleased: 0,
               collateralToRemove: BigNumber.from(0),
+              collateralType,
               fee: 0,
               hasRequiredCapital: false,
               now,
