@@ -146,7 +146,7 @@ const Table = ({
                 />
                 <NumberFormat
                   value={fromUSDC(BigNumber.from(totalPremium))}
-                  prefix="$"
+                  prefix="$ "
                   displayType={"text"}
                   decimalScale={2}
                   renderText={(value) => (
@@ -158,7 +158,7 @@ const Table = ({
                 <NumberFormat
                   value={entryPrice}
                   displayType={"text"}
-                  prefix="$"
+                  prefix="$ "
                   decimalScale={2}
                   renderText={(value) => (
                     <td className="col-span-1 text-center">
@@ -169,7 +169,7 @@ const Table = ({
                 <NumberFormat
                   value={pnl}
                   displayType={"text"}
-                  prefix="$"
+                  prefix="$ "
                   decimalScale={2}
                   renderText={(value) => (
                     <td
@@ -184,7 +184,7 @@ const Table = ({
                 <NumberFormat
                   value={breakEven}
                   displayType={"text"}
-                  prefix="$"
+                  prefix="$ "
                   decimalScale={2}
                   renderText={(value) => (
                     <td className="col-span-1 text-center">{value || "-"}</td>
@@ -200,7 +200,7 @@ const Table = ({
                       : null
                   }
                   displayType={"text"}
-                  prefix={collateralAsset === "USDC" ? "$" : "Ξ"}
+                  prefix={collateralAsset === "USDC" ? "$ " : "Ξ "}
                   decimalScale={2}
                   renderText={(value) => (
                     <td className="col-span-2 text-center">
@@ -225,7 +225,7 @@ const Table = ({
                   }
                   displayType={"text"}
                   decimalScale={2}
-                  prefix={"$"}
+                  prefix={"$ "}
                   renderText={(value) => (
                     <td className="col-span-1 text-center">
                       {liquidationPrice ? value : "-"}
