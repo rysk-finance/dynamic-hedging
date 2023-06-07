@@ -390,30 +390,38 @@ const getLiquidationCalculationParameters = async () => {
 };
 
 const getLiquidityPoolInfo = async () => {
-  const [checkBuffer, getAssets] = await readContracts({
-    contracts: [
-      {
-        address: getContractAddress("liquidityPool"),
-        abi: LiquidityPoolABI,
-        functionName: "checkBuffer",
-      },
-      {
-        address: getContractAddress("liquidityPool"),
-        abi: LiquidityPoolABI,
-        functionName: "getAssets",
-      },
-    ],
-  });
+  try {
+    const [checkBuffer, getAssets] = await readContracts({
+      contracts: [
+        {
+          address: getContractAddress("liquidityPool"),
+          abi: LiquidityPoolABI,
+          functionName: "checkBuffer",
+        },
+        {
+          address: getContractAddress("liquidityPool"),
+          abi: LiquidityPoolABI,
+          functionName: "getAssets",
+        },
+      ],
+    });
 
-  const remainingBeforeBuffer = tFormatUSDC(checkBuffer, 2);
-  const totalAssets = fromWeiToInt(getAssets);
-  const utilisationLow = (remainingBeforeBuffer / totalAssets) * 100 <= 3;
+    const remainingBeforeBuffer = tFormatUSDC(checkBuffer, 2);
+    const totalAssets = fromWeiToInt(getAssets);
+    const utilisationLow = (remainingBeforeBuffer / totalAssets) * 100 <= 3;
 
-  return {
-    remainingBeforeBuffer,
-    totalAssets,
-    utilisationLow,
-  };
+    return {
+      remainingBeforeBuffer,
+      totalAssets,
+      utilisationLow,
+    };
+  } catch (error) {
+    return {
+      remainingBeforeBuffer: 0,
+      totalAssets: 0,
+      utilisationLow: true,
+    };
+  }
 };
 
 export const getInitialData = async (
