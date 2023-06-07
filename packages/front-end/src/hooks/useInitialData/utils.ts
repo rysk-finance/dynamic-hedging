@@ -303,24 +303,30 @@ const getUserVaults = async (address?: HexString) => {
     return { length: 0 };
   }
 
-  const vaults = await readContract({
-    address: userPositionsLens,
-    abi: UserPositionLensMK1ABI,
-    functionName: "getVaultsForUser",
-    args: [address],
-  });
+  try {
+    const vaults = await readContract({
+      address: userPositionsLens,
+      abi: UserPositionLensMK1ABI,
+      functionName: "getVaultsForUser",
+      args: [address],
+    });
 
-  return vaults.reduce(
-    (userVaults, currentVault) => {
-      const address = currentVault.otoken.toLowerCase() as HexString;
+    return vaults.reduce(
+      (userVaults, currentVault) => {
+        const address = currentVault.otoken.toLowerCase() as HexString;
 
-      userVaults[address] = currentVault.vaultId.toString();
-      userVaults.length = userVaults.length + 1;
+        userVaults[address] = currentVault.vaultId.toString();
+        userVaults.length = userVaults.length + 1;
 
-      return userVaults;
-    },
-    { length: 0 } as UserVaults
-  );
+        return userVaults;
+      },
+      { length: 0 } as UserVaults
+    );
+  } catch (error) {
+    logError(error);
+
+    return { length: 0 };
+  }
 };
 
 const getLiquidationCalculationParameters = async () => {
@@ -352,41 +358,68 @@ const getLiquidationCalculationParameters = async () => {
       : defaultTimesToExpiry;
   };
 
-  const parameters = await readContracts({
-    contracts: [
-      _getParams("USDC", "getSpotShock", true),
-      _getParams("USDC", "getSpotShock", false),
-      _getParams("WETH", "getSpotShock", true),
-      _getParams("WETH", "getSpotShock", false),
-      _getParams("USDC", "getTimesToExpiry", true),
-      _getParams("USDC", "getTimesToExpiry", false),
-      _getParams("WETH", "getTimesToExpiry", true),
-      _getParams("WETH", "getTimesToExpiry", false),
-    ],
-  });
+  try {
+    const parameters = await readContracts({
+      contracts: [
+        _getParams("USDC", "getSpotShock", true),
+        _getParams("USDC", "getSpotShock", false),
+        _getParams("WETH", "getSpotShock", true),
+        _getParams("WETH", "getSpotShock", false),
+        _getParams("USDC", "getTimesToExpiry", true),
+        _getParams("USDC", "getTimesToExpiry", false),
+        _getParams("WETH", "getTimesToExpiry", true),
+        _getParams("WETH", "getTimesToExpiry", false),
+      ],
+    });
 
-  return {
-    spotShock: {
-      call: {
-        USDC: _parseSpotShockResults(parameters[1] as BigNumber),
-        WETH: _parseSpotShockResults(parameters[3] as BigNumber),
+    return {
+      spotShock: {
+        call: {
+          USDC: _parseSpotShockResults(parameters[1] as BigNumber),
+          WETH: _parseSpotShockResults(parameters[3] as BigNumber),
+        },
+        put: {
+          USDC: _parseSpotShockResults(parameters[0] as BigNumber),
+          WETH: _parseSpotShockResults(parameters[2] as BigNumber),
+        },
       },
-      put: {
-        USDC: _parseSpotShockResults(parameters[0] as BigNumber),
-        WETH: _parseSpotShockResults(parameters[2] as BigNumber),
+      timesToExpiry: {
+        call: {
+          USDC: _parseTimesToExpiry(parameters[5] as BigNumber[]),
+          WETH: _parseTimesToExpiry(parameters[7] as BigNumber[]),
+        },
+        put: {
+          USDC: _parseTimesToExpiry(parameters[4] as BigNumber[]),
+          WETH: _parseTimesToExpiry(parameters[6] as BigNumber[]),
+        },
       },
-    },
-    timesToExpiry: {
-      call: {
-        USDC: _parseTimesToExpiry(parameters[5] as BigNumber[]),
-        WETH: _parseTimesToExpiry(parameters[7] as BigNumber[]),
+    };
+  } catch (error) {
+    logError(error);
+
+    return {
+      spotShock: {
+        call: {
+          USDC: defaultSpotShock,
+          WETH: defaultSpotShock,
+        },
+        put: {
+          USDC: defaultSpotShock,
+          WETH: defaultSpotShock,
+        },
       },
-      put: {
-        USDC: _parseTimesToExpiry(parameters[4] as BigNumber[]),
-        WETH: _parseTimesToExpiry(parameters[6] as BigNumber[]),
+      timesToExpiry: {
+        call: {
+          USDC: defaultTimesToExpiry,
+          WETH: defaultTimesToExpiry,
+        },
+        put: {
+          USDC: defaultTimesToExpiry,
+          WETH: defaultTimesToExpiry,
+        },
       },
-    },
-  };
+    };
+  }
 };
 
 const getLiquidityPoolInfo = async () => {
@@ -416,6 +449,8 @@ const getLiquidityPoolInfo = async () => {
       utilisationLow,
     };
   } catch (error) {
+    logError(error);
+
     return {
       remainingBeforeBuffer: 0,
       totalAssets: 0,
