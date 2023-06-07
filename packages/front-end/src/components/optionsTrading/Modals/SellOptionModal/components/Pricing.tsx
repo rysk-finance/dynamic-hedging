@@ -46,14 +46,14 @@ export const Pricing = ({ loading, positionData }: PricingProps) => {
       (collateralType === "WETH" && remainingBalanceWETH <= 0);
 
     switch (true) {
-      case utilisationLow:
-        return "DHV utilisation is high. Some TXs may fail.";
-
       case negativeBalance && Boolean(quote):
         return "Final balance cannot be negative.";
 
       case !hasRequiredCapital && Boolean(quote):
         return "Insufficient balance to cover collateral.";
+
+      case utilisationLow:
+        return "DHV utilisation is high. Some TXs may fail.";
 
       default:
         return "";
