@@ -68,7 +68,7 @@ export const Button = ({
   if (requiresConnection && (isDisconnected || chain?.unsupported)) {
     return (
       <motion.button
-        className={`border-black border-2 text-md px-2 py-1 !bg-black text-white ${props.className}`}
+        className={`border-black border-2 text-sm px-2 py-1 !bg-black text-white ${props.className}`}
         id={props.id}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
