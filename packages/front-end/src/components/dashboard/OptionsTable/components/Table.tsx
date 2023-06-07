@@ -184,10 +184,11 @@ const Table = ({
                 <NumberFormat
                   value={breakEven}
                   displayType={"text"}
-                  prefix="$ "
                   decimalScale={2}
                   renderText={(value) => (
-                    <td className="col-span-1 text-center">{value || "-"}</td>
+                    <td className="col-span-1 text-center">
+                      {Number(value) ? `$ ${value}` : "-"}
+                    </td>
                   )}
                 />
                 <NumberFormat
