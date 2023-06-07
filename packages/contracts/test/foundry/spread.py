@@ -5,8 +5,7 @@ import math
 
 from decimal import Decimal
 
-call_spread_multipliers = [
-			Decimal(1.0),
+call_collat_spread_multipliers = [
 			Decimal(1.1),
 			Decimal(1.2),
 			Decimal(1.3),
@@ -25,11 +24,11 @@ call_spread_multipliers = [
 			Decimal(2.6),
 			Decimal(2.7),
 			Decimal(2.8),
-			Decimal(2.9)
+			Decimal(2.9),
+			Decimal(3.0)
 		]
 
-put_spread_multipliers = [
-			Decimal(1.0),
+put_collat_spread_multipliers = [
 			Decimal(1.1),
 			Decimal(1.2),
 			Decimal(1.3),
@@ -48,8 +47,56 @@ put_spread_multipliers = [
 			Decimal(2.6),
 			Decimal(2.7),
 			Decimal(2.8),
-			Decimal(2.9)
+			Decimal(2.9),
+			Decimal(3.0)
 		]
+
+call_delta_spread_multipliers = [
+			Decimal(1.2),
+			Decimal(1.3),
+			Decimal(1.4),
+			Decimal(1.5),
+			Decimal(1.6),
+			Decimal(1.7),
+			Decimal(1.8),
+			Decimal(1.9),
+			Decimal(2.0),
+			Decimal(2.1),
+			Decimal(2.2),
+			Decimal(2.3),
+			Decimal(2.4),
+			Decimal(2.5),
+			Decimal(2.6),
+			Decimal(2.7),
+			Decimal(2.8),
+			Decimal(2.9),
+			Decimal(3.0),
+			Decimal(3.1)
+		]
+
+put_delta_spread_multipliers =  [
+			Decimal(1.2),
+			Decimal(1.3),
+			Decimal(1.4),
+			Decimal(1.5),
+			Decimal(1.6),
+			Decimal(1.7),
+			Decimal(1.8),
+			Decimal(1.9),
+			Decimal(2.0),
+			Decimal(2.1),
+			Decimal(2.2),
+			Decimal(2.3),
+			Decimal(2.4),
+			Decimal(2.5),
+			Decimal(2.6),
+			Decimal(2.7),
+			Decimal(2.8),
+			Decimal(2.9),
+			Decimal(3.0),
+			Decimal(3.1)
+		]
+
 delta_band_width = Decimal(5)
 # TODO: allow rates to be negative
 def main(args): 
@@ -109,15 +156,15 @@ def get_spread(
             else:
                 net_short_contracts = amount - net_dhv_exposure
         margin_requirement = margin_requirement_per_contract * net_short_contracts
-        spread = get_collat_spread(time, margin_requirement, collat_lending_rate)
+        spread = get_collat_spread(time, margin_requirement, collat_lending_rate, delta)
     spread += get_delta_spread(time, is_sell, sell_long_rate, sell_short_rate, buy_long_rate, buy_short_rate, delta, amount, underlying_price)
-    spread = get_spread_multiplier(spread, delta)
     return spread
 
 def get_collat_spread(
     time: float,
     margin_requirement: float,
-    collat_lending_rate: float
+    collat_lending_rate: float,
+    delta: float
 ):
     """
     get the collateral lending rate for a given trade
@@ -125,8 +172,15 @@ def get_collat_spread(
     :param: time - duration of option remaining in years
     :param: margin_requirement - the collateral requirement for the option
     :param: collat_lending_rate - the lending rate used for collateral
+    :param: delta - delta of an option
     """
-    return (margin_requirement * ((1 + collat_lending_rate) ** (time))) - margin_requirement
+    spread = (margin_requirement * ((1 + collat_lending_rate) ** (time))) - margin_requirement
+    delta_band_index = int((abs(delta) * 100) // delta_band_width)
+    if (delta > 0):
+        spread = spread * call_collat_spread_multipliers[delta_band_index]
+    else:
+        spread = spread * put_collat_spread_multipliers[delta_band_index]
+    return spread
 
 
 def get_delta_spread(
@@ -168,15 +222,12 @@ def get_delta_spread(
             delta_rate = buy_long_rate
         delta_premium = (
             dollar_delta * ((1 + delta_rate) ** time)) - dollar_delta
-    return delta_premium
-
-def get_spread_multiplier(spread, delta):
-    delta_band_index = int((abs(delta) * 100) // delta_band_width)
-    if (delta > 0):
-        modified_spread = spread * call_spread_multipliers[delta_band_index]
+    delta_band_index = int((abs(option_delta) * 100) // delta_band_width)
+    if (option_delta > 0):
+        delta_premium = delta_premium * call_delta_spread_multipliers[delta_band_index]
     else:
-        modified_spread = spread * put_spread_multipliers[delta_band_index]
-    return modified_spread
+        delta_premium = delta_premium * put_delta_spread_multipliers[delta_band_index]
+    return delta_premium
 
 
 def parse_args(): 

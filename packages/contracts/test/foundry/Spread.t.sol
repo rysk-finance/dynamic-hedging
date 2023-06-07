@@ -21,11 +21,14 @@ contract SpreadTest is Test {
 	}
 	struct DeltaBandMultipliers {
 		// array of slippage multipliers for each delta band. e18
-		uint256[20] callSlippageGradientMultipliers;
-		uint256[20] putSlippageGradientMultipliers;
-		// array of spread multipliers for each delta band. e18
-		uint256[20] callSpreadMultipliers;
-		uint256[20] putSpreadMultipliers;
+		uint80[20] callSlippageGradientMultipliers;
+		uint80[20] putSlippageGradientMultipliers;
+		// array of collateral lending spread multipliers for each delta band. e18
+		uint80[20] callSpreadCollateralMultipliers;
+		uint80[20] putSpreadCollateralMultipliers;
+		// array of delta borrow spread multipliers for each delta band. e18
+		uint80[20] callSpreadDeltaMultipliers;
+		uint80[20] putSpreadDeltaMultipliers;
 	}
 	// multiplier values for spread and slippage delta bands
 	DeltaBandMultipliers internal deltaBandMultipliers;
@@ -61,7 +64,7 @@ contract SpreadTest is Test {
 		collateralRequirements = 1000e18;
 		expirationLength = 2419200; // 4 weeks
 		deltaBandMultipliers = DeltaBandMultipliers([
-			uint256(1e18),
+			uint80(1e18),
 			1.1e18,
 			1.2e18,
 			1.3e18,
@@ -82,7 +85,7 @@ contract SpreadTest is Test {
 			2.8e18,
 			2.9e18
 		], [
-			uint256(1e18),
+			uint80(1e18),
 			1.1e18,
 			1.2e18,
 			1.3e18,
@@ -103,8 +106,7 @@ contract SpreadTest is Test {
 			2.8e18,
 			2.9e18
 		], [
-			uint256(1e18),
-			1.1e18,
+			uint80(1.1e18),
 			1.2e18,
 			1.3e18,
 			1.4e18,
@@ -122,10 +124,10 @@ contract SpreadTest is Test {
 			2.6e18,
 			2.7e18,
 			2.8e18,
-			2.9e18
+			2.9e18,
+			3.0e18
 		], [
-			uint256(1e18),
-			1.1e18,
+			uint80(1.1e18),
 			1.2e18,
 			1.3e18,
 			1.4e18,
@@ -143,7 +145,50 @@ contract SpreadTest is Test {
 			2.6e18,
 			2.7e18,
 			2.8e18,
-			2.9e18
+			2.9e18,
+			3.0e18
+		], [
+			uint80(1.2e18),
+			1.3e18,
+			1.4e18,
+			1.5e18,
+			1.6e18,
+			1.7e18,
+			1.8e18,
+			1.9e18,
+			2.0e18,
+			2.1e18,
+			2.2e18,
+			2.3e18,
+			2.4e18,
+			2.5e18,
+			2.6e18,
+			2.7e18,
+			2.8e18,
+			2.9e18,
+			3.0e18,
+			3.1e18
+		], [
+			uint80(1.2e18),
+			1.3e18,
+			1.4e18,
+			1.5e18,
+			1.6e18,
+			1.7e18,
+			1.8e18,
+			1.9e18,
+			2.0e18,
+			2.1e18,
+			2.2e18,
+			2.3e18,
+			2.4e18,
+			2.5e18,
+			2.6e18,
+			2.7e18,
+			2.8e18,
+			2.9e18,
+			3.0e18,
+			3.1e18
 		]);
 		deltaBandWidth = 5e18;
 	}
@@ -2132,10 +2177,10 @@ contract SpreadTest is Test {
 		int256 netDhvExposure = -1000e18;
 		uint256 solSpreadMul = uint256(_getSpreadValue(true, optionSeries, amount, delta, netDhvExposure, underlyingPrice));
 		uint256 pySpreadMul = getSpreadValue(true, optionSeries, amount, delta, netDhvExposure, underlyingPrice);
-		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e8);
 		solSpreadMul = uint256(_getSpreadValue(false, optionSeries, amount, delta, netDhvExposure, underlyingPrice));
 		pySpreadMul = getSpreadValue(false, optionSeries, amount, delta, netDhvExposure, underlyingPrice);
-		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
+		assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e8);
 		// solSpreadMul = uint256(_getSpreadValue(true, optionSeries, amount, -delta, netDhvExposure, underlyingPrice));
 		// pySpreadMul = getSpreadValue(true, optionSeries, amount, -delta, netDhvExposure, underlyingPrice);
 		// assertApproxEqAbs(solSpreadMul, pySpreadMul, 1e7);
@@ -2235,30 +2280,83 @@ contract SpreadTest is Test {
 	) internal view returns (int256 spreadPremium) {
 		// get duration of option in years
 		uint256 time = (_optionSeries.expiration - block.timestamp).div(ONE_YEAR_SECONDS);
+		uint256 deltaBandIndex = (uint256(_optionDelta.abs()) * 100) / deltaBandWidth;
+
 		if (!_isSell) {
-			uint256 netShortContracts;
-			if (_netDhvExposure <= 0) {
-				// dhv is already short so apply collateral lending spread to all traded contracts
-				netShortContracts = _amount;
-			} else {
-				// dhv is long so only apply spread to those contracts which make it net short.
-				netShortContracts = int256(_amount) - _netDhvExposure < 0
-					? 0
-					: _amount - uint256(_netDhvExposure);
-			}
-			if (_optionSeries.collateral == collateralAsset) {
-				// find collateral requirements for net short options
-				uint256 collateralToLend = _getCollateralRequirements(_optionSeries, netShortContracts);
-				// calculate the collateral cost portion of the spread
-				uint256 collateralLendingPremium = (
-					(ONE_SCALE + (collateralLendingRate * ONE_SCALE) / SIX_DPS).pow(time)
-				).mul(collateralToLend) - collateralToLend;
-				spreadPremium += int(collateralLendingPremium);
-			}
+			spreadPremium += int(
+				_getCollateralLendingPremium(
+					_optionSeries,
+					_amount,
+					_optionDelta,
+					_netDhvExposure,
+					time,
+					deltaBandIndex
+				)
+			);
 		}
+
+		spreadPremium += _getDeltaBorrowPremium(
+			_isSell,
+			_amount,
+			_optionDelta,
+			time,
+			deltaBandIndex,
+			_underlyingPrice
+		);
+		if (spreadPremium < 0) {
+			spreadPremium = 0;
+		}
+	}
+
+	function _getCollateralLendingPremium(
+		Types.OptionSeries memory _optionSeries,
+		uint _amount,
+		int256 _optionDelta,
+		int256 _netDhvExposure,
+		uint256 _time,
+		uint256 _deltaBandIndex
+	) internal view returns (uint256) {
+		uint256 netShortContracts;
+		if (_netDhvExposure <= 0) {
+			// dhv is already short so apply collateral lending spread to all traded contracts
+			netShortContracts = _amount;
+		} else {
+			// dhv is long so only apply spread to those contracts which make it net short.
+			netShortContracts = int256(_amount) - _netDhvExposure < 0
+				? 0
+				: _amount - uint256(_netDhvExposure);
+		}
+		if (_optionSeries.collateral == collateralAsset) {
+			// find collateral requirements for net short options
+			uint256 collateralToLend = _getCollateralRequirements(_optionSeries, netShortContracts);
+			// calculate the collateral cost portion of the spread
+			uint256 collateralLendingPremium = (
+				(ONE_SCALE + (collateralLendingRate * ONE_SCALE) / SIX_DPS).pow(_time)
+			).mul(collateralToLend) - collateralToLend;
+			if (_optionDelta > 0) {
+				collateralLendingPremium = collateralLendingPremium.mul(
+					deltaBandMultipliers.callSpreadCollateralMultipliers[_deltaBandIndex]
+				);
+			} else {
+				collateralLendingPremium = collateralLendingPremium.mul(
+					deltaBandMultipliers.putSpreadCollateralMultipliers[_deltaBandIndex]
+				);
+			}
+			return collateralLendingPremium;
+		}
+	}
+
+	function _getDeltaBorrowPremium(
+		bool _isSell,
+		uint _amount,
+		int256 _optionDelta,
+		uint256 _time,
+		uint256 _deltaBandIndex,
+		uint256 _underlyingPrice
+	) internal view returns (int256) {
 		// calculate delta borrow premium on both buy and sells
-		// this is just a magnitude value, sign doesnt matter
-		int256 dollarDelta = int(uint256(_optionDelta.abs()).mul(_amount).mul(_underlyingPrice));
+		// dollarDelta is just a magnitude value, sign doesnt matter
+		int256 dollarDelta = int256(uint256(_optionDelta.abs()).mul(_amount).mul(_underlyingPrice));
 		int256 deltaBorrowPremium;
 		if (_optionDelta < 0) {
 			// option is negative delta, resulting in long delta exposure for DHV. needs hedging with a short pos
@@ -2266,33 +2364,28 @@ contract SpreadTest is Test {
 				dollarDelta.mul(
 					(ONE_SCALE_INT +
 						((_isSell ? deltaBorrowRates.sellLong : deltaBorrowRates.buyShort) * ONE_SCALE_INT) /
-						SIX_DPS_INT).pow(int(time))
+						SIX_DPS_INT).pow(int(_time))
 				) -
 				dollarDelta;
+
+			return
+				deltaBorrowPremium.mul(
+					int256(int80(deltaBandMultipliers.putSpreadDeltaMultipliers[_deltaBandIndex]))
+				);
 		} else {
 			// option is positive delta, resulting in short delta exposure for DHV. needs hedging with a long pos
 			deltaBorrowPremium =
 				dollarDelta.mul(
 					(ONE_SCALE_INT +
 						((_isSell ? deltaBorrowRates.sellShort : deltaBorrowRates.buyLong) * ONE_SCALE_INT) /
-						SIX_DPS_INT).pow(int(time))
+						SIX_DPS_INT).pow(int(_time))
 				) -
 				dollarDelta;
-		}
 
-		spreadPremium += deltaBorrowPremium;
-		uint256 deltaBandIndex = (uint256(_optionDelta.abs()) * 100) / deltaBandWidth;
-		if (_optionDelta > 0) {
-			spreadPremium = spreadPremium.mul(
-				int(deltaBandMultipliers.callSpreadMultipliers[deltaBandIndex])
-			);
-		} else {
-			spreadPremium = spreadPremium.mul(
-				int(deltaBandMultipliers.putSpreadMultipliers[deltaBandIndex])
-			);
-		}
-		if (spreadPremium < 0) {
-			spreadPremium = 0;
+			return
+				deltaBorrowPremium.mul(
+					int256(int80(deltaBandMultipliers.callSpreadDeltaMultipliers[_deltaBandIndex]))
+				);
 		}
 	}
 
