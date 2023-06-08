@@ -688,11 +688,10 @@ describe("Lens", async () => {
 				// console.log("c3")
 				// console.log(lensVals.optionExpirationDrills[3].callOptionDrill)
 			})
-			it("ping the lens contract", async () => {
+			it("ping the lens contract for expirations", async () => {
 				const lensVals = await lens.getExpirations()
 				for (let i = 0; i < lensVals.length; i++) {
 					const con = await lens.getOptionExpirationDrill(lensVals[i])
-					// console.log(con)
 				}
 			})
 		})
