@@ -21,6 +21,7 @@ export const Pricing = ({ loading, positionData }: PricingProps) => {
   const [collateralFull, setCollateralFull] = useState(full);
 
   const {
+    breakEven,
     collateral,
     fee,
     hasRequiredCapital,
@@ -133,6 +134,14 @@ export const Pricing = ({ loading, positionData }: PricingProps) => {
         <p className="mr-auto">{`Premium received:`}</p>
         <p className="font-medium">
           <RyskCountUp value={quote} />
+          {` USDC`}
+        </p>
+      </span>
+
+      <span className="flex" id="sell-break-even">
+        <p className="mr-auto">{`Break even:`}</p>
+        <p className="font-medium">
+          <RyskCountUp value={breakEven} />
           {` USDC`}
         </p>
       </span>

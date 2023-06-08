@@ -5,7 +5,11 @@ import { BigNumber } from "ethers";
 import { AlphaPortfolioValuesFeedABI } from "src/abis/AlphaPortfolioValuesFeed_ABI";
 import { BeyondPricerABI } from "src/abis/BeyondPricer_ABI";
 import { getContractAddress, getOptionHash } from "src/utils/helpers";
-import { tFormatUSDC, toWei } from "src/utils/conversion-helper";
+import {
+  fromWeiToInt,
+  tFormatUSDC,
+  toWei,
+} from "src/utils/conversion-helper";
 
 export const getQuote = async (
   expiry: number,
@@ -68,6 +72,9 @@ export const getQuote = async (
   const acceptablePremium = isSell
     ? forOrder.totalPremium.div(100).mul(97)
     : forOrder.totalPremium.div(100).mul(103);
+  const breakEven = isPut
+    ? fromWeiToInt(strike) - quote / orderSize
+    : fromWeiToInt(strike) + quote / orderSize;
 
-  return { acceptablePremium, fee, premium, quote, slippage };
+  return { acceptablePremium, breakEven, fee, premium, quote, slippage };
 };

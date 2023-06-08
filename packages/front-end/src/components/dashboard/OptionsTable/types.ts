@@ -95,6 +95,7 @@ interface ShortPosition {
 
 interface ParsedPosition {
   amount: number;
+  breakEven: number;
   createdAt: string;
   entryPrice: string;
   expired: boolean;

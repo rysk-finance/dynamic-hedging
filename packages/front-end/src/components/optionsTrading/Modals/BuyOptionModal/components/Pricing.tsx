@@ -17,6 +17,7 @@ export const Pricing = ({ positionData }: PricingProps) => {
   } = useGlobalContext();
 
   const {
+    breakEven,
     callOrPut,
     expiry,
     fee,
@@ -32,6 +33,9 @@ export const Pricing = ({ positionData }: PricingProps) => {
     switch (true) {
       case utilisationLow:
         return "DHV utilisation is high. Some TXs may fail.";
+
+      case remainingBalance <= 0 && Boolean(quote):
+        return "Final balance cannot be negative.";
 
       default:
         return "";
@@ -78,8 +82,16 @@ export const Pricing = ({ positionData }: PricingProps) => {
           </small>
         </div>
 
+        <span className="flex pt-2" id="buy-break-even">
+          <p className="mr-auto">{`Break even:`}</p>
+          <p className="font-medium">
+            <RyskCountUp value={breakEven} />
+            {` USDC`}
+          </p>
+        </span>
+
         <span
-          className="flex py-2 border-gray-600 border-b"
+          className="flex pb-2 border-gray-600 border-b"
           id="buy-total-price"
         >
           <p className="mr-auto">{`Total to pay:`}</p>

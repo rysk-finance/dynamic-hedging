@@ -35,6 +35,7 @@ export const useBuyOption = (amountToBuy: string) => {
   // User position state.
   const [purchaseData, setPurchaseData] = useState<PositionDataState>({
     acceptablePremium: BigNumber.from(0),
+    breakEven: 0,
     callOrPut: selectedOption?.callOrPut,
     expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
     fee: 0,
@@ -56,14 +57,20 @@ export const useBuyOption = (amountToBuy: string) => {
 
       try {
         if (amount > 0 && selectedOption) {
-          const { acceptablePremium, fee, premium, quote, slippage } =
-            await getQuote(
-              Number(activeExpiry),
-              toRysk(selectedOption.strikeOptions.strike.toString()),
-              selectedOption.callOrPut === "put",
-              amount,
-              selectedOption.buyOrSell === "sell"
-            );
+          const {
+            acceptablePremium,
+            breakEven,
+            fee,
+            premium,
+            quote,
+            slippage,
+          } = await getQuote(
+            Number(activeExpiry),
+            toRysk(selectedOption.strikeOptions.strike.toString()),
+            selectedOption.callOrPut === "put",
+            amount,
+            false
+          );
 
           const remainingBalance =
             balances.USDC === 0 ? 0 : balances.USDC - quote;
@@ -73,6 +80,7 @@ export const useBuyOption = (amountToBuy: string) => {
 
           setPurchaseData({
             acceptablePremium,
+            breakEven,
             callOrPut: selectedOption.callOrPut,
             expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
             fee,
@@ -88,6 +96,7 @@ export const useBuyOption = (amountToBuy: string) => {
         } else {
           setPurchaseData({
             acceptablePremium: BigNumber.from(0),
+            breakEven: 0,
             callOrPut: selectedOption?.callOrPut,
             expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
             fee: 0,
@@ -113,7 +122,7 @@ export const useBuyOption = (amountToBuy: string) => {
     };
 
     setPriceData(Number(amountToBuy));
-  }, [amountToBuy, ethPrice, selectedOption]);
+  }, [amountToBuy, allowance.amount, ethPrice]);
 
   const addresses: Addresses = {
     exchange: exchangeAddress,

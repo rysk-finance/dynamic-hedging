@@ -4,6 +4,7 @@ import type { CallOrPut } from "src/state/types";
 
 export interface PositionDataState {
   acceptablePremium: BigNumber;
+  breakEven: number;
   callOrPut?: CallOrPut;
   expiry: string;
   fee: number;

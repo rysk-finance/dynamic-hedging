@@ -30,6 +30,7 @@ export interface UserPositions {
 
 export interface FullPosition {
   amount: number;
+  breakEven: number;
   createdAt: string;
   entryPrice: string;
   expired: boolean;

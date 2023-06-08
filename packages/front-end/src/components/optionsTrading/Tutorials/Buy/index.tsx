@@ -37,6 +37,11 @@ export const BuyModalTutorial = () => {
             "These prices represent the total amount you pay for the option. The premium and fees are displayed separately for transparency, and you can also see how the premium is impacted by slippage based on order size.",
         },
         {
+          target: "#buy-break-even",
+          content:
+            "This price represents the break even point for your position. It accounts for premium, fees and price impact.",
+        },
+        {
           target: "#buy-total-price",
           content:
             "This price represents the total amount in USDC you are required to pay.",
