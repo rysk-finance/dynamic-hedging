@@ -3,8 +3,11 @@ import type {
   CallSide,
   ChainData,
   CollateralType,
+  LiquidityPool,
   PutSide,
+  SpotShock,
   StrikeOptions,
+  TimesToExpiry,
   UserPositions,
   UserVaults,
 } from "src/state/types";
@@ -41,19 +44,19 @@ import { toTwoDecimalPlaces } from "src/utils/rounding";
 
 dayjs.extend(utc);
 
-const getExpiries = (expiries: InitialDataQuery["expiries"]) => {
-  return expiries.reduce((expiryList, { timestamp }) => {
+const getExpiries = (expiries: InitialDataQuery["expiries"]): string[] => {
+  return expiries.reduce((expiryList: string[], { timestamp }) => {
     if (dayjs.unix(Number(timestamp)).utc().hour() === 8) {
       expiryList.push(timestamp);
     }
 
     return expiryList;
-  }, [] as string[]);
+  }, []);
 };
 
 const getUserPositions = (
   positions: InitialDataQuery["longPositions" | "shortPositions"]
-) => {
+): UserPositions => {
   return positions.reduce(
     (
       positions,
@@ -122,7 +125,7 @@ const getUserPositions = (
 const getChainData = async (
   expiries: string[],
   userPositions: UserPositions
-) => {
+): Promise<ChainData> => {
   const contracts = expiries.map((expiry) => ({
     address: getContractAddress("DHVLens"),
     abi: DHVLensMK1ABI,
@@ -274,7 +277,7 @@ const getChainData = async (
   }
 };
 
-const getOperatorStatus = async (address?: HexString) => {
+const getOperatorStatus = async (address?: HexString): Promise<boolean> => {
   const controllerAddress = getContractAddress("OpynController");
   const exchangeAddress = getContractAddress("optionExchange");
 
@@ -296,7 +299,7 @@ const getOperatorStatus = async (address?: HexString) => {
   }
 };
 
-const getUserVaults = async (address?: HexString) => {
+const getUserVaults = async (address?: HexString): Promise<UserVaults> => {
   const userPositionsLens = getContractAddress("UserPositionLens");
 
   if (!address) {
@@ -329,7 +332,10 @@ const getUserVaults = async (address?: HexString) => {
   }
 };
 
-const getLiquidationCalculationParameters = async () => {
+const getLiquidationCalculationParameters = async (): Promise<{
+  spotShock: SpotShock;
+  timesToExpiry: TimesToExpiry;
+}> => {
   const _getParams = (
     collateral: CollateralType,
     functionName: "getSpotShock" | "getTimesToExpiry",
@@ -422,7 +428,7 @@ const getLiquidationCalculationParameters = async () => {
   }
 };
 
-const getLiquidityPoolInfo = async () => {
+const getLiquidityPoolInfo = async (): Promise<LiquidityPool> => {
   try {
     const [checkBuffer, getAssets] = await readContracts({
       contracts: [
