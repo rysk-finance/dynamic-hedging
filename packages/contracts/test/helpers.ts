@@ -784,11 +784,11 @@ export async function applySlippageLocally(
 	if (parseFloat(fromWei(optionDelta)) < 0) {
 		modifiedSlippageGradient =
 			parseFloat(fromWei(slippageGradient)) *
-			parseFloat(fromWei(await applyLinearInterpolation(tenorIndexAndRemainder[0], tenorIndexAndRemainder[1], optionSeries.isPut, deltaBandIndex, beyondPricer, Mode.Slippage)))
+			await applyLinearInterpolation(tenorIndexAndRemainder[0], tenorIndexAndRemainder[1], optionSeries.isPut, deltaBandIndex, beyondPricer, Mode.Slippage)
 	} else {
 		modifiedSlippageGradient =
 			parseFloat(fromWei(slippageGradient)) *
-			parseFloat(fromWei(await applyLinearInterpolation(tenorIndexAndRemainder[0], tenorIndexAndRemainder[1], optionSeries.isPut, deltaBandIndex, beyondPricer, Mode.Slippage)))
+			await applyLinearInterpolation(tenorIndexAndRemainder[0], tenorIndexAndRemainder[1], optionSeries.isPut, deltaBandIndex, beyondPricer, Mode.Slippage)
 	}
 	if (slippageGradient.eq(BigNumber.from(0))) {
 		return 1
@@ -867,11 +867,11 @@ export async function applySpreadLocally(
 		if (realOptionDelta < toWei("0")) {
 			collateralLendingPremium =
 				collateralLendingPremium *
-				parseFloat(fromWei(await applyLinearInterpolation(tenorIndexAndRemainder[0], tenorIndexAndRemainder[1], optionSeries.isPut, deltaBandIndex, beyondPricer, Mode.CollatSpread)))
+				await applyLinearInterpolation(tenorIndexAndRemainder[0], tenorIndexAndRemainder[1], optionSeries.isPut, deltaBandIndex, beyondPricer, Mode.CollatSpread)
 		} else {
 			collateralLendingPremium =
 				collateralLendingPremium *
-				parseFloat(fromWei(await applyLinearInterpolation(tenorIndexAndRemainder[0], tenorIndexAndRemainder[1], optionSeries.isPut, deltaBandIndex, beyondPricer, Mode.CollatSpread)))
+				await applyLinearInterpolation(tenorIndexAndRemainder[0], tenorIndexAndRemainder[1], optionSeries.isPut, deltaBandIndex, beyondPricer, Mode.CollatSpread)
 		}
 	}
 
@@ -900,11 +900,11 @@ export async function applySpreadLocally(
 	if (realOptionDelta < toWei("0")) {
 		deltaBorrowPremium =
 			deltaBorrowPremium *
-			parseFloat(fromWei(await applyLinearInterpolation(tenorIndexAndRemainder[0], tenorIndexAndRemainder[1], optionSeries.isPut, deltaBandIndex, beyondPricer, Mode.DeltaSpread)))
+			await applyLinearInterpolation(tenorIndexAndRemainder[0], tenorIndexAndRemainder[1], optionSeries.isPut, deltaBandIndex, beyondPricer, Mode.DeltaSpread)
 	} else {
 		deltaBorrowPremium =
 			deltaBorrowPremium *
-			parseFloat(fromWei(await applyLinearInterpolation(tenorIndexAndRemainder[0], tenorIndexAndRemainder[1], optionSeries.isPut, deltaBandIndex, beyondPricer, Mode.DeltaSpread)))
+			await applyLinearInterpolation(tenorIndexAndRemainder[0], tenorIndexAndRemainder[1], optionSeries.isPut, deltaBandIndex, beyondPricer, Mode.DeltaSpread)
 	}
 
 	return collateralLendingPremium + deltaBorrowPremium
@@ -1052,7 +1052,7 @@ export async function applyLinearInterpolation(
 	} else {
 		throw new Error('Invalid Mode for Pricing param');
 	}
-	return y1.add(remainder.mul(y2.sub(y1)))
+	return parseFloat(fromWei(y1)) + remainder * parseFloat(fromWei(y2)) - parseFloat(fromWei((y1)))
 
 }
 

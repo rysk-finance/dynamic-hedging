@@ -50,6 +50,22 @@ const miniExpiry = 86400 * 7
 // 365 days in seconds
 const maxiExpiry = 86400 * 50
 
+let callMultipliers = [
+	toWei("3.1"),
+	toWei("3.2"),
+	toWei("3.6"),
+	toWei("3.8"),
+	toWei("3.9"),
+]
+
+let putMultipliers = [
+	toWei("3.8"),
+	toWei("3.6"),
+	toWei("3.4"),
+	toWei("3.2"),
+	toWei("3.0"),
+]
+
 export async function deploySystem(
 	signers: Signer[],
 	oracle: Oracle,
@@ -262,7 +278,7 @@ export async function deployLiquidityPool(
 		liquidityPool.address,
 		ADDRESS_BOOK[chainId],
 		0,
-		toWei("5"),
+		toWei("20"),
 		5,
 		2800,
 		0,
@@ -270,6 +286,18 @@ export async function deployLiquidityPool(
 	)) as BeyondPricer
 	await pricer.setSlippageGradient(toWei("0.0001"))
 	await pricer.setBidAskIVSpread(toWei("0.01"))
+	await pricer.initializeTenorParams(
+		toWei("20"), 
+		5, 
+		2800, 
+		[
+			{callSlippageGradientMultipliers: callMultipliers, putSlippageGradientMultipliers: putMultipliers, callSpreadCollateralMultipliers: callMultipliers, putSpreadCollateralMultipliers: putMultipliers, callSpreadDeltaMultipliers: callMultipliers, putSpreadDeltaMultipliers: putMultipliers},
+			{callSlippageGradientMultipliers: callMultipliers, putSlippageGradientMultipliers: putMultipliers, callSpreadCollateralMultipliers: callMultipliers, putSpreadCollateralMultipliers: putMultipliers, callSpreadDeltaMultipliers: callMultipliers, putSpreadDeltaMultipliers: putMultipliers},
+		 	{callSlippageGradientMultipliers: callMultipliers, putSlippageGradientMultipliers: putMultipliers, callSpreadCollateralMultipliers: callMultipliers, putSpreadCollateralMultipliers: putMultipliers, callSpreadDeltaMultipliers: callMultipliers, putSpreadDeltaMultipliers: putMultipliers},
+		 	{callSlippageGradientMultipliers: callMultipliers, putSlippageGradientMultipliers: putMultipliers, callSpreadCollateralMultipliers: callMultipliers, putSpreadCollateralMultipliers: putMultipliers, callSpreadDeltaMultipliers: callMultipliers, putSpreadDeltaMultipliers: putMultipliers},
+		 	{callSlippageGradientMultipliers: callMultipliers, putSlippageGradientMultipliers: putMultipliers, callSpreadCollateralMultipliers: callMultipliers, putSpreadCollateralMultipliers: putMultipliers, callSpreadDeltaMultipliers: callMultipliers, putSpreadDeltaMultipliers: putMultipliers}
+		]
+		)
 	// deploy libraries
 	const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
 	const interactions = await interactionsFactory.deploy()
