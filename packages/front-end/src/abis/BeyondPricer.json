@@ -32,14 +32,14 @@
 				"type": "uint256"
 			},
 			{
-				"internalType": "uint256[]",
-				"name": "_callSlippageGradientMultipliers",
-				"type": "uint256[]"
+				"internalType": "uint16",
+				"name": "_numberOfTenors",
+				"type": "uint16"
 			},
 			{
-				"internalType": "uint256[]",
-				"name": "_putSlippageGradientMultipliers",
-				"type": "uint256[]"
+				"internalType": "uint16",
+				"name": "_maxTenorValue",
+				"type": "uint16"
 			},
 			{
 				"internalType": "uint256",
@@ -84,12 +84,27 @@
 	},
 	{
 		"inputs": [],
+		"name": "InvalidMultipliersArrayLength",
+		"type": "error"
+	},
+	{
+		"inputs": [],
 		"name": "InvalidSlippageGradientMultiplierValue",
 		"type": "error"
 	},
 	{
 		"inputs": [],
-		"name": "InvalidSlippageGradientMultipliersArrayLength",
+		"name": "InvalidSpreadCollateralMultiplierValue",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "InvalidSpreadDeltaMultiplierValue",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "InvalidTenorArrayLength",
 		"type": "error"
 	},
 	{
@@ -176,6 +191,17 @@
 			}
 		],
 		"name": "PRBMathUD60x18__LogInputTooSmall",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "x",
+				"type": "uint256"
+			}
+		],
+		"name": "PRBMathUD60x18__SqrtOverflow",
 		"type": "error"
 	},
 	{
@@ -368,6 +394,44 @@
 			{
 				"indexed": false,
 				"internalType": "uint256",
+				"name": "newLowDeltaSellOptionFlatIV",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "oldLowDeltaSellOptionFlatIV",
+				"type": "uint256"
+			}
+		],
+		"name": "LowDeltaSellOptionFlatIVChanged",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "newLowDeltaThreshold",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "oldLowDeltaThreshold",
+				"type": "uint256"
+			}
+		],
+		"name": "LowDeltaThresholdChanged",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
 				"name": "newRiskFreeRate",
 				"type": "uint256"
 			},
@@ -407,6 +471,24 @@
 		"type": "event"
 	},
 	{
+		"anonymous": false,
+		"inputs": [],
+		"name": "SpreadCollateralMultipliersChanged",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [],
+		"name": "SpreadDeltaMultipliersChanged",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [],
+		"name": "TenorParamsSet",
+		"type": "event"
+	},
+	{
 		"inputs": [],
 		"name": "addressBook",
 		"outputs": [
@@ -435,25 +517,6 @@
 	{
 		"inputs": [],
 		"name": "bidAskIVSpread",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"name": "callSlippageGradientMultipliers",
 		"outputs": [
 			{
 				"internalType": "uint256",
@@ -545,29 +608,177 @@
 		"type": "function"
 	},
 	{
-		"inputs": [],
+		"inputs": [
+			{
+				"internalType": "uint16",
+				"name": "_tenorIndex",
+				"type": "uint16"
+			}
+		],
 		"name": "getCallSlippageGradientMultipliers",
 		"outputs": [
 			{
-				"internalType": "uint256[]",
+				"internalType": "uint80[]",
 				"name": "",
-				"type": "uint256[]"
+				"type": "uint80[]"
 			}
 		],
 		"stateMutability": "view",
 		"type": "function"
 	},
 	{
-		"inputs": [],
-		"name": "getPutSlippageGradientMultipliers",
+		"inputs": [
+			{
+				"internalType": "uint16",
+				"name": "_tenorIndex",
+				"type": "uint16"
+			}
+		],
+		"name": "getCallSpreadCollateralMultipliers",
 		"outputs": [
 			{
-				"internalType": "uint256[]",
+				"internalType": "uint80[]",
 				"name": "",
-				"type": "uint256[]"
+				"type": "uint80[]"
 			}
 		],
 		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint16",
+				"name": "_tenorIndex",
+				"type": "uint16"
+			}
+		],
+		"name": "getCallSpreadDeltaMultipliers",
+		"outputs": [
+			{
+				"internalType": "int80[]",
+				"name": "",
+				"type": "int80[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint16",
+				"name": "_tenorIndex",
+				"type": "uint16"
+			}
+		],
+		"name": "getPutSlippageGradientMultipliers",
+		"outputs": [
+			{
+				"internalType": "uint80[]",
+				"name": "",
+				"type": "uint80[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint16",
+				"name": "_tenorIndex",
+				"type": "uint16"
+			}
+		],
+		"name": "getPutSpreadCollateralMultipliers",
+		"outputs": [
+			{
+				"internalType": "uint80[]",
+				"name": "",
+				"type": "uint80[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint16",
+				"name": "_tenorIndex",
+				"type": "uint16"
+			}
+		],
+		"name": "getPutSpreadDeltaMultipliers",
+		"outputs": [
+			{
+				"internalType": "int80[]",
+				"name": "",
+				"type": "int80[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_deltaBandWidth",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint16",
+				"name": "_numberOfTenors",
+				"type": "uint16"
+			},
+			{
+				"internalType": "uint16",
+				"name": "_maxTenorValue",
+				"type": "uint16"
+			},
+			{
+				"components": [
+					{
+						"internalType": "uint80[]",
+						"name": "callSlippageGradientMultipliers",
+						"type": "uint80[]"
+					},
+					{
+						"internalType": "uint80[]",
+						"name": "putSlippageGradientMultipliers",
+						"type": "uint80[]"
+					},
+					{
+						"internalType": "uint80[]",
+						"name": "callSpreadCollateralMultipliers",
+						"type": "uint80[]"
+					},
+					{
+						"internalType": "uint80[]",
+						"name": "putSpreadCollateralMultipliers",
+						"type": "uint80[]"
+					},
+					{
+						"internalType": "int80[]",
+						"name": "callSpreadDeltaMultipliers",
+						"type": "int80[]"
+					},
+					{
+						"internalType": "int80[]",
+						"name": "putSpreadDeltaMultipliers",
+						"type": "int80[]"
+					}
+				],
+				"internalType": "struct BeyondPricer.DeltaBandMultipliers[]",
+				"name": "_tenorPricingParams",
+				"type": "tuple[]"
+			}
+		],
+		"name": "initializeTenorParams",
+		"outputs": [],
+		"stateMutability": "nonpayable",
 		"type": "function"
 	},
 	{
@@ -585,31 +796,64 @@
 	},
 	{
 		"inputs": [],
-		"name": "protocol",
+		"name": "lowDeltaSellOptionFlatIV",
 		"outputs": [
 			{
-				"internalType": "contract Protocol",
+				"internalType": "uint256",
 				"name": "",
-				"type": "address"
+				"type": "uint256"
 			}
 		],
 		"stateMutability": "view",
 		"type": "function"
 	},
 	{
-		"inputs": [
+		"inputs": [],
+		"name": "lowDeltaThreshold",
+		"outputs": [
 			{
 				"internalType": "uint256",
 				"name": "",
 				"type": "uint256"
 			}
 		],
-		"name": "putSlippageGradientMultipliers",
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "maxTenorValue",
+		"outputs": [
+			{
+				"internalType": "uint16",
+				"name": "",
+				"type": "uint16"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "numberOfTenors",
 		"outputs": [
 			{
 				"internalType": "uint256",
 				"name": "",
 				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "protocol",
+		"outputs": [
+			{
+				"internalType": "contract Protocol",
+				"name": "",
+				"type": "address"
 			}
 		],
 		"stateMutability": "view",
@@ -746,29 +990,6 @@
 	{
 		"inputs": [
 			{
-				"internalType": "uint256",
-				"name": "_deltaBandWidth",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256[]",
-				"name": "_callSlippageGradientMultipliers",
-				"type": "uint256[]"
-			},
-			{
-				"internalType": "uint256[]",
-				"name": "_putSlippageGradientMultipliers",
-				"type": "uint256[]"
-			}
-		],
-		"name": "setDeltaBandWidth",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
 				"components": [
 					{
 						"internalType": "int256",
@@ -818,6 +1039,32 @@
 		"inputs": [
 			{
 				"internalType": "uint256",
+				"name": "_lowDeltaSellOptionFlatIV",
+				"type": "uint256"
+			}
+		],
+		"name": "setLowDeltaSellOptionFlatIV",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_lowDeltaThreshold",
+				"type": "uint256"
+			}
+		],
+		"name": "setLowDeltaThreshold",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
 				"name": "_riskFreeRate",
 				"type": "uint256"
 			}
@@ -843,17 +1090,68 @@
 	{
 		"inputs": [
 			{
-				"internalType": "uint256[]",
-				"name": "_callSlippageGradientMultipliers",
-				"type": "uint256[]"
+				"internalType": "uint16",
+				"name": "_tenorIndex",
+				"type": "uint16"
 			},
 			{
-				"internalType": "uint256[]",
+				"internalType": "uint80[]",
+				"name": "_callSlippageGradientMultipliers",
+				"type": "uint80[]"
+			},
+			{
+				"internalType": "uint80[]",
 				"name": "_putSlippageGradientMultipliers",
-				"type": "uint256[]"
+				"type": "uint80[]"
 			}
 		],
 		"name": "setSlippageGradientMultipliers",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint16",
+				"name": "_tenorIndex",
+				"type": "uint16"
+			},
+			{
+				"internalType": "uint80[]",
+				"name": "_callSpreadCollateralMultipliers",
+				"type": "uint80[]"
+			},
+			{
+				"internalType": "uint80[]",
+				"name": "_putSpreadCollateralMultipliers",
+				"type": "uint80[]"
+			}
+		],
+		"name": "setSpreadCollateralMultipliers",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint16",
+				"name": "_tenorIndex",
+				"type": "uint16"
+			},
+			{
+				"internalType": "int80[]",
+				"name": "_callSpreadDeltaMultipliers",
+				"type": "int80[]"
+			},
+			{
+				"internalType": "int80[]",
+				"name": "_putSpreadDeltaMultipliers",
+				"type": "int80[]"
+			}
+		],
+		"name": "setSpreadDeltaMultipliers",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"

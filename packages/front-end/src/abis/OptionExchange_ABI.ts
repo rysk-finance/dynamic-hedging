@@ -67,6 +67,11 @@ export const OptionExchangeABI = [
 	},
 	{
 		"inputs": [],
+		"name": "MaxLiquidityBufferReached",
+		"type": "error"
+	},
+	{
+		"inputs": [],
 		"name": "NonExistentOtoken",
 		"type": "error"
 	},
@@ -212,11 +217,6 @@ export const OptionExchangeABI = [
 	{
 		"inputs": [],
 		"name": "UnderlyingAssetInvalid",
-		"type": "error"
-	},
-	{
-		"inputs": [],
-		"name": "WithdrawExceedsLiquidity",
 		"type": "error"
 	},
 	{
