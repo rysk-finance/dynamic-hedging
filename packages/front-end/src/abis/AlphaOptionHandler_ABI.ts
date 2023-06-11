@@ -22,6 +22,11 @@ export const AlphaOptionHandlerABI = [
 	},
 	{
 		"inputs": [],
+		"name": "CollateralAssetInvalid",
+		"type": "error"
+	},
+	{
+		"inputs": [],
 		"name": "InvalidBuyer",
 		"type": "error"
 	},
