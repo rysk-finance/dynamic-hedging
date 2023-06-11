@@ -21,6 +21,7 @@ import "./interfaces/AddressBookInterface.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 
+import "hardhat/console.sol";
 /**
  *  @title Contract used for all user facing options interactions
  *  @dev Interacts with liquidityPool to write options and quote their prices.
@@ -368,6 +369,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		uint256 premium = vanillaPremium.mul(
 			_getSlippageMultiplier(_optionSeries, _amount, delta, isSell, netDhvExposure)
 		);
+		console.log("slippage premium");
+		console.log(premium * _amount / 1e18);
 		int spread = _getSpreadValue(
 			isSell,
 			_optionSeries,
@@ -379,6 +382,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		if (spread < 0) {
 			spread = 0;
 		}
+		console.log("spread");
+		console.logInt(spread);
 		// the delta returned is the delta of a long position of the option the sign of delta should be handled elsewhere.
 
 		totalPremium = isSell
@@ -486,14 +491,14 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		// integer division rounds down to nearest integer
 		uint256 deltaBandIndex = (uint256(_optionDelta.abs()) * 100) / deltaBandWidth;
 		(uint16 tenorIndex, uint256 remainder) = _getTenorIndex(_optionSeries.expiration);
-
-		if (_optionDelta > 0) {
+		console.log(tenorIndex, remainder, deltaBandIndex);
+		if (_optionDelta < 0) {
 			modifiedSlippageGradient = slippageGradient.mul(
 				_interpolateSlippageGradient(tenorIndex, remainder, true, deltaBandIndex)
 			);
 		} else {
 			modifiedSlippageGradient = slippageGradient.mul(
-				_interpolateSlippageGradient(tenorIndex, remainder, true, deltaBandIndex)
+				_interpolateSlippageGradient(tenorIndex, remainder, false, deltaBandIndex)
 			);
 		}
 		if (slippageGradient == 0) {
@@ -594,13 +599,13 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			collateralLendingPremium =
 				((ONE_SCALE + (collateralLendingRate * ONE_SCALE) / SIX_DPS).pow(_time)).mul(collateralToLend) -
 				collateralToLend;
-			if (_optionDelta > 0) {
+			if (_optionDelta < 0) {
 				collateralLendingPremium = collateralLendingPremium.mul(
-					_interpolateSpreadCollateral(_tenorIndex, _remainder, false, _deltaBandIndex)
+					_interpolateSpreadCollateral(_tenorIndex, _remainder, true, _deltaBandIndex)
 				);
 			} else {
 				collateralLendingPremium = collateralLendingPremium.mul(
-					_interpolateSpreadCollateral(_tenorIndex, _remainder, true, _deltaBandIndex)
+					_interpolateSpreadCollateral(_tenorIndex, _remainder, false, _deltaBandIndex)
 				);
 			}
 		}
@@ -670,6 +675,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		} else {
 			uint80 y1 = tenorPricingParams[_tenor].callSlippageGradientMultipliers[_deltaBand];
 			uint80 y2 = tenorPricingParams[_tenor + 1].callSlippageGradientMultipliers[_deltaBand];
+			console.log(y1, y2, _remainder, y2 - y1);
 			return uint80(y1 + _remainder.mul(y2 - y1));
 		}
 	}
