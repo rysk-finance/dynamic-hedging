@@ -708,7 +708,7 @@ export async function localQuoteOptionPrice(
 		pricer,
 		isSell
 	)
-	console.log({bsQ})
+	console.log({ bsQ })
 	const slip = await applySlippageLocally(
 		pricer,
 		catalogue,
@@ -719,6 +719,7 @@ export async function localQuoteOptionPrice(
 		isSell,
 		netDhvExposure
 	)
+	console.log("JS slippage multiplier:", slip)
 	console.log(bsQ * slip)
 	let spread = 0
 
@@ -783,16 +784,33 @@ export async function applySlippageLocally(
 		(parseFloat(fromWei(optionDelta.abs())) * 100) /
 			parseFloat(fromWei(await beyondPricer.deltaBandWidth()))
 	)
-	const tenorIndexAndRemainder = await getTenorIndexAndRemainder(optionSeries.expiration, beyondPricer)
-	console.log(tenorIndexAndRemainder, deltaBandIndex);
+	const tenorIndexAndRemainder = await getTenorIndexAndRemainder(
+		optionSeries.expiration,
+		beyondPricer
+	)
+	console.log(tenorIndexAndRemainder, deltaBandIndex)
 	if (parseFloat(fromWei(optionDelta)) < 0) {
 		modifiedSlippageGradient =
 			parseFloat(fromWei(slippageGradient)) *
-			await applyLinearInterpolation(tenorIndexAndRemainder[0], tenorIndexAndRemainder[1], optionSeries.isPut, deltaBandIndex, beyondPricer, Mode.Slippage)
+			(await applyLinearInterpolation(
+				tenorIndexAndRemainder[0],
+				tenorIndexAndRemainder[1],
+				optionSeries.isPut,
+				deltaBandIndex,
+				beyondPricer,
+				Mode.Slippage
+			))
 	} else {
 		modifiedSlippageGradient =
 			parseFloat(fromWei(slippageGradient)) *
-			await applyLinearInterpolation(tenorIndexAndRemainder[0], tenorIndexAndRemainder[1], optionSeries.isPut, deltaBandIndex, beyondPricer, Mode.Slippage)
+			(await applyLinearInterpolation(
+				tenorIndexAndRemainder[0],
+				tenorIndexAndRemainder[1],
+				optionSeries.isPut,
+				deltaBandIndex,
+				beyondPricer,
+				Mode.Slippage
+			))
 	}
 	if (slippageGradient.eq(BigNumber.from(0))) {
 		return 1
@@ -867,17 +885,35 @@ export async function applySpreadLocally(
 		const collateralLendingRate = await beyondPricer.collateralLendingRate()
 		collateralLendingPremium =
 			(1 + collateralLendingRate / SIX_DPS) ** timeToExpiry * collateralToLend - collateralToLend
-		const tenorIndexAndRemainder = await getTenorIndexAndRemainder(optionSeries.expiration, beyondPricer)
+		const tenorIndexAndRemainder = await getTenorIndexAndRemainder(
+			optionSeries.expiration,
+			beyondPricer
+		)
 		if (realOptionDelta < toWei("0")) {
 			collateralLendingPremium =
 				collateralLendingPremium *
-				await applyLinearInterpolation(tenorIndexAndRemainder[0], tenorIndexAndRemainder[1], optionSeries.isPut, deltaBandIndex, beyondPricer, Mode.CollatSpread)
+				(await applyLinearInterpolation(
+					tenorIndexAndRemainder[0],
+					tenorIndexAndRemainder[1],
+					optionSeries.isPut,
+					deltaBandIndex,
+					beyondPricer,
+					Mode.CollatSpread
+				))
 		} else {
 			collateralLendingPremium =
 				collateralLendingPremium *
-				await applyLinearInterpolation(tenorIndexAndRemainder[0], tenorIndexAndRemainder[1], optionSeries.isPut, deltaBandIndex, beyondPricer, Mode.CollatSpread)
+				(await applyLinearInterpolation(
+					tenorIndexAndRemainder[0],
+					tenorIndexAndRemainder[1],
+					optionSeries.isPut,
+					deltaBandIndex,
+					beyondPricer,
+					Mode.CollatSpread
+				))
 		}
 	}
+	console.log("JS collateral lending premium", collateralLendingPremium)
 
 	const dollarDelta =
 		parseFloat(fromWei(optionDelta.abs())) *
@@ -900,16 +936,34 @@ export async function applySpreadLocally(
 				(1 + (isSell ? sellShortDeltaBorrowRate : buyLongDeltaBorrowRate) / SIX_DPS) ** timeToExpiry -
 			dollarDelta
 	}
-	const tenorIndexAndRemainder = await getTenorIndexAndRemainder(optionSeries.expiration, beyondPricer)
+	const tenorIndexAndRemainder = await getTenorIndexAndRemainder(
+		optionSeries.expiration,
+		beyondPricer
+	)
 	if (realOptionDelta < toWei("0")) {
 		deltaBorrowPremium =
 			deltaBorrowPremium *
-			await applyLinearInterpolation(tenorIndexAndRemainder[0], tenorIndexAndRemainder[1], optionSeries.isPut, deltaBandIndex, beyondPricer, Mode.DeltaSpread)
+			(await applyLinearInterpolation(
+				tenorIndexAndRemainder[0],
+				tenorIndexAndRemainder[1],
+				optionSeries.isPut,
+				deltaBandIndex,
+				beyondPricer,
+				Mode.DeltaSpread
+			))
 	} else {
 		deltaBorrowPremium =
 			deltaBorrowPremium *
-			await applyLinearInterpolation(tenorIndexAndRemainder[0], tenorIndexAndRemainder[1], optionSeries.isPut, deltaBandIndex, beyondPricer, Mode.DeltaSpread)
+			(await applyLinearInterpolation(
+				tenorIndexAndRemainder[0],
+				tenorIndexAndRemainder[1],
+				optionSeries.isPut,
+				deltaBandIndex,
+				beyondPricer,
+				Mode.DeltaSpread
+			))
 	}
+	console.log("JS delta borrow premium", deltaBorrowPremium)
 
 	return collateralLendingPremium + deltaBorrowPremium
 }
@@ -1017,7 +1071,7 @@ enum Mode {
 	Slippage,
 	DeltaSpread,
 	CollatSpread
-  }
+}
 
 export async function applyLinearInterpolation(
 	tenorIndex: any,
@@ -1026,8 +1080,8 @@ export async function applyLinearInterpolation(
 	deltaBandIndex: any,
 	beyondPricer: BeyondPricer,
 	mode: Mode
-	) {
-	let y1;
+) {
+	let y1
 	let y2
 	if (mode == Mode.Slippage) {
 		if (isPut) {
@@ -1054,17 +1108,13 @@ export async function applyLinearInterpolation(
 			y2 = (await beyondPricer.getCallSpreadDeltaMultipliers(tenorIndex + 1))[deltaBandIndex]
 		}
 	} else {
-		throw new Error('Invalid Mode for Pricing param');
+		throw new Error("Invalid Mode for Pricing param")
 	}
-	console.log(y1, y2, remainder, y2.sub(y1));
-	return parseFloat(fromWei(y1)) + remainder * (parseFloat(fromWei(y2)) - parseFloat(fromWei((y1))))
-
+	console.log(y1, y2, remainder, y2.sub(y1))
+	return parseFloat(fromWei(y1)) + remainder * (parseFloat(fromWei(y2)) - parseFloat(fromWei(y1)))
 }
 
-export async function getTenorIndexAndRemainder(
-	expiration: any,
-	beyondPricer: BeyondPricer
-	) {
+export async function getTenorIndexAndRemainder(expiration: any, beyondPricer: BeyondPricer) {
 	const maxTenorValue = await beyondPricer.maxTenorValue()
 	const blockNum = await ethers.provider.getBlockNumber()
 	const block = await ethers.provider.getBlock(blockNum)
