@@ -599,6 +599,8 @@ describe("Liquidity Pools", async () => {
 			localDelta.div(parseFloat(fromWei(amount))),
 			true
 		)
+		console.log("JS slippage multiplier:", slippageFactor)
+
 		let quoteResponse = await pricer.quoteOptionPrice(optionSeries, amount, true, 0)
 		let localQuoteWithSlippage = localQuote * slippageFactor
 		expect(localQuoteWithSlippage).to.be.lt(localQuote)
@@ -606,6 +608,7 @@ describe("Liquidity Pools", async () => {
 		const truncQuote = truncate(localQuoteWithSlippage)
 		const chainQuote = tFormatUSDC(buyQuote.toString())
 		const diff = percentDiff(truncQuote, chainQuote)
+		console.log({ truncQuote, chainQuote, diff })
 		expect(diff).to.be.within(0, 0.1)
 	})
 	it("SETUP: approve series", async () => {
