@@ -1562,6 +1562,7 @@ describe("Spread Pricer testing", async () => {
 		it("REVERTS: set collateral spread value below 1", async () => {
 			await expect(
 				pricer.setSpreadCollateralMultipliers(
+					2,
 					[
 						toWei("3.8"),
 						toWei("3.6"),
@@ -1612,6 +1613,7 @@ describe("Spread Pricer testing", async () => {
 		it("REVERTS: set delta spread value below 1", async () => {
 			await expect(
 				pricer.setSpreadDeltaMultipliers(
+					2,
 					[
 						toWei("3.8"),
 						toWei("3.6"),
@@ -1662,6 +1664,7 @@ describe("Spread Pricer testing", async () => {
 		it("REVERTS: set spread collateral array length of 19 ", async () => {
 			await expect(
 				pricer.setSpreadCollateralMultipliers(
+					2,
 					[
 						toWei("3.8"),
 						toWei("3.6"),
@@ -1711,6 +1714,7 @@ describe("Spread Pricer testing", async () => {
 		it("REVERTS: set spread delta array length of 19 ", async () => {
 			await expect(
 				pricer.setSpreadDeltaMultipliers(
+					2,
 					[
 						toWei("3.8"),
 						toWei("3.6"),

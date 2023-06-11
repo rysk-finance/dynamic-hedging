@@ -458,6 +458,7 @@ describe("Authority tests", async () => {
 		it("SUCCEEDS: sets slippageMultipliers in beyond pricer", async () => {
 			expect((await pricer.getCallSlippageGradientMultipliers())[0]).to.eq(utils.parseEther("1"))
 			await managerContract.setSlippageGradientMultipliers(
+				1,
 				[
 					utils.parseEther("10"),
 					utils.parseEther("20"),
@@ -471,6 +472,7 @@ describe("Authority tests", async () => {
 		it("SUCCEEDS: sets spreadCollateralMultipliers in beyond pricer", async () => {
 			expect((await pricer.getCallSpreadCollateralMultipliers())[0]).to.eq(utils.parseEther("1"))
 			await managerContract.setSpreadCollateralMultipliers(
+				2,
 				[
 					utils.parseEther("10"),
 					utils.parseEther("20"),
@@ -484,6 +486,7 @@ describe("Authority tests", async () => {
 		it("SUCCEEDS: sets spreadDeltaMultipliers in beyond pricer", async () => {
 			expect((await pricer.getCallSpreadDeltaMultipliers())[0]).to.eq(utils.parseEther("1"))
 			await managerContract.setSpreadDeltaMultipliers(
+				2,
 				[
 					utils.parseEther("10"),
 					utils.parseEther("20"),
