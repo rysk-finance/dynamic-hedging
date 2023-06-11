@@ -92,8 +92,6 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	uint256 public collateralLendingRate;
 	//  delta borrow rates for spread func. All denominated in 6 dps
 	DeltaBorrowRates public deltaBorrowRates;
-	// multiplier values for spread and slippage delta bands
-	DeltaBandMultipliers internal deltaBandMultipliers;
 	// flat IV value which will override our pricing formula for bids on options below a low delta threshold
 	uint256 public lowDeltaSellOptionFlatIV = 35e16;
 	// threshold for delta of options below which lowDeltaSellOptionFlatIV kicks in
@@ -414,29 +412,30 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	/// non-complex getters ///
 	///////////////////////////
 
-	function getCallSlippageGradientMultipliers() external view returns (uint80[] memory) {
-		return deltaBandMultipliers.callSlippageGradientMultipliers;
+	function getCallSlippageGradientMultipliers(uint16 _tenorIndex) external view returns (uint80[] memory) {
+		return tenorPricingParams[_tenorIndex].callSlippageGradientMultipliers;
 	}
 
-	function getPutSlippageGradientMultipliers() external view returns (uint80[] memory) {
-		return deltaBandMultipliers.putSlippageGradientMultipliers;
+	function getPutSlippageGradientMultipliers(uint16 _tenorIndex) external view returns (uint80[] memory) {
+		return tenorPricingParams[_tenorIndex].putSlippageGradientMultipliers;
 	}
 
-	function getCallSpreadCollateralMultipliers() external view returns (uint80[] memory) {
-		return deltaBandMultipliers.callSpreadCollateralMultipliers;
+	function getCallSpreadCollateralMultipliers(uint16 _tenorIndex) external view returns (uint80[] memory) {
+		return tenorPricingParams[_tenorIndex].callSpreadCollateralMultipliers;
 	}
 
-	function getPutSpreadCollateralMultipliers() external view returns (uint80[] memory) {
-		return deltaBandMultipliers.putSpreadCollateralMultipliers;
+	function getPutSpreadCollateralMultipliers(uint16 _tenorIndex) external view returns (uint80[] memory) {
+		return tenorPricingParams[_tenorIndex].putSpreadCollateralMultipliers;
 	}
 
-	function getCallSpreadDeltaMultipliers() external view returns (int80[] memory) {
-		return deltaBandMultipliers.callSpreadDeltaMultipliers;
+	function getCallSpreadDeltaMultipliers(uint16 _tenorIndex) external view returns (int80[] memory) {
+		return tenorPricingParams[_tenorIndex].callSpreadDeltaMultipliers;
 	}
 
-	function getPutSpreadDeltaMultipliers() external view returns (int80[] memory) {
-		return deltaBandMultipliers.putSpreadDeltaMultipliers;
+	function getPutSpreadDeltaMultipliers(uint16 _tenorIndex) external view returns (int80[] memory) {
+		return tenorPricingParams[_tenorIndex].putSpreadDeltaMultipliers;
 	}
+
 
 	/**
 	 * @notice get the underlying price with just the underlying asset and strike asset
@@ -651,13 +650,13 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 	function _getTenorIndex(
 		uint256 _expiration
-	) internal view returns (uint16 tenor, uint256 remainder) {
+	) internal view returns (uint16 tenorIndex, uint256 remainder) {
 		// get the ratio of the square root of seconds to expiry and the max tenor value in e18 form
 		uint unroundedTenorIndex = ((((_expiration - block.timestamp) * 1e18).sqrt()) / maxTenorValue);
-		tenor = uint16(unroundedTenorIndex / 1e18); // always floors
-		remainder = unroundedTenorIndex - tenor; // will be between 0 and 1e18
+		tenorIndex = uint16(unroundedTenorIndex / 1e18); // always floors
+		remainder = unroundedTenorIndex - tenorIndex; // will be between 0 and 1e18
 	}
-
+	
 	function _interpolateSlippageGradient(
 		uint16 _tenor,
 		uint256 _remainder,
@@ -671,7 +670,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		} else {
 			uint80 y1 = tenorPricingParams[_tenor].callSlippageGradientMultipliers[_deltaBand];
 			uint80 y2 = tenorPricingParams[_tenor + 1].callSlippageGradientMultipliers[_deltaBand];
-			return uint80(1 + _remainder.mul(y2 - y1));
+			return uint80(y1 + _remainder.mul(y2 - y1));
 		}
 	}
 

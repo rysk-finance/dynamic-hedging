@@ -6126,12 +6126,14 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					utils.parseUnits("1.4", 18),
 					utils.parseUnits("1.5", 18)
 				]
+				const tenorIndex = 2
 				await pricer.setSlippageGradientMultipliers(
+					tenorIndex,
 					slippageGradientMultipliers,
 					slippageGradientMultipliers
 				)
-				const acSlippageGradientMultipliers = await pricer.getCallSlippageGradientMultipliers()
-				const apSlippageGradientMultipliers = await pricer.getPutSlippageGradientMultipliers()
+				const acSlippageGradientMultipliers = await pricer.getCallSlippageGradientMultipliers(tenorIndex)
+				const apSlippageGradientMultipliers = await pricer.getPutSlippageGradientMultipliers(tenorIndex)
 
 				for (let i = 0; i < slippageGradientMultipliers.length; i++) {
 					expect(acSlippageGradientMultipliers[i]).to.equal(slippageGradientMultipliers[i])
@@ -6139,10 +6141,12 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				}
 			})
 			it("REVERTS: set slippage gradients on pricer when non governance calls", async () => {
+				const tenorIndex = 2
 				await expect(
 					pricer
 						.connect(signers[1])
 						.setSlippageGradientMultipliers(
+							tenorIndex,
 							[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")],
 							[toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")]
 						)

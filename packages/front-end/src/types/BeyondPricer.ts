@@ -41,6 +41,31 @@ export declare namespace BeyondPricer {
     buyLong: BigNumber;
     buyShort: BigNumber;
   };
+
+  export type DeltaBandMultipliersStruct = {
+    callSlippageGradientMultipliers: BigNumberish[];
+    putSlippageGradientMultipliers: BigNumberish[];
+    callSpreadCollateralMultipliers: BigNumberish[];
+    putSpreadCollateralMultipliers: BigNumberish[];
+    callSpreadDeltaMultipliers: BigNumberish[];
+    putSpreadDeltaMultipliers: BigNumberish[];
+  };
+
+  export type DeltaBandMultipliersStructOutput = [
+    BigNumber[],
+    BigNumber[],
+    BigNumber[],
+    BigNumber[],
+    BigNumber[],
+    BigNumber[]
+  ] & {
+    callSlippageGradientMultipliers: BigNumber[];
+    putSlippageGradientMultipliers: BigNumber[];
+    callSpreadCollateralMultipliers: BigNumber[];
+    putSpreadCollateralMultipliers: BigNumber[];
+    callSpreadDeltaMultipliers: BigNumber[];
+    putSpreadDeltaMultipliers: BigNumber[];
+  };
 }
 
 export declare namespace Types {
@@ -76,28 +101,38 @@ export interface BeyondPricerInterface extends utils.Interface {
     "addressBook()": FunctionFragment;
     "authority()": FunctionFragment;
     "bidAskIVSpread()": FunctionFragment;
-    "callSlippageGradientMultipliers(uint256)": FunctionFragment;
     "collateralAsset()": FunctionFragment;
     "collateralLendingRate()": FunctionFragment;
     "deltaBandWidth()": FunctionFragment;
     "deltaBorrowRates()": FunctionFragment;
     "feePerContract()": FunctionFragment;
-    "getCallSlippageGradientMultipliers()": FunctionFragment;
-    "getPutSlippageGradientMultipliers()": FunctionFragment;
+    "getCallSlippageGradientMultipliers(uint16)": FunctionFragment;
+    "getCallSpreadCollateralMultipliers(uint16)": FunctionFragment;
+    "getCallSpreadDeltaMultipliers(uint16)": FunctionFragment;
+    "getPutSlippageGradientMultipliers(uint16)": FunctionFragment;
+    "getPutSpreadCollateralMultipliers(uint16)": FunctionFragment;
+    "getPutSpreadDeltaMultipliers(uint16)": FunctionFragment;
+    "initializeTenorParams(uint256,uint16,uint16,(uint80[],uint80[],uint80[],uint80[],int80[],int80[])[])": FunctionFragment;
     "liquidityPool()": FunctionFragment;
+    "lowDeltaSellOptionFlatIV()": FunctionFragment;
+    "lowDeltaThreshold()": FunctionFragment;
+    "maxTenorValue()": FunctionFragment;
+    "numberOfTenors()": FunctionFragment;
     "protocol()": FunctionFragment;
-    "putSlippageGradientMultipliers(uint256)": FunctionFragment;
     "quoteOptionPrice((uint64,uint128,bool,address,address,address),uint256,bool,int256)": FunctionFragment;
     "riskFreeRate()": FunctionFragment;
     "setAuthority(address)": FunctionFragment;
     "setBidAskIVSpread(uint256)": FunctionFragment;
     "setCollateralLendingRate(uint256)": FunctionFragment;
-    "setDeltaBandWidth(uint256,uint256[],uint256[])": FunctionFragment;
     "setDeltaBorrowRates((int256,int256,int256,int256))": FunctionFragment;
     "setFeePerContract(uint256)": FunctionFragment;
+    "setLowDeltaSellOptionFlatIV(uint256)": FunctionFragment;
+    "setLowDeltaThreshold(uint256)": FunctionFragment;
     "setRiskFreeRate(uint256)": FunctionFragment;
     "setSlippageGradient(uint256)": FunctionFragment;
-    "setSlippageGradientMultipliers(uint256[],uint256[])": FunctionFragment;
+    "setSlippageGradientMultipliers(uint16,uint80[],uint80[])": FunctionFragment;
+    "setSpreadCollateralMultipliers(uint16,uint80[],uint80[])": FunctionFragment;
+    "setSpreadDeltaMultipliers(uint16,int80[],int80[])": FunctionFragment;
     "slippageGradient()": FunctionFragment;
     "strikeAsset()": FunctionFragment;
     "underlyingAsset()": FunctionFragment;
@@ -111,10 +146,6 @@ export interface BeyondPricerInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "bidAskIVSpread",
     values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "callSlippageGradientMultipliers",
-    values: [BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "collateralAsset",
@@ -138,21 +169,58 @@ export interface BeyondPricerInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "getCallSlippageGradientMultipliers",
-    values?: undefined
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getCallSpreadCollateralMultipliers",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getCallSpreadDeltaMultipliers",
+    values: [BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "getPutSlippageGradientMultipliers",
-    values?: undefined
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getPutSpreadCollateralMultipliers",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getPutSpreadDeltaMultipliers",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "initializeTenorParams",
+    values: [
+      BigNumberish,
+      BigNumberish,
+      BigNumberish,
+      BeyondPricer.DeltaBandMultipliersStruct[]
+    ]
   ): string;
   encodeFunctionData(
     functionFragment: "liquidityPool",
     values?: undefined
   ): string;
-  encodeFunctionData(functionFragment: "protocol", values?: undefined): string;
   encodeFunctionData(
-    functionFragment: "putSlippageGradientMultipliers",
-    values: [BigNumberish]
+    functionFragment: "lowDeltaSellOptionFlatIV",
+    values?: undefined
   ): string;
+  encodeFunctionData(
+    functionFragment: "lowDeltaThreshold",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "maxTenorValue",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "numberOfTenors",
+    values?: undefined
+  ): string;
+  encodeFunctionData(functionFragment: "protocol", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "quoteOptionPrice",
     values: [Types.OptionSeriesStruct, BigNumberish, boolean, BigNumberish]
@@ -174,15 +242,19 @@ export interface BeyondPricerInterface extends utils.Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "setDeltaBandWidth",
-    values: [BigNumberish, BigNumberish[], BigNumberish[]]
-  ): string;
-  encodeFunctionData(
     functionFragment: "setDeltaBorrowRates",
     values: [BeyondPricer.DeltaBorrowRatesStruct]
   ): string;
   encodeFunctionData(
     functionFragment: "setFeePerContract",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setLowDeltaSellOptionFlatIV",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setLowDeltaThreshold",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
@@ -195,7 +267,15 @@ export interface BeyondPricerInterface extends utils.Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "setSlippageGradientMultipliers",
-    values: [BigNumberish[], BigNumberish[]]
+    values: [BigNumberish, BigNumberish[], BigNumberish[]]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setSpreadCollateralMultipliers",
+    values: [BigNumberish, BigNumberish[], BigNumberish[]]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setSpreadDeltaMultipliers",
+    values: [BigNumberish, BigNumberish[], BigNumberish[]]
   ): string;
   encodeFunctionData(
     functionFragment: "slippageGradient",
@@ -220,10 +300,6 @@ export interface BeyondPricerInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "callSlippageGradientMultipliers",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "collateralAsset",
     data: BytesLike
   ): Result;
@@ -248,18 +324,50 @@ export interface BeyondPricerInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "getCallSpreadCollateralMultipliers",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getCallSpreadDeltaMultipliers",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "getPutSlippageGradientMultipliers",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getPutSpreadCollateralMultipliers",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getPutSpreadDeltaMultipliers",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "initializeTenorParams",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
     functionFragment: "liquidityPool",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "protocol", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "putSlippageGradientMultipliers",
+    functionFragment: "lowDeltaSellOptionFlatIV",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "lowDeltaThreshold",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "maxTenorValue",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "numberOfTenors",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "protocol", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "quoteOptionPrice",
     data: BytesLike
@@ -281,15 +389,19 @@ export interface BeyondPricerInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "setDeltaBandWidth",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "setDeltaBorrowRates",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
     functionFragment: "setFeePerContract",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setLowDeltaSellOptionFlatIV",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setLowDeltaThreshold",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -302,6 +414,14 @@ export interface BeyondPricerInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "setSlippageGradientMultipliers",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setSpreadCollateralMultipliers",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setSpreadDeltaMultipliers",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -324,9 +444,14 @@ export interface BeyondPricerInterface extends utils.Interface {
     "DeltaBandWidthChanged(uint256,uint256)": EventFragment;
     "DeltaBorrowRatesChanged(tuple,tuple)": EventFragment;
     "FeePerContractChanged(uint256,uint256)": EventFragment;
+    "LowDeltaSellOptionFlatIVChanged(uint256,uint256)": EventFragment;
+    "LowDeltaThresholdChanged(uint256,uint256)": EventFragment;
     "RiskFreeRateChanged(uint256,uint256)": EventFragment;
     "SlippageGradientChanged(uint256,uint256)": EventFragment;
     "SlippageGradientMultipliersChanged()": EventFragment;
+    "SpreadCollateralMultipliersChanged()": EventFragment;
+    "SpreadDeltaMultipliersChanged()": EventFragment;
+    "TenorParamsSet()": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "AuthorityUpdated"): EventFragment;
@@ -337,11 +462,22 @@ export interface BeyondPricerInterface extends utils.Interface {
   getEvent(nameOrSignatureOrTopic: "DeltaBandWidthChanged"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "DeltaBorrowRatesChanged"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "FeePerContractChanged"): EventFragment;
+  getEvent(
+    nameOrSignatureOrTopic: "LowDeltaSellOptionFlatIVChanged"
+  ): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "LowDeltaThresholdChanged"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "RiskFreeRateChanged"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "SlippageGradientChanged"): EventFragment;
   getEvent(
     nameOrSignatureOrTopic: "SlippageGradientMultipliersChanged"
   ): EventFragment;
+  getEvent(
+    nameOrSignatureOrTopic: "SpreadCollateralMultipliersChanged"
+  ): EventFragment;
+  getEvent(
+    nameOrSignatureOrTopic: "SpreadDeltaMultipliersChanged"
+  ): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "TenorParamsSet"): EventFragment;
 }
 
 export type AuthorityUpdatedEvent = TypedEvent<[string], { authority: string }>;
@@ -395,6 +531,25 @@ export type FeePerContractChangedEvent = TypedEvent<
 export type FeePerContractChangedEventFilter =
   TypedEventFilter<FeePerContractChangedEvent>;
 
+export type LowDeltaSellOptionFlatIVChangedEvent = TypedEvent<
+  [BigNumber, BigNumber],
+  {
+    newLowDeltaSellOptionFlatIV: BigNumber;
+    oldLowDeltaSellOptionFlatIV: BigNumber;
+  }
+>;
+
+export type LowDeltaSellOptionFlatIVChangedEventFilter =
+  TypedEventFilter<LowDeltaSellOptionFlatIVChangedEvent>;
+
+export type LowDeltaThresholdChangedEvent = TypedEvent<
+  [BigNumber, BigNumber],
+  { newLowDeltaThreshold: BigNumber; oldLowDeltaThreshold: BigNumber }
+>;
+
+export type LowDeltaThresholdChangedEventFilter =
+  TypedEventFilter<LowDeltaThresholdChangedEvent>;
+
 export type RiskFreeRateChangedEvent = TypedEvent<
   [BigNumber, BigNumber],
   { newRiskFreeRate: BigNumber; oldRiskFreeRate: BigNumber }
@@ -415,6 +570,20 @@ export type SlippageGradientMultipliersChangedEvent = TypedEvent<[], {}>;
 
 export type SlippageGradientMultipliersChangedEventFilter =
   TypedEventFilter<SlippageGradientMultipliersChangedEvent>;
+
+export type SpreadCollateralMultipliersChangedEvent = TypedEvent<[], {}>;
+
+export type SpreadCollateralMultipliersChangedEventFilter =
+  TypedEventFilter<SpreadCollateralMultipliersChangedEvent>;
+
+export type SpreadDeltaMultipliersChangedEvent = TypedEvent<[], {}>;
+
+export type SpreadDeltaMultipliersChangedEventFilter =
+  TypedEventFilter<SpreadDeltaMultipliersChangedEvent>;
+
+export type TenorParamsSetEvent = TypedEvent<[], {}>;
+
+export type TenorParamsSetEventFilter = TypedEventFilter<TenorParamsSetEvent>;
 
 export interface BeyondPricer extends BaseContract {
   contractName: "BeyondPricer";
@@ -450,11 +619,6 @@ export interface BeyondPricer extends BaseContract {
 
     bidAskIVSpread(overrides?: CallOverrides): Promise<[BigNumber]>;
 
-    callSlippageGradientMultipliers(
-      arg0: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber]>;
-
     collateralAsset(overrides?: CallOverrides): Promise<[string]>;
 
     collateralLendingRate(overrides?: CallOverrides): Promise<[BigNumber]>;
@@ -475,21 +639,54 @@ export interface BeyondPricer extends BaseContract {
     feePerContract(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     getCallSlippageGradientMultipliers(
+      _tenorIndex: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber[]]>;
+
+    getCallSpreadCollateralMultipliers(
+      _tenorIndex: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber[]]>;
+
+    getCallSpreadDeltaMultipliers(
+      _tenorIndex: BigNumberish,
       overrides?: CallOverrides
     ): Promise<[BigNumber[]]>;
 
     getPutSlippageGradientMultipliers(
+      _tenorIndex: BigNumberish,
       overrides?: CallOverrides
     ): Promise<[BigNumber[]]>;
 
+    getPutSpreadCollateralMultipliers(
+      _tenorIndex: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber[]]>;
+
+    getPutSpreadDeltaMultipliers(
+      _tenorIndex: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<[BigNumber[]]>;
+
+    initializeTenorParams(
+      _deltaBandWidth: BigNumberish,
+      _numberOfTenors: BigNumberish,
+      _maxTenorValue: BigNumberish,
+      _tenorPricingParams: BeyondPricer.DeltaBandMultipliersStruct[],
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
     liquidityPool(overrides?: CallOverrides): Promise<[string]>;
 
-    protocol(overrides?: CallOverrides): Promise<[string]>;
+    lowDeltaSellOptionFlatIV(overrides?: CallOverrides): Promise<[BigNumber]>;
 
-    putSlippageGradientMultipliers(
-      arg0: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber]>;
+    lowDeltaThreshold(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    maxTenorValue(overrides?: CallOverrides): Promise<[number]>;
+
+    numberOfTenors(overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    protocol(overrides?: CallOverrides): Promise<[string]>;
 
     quoteOptionPrice(
       _optionSeries: Types.OptionSeriesStruct,
@@ -522,13 +719,6 @@ export interface BeyondPricer extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    setDeltaBandWidth(
-      _deltaBandWidth: BigNumberish,
-      _callSlippageGradientMultipliers: BigNumberish[],
-      _putSlippageGradientMultipliers: BigNumberish[],
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
     setDeltaBorrowRates(
       _deltaBorrowRates: BeyondPricer.DeltaBorrowRatesStruct,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -536,6 +726,16 @@ export interface BeyondPricer extends BaseContract {
 
     setFeePerContract(
       _feePerContract: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    setLowDeltaSellOptionFlatIV(
+      _lowDeltaSellOptionFlatIV: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    setLowDeltaThreshold(
+      _lowDeltaThreshold: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -550,8 +750,23 @@ export interface BeyondPricer extends BaseContract {
     ): Promise<ContractTransaction>;
 
     setSlippageGradientMultipliers(
+      _tenorIndex: BigNumberish,
       _callSlippageGradientMultipliers: BigNumberish[],
       _putSlippageGradientMultipliers: BigNumberish[],
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    setSpreadCollateralMultipliers(
+      _tenorIndex: BigNumberish,
+      _callSpreadCollateralMultipliers: BigNumberish[],
+      _putSpreadCollateralMultipliers: BigNumberish[],
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    setSpreadDeltaMultipliers(
+      _tenorIndex: BigNumberish,
+      _callSpreadDeltaMultipliers: BigNumberish[],
+      _putSpreadDeltaMultipliers: BigNumberish[],
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
@@ -567,11 +782,6 @@ export interface BeyondPricer extends BaseContract {
   authority(overrides?: CallOverrides): Promise<string>;
 
   bidAskIVSpread(overrides?: CallOverrides): Promise<BigNumber>;
-
-  callSlippageGradientMultipliers(
-    arg0: BigNumberish,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
 
   collateralAsset(overrides?: CallOverrides): Promise<string>;
 
@@ -593,21 +803,54 @@ export interface BeyondPricer extends BaseContract {
   feePerContract(overrides?: CallOverrides): Promise<BigNumber>;
 
   getCallSlippageGradientMultipliers(
+    _tenorIndex: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<BigNumber[]>;
+
+  getCallSpreadCollateralMultipliers(
+    _tenorIndex: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<BigNumber[]>;
+
+  getCallSpreadDeltaMultipliers(
+    _tenorIndex: BigNumberish,
     overrides?: CallOverrides
   ): Promise<BigNumber[]>;
 
   getPutSlippageGradientMultipliers(
+    _tenorIndex: BigNumberish,
     overrides?: CallOverrides
   ): Promise<BigNumber[]>;
 
+  getPutSpreadCollateralMultipliers(
+    _tenorIndex: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<BigNumber[]>;
+
+  getPutSpreadDeltaMultipliers(
+    _tenorIndex: BigNumberish,
+    overrides?: CallOverrides
+  ): Promise<BigNumber[]>;
+
+  initializeTenorParams(
+    _deltaBandWidth: BigNumberish,
+    _numberOfTenors: BigNumberish,
+    _maxTenorValue: BigNumberish,
+    _tenorPricingParams: BeyondPricer.DeltaBandMultipliersStruct[],
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   liquidityPool(overrides?: CallOverrides): Promise<string>;
 
-  protocol(overrides?: CallOverrides): Promise<string>;
+  lowDeltaSellOptionFlatIV(overrides?: CallOverrides): Promise<BigNumber>;
 
-  putSlippageGradientMultipliers(
-    arg0: BigNumberish,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
+  lowDeltaThreshold(overrides?: CallOverrides): Promise<BigNumber>;
+
+  maxTenorValue(overrides?: CallOverrides): Promise<number>;
+
+  numberOfTenors(overrides?: CallOverrides): Promise<BigNumber>;
+
+  protocol(overrides?: CallOverrides): Promise<string>;
 
   quoteOptionPrice(
     _optionSeries: Types.OptionSeriesStruct,
@@ -640,13 +883,6 @@ export interface BeyondPricer extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  setDeltaBandWidth(
-    _deltaBandWidth: BigNumberish,
-    _callSlippageGradientMultipliers: BigNumberish[],
-    _putSlippageGradientMultipliers: BigNumberish[],
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
   setDeltaBorrowRates(
     _deltaBorrowRates: BeyondPricer.DeltaBorrowRatesStruct,
     overrides?: Overrides & { from?: string | Promise<string> }
@@ -654,6 +890,16 @@ export interface BeyondPricer extends BaseContract {
 
   setFeePerContract(
     _feePerContract: BigNumberish,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  setLowDeltaSellOptionFlatIV(
+    _lowDeltaSellOptionFlatIV: BigNumberish,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  setLowDeltaThreshold(
+    _lowDeltaThreshold: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -668,8 +914,23 @@ export interface BeyondPricer extends BaseContract {
   ): Promise<ContractTransaction>;
 
   setSlippageGradientMultipliers(
+    _tenorIndex: BigNumberish,
     _callSlippageGradientMultipliers: BigNumberish[],
     _putSlippageGradientMultipliers: BigNumberish[],
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  setSpreadCollateralMultipliers(
+    _tenorIndex: BigNumberish,
+    _callSpreadCollateralMultipliers: BigNumberish[],
+    _putSpreadCollateralMultipliers: BigNumberish[],
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  setSpreadDeltaMultipliers(
+    _tenorIndex: BigNumberish,
+    _callSpreadDeltaMultipliers: BigNumberish[],
+    _putSpreadDeltaMultipliers: BigNumberish[],
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -685,11 +946,6 @@ export interface BeyondPricer extends BaseContract {
     authority(overrides?: CallOverrides): Promise<string>;
 
     bidAskIVSpread(overrides?: CallOverrides): Promise<BigNumber>;
-
-    callSlippageGradientMultipliers(
-      arg0: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
 
     collateralAsset(overrides?: CallOverrides): Promise<string>;
 
@@ -711,21 +967,54 @@ export interface BeyondPricer extends BaseContract {
     feePerContract(overrides?: CallOverrides): Promise<BigNumber>;
 
     getCallSlippageGradientMultipliers(
+      _tenorIndex: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber[]>;
+
+    getCallSpreadCollateralMultipliers(
+      _tenorIndex: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber[]>;
+
+    getCallSpreadDeltaMultipliers(
+      _tenorIndex: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber[]>;
 
     getPutSlippageGradientMultipliers(
+      _tenorIndex: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber[]>;
 
+    getPutSpreadCollateralMultipliers(
+      _tenorIndex: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber[]>;
+
+    getPutSpreadDeltaMultipliers(
+      _tenorIndex: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber[]>;
+
+    initializeTenorParams(
+      _deltaBandWidth: BigNumberish,
+      _numberOfTenors: BigNumberish,
+      _maxTenorValue: BigNumberish,
+      _tenorPricingParams: BeyondPricer.DeltaBandMultipliersStruct[],
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     liquidityPool(overrides?: CallOverrides): Promise<string>;
 
-    protocol(overrides?: CallOverrides): Promise<string>;
+    lowDeltaSellOptionFlatIV(overrides?: CallOverrides): Promise<BigNumber>;
 
-    putSlippageGradientMultipliers(
-      arg0: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
+    lowDeltaThreshold(overrides?: CallOverrides): Promise<BigNumber>;
+
+    maxTenorValue(overrides?: CallOverrides): Promise<number>;
+
+    numberOfTenors(overrides?: CallOverrides): Promise<BigNumber>;
+
+    protocol(overrides?: CallOverrides): Promise<string>;
 
     quoteOptionPrice(
       _optionSeries: Types.OptionSeriesStruct,
@@ -758,13 +1047,6 @@ export interface BeyondPricer extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
-    setDeltaBandWidth(
-      _deltaBandWidth: BigNumberish,
-      _callSlippageGradientMultipliers: BigNumberish[],
-      _putSlippageGradientMultipliers: BigNumberish[],
-      overrides?: CallOverrides
-    ): Promise<void>;
-
     setDeltaBorrowRates(
       _deltaBorrowRates: BeyondPricer.DeltaBorrowRatesStruct,
       overrides?: CallOverrides
@@ -772,6 +1054,16 @@ export interface BeyondPricer extends BaseContract {
 
     setFeePerContract(
       _feePerContract: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setLowDeltaSellOptionFlatIV(
+      _lowDeltaSellOptionFlatIV: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setLowDeltaThreshold(
+      _lowDeltaThreshold: BigNumberish,
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -786,8 +1078,23 @@ export interface BeyondPricer extends BaseContract {
     ): Promise<void>;
 
     setSlippageGradientMultipliers(
+      _tenorIndex: BigNumberish,
       _callSlippageGradientMultipliers: BigNumberish[],
       _putSlippageGradientMultipliers: BigNumberish[],
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setSpreadCollateralMultipliers(
+      _tenorIndex: BigNumberish,
+      _callSpreadCollateralMultipliers: BigNumberish[],
+      _putSpreadCollateralMultipliers: BigNumberish[],
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    setSpreadDeltaMultipliers(
+      _tenorIndex: BigNumberish,
+      _callSpreadDeltaMultipliers: BigNumberish[],
+      _putSpreadDeltaMultipliers: BigNumberish[],
       overrides?: CallOverrides
     ): Promise<void>;
 
@@ -847,6 +1154,24 @@ export interface BeyondPricer extends BaseContract {
       oldFeePerContract?: null
     ): FeePerContractChangedEventFilter;
 
+    "LowDeltaSellOptionFlatIVChanged(uint256,uint256)"(
+      newLowDeltaSellOptionFlatIV?: null,
+      oldLowDeltaSellOptionFlatIV?: null
+    ): LowDeltaSellOptionFlatIVChangedEventFilter;
+    LowDeltaSellOptionFlatIVChanged(
+      newLowDeltaSellOptionFlatIV?: null,
+      oldLowDeltaSellOptionFlatIV?: null
+    ): LowDeltaSellOptionFlatIVChangedEventFilter;
+
+    "LowDeltaThresholdChanged(uint256,uint256)"(
+      newLowDeltaThreshold?: null,
+      oldLowDeltaThreshold?: null
+    ): LowDeltaThresholdChangedEventFilter;
+    LowDeltaThresholdChanged(
+      newLowDeltaThreshold?: null,
+      oldLowDeltaThreshold?: null
+    ): LowDeltaThresholdChangedEventFilter;
+
     "RiskFreeRateChanged(uint256,uint256)"(
       newRiskFreeRate?: null,
       oldRiskFreeRate?: null
@@ -867,6 +1192,15 @@ export interface BeyondPricer extends BaseContract {
 
     "SlippageGradientMultipliersChanged()"(): SlippageGradientMultipliersChangedEventFilter;
     SlippageGradientMultipliersChanged(): SlippageGradientMultipliersChangedEventFilter;
+
+    "SpreadCollateralMultipliersChanged()"(): SpreadCollateralMultipliersChangedEventFilter;
+    SpreadCollateralMultipliersChanged(): SpreadCollateralMultipliersChangedEventFilter;
+
+    "SpreadDeltaMultipliersChanged()"(): SpreadDeltaMultipliersChangedEventFilter;
+    SpreadDeltaMultipliersChanged(): SpreadDeltaMultipliersChangedEventFilter;
+
+    "TenorParamsSet()"(): TenorParamsSetEventFilter;
+    TenorParamsSet(): TenorParamsSetEventFilter;
   };
 
   estimateGas: {
@@ -875,11 +1209,6 @@ export interface BeyondPricer extends BaseContract {
     authority(overrides?: CallOverrides): Promise<BigNumber>;
 
     bidAskIVSpread(overrides?: CallOverrides): Promise<BigNumber>;
-
-    callSlippageGradientMultipliers(
-      arg0: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
 
     collateralAsset(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -892,21 +1221,54 @@ export interface BeyondPricer extends BaseContract {
     feePerContract(overrides?: CallOverrides): Promise<BigNumber>;
 
     getCallSlippageGradientMultipliers(
+      _tenorIndex: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getCallSpreadCollateralMultipliers(
+      _tenorIndex: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getCallSpreadDeltaMultipliers(
+      _tenorIndex: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     getPutSlippageGradientMultipliers(
+      _tenorIndex: BigNumberish,
       overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getPutSpreadCollateralMultipliers(
+      _tenorIndex: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    getPutSpreadDeltaMultipliers(
+      _tenorIndex: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<BigNumber>;
+
+    initializeTenorParams(
+      _deltaBandWidth: BigNumberish,
+      _numberOfTenors: BigNumberish,
+      _maxTenorValue: BigNumberish,
+      _tenorPricingParams: BeyondPricer.DeltaBandMultipliersStruct[],
+      overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
     liquidityPool(overrides?: CallOverrides): Promise<BigNumber>;
 
-    protocol(overrides?: CallOverrides): Promise<BigNumber>;
+    lowDeltaSellOptionFlatIV(overrides?: CallOverrides): Promise<BigNumber>;
 
-    putSlippageGradientMultipliers(
-      arg0: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
+    lowDeltaThreshold(overrides?: CallOverrides): Promise<BigNumber>;
+
+    maxTenorValue(overrides?: CallOverrides): Promise<BigNumber>;
+
+    numberOfTenors(overrides?: CallOverrides): Promise<BigNumber>;
+
+    protocol(overrides?: CallOverrides): Promise<BigNumber>;
 
     quoteOptionPrice(
       _optionSeries: Types.OptionSeriesStruct,
@@ -933,13 +1295,6 @@ export interface BeyondPricer extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    setDeltaBandWidth(
-      _deltaBandWidth: BigNumberish,
-      _callSlippageGradientMultipliers: BigNumberish[],
-      _putSlippageGradientMultipliers: BigNumberish[],
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
     setDeltaBorrowRates(
       _deltaBorrowRates: BeyondPricer.DeltaBorrowRatesStruct,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -947,6 +1302,16 @@ export interface BeyondPricer extends BaseContract {
 
     setFeePerContract(
       _feePerContract: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    setLowDeltaSellOptionFlatIV(
+      _lowDeltaSellOptionFlatIV: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    setLowDeltaThreshold(
+      _lowDeltaThreshold: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -961,8 +1326,23 @@ export interface BeyondPricer extends BaseContract {
     ): Promise<BigNumber>;
 
     setSlippageGradientMultipliers(
+      _tenorIndex: BigNumberish,
       _callSlippageGradientMultipliers: BigNumberish[],
       _putSlippageGradientMultipliers: BigNumberish[],
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    setSpreadCollateralMultipliers(
+      _tenorIndex: BigNumberish,
+      _callSpreadCollateralMultipliers: BigNumberish[],
+      _putSpreadCollateralMultipliers: BigNumberish[],
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    setSpreadDeltaMultipliers(
+      _tenorIndex: BigNumberish,
+      _callSpreadDeltaMultipliers: BigNumberish[],
+      _putSpreadDeltaMultipliers: BigNumberish[],
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -980,11 +1360,6 @@ export interface BeyondPricer extends BaseContract {
 
     bidAskIVSpread(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    callSlippageGradientMultipliers(
-      arg0: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
     collateralAsset(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     collateralLendingRate(
@@ -998,21 +1373,56 @@ export interface BeyondPricer extends BaseContract {
     feePerContract(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     getCallSlippageGradientMultipliers(
+      _tenorIndex: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getCallSpreadCollateralMultipliers(
+      _tenorIndex: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getCallSpreadDeltaMultipliers(
+      _tenorIndex: BigNumberish,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     getPutSlippageGradientMultipliers(
+      _tenorIndex: BigNumberish,
       overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getPutSpreadCollateralMultipliers(
+      _tenorIndex: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    getPutSpreadDeltaMultipliers(
+      _tenorIndex: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    initializeTenorParams(
+      _deltaBandWidth: BigNumberish,
+      _numberOfTenors: BigNumberish,
+      _maxTenorValue: BigNumberish,
+      _tenorPricingParams: BeyondPricer.DeltaBandMultipliersStruct[],
+      overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
     liquidityPool(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    protocol(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    putSlippageGradientMultipliers(
-      arg0: BigNumberish,
+    lowDeltaSellOptionFlatIV(
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
+
+    lowDeltaThreshold(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    maxTenorValue(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    numberOfTenors(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    protocol(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     quoteOptionPrice(
       _optionSeries: Types.OptionSeriesStruct,
@@ -1039,13 +1449,6 @@ export interface BeyondPricer extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    setDeltaBandWidth(
-      _deltaBandWidth: BigNumberish,
-      _callSlippageGradientMultipliers: BigNumberish[],
-      _putSlippageGradientMultipliers: BigNumberish[],
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
     setDeltaBorrowRates(
       _deltaBorrowRates: BeyondPricer.DeltaBorrowRatesStruct,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -1053,6 +1456,16 @@ export interface BeyondPricer extends BaseContract {
 
     setFeePerContract(
       _feePerContract: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setLowDeltaSellOptionFlatIV(
+      _lowDeltaSellOptionFlatIV: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setLowDeltaThreshold(
+      _lowDeltaThreshold: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
@@ -1067,8 +1480,23 @@ export interface BeyondPricer extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     setSlippageGradientMultipliers(
+      _tenorIndex: BigNumberish,
       _callSlippageGradientMultipliers: BigNumberish[],
       _putSlippageGradientMultipliers: BigNumberish[],
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setSpreadCollateralMultipliers(
+      _tenorIndex: BigNumberish,
+      _callSpreadCollateralMultipliers: BigNumberish[],
+      _putSpreadCollateralMultipliers: BigNumberish[],
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setSpreadDeltaMultipliers(
+      _tenorIndex: BigNumberish,
+      _callSpreadDeltaMultipliers: BigNumberish[],
+      _putSpreadDeltaMultipliers: BigNumberish[],
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
