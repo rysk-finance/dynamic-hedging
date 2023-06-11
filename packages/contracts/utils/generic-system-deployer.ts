@@ -53,17 +53,17 @@ const maxiExpiry = 86400 * 50
 let callMultipliers = [
 	toWei("3.1"),
 	toWei("3.2"),
-	toWei("3.6"),
-	toWei("3.8"),
-	toWei("3.9"),
+	toWei("3.3"),
+	toWei("3.4"),
+	toWei("3.5"),
 ]
 
 let putMultipliers = [
 	toWei("3.8"),
-	toWei("3.6"),
-	toWei("3.4"),
-	toWei("3.2"),
-	toWei("3.0"),
+	toWei("3.9"),
+	toWei("4.1"),
+	toWei("4.2"),
+	toWei("4.5"),
 ]
 
 export async function deploySystem(
