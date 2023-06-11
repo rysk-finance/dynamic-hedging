@@ -708,6 +708,7 @@ export async function localQuoteOptionPrice(
 		pricer,
 		isSell
 	)
+	console.log({bsQ})
 	const slip = await applySlippageLocally(
 		pricer,
 		catalogue,
@@ -718,6 +719,7 @@ export async function localQuoteOptionPrice(
 		isSell,
 		netDhvExposure
 	)
+	console.log(bsQ * slip)
 	let spread = 0
 
 	spread = await applySpreadLocally(
@@ -733,6 +735,7 @@ export async function localQuoteOptionPrice(
 	if (spread < 0) {
 		spread = 0
 	}
+	console.log(spread)
 	const totalPremium = isSell ? Math.max(bsQ * slip - spread, 0) : bsQ * slip + spread
 	if (
 		isSell &&
@@ -781,6 +784,7 @@ export async function applySlippageLocally(
 			parseFloat(fromWei(await beyondPricer.deltaBandWidth()))
 	)
 	const tenorIndexAndRemainder = await getTenorIndexAndRemainder(optionSeries.expiration, beyondPricer)
+	console.log(tenorIndexAndRemainder, deltaBandIndex);
 	if (parseFloat(fromWei(optionDelta)) < 0) {
 		modifiedSlippageGradient =
 			parseFloat(fromWei(slippageGradient)) *
@@ -1052,7 +1056,8 @@ export async function applyLinearInterpolation(
 	} else {
 		throw new Error('Invalid Mode for Pricing param');
 	}
-	return parseFloat(fromWei(y1)) + remainder * parseFloat(fromWei(y2)) - parseFloat(fromWei((y1)))
+	console.log(y1, y2, remainder, y2.sub(y1));
+	return parseFloat(fromWei(y1)) + remainder * (parseFloat(fromWei(y2)) - parseFloat(fromWei((y1))))
 
 }
 
