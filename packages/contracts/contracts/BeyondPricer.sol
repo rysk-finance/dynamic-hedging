@@ -22,6 +22,7 @@ import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 
 import "hardhat/console.sol";
+
 /**
  *  @title Contract used for all user facing options interactions
  *  @dev Interacts with liquidityPool to write options and quote their prices.
@@ -230,11 +231,11 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		uint16 _maxTenorValue,
 		DeltaBandMultipliers[] memory _tenorPricingParams
 	) external {
-		_onlyGovernor();
+		_onlyManager();
 		if (_tenorPricingParams.length != _numberOfTenors) {
 			revert InvalidTenorArrayLength();
 		}
-		for (uint16 i = 0; i < numberOfTenors; i++) {
+		for (uint16 i = 0; i < _numberOfTenors; i++) {
 			if (
 				_tenorPricingParams[i].callSlippageGradientMultipliers.length != ONE_DELTA / _deltaBandWidth ||
 				_tenorPricingParams[i].putSlippageGradientMultipliers.length != ONE_DELTA / _deltaBandWidth ||
@@ -370,7 +371,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			_getSlippageMultiplier(_optionSeries, _amount, delta, isSell, netDhvExposure)
 		);
 		console.log("slippage premium");
-		console.log(premium * _amount / 1e18);
+		console.log((premium * _amount) / 1e18);
 		int spread = _getSpreadValue(
 			isSell,
 			_optionSeries,
@@ -417,19 +418,27 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	/// non-complex getters ///
 	///////////////////////////
 
-	function getCallSlippageGradientMultipliers(uint16 _tenorIndex) external view returns (uint80[] memory) {
+	function getCallSlippageGradientMultipliers(
+		uint16 _tenorIndex
+	) external view returns (uint80[] memory) {
 		return tenorPricingParams[_tenorIndex].callSlippageGradientMultipliers;
 	}
 
-	function getPutSlippageGradientMultipliers(uint16 _tenorIndex) external view returns (uint80[] memory) {
+	function getPutSlippageGradientMultipliers(
+		uint16 _tenorIndex
+	) external view returns (uint80[] memory) {
 		return tenorPricingParams[_tenorIndex].putSlippageGradientMultipliers;
 	}
 
-	function getCallSpreadCollateralMultipliers(uint16 _tenorIndex) external view returns (uint80[] memory) {
+	function getCallSpreadCollateralMultipliers(
+		uint16 _tenorIndex
+	) external view returns (uint80[] memory) {
 		return tenorPricingParams[_tenorIndex].callSpreadCollateralMultipliers;
 	}
 
-	function getPutSpreadCollateralMultipliers(uint16 _tenorIndex) external view returns (uint80[] memory) {
+	function getPutSpreadCollateralMultipliers(
+		uint16 _tenorIndex
+	) external view returns (uint80[] memory) {
 		return tenorPricingParams[_tenorIndex].putSpreadCollateralMultipliers;
 	}
 
@@ -440,7 +449,6 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	function getPutSpreadDeltaMultipliers(uint16 _tenorIndex) external view returns (int80[] memory) {
 		return tenorPricingParams[_tenorIndex].putSpreadDeltaMultipliers;
 	}
-
 
 	/**
 	 * @notice get the underlying price with just the underlying asset and strike asset
@@ -522,6 +530,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 				)
 			).div(_amount);
 		}
+		console.log("slippage multiplier", slippageMultiplier);
 	}
 
 	/**
@@ -609,6 +618,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 				);
 			}
 		}
+		console.log("collat lending premium:", collateralLendingPremium);
 	}
 
 	function _getDeltaBorrowPremium(
@@ -651,6 +661,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 				_interpolateSpreadDelta(_tenorIndex, _remainder, false, _deltaBandIndex)
 			);
 		}
+		console.log("delta borrow premium:", uint(deltaBorrowPremium));
 	}
 
 	function _getTenorIndex(
@@ -661,7 +672,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		tenorIndex = uint16(unroundedTenorIndex / 1e18); // always floors
 		remainder = unroundedTenorIndex - tenorIndex; // will be between 0 and 1e18
 	}
-	
+
 	function _interpolateSlippageGradient(
 		uint16 _tenor,
 		uint256 _remainder,
@@ -689,10 +700,12 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		if (_isPut) {
 			uint80 y1 = tenorPricingParams[_tenor].putSpreadCollateralMultipliers[_deltaBand];
 			uint80 y2 = tenorPricingParams[_tenor + 1].putSpreadCollateralMultipliers[_deltaBand];
+			console.log("spread collat:", y1, y2, _remainder);
 			return uint80(y1 + _remainder.mul(y2 - y1));
 		} else {
 			uint80 y1 = tenorPricingParams[_tenor].callSpreadCollateralMultipliers[_deltaBand];
 			uint80 y2 = tenorPricingParams[_tenor + 1].callSpreadCollateralMultipliers[_deltaBand];
+			console.log("spread collat:", y1, y2, _remainder);
 			return uint80(y1 + _remainder.mul(y2 - y1));
 		}
 	}
