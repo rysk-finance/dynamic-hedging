@@ -5,6 +5,7 @@ import "forge-std/console.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
+import "../../contracts/libraries/Types.sol";
 
 contract SlippageTest is Test {
 	using Strings for uint256;
@@ -18,20 +19,41 @@ contract SlippageTest is Test {
 		int buyLong; // when someone buys calls from DHV (we need to long to hedge)
 		int buyShort; // when someone buys puts from DHV (we need to short to hedge)
 	}
+
 	struct DeltaBandMultipliers {
 		// array of slippage multipliers for each delta band. e18
-		uint256[20] callSlippageGradientMultipliers;
-		uint256[20] putSlippageGradientMultipliers;
-		// array of spread multipliers for each delta band. e18
-		uint256[20] callSpreadMultipliers;
-		uint256[20] putSpreadMultipliers;
+		int80[5] callSlippageGradientMultipliers;
+		int80[5] putSlippageGradientMultipliers;
+		// array of collateral lending spread multipliers for each delta band. e18
+		int80[5] callSpreadCollateralMultipliers;
+		int80[5] putSpreadCollateralMultipliers;
+		// array of delta borrow spread multipliers for each delta band. e18
+		int80[5] callSpreadDeltaMultipliers;
+		int80[5] putSpreadDeltaMultipliers;
 	}
+
+	Types.OptionSeries public optionSeries =
+		Types.OptionSeries(
+			uint64(block.timestamp) + 2419200,
+			2000e18,
+			false,
+			0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2,
+			0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48,
+			0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+		);
 
 	uint256 minAmount;
 	uint256 slippageGradient;
+	// multiplier of slippageGradient for options < 10 delta
+	// reflects the cost of increased collateral used to back these kind of options relative to their price.
+	// represents the width of delta bands to apply slippage multipliers to. e18
+	uint256 public deltaBandWidth;
+	// represents the number of tenors for which we want to apply separate slippage and spread parameters to
+	uint256 public numberOfTenors;
 	// multiplier values for spread and slippage delta bands
-	DeltaBandMultipliers internal deltaBandMultipliers;
-	uint256 deltaBandWidth;
+	DeltaBandMultipliers[] internal tenorPricingParams;
+	// maximum tenor value. Units are in sqrt(seconds)
+	uint16 public maxTenorValue;
 	// BIPS
 	uint256 private constant SIX_DPS = 1_000_000;
 	uint256 private constant ONE_YEAR_SECONDS = 31557600;
@@ -44,284 +66,318 @@ contract SlippageTest is Test {
 
 	function setUp() public {
 		minAmount = 1e15;
-		deltaBandMultipliers = DeltaBandMultipliers([
-			uint256(1e18),
+		DeltaBandMultipliers[3] memory _tenorPricingParams = [
+		DeltaBandMultipliers([
+			int80(1e18),
 			1.1e18,
 			1.2e18,
 			1.3e18,
-			1.4e18,
-			1.5e18,
-			1.6e18,
-			1.7e18,
-			1.8e18,
-			1.9e18,
-			2.0e18,
-			2.1e18,
-			2.2e18,
-			2.3e18,
-			2.4e18,
-			2.5e18,
-			2.6e18,
-			2.7e18,
-			2.8e18,
-			2.9e18
+			1.4e18
 		], [
-			uint256(1e18),
+			int80(1e18),
 			1.1e18,
 			1.2e18,
 			1.3e18,
-			1.4e18,
-			1.5e18,
-			1.6e18,
-			1.7e18,
-			1.8e18,
-			1.9e18,
-			2.0e18,
-			2.1e18,
-			2.2e18,
-			2.3e18,
-			2.4e18,
-			2.5e18,
-			2.6e18,
-			2.7e18,
-			2.8e18,
-			2.9e18
+			1.4e18
 		], [
-			uint256(1e18),
+			int80(1e18),
 			1.1e18,
 			1.2e18,
 			1.3e18,
-			1.4e18,
-			1.5e18,
-			1.6e18,
-			1.7e18,
-			1.8e18,
-			1.9e18,
-			2.0e18,
-			2.1e18,
-			2.2e18,
-			2.3e18,
-			2.4e18,
-			2.5e18,
-			2.6e18,
-			2.7e18,
-			2.8e18,
-			2.9e18
+			1.4e18
 		], [
-			uint256(1e18),
+			int80(1e18),
 			1.1e18,
 			1.2e18,
 			1.3e18,
-			1.4e18,
-			1.5e18,
-			1.6e18,
-			1.7e18,
-			1.8e18,
-			1.9e18,
-			2.0e18,
+			1.4e18
+		],
+		 [
+			int80(1e18),
+			1.1e18,
+			1.2e18,
+			1.3e18,
+			1.4e18
+		], [
+			int80(1e18),
+			1.1e18,
+			1.2e18,
+			1.3e18,
+			1.4e18
+		]),
+		DeltaBandMultipliers([
+			int80(2e18),
 			2.1e18,
 			2.2e18,
 			2.3e18,
-			2.4e18,
-			2.5e18,
-			2.6e18,
-			2.7e18,
-			2.8e18,
-			2.9e18
-		]);
-		deltaBandWidth = 5e18;
+			2.4e18
+		], [
+			int80(2e18),
+			2.1e18,
+			2.2e18,
+			2.3e18,
+			2.4e18
+		], [
+			int80(2e18),
+			2.1e18,
+			2.2e18,
+			2.3e18,
+			2.4e18
+		], [
+			int80(2e18),
+			2.1e18,
+			2.2e18,
+			2.3e18,
+			2.4e18
+		], [
+			int80(2e18),
+			2.1e18,
+			2.2e18,
+			2.3e18,
+			2.4e18
+		], [
+			int80(2e18),
+			2.1e18,
+			2.2e18,
+			2.3e18,
+			2.4e18
+		]),
+		DeltaBandMultipliers([
+			int80(1e18),
+			1.1e18,
+			1.2e18,
+			1.3e18,
+			1.4e18
+		], [
+			int80(1e18),
+			1.1e18,
+			1.2e18,
+			1.3e18,
+			1.4e18
+		], [
+			int80(1e18),
+			1.1e18,
+			1.2e18,
+			1.3e18,
+			1.4e18
+		], [
+			int80(1e18),
+			1.1e18,
+			1.2e18,
+			1.3e18,
+			1.4e18
+		], [
+			int80(1e18),
+			1.1e18,
+			1.2e18,
+			1.3e18,
+			1.4e18
+		], [
+			int80(1e18),
+			1.1e18,
+			1.2e18,
+			1.3e18,
+			1.4e18
+		])
+		];
+		for (uint i; i < _tenorPricingParams.length; i++) {
+			tenorPricingParams.push(_tenorPricingParams[i]);
+		}
+		deltaBandWidth = 20e18;
+		maxTenorValue = 2800;
+		numberOfTenors = 3;
 		slippageGradient = 1e15;
 	}
 
 	function testSlippageMultiplierFuzzAmount(uint256 _amount) public {
 		vm.assume(_amount > 1e16);
 		vm.assume(_amount < 1000e18);
-		_getSlippageMultiplier(_amount, 5e17, 100e18, true);
-		_getSlippageMultiplier(_amount, -5e17, 100e18, true);
-		_getSlippageMultiplier(_amount, 5e17, -100e18, true);
-		_getSlippageMultiplier(_amount, -5e17, -100e18, true);
-		_getSlippageMultiplier(_amount, 5e17, 100e18, false);
-		_getSlippageMultiplier(_amount, -5e17, 100e18, false);
-		_getSlippageMultiplier(_amount, 5e17, -100e18, false);
-		_getSlippageMultiplier(_amount, -5e17, -100e18, false);
-		_getSlippageMultiplier(_amount, -1e16, 100e18, true);
-		_getSlippageMultiplier(_amount, 99e16, 100e18, true);
-		_getSlippageMultiplier(_amount, -1e16, -100e18, true);
-		_getSlippageMultiplier(_amount, 99e16, -100e18, true);
-		_getSlippageMultiplier(_amount, -1e16, 100e18, false);
-		_getSlippageMultiplier(_amount, 99e16, 100e18, false);
-		_getSlippageMultiplier(_amount, -1e16, -100e18, false);
-		_getSlippageMultiplier(_amount, 99e16, -100e18, false);
-		_getSlippageMultiplier(_amount, 5e17, 0, true);
-		_getSlippageMultiplier(_amount, -5e17, 0, true);
-		_getSlippageMultiplier(_amount, 5e17, -1000e18, true);
-		_getSlippageMultiplier(_amount, -5e17, -1000e18, true);
-		_getSlippageMultiplier(_amount, 5e17, 0, false);
-		_getSlippageMultiplier(_amount, -5e17, 0, false);
-		_getSlippageMultiplier(_amount, 5e17, -1000e18, false);
-		_getSlippageMultiplier(_amount, -5e17, -1000e18, false);
-		_getSlippageMultiplier(_amount, -1e16, 0, true);
-		_getSlippageMultiplier(_amount, 99e16, 0, true);
-		_getSlippageMultiplier(_amount, -1e16, -1000e18, true);
-		_getSlippageMultiplier(_amount, 99e16, -1000e18, true);
-		_getSlippageMultiplier(_amount, -1e16, 0, false);
-		_getSlippageMultiplier(_amount, 99e16, 0, false);
-		_getSlippageMultiplier(_amount, -1e16, -1000e18, false);
-		_getSlippageMultiplier(_amount, 99e16, -1000e18, false);
+		_getSlippageMultiplier(optionSeries, _amount, 5e17, 100e18, true);
+		_getSlippageMultiplier(optionSeries, _amount, -5e17, 100e18, true);
+		_getSlippageMultiplier(optionSeries, _amount, 5e17, -100e18, true);
+		_getSlippageMultiplier(optionSeries, _amount, -5e17, -100e18, true);
+		_getSlippageMultiplier(optionSeries, _amount, 5e17, 100e18, false);
+		_getSlippageMultiplier(optionSeries, _amount, -5e17, 100e18, false);
+		_getSlippageMultiplier(optionSeries, _amount, 5e17, -100e18, false);
+		_getSlippageMultiplier(optionSeries, _amount, -5e17, -100e18, false);
+		_getSlippageMultiplier(optionSeries, _amount, -1e16, 100e18, true);
+		_getSlippageMultiplier(optionSeries, _amount, 99e16, 100e18, true);
+		_getSlippageMultiplier(optionSeries, _amount, -1e16, -100e18, true);
+		_getSlippageMultiplier(optionSeries, _amount, 99e16, -100e18, true);
+		_getSlippageMultiplier(optionSeries, _amount, -1e16, 100e18, false);
+		_getSlippageMultiplier(optionSeries, _amount, 99e16, 100e18, false);
+		_getSlippageMultiplier(optionSeries, _amount, -1e16, -100e18, false);
+		_getSlippageMultiplier(optionSeries, _amount, 99e16, -100e18, false);
+		_getSlippageMultiplier(optionSeries, _amount, 5e17, 0, true);
+		_getSlippageMultiplier(optionSeries, _amount, -5e17, 0, true);
+		_getSlippageMultiplier(optionSeries, _amount, 5e17, -1000e18, true);
+		_getSlippageMultiplier(optionSeries, _amount, -5e17, -1000e18, true);
+		_getSlippageMultiplier(optionSeries, _amount, 5e17, 0, false);
+		_getSlippageMultiplier(optionSeries, _amount, -5e17, 0, false);
+		_getSlippageMultiplier(optionSeries, _amount, 5e17, -1000e18, false);
+		_getSlippageMultiplier(optionSeries, _amount, -5e17, -1000e18, false);
+		_getSlippageMultiplier(optionSeries, _amount, -1e16, 0, true);
+		_getSlippageMultiplier(optionSeries, _amount, 99e16, 0, true);
+		_getSlippageMultiplier(optionSeries, _amount, -1e16, -1000e18, true);
+		_getSlippageMultiplier(optionSeries, _amount, 99e16, -1000e18, true);
+		_getSlippageMultiplier(optionSeries, _amount, -1e16, 0, false);
+		_getSlippageMultiplier(optionSeries, _amount, 99e16, 0, false);
+		_getSlippageMultiplier(optionSeries, _amount, -1e16, -1000e18, false);
+		_getSlippageMultiplier(optionSeries, _amount, 99e16, -1000e18, false);
 	}
 
 	function testSlippageMultiplierFuzzDelta(int64 _delta) public {
 		vm.assume(_delta <= 1e18);
 		vm.assume(_delta >= -1e18);
-		_getSlippageMultiplier(1000e18, _delta, 100e18, true);
-		_getSlippageMultiplier(1000e18, _delta, 100e18, false);
-		_getSlippageMultiplier(1000e18, _delta, -100e18, true);
-		_getSlippageMultiplier(1000e18, _delta, -100e18, false);
-		_getSlippageMultiplier(1e16, _delta, 100e18, true);
-		_getSlippageMultiplier(1e16, _delta, 100e18, false);
-		_getSlippageMultiplier(1e16, _delta, -100e18, true);
-		_getSlippageMultiplier(1e16, _delta, -100e18, false);
-		_getSlippageMultiplier(50e18, _delta, 100e18, true);
-		_getSlippageMultiplier(50e18, _delta, 100e18, false);
-		_getSlippageMultiplier(50e18, _delta, -100e18, true);
-		_getSlippageMultiplier(50e18, _delta, -100e18, false);
-		_getSlippageMultiplier(1e18, _delta, 100e18, true);
-		_getSlippageMultiplier(1e18, _delta, 100e18, false);
-		_getSlippageMultiplier(1e18, _delta, -100e18, true);
-		_getSlippageMultiplier(1e18, _delta, -100e18, false);
-		_getSlippageMultiplier(1000e18, _delta, 0, true);
-		_getSlippageMultiplier(1000e18, _delta, 0, false);
-		_getSlippageMultiplier(1000e18, _delta, -1000e18, true);
-		_getSlippageMultiplier(1000e18, _delta, -1000e18, false);
-		_getSlippageMultiplier(1e16, _delta, 0, true);
-		_getSlippageMultiplier(1e16, _delta, 0, false);
-		_getSlippageMultiplier(1e16, _delta, -1000e18, true);
-		_getSlippageMultiplier(1e16, _delta, -1000e18, false);
-		_getSlippageMultiplier(50e18, _delta, 0, true);
-		_getSlippageMultiplier(50e18, _delta, 0, false);
-		_getSlippageMultiplier(50e18, _delta, -1000e18, true);
-		_getSlippageMultiplier(50e18, _delta, -1000e18, false);
-		_getSlippageMultiplier(1e18, _delta, 0, true);
-		_getSlippageMultiplier(1e18, _delta, 0, false);
-		_getSlippageMultiplier(1e18, _delta, -1000e18, true);
-		_getSlippageMultiplier(1e18, _delta, -1000e18, false);
+		_getSlippageMultiplier(optionSeries, 1000e18, _delta, 100e18, true);
+		_getSlippageMultiplier(optionSeries, 1000e18, _delta, 100e18, false);
+		_getSlippageMultiplier(optionSeries, 1000e18, _delta, -100e18, true);
+		_getSlippageMultiplier(optionSeries, 1000e18, _delta, -100e18, false);
+		_getSlippageMultiplier(optionSeries, 1e16, _delta, 100e18, true);
+		_getSlippageMultiplier(optionSeries, 1e16, _delta, 100e18, false);
+		_getSlippageMultiplier(optionSeries, 1e16, _delta, -100e18, true);
+		_getSlippageMultiplier(optionSeries, 1e16, _delta, -100e18, false);
+		_getSlippageMultiplier(optionSeries, 50e18, _delta, 100e18, true);
+		_getSlippageMultiplier(optionSeries, 50e18, _delta, 100e18, false);
+		_getSlippageMultiplier(optionSeries, 50e18, _delta, -100e18, true);
+		_getSlippageMultiplier(optionSeries, 50e18, _delta, -100e18, false);
+		_getSlippageMultiplier(optionSeries, 1e18, _delta, 100e18, true);
+		_getSlippageMultiplier(optionSeries, 1e18, _delta, 100e18, false);
+		_getSlippageMultiplier(optionSeries, 1e18, _delta, -100e18, true);
+		_getSlippageMultiplier(optionSeries, 1e18, _delta, -100e18, false);
+		_getSlippageMultiplier(optionSeries, 1000e18, _delta, 0, true);
+		_getSlippageMultiplier(optionSeries, 1000e18, _delta, 0, false);
+		_getSlippageMultiplier(optionSeries, 1000e18, _delta, -1000e18, true);
+		_getSlippageMultiplier(optionSeries, 1000e18, _delta, -1000e18, false);
+		_getSlippageMultiplier(optionSeries, 1e16, _delta, 0, true);
+		_getSlippageMultiplier(optionSeries, 1e16, _delta, 0, false);
+		_getSlippageMultiplier(optionSeries, 1e16, _delta, -1000e18, true);
+		_getSlippageMultiplier(optionSeries, 1e16, _delta, -1000e18, false);
+		_getSlippageMultiplier(optionSeries, 50e18, _delta, 0, true);
+		_getSlippageMultiplier(optionSeries, 50e18, _delta, 0, false);
+		_getSlippageMultiplier(optionSeries, 50e18, _delta, -1000e18, true);
+		_getSlippageMultiplier(optionSeries, 50e18, _delta, -1000e18, false);
+		_getSlippageMultiplier(optionSeries, 1e18, _delta, 0, true);
+		_getSlippageMultiplier(optionSeries, 1e18, _delta, 0, false);
+		_getSlippageMultiplier(optionSeries, 1e18, _delta, -1000e18, true);
+		_getSlippageMultiplier(optionSeries, 1e18, _delta, -1000e18, false);
 	}
 
 	function testSlippageMultiplierFuzzNetDhvExposure(int96 _netDhvExposure) public {
 		vm.assume(_netDhvExposure <= 5000e18);
 		vm.assume(_netDhvExposure >= -5000e18);
-		_getSlippageMultiplier(1000e18, 5e17, _netDhvExposure, true);
-		_getSlippageMultiplier(1000e18, -5e17, _netDhvExposure, false);
-		_getSlippageMultiplier(1000e18, 5e17, _netDhvExposure, true);
-		_getSlippageMultiplier(1000e18, -5e17, _netDhvExposure, false);
-		_getSlippageMultiplier(1e16, 5e17, _netDhvExposure, true);
-		_getSlippageMultiplier(1e16, -5e17, _netDhvExposure, false);
-		_getSlippageMultiplier(1e16, 5e17, _netDhvExposure, true);
-		_getSlippageMultiplier(1e16, -5e17, _netDhvExposure, false);
-		_getSlippageMultiplier(50e18, 5e17, _netDhvExposure, true);
-		_getSlippageMultiplier(50e18, -5e17, _netDhvExposure, false);
-		_getSlippageMultiplier(50e18, 5e17, _netDhvExposure, true);
-		_getSlippageMultiplier(50e18, -5e17, _netDhvExposure, false);
-		_getSlippageMultiplier(1e18, 5e17, _netDhvExposure, true);
-		_getSlippageMultiplier(1e18, -5e17, _netDhvExposure, false);
-		_getSlippageMultiplier(1e18, 5e17, _netDhvExposure, true);
-		_getSlippageMultiplier(1e18, -5e17, _netDhvExposure, false);
-		_getSlippageMultiplier(1000e18, -1e16, _netDhvExposure, true);
-		_getSlippageMultiplier(1000e18, 99e16, _netDhvExposure, false);
-		_getSlippageMultiplier(1000e18, -1e16, _netDhvExposure, true);
-		_getSlippageMultiplier(1000e18, 99e16, _netDhvExposure, false);
-		_getSlippageMultiplier(1e16, -1e16, _netDhvExposure, true);
-		_getSlippageMultiplier(1e16, 99e16, _netDhvExposure, false);
-		_getSlippageMultiplier(1e16, -1e16, _netDhvExposure, true);
-		_getSlippageMultiplier(1e16, 99e16, _netDhvExposure, false);
-		_getSlippageMultiplier(50e18, -1e16, _netDhvExposure, true);
-		_getSlippageMultiplier(50e18, 99e16, _netDhvExposure, false);
-		_getSlippageMultiplier(50e18, -1e16, _netDhvExposure, true);
-		_getSlippageMultiplier(50e18, 99e16, _netDhvExposure, false);
-		_getSlippageMultiplier(1e18, -1e16, _netDhvExposure, true);
-		_getSlippageMultiplier(1e18, 99e16, _netDhvExposure, false);
-		_getSlippageMultiplier(1e18, -1e16, _netDhvExposure, true);
-		_getSlippageMultiplier(1e18, 99e16, _netDhvExposure, false);
+		_getSlippageMultiplier(optionSeries, 1000e18, 5e17, _netDhvExposure, true);
+		_getSlippageMultiplier(optionSeries, 1000e18, -5e17, _netDhvExposure, false);
+		_getSlippageMultiplier(optionSeries, 1000e18, 5e17, _netDhvExposure, true);
+		_getSlippageMultiplier(optionSeries, 1000e18, -5e17, _netDhvExposure, false);
+		_getSlippageMultiplier(optionSeries, 1e16, 5e17, _netDhvExposure, true);
+		_getSlippageMultiplier(optionSeries, 1e16, -5e17, _netDhvExposure, false);
+		_getSlippageMultiplier(optionSeries, 1e16, 5e17, _netDhvExposure, true);
+		_getSlippageMultiplier(optionSeries, 1e16, -5e17, _netDhvExposure, false);
+		_getSlippageMultiplier(optionSeries, 50e18, 5e17, _netDhvExposure, true);
+		_getSlippageMultiplier(optionSeries, 50e18, -5e17, _netDhvExposure, false);
+		_getSlippageMultiplier(optionSeries, 50e18, 5e17, _netDhvExposure, true);
+		_getSlippageMultiplier(optionSeries, 50e18, -5e17, _netDhvExposure, false);
+		_getSlippageMultiplier(optionSeries, 1e18, 5e17, _netDhvExposure, true);
+		_getSlippageMultiplier(optionSeries, 1e18, -5e17, _netDhvExposure, false);
+		_getSlippageMultiplier(optionSeries, 1e18, 5e17, _netDhvExposure, true);
+		_getSlippageMultiplier(optionSeries, 1e18, -5e17, _netDhvExposure, false);
+		_getSlippageMultiplier(optionSeries, 1000e18, -1e16, _netDhvExposure, true);
+		_getSlippageMultiplier(optionSeries, 1000e18, 99e16, _netDhvExposure, false);
+		_getSlippageMultiplier(optionSeries, 1000e18, -1e16, _netDhvExposure, true);
+		_getSlippageMultiplier(optionSeries, 1000e18, 99e16, _netDhvExposure, false);
+		_getSlippageMultiplier(optionSeries, 1e16, -1e16, _netDhvExposure, true);
+		_getSlippageMultiplier(optionSeries, 1e16, 99e16, _netDhvExposure, false);
+		_getSlippageMultiplier(optionSeries, 1e16, -1e16, _netDhvExposure, true);
+		_getSlippageMultiplier(optionSeries, 1e16, 99e16, _netDhvExposure, false);
+		_getSlippageMultiplier(optionSeries, 50e18, -1e16, _netDhvExposure, true);
+		_getSlippageMultiplier(optionSeries, 50e18, 99e16, _netDhvExposure, false);
+		_getSlippageMultiplier(optionSeries, 50e18, -1e16, _netDhvExposure, true);
+		_getSlippageMultiplier(optionSeries, 50e18, 99e16, _netDhvExposure, false);
+		_getSlippageMultiplier(optionSeries, 1e18, -1e16, _netDhvExposure, true);
+		_getSlippageMultiplier(optionSeries, 1e18, 99e16, _netDhvExposure, false);
+		_getSlippageMultiplier(optionSeries, 1e18, -1e16, _netDhvExposure, true);
+		_getSlippageMultiplier(optionSeries, 1e18, 99e16, _netDhvExposure, false);
 	}
 
 	function testSlippageMultiplierFuzzSlippageGradient(uint64 _slippageGradient) public {
 		vm.assume(_slippageGradient >= 1e12);
 		vm.assume(_slippageGradient <= 0.01e18);
 		slippageGradient = _slippageGradient;
-		_getSlippageMultiplier(1000e18, 5e17, 100e18, true);
-		_getSlippageMultiplier(1000e18, -5e17, 100e18, false);
-		_getSlippageMultiplier(1000e18, 5e17, -100e18, true);
-		_getSlippageMultiplier(1000e18, -5e17, -100e18, false);
-		_getSlippageMultiplier(1e16, 5e17, 100e18, true);
-		_getSlippageMultiplier(1e16, -5e17, 100e18, false);
-		_getSlippageMultiplier(1e16, 5e17, -100e18, true);
-		_getSlippageMultiplier(1e16, -5e17, -100e18, false);
-		_getSlippageMultiplier(50e18, 5e17, 100e18, true);
-		_getSlippageMultiplier(50e18, -5e17, 100e18, false);
-		_getSlippageMultiplier(50e18, 5e17, -100e18, true);
-		_getSlippageMultiplier(50e18, -5e17, -100e18, false);
-		_getSlippageMultiplier(1e18, 5e17, 100e18, true);
-		_getSlippageMultiplier(1e18, -5e17, 100e18, false);
-		_getSlippageMultiplier(1e18, 5e17, -100e18, true);
-		_getSlippageMultiplier(1e18, -5e17, -100e18, false);
-		_getSlippageMultiplier(1000e18, -1e16, 100e18, true);
-		_getSlippageMultiplier(1000e18, 99e16, 100e18, false);
-		_getSlippageMultiplier(1000e18, -1e16, -100e18, true);
-		_getSlippageMultiplier(1000e18, 99e16, -100e18, false);
-		_getSlippageMultiplier(1e16, -1e16, 100e18, true);
-		_getSlippageMultiplier(1e16, 99e16, 100e18, false);
-		_getSlippageMultiplier(1e16, -1e16, -100e18, true);
-		_getSlippageMultiplier(1e16, 99e16, -100e18, false);
-		_getSlippageMultiplier(50e18, -1e16, 100e18, true);
-		_getSlippageMultiplier(50e18, 99e16, 100e18, false);
-		_getSlippageMultiplier(50e18, -1e16, -100e18, true);
-		_getSlippageMultiplier(50e18, 99e16, -100e18, false);
-		_getSlippageMultiplier(1e18, -1e16, 100e18, true);
-		_getSlippageMultiplier(1e18, 99e16, 100e18, false);
-		_getSlippageMultiplier(1e18, -1e16, -100e18, true);
-		_getSlippageMultiplier(1e18, 99e16, -100e18, false);
-		_getSlippageMultiplier(1000e18, 5e17, 0, true);
-		_getSlippageMultiplier(1000e18, -5e17, 0, false);
-		_getSlippageMultiplier(1000e18, 5e17, -1000e18, true);
-		_getSlippageMultiplier(1000e18, -5e17, -1000e18, false);
-		_getSlippageMultiplier(1e16, 5e17, 0, true);
-		_getSlippageMultiplier(1e16, -5e17, 0, false);
-		_getSlippageMultiplier(1e16, 5e17, -1000e18, true);
-		_getSlippageMultiplier(1e16, -5e17, -1000e18, false);
-		_getSlippageMultiplier(50e18, 5e17, 0, true);
-		_getSlippageMultiplier(50e18, -5e17, 0, false);
-		_getSlippageMultiplier(50e18, 5e17, -1000e18, true);
-		_getSlippageMultiplier(50e18, -5e17, -1000e18, false);
-		_getSlippageMultiplier(1e18, 5e17, 0, true);
-		_getSlippageMultiplier(1e18, -5e17, 0, false);
-		_getSlippageMultiplier(1e18, 5e17, -1000e18, true);
-		_getSlippageMultiplier(1e18, -5e17, -1000e18, false);
-		_getSlippageMultiplier(1000e18, -1e16, 0, true);
-		_getSlippageMultiplier(1000e18, 99e16, 0, false);
-		_getSlippageMultiplier(1000e18, -1e16, -1000e18, true);
-		_getSlippageMultiplier(1000e18, 99e16, -1000e18, false);
-		_getSlippageMultiplier(1e16, -1e16, 0, true);
-		_getSlippageMultiplier(1e16, 99e16, 0, false);
-		_getSlippageMultiplier(1e16, -1e16, -1000e18, true);
-		_getSlippageMultiplier(1e16, 99e16, -1000e18, false);
-		_getSlippageMultiplier(50e18, -1e16, 0, true);
-		_getSlippageMultiplier(50e18, 99e16, 0, false);
-		_getSlippageMultiplier(50e18, -1e16, -1000e18, true);
-		_getSlippageMultiplier(50e18, 99e16, -1000e18, false);
-		_getSlippageMultiplier(1e18, -1e16, 0, true);
-		_getSlippageMultiplier(1e18, 99e16, 0, false);
-		_getSlippageMultiplier(1e18, -1e16, -1000e18, true);
-		_getSlippageMultiplier(1e18, 99e16, -1000e18, false);
+		_getSlippageMultiplier(optionSeries, 1000e18, 5e17, 100e18, true);
+		_getSlippageMultiplier(optionSeries, 1000e18, -5e17, 100e18, false);
+		_getSlippageMultiplier(optionSeries, 1000e18, 5e17, -100e18, true);
+		_getSlippageMultiplier(optionSeries, 1000e18, -5e17, -100e18, false);
+		_getSlippageMultiplier(optionSeries, 1e16, 5e17, 100e18, true);
+		_getSlippageMultiplier(optionSeries, 1e16, -5e17, 100e18, false);
+		_getSlippageMultiplier(optionSeries, 1e16, 5e17, -100e18, true);
+		_getSlippageMultiplier(optionSeries, 1e16, -5e17, -100e18, false);
+		_getSlippageMultiplier(optionSeries, 50e18, 5e17, 100e18, true);
+		_getSlippageMultiplier(optionSeries, 50e18, -5e17, 100e18, false);
+		_getSlippageMultiplier(optionSeries, 50e18, 5e17, -100e18, true);
+		_getSlippageMultiplier(optionSeries, 50e18, -5e17, -100e18, false);
+		_getSlippageMultiplier(optionSeries, 1e18, 5e17, 100e18, true);
+		_getSlippageMultiplier(optionSeries, 1e18, -5e17, 100e18, false);
+		_getSlippageMultiplier(optionSeries, 1e18, 5e17, -100e18, true);
+		_getSlippageMultiplier(optionSeries, 1e18, -5e17, -100e18, false);
+		_getSlippageMultiplier(optionSeries, 1000e18, -1e16, 100e18, true);
+		_getSlippageMultiplier(optionSeries, 1000e18, 99e16, 100e18, false);
+		_getSlippageMultiplier(optionSeries, 1000e18, -1e16, -100e18, true);
+		_getSlippageMultiplier(optionSeries, 1000e18, 99e16, -100e18, false);
+		_getSlippageMultiplier(optionSeries, 1e16, -1e16, 100e18, true);
+		_getSlippageMultiplier(optionSeries, 1e16, 99e16, 100e18, false);
+		_getSlippageMultiplier(optionSeries, 1e16, -1e16, -100e18, true);
+		_getSlippageMultiplier(optionSeries, 1e16, 99e16, -100e18, false);
+		_getSlippageMultiplier(optionSeries, 50e18, -1e16, 100e18, true);
+		_getSlippageMultiplier(optionSeries, 50e18, 99e16, 100e18, false);
+		_getSlippageMultiplier(optionSeries, 50e18, -1e16, -100e18, true);
+		_getSlippageMultiplier(optionSeries, 50e18, 99e16, -100e18, false);
+		_getSlippageMultiplier(optionSeries, 1e18, -1e16, 100e18, true);
+		_getSlippageMultiplier(optionSeries, 1e18, 99e16, 100e18, false);
+		_getSlippageMultiplier(optionSeries, 1e18, -1e16, -100e18, true);
+		_getSlippageMultiplier(optionSeries, 1e18, 99e16, -100e18, false);
+		_getSlippageMultiplier(optionSeries, 1000e18, 5e17, 0, true);
+		_getSlippageMultiplier(optionSeries, 1000e18, -5e17, 0, false);
+		_getSlippageMultiplier(optionSeries, 1000e18, 5e17, -1000e18, true);
+		_getSlippageMultiplier(optionSeries, 1000e18, -5e17, -1000e18, false);
+		_getSlippageMultiplier(optionSeries, 1e16, 5e17, 0, true);
+		_getSlippageMultiplier(optionSeries, 1e16, -5e17, 0, false);
+		_getSlippageMultiplier(optionSeries, 1e16, 5e17, -1000e18, true);
+		_getSlippageMultiplier(optionSeries, 1e16, -5e17, -1000e18, false);
+		_getSlippageMultiplier(optionSeries, 50e18, 5e17, 0, true);
+		_getSlippageMultiplier(optionSeries, 50e18, -5e17, 0, false);
+		_getSlippageMultiplier(optionSeries, 50e18, 5e17, -1000e18, true);
+		_getSlippageMultiplier(optionSeries, 50e18, -5e17, -1000e18, false);
+		_getSlippageMultiplier(optionSeries, 1e18, 5e17, 0, true);
+		_getSlippageMultiplier(optionSeries, 1e18, -5e17, 0, false);
+		_getSlippageMultiplier(optionSeries, 1e18, 5e17, -1000e18, true);
+		_getSlippageMultiplier(optionSeries, 1e18, -5e17, -1000e18, false);
+		_getSlippageMultiplier(optionSeries, 1000e18, -1e16, 0, true);
+		_getSlippageMultiplier(optionSeries, 1000e18, 99e16, 0, false);
+		_getSlippageMultiplier(optionSeries, 1000e18, -1e16, -1000e18, true);
+		_getSlippageMultiplier(optionSeries, 1000e18, 99e16, -1000e18, false);
+		_getSlippageMultiplier(optionSeries, 1e16, -1e16, 0, true);
+		_getSlippageMultiplier(optionSeries, 1e16, 99e16, 0, false);
+		_getSlippageMultiplier(optionSeries, 1e16, -1e16, -1000e18, true);
+		_getSlippageMultiplier(optionSeries, 1e16, 99e16, -1000e18, false);
+		_getSlippageMultiplier(optionSeries, 50e18, -1e16, 0, true);
+		_getSlippageMultiplier(optionSeries, 50e18, 99e16, 0, false);
+		_getSlippageMultiplier(optionSeries, 50e18, -1e16, -1000e18, true);
+		_getSlippageMultiplier(optionSeries, 50e18, 99e16, -1000e18, false);
+		_getSlippageMultiplier(optionSeries, 1e18, -1e16, 0, true);
+		_getSlippageMultiplier(optionSeries, 1e18, 99e16, 0, false);
+		_getSlippageMultiplier(optionSeries, 1e18, -1e16, -1000e18, true);
+		_getSlippageMultiplier(optionSeries, 1e18, 99e16, -1000e18, false);
 	}
 
 	function testSlippageFFIGetSlippageMultiplier() public {
 		uint256 amount = 10e18;
 		int256 delta = 5e17;
 		int256 netDhvExposure = -1000e18;
-		uint256 solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, true);
+		uint256 solSlippageMul = _getSlippageMultiplier(optionSeries, amount, delta, netDhvExposure, true);
 		uint256 pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, true, slippageGradient);
 		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e7);
-		solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, false);
+		solSlippageMul = _getSlippageMultiplier(optionSeries, amount, delta, netDhvExposure, false);
 		pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, false, slippageGradient);
 		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e7);
 	}
@@ -331,10 +387,10 @@ contract SlippageTest is Test {
 		vm.assume(amount < 1000e18);
 		int256 delta = 5e17;
 		int256 netDhvExposure = -1000e18;
-		uint256 solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, true);
+		uint256 solSlippageMul = _getSlippageMultiplier(optionSeries, amount, delta, netDhvExposure, true);
 		uint256 pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, true, slippageGradient);
 		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e7);
-		solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, false);
+		solSlippageMul = _getSlippageMultiplier(optionSeries, amount, delta, netDhvExposure, false);
 		pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, false, slippageGradient);
 		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e7);
 	}
@@ -344,10 +400,10 @@ contract SlippageTest is Test {
 		vm.assume(delta >= -1e18);
 		uint256 amount = 1000e18;
 		int256 netDhvExposure = -1000e18;
-		uint256 solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, true);
+		uint256 solSlippageMul = _getSlippageMultiplier(optionSeries, amount, delta, netDhvExposure, true);
 		uint256 pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, true, slippageGradient);
 		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e9);
-		solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, false);
+		solSlippageMul = _getSlippageMultiplier(optionSeries, amount, delta, netDhvExposure, false);
 		pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, false, slippageGradient);
 		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e9);
 	}
@@ -357,10 +413,10 @@ contract SlippageTest is Test {
 		vm.assume(netDhvExposure >= -5000e18);
 		uint256 amount = 100e18;
 		int256 delta = 5e17;
-		uint256 solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, true);
+		uint256 solSlippageMul = _getSlippageMultiplier(optionSeries, amount, delta, netDhvExposure, true);
 		uint256 pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, true, slippageGradient);
 		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e10);
-		solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, false);
+		solSlippageMul = _getSlippageMultiplier(optionSeries, amount, delta, netDhvExposure, false);
 		pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, false, slippageGradient);
 		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e10);
 	}
@@ -372,10 +428,10 @@ contract SlippageTest is Test {
 		uint256 amount = 100e18;
 		int256 delta = 5e17;
 		int256 netDhvExposure = -100e18;
-		uint256 solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, true);
+		uint256 solSlippageMul = _getSlippageMultiplier(optionSeries, amount, delta, netDhvExposure, true);
 		uint256 pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, true, slippageGradient);
 		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e11);
-		solSlippageMul = _getSlippageMultiplier(amount, delta, netDhvExposure, false);
+		solSlippageMul = _getSlippageMultiplier(optionSeries, amount, delta, netDhvExposure, false);
 		pySlippageMul = getSlippageMultiplier(amount, netDhvExposure, delta, false, slippageGradient);
 		assertApproxEqAbs(solSlippageMul, pySlippageMul, 1e11);
 	}
@@ -436,8 +492,8 @@ contract SlippageTest is Test {
 		Types.OptionSeries memory _optionSeries,
 		uint256 _amount,
 		int256 _optionDelta,
-		bool _isSell,
-		int256 _netDhvExposure
+		int256 _netDhvExposure,
+		bool _isSell
 	) internal view returns (uint256 slippageMultiplier) {
 		// slippage will be exponential with the exponent being the DHV's net exposure
 		int256 newExposureExponent = _isSell
