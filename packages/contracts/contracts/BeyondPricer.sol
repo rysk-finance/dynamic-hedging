@@ -248,12 +248,12 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 				// arrays must be same length so can check all in same loop
 				// ensure no multiplier is less than 1 due to human error.
 				if (
-					_tenorPricingParams[i].callSlippageGradientMultipliers[j] < ONE_SCALE ||
-					_tenorPricingParams[i].putSlippageGradientMultipliers[j] < ONE_SCALE ||
-					_tenorPricingParams[i].callSpreadCollateralMultipliers[j] < ONE_SCALE ||
-					_tenorPricingParams[i].putSpreadCollateralMultipliers[j] < ONE_SCALE ||
-					_tenorPricingParams[i].callSpreadDeltaMultipliers[j] < int(ONE_SCALE) ||
-					_tenorPricingParams[i].putSpreadDeltaMultipliers[j] < int(ONE_SCALE)
+					_tenorPricingParams[i].callSlippageGradientMultipliers[j] < ONE_SCALE_INT ||
+					_tenorPricingParams[i].putSlippageGradientMultipliers[j] < ONE_SCALE_INT ||
+					_tenorPricingParams[i].callSpreadCollateralMultipliers[j] < ONE_SCALE_INT ||
+					_tenorPricingParams[i].putSpreadCollateralMultipliers[j] < ONE_SCALE_INT ||
+					_tenorPricingParams[i].callSpreadDeltaMultipliers[j] < ONE_SCALE_INT ||
+					_tenorPricingParams[i].putSpreadDeltaMultipliers[j] < ONE_SCALE_INT
 				) {
 					revert InvalidMultiplierValue();
 				}
