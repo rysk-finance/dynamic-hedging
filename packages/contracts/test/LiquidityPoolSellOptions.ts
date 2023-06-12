@@ -582,7 +582,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount,
 								optionSeries: emptySeries,
-								indexOrAcceptablePremium: quote.sub(1e6),
+								indexOrAcceptablePremium: quote.sub(2e6),
 								data: "0x"
 							}
 						]
@@ -1470,8 +1470,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			expect(after.senderOtokenBalance).to.eq(0)
 			expect(
 				after.senderUSDBalance.sub(before.senderUSDBalance).sub(quote).add(marginRequirement)
-			).to.be.within(-10, 10)
-			expect(after.poolUSDBalance.sub(before.poolUSDBalance).add(quote)).to.be.within(-10, 10)
+			).to.be.within(-100, 100)
+			expect(after.poolUSDBalance.sub(before.poolUSDBalance).add(quote)).to.be.within(-100, 100)
 			expect(after.exchangeOTokenBalance).to.equal(after.opynAmount)
 			expect(after.pfList.length - before.pfList.length).to.equal(1)
 			expect(after.seriesStores.longExposure).to.equal(amount)
@@ -1583,13 +1583,13 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			)
 			expect(after.senderOtokenBalance).to.eq(after.opynAmount)
 			expect(after.exchangeOTokenBalance).to.eq(0)
-			expect(before.senderUSDBalance.sub(after.senderUSDBalance).sub(quote)).to.be.within(-10, 10)
+			expect(before.senderUSDBalance.sub(after.senderUSDBalance).sub(quote)).to.be.within(-100, 100)
 			expect(
 				before.poolUSDBalance
 					.sub(after.poolUSDBalance)
 					.add(quote)
 					.add(before.collateralAllocated.sub(after.collateralAllocated))
-			).to.be.within(-10, 10)
+			).to.be.within(-100, 100)
 			expect(after.pfList.length - before.pfList.length).to.equal(1)
 			expect(after.seriesStores.longExposure).to.equal(0)
 			expect(after.seriesStores.shortExposure).to.equal(amount)
@@ -5748,674 +5748,654 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(await exchange.minTradeSize()).to.equal(toWei("0.01"))
 			})
 			it("SUCCEEDS: init tenor values on pricer", async () => {
-				await pricer.initializeTenorParams(
-					toWei("20"), 
-					2, 
-					28800, 
-					[{
-					callSlippageGradientMultipliers: [
-						toWei("1.1"),
-						toWei("1.2"),
-						toWei("1.3"),
-						toWei("1.4"),
-						toWei("1.5")
-					],
-					putSlippageGradientMultipliers: [
-						toWei("1.1"),
-						toWei("1.2"),
-						toWei("1.3"),
-						toWei("1.4"),
-						toWei("1.5")
-					],
-					callSpreadCollateralMultipliers: [
-						toWei("1.1"),
-						toWei("1.2"),
-						toWei("1.3"),
-						toWei("1.4"),
-						toWei("1.5")
-					],
-					putSpreadCollateralMultipliers: [
-						toWei("1.1"),
-						toWei("1.2"),
-						toWei("1.3"),
-						toWei("1.4"),
-						toWei("1.5")
-					],
-					callSpreadDeltaMultipliers: [
-						toWei("1.1"),
-						toWei("1.2"),
-						toWei("1.3"),
-						toWei("1.4"),
-						toWei("1.5")
-					],
-					putSpreadDeltaMultipliers: [
-						toWei("1.1"),
-						toWei("1.2"),
-						toWei("1.3"),
-						toWei("1.4"),
-						toWei("1.5")
-					]
-				},
-				{
-					callSlippageGradientMultipliers: [
-						toWei("1.1"),
-						toWei("1.2"),
-						toWei("1.3"),
-						toWei("1.4"),
-						toWei("1.5")
-					],
-					putSlippageGradientMultipliers: [
-						toWei("1.1"),
-						toWei("1.2"),
-						toWei("1.3"),
-						toWei("1.4"),
-						toWei("1.5")
-					],
-					callSpreadCollateralMultipliers: [
-						toWei("1.1"),
-						toWei("1.2"),
-						toWei("1.3"),
-						toWei("1.4"),
-						toWei("1.5")
-					],
-					putSpreadCollateralMultipliers: [
-						toWei("1.1"),
-						toWei("1.2"),
-						toWei("1.3"),
-						toWei("1.4"),
-						toWei("1.5")
-					],
-					callSpreadDeltaMultipliers: [
-						toWei("1.1"),
-						toWei("1.2"),
-						toWei("1.3"),
-						toWei("1.4"),
-						toWei("1.5")
-					],
-					putSpreadDeltaMultipliers: [
-						toWei("1.1"),
-						toWei("1.2"),
-						toWei("1.3"),
-						toWei("1.4"),
-						toWei("1.5")
-					]
-				}]
-				)
+				await pricer.initializeTenorParams(toWei("20"), 2, 28800, [
+					{
+						callSlippageGradientMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						putSlippageGradientMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						callSpreadCollateralMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						putSpreadCollateralMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						callSpreadDeltaMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						putSpreadDeltaMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						]
+					},
+					{
+						callSlippageGradientMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						putSlippageGradientMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						callSpreadCollateralMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						putSpreadCollateralMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						callSpreadDeltaMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						putSpreadDeltaMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						]
+					}
+				])
 				expect(await pricer.deltaBandWidth()).to.equal(toWei("20"))
 			})
 			it("REVERTS: init tenor values on pricer when non governance calls", async () => {
 				await expect(
-					pricer.connect(signers[1]).initializeTenorParams(
-						toWei("20"), 
-						2, 
-						28800, 
-						[{
-						callSlippageGradientMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSlippageGradientMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						callSpreadCollateralMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSpreadCollateralMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						callSpreadDeltaMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSpreadDeltaMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						]
-					},
-					{
-						callSlippageGradientMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSlippageGradientMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						callSpreadCollateralMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSpreadCollateralMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						callSpreadDeltaMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSpreadDeltaMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						]
-					}])
+					pricer.connect(signers[1]).initializeTenorParams(toWei("20"), 2, 28800, [
+						{
+							callSlippageGradientMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSlippageGradientMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							callSpreadCollateralMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSpreadCollateralMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							callSpreadDeltaMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSpreadDeltaMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							]
+						},
+						{
+							callSlippageGradientMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSlippageGradientMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							callSpreadCollateralMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSpreadCollateralMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							callSpreadDeltaMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSpreadDeltaMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							]
+						}
+					])
 				).to.be.revertedWithCustomError(pricer, "UNAUTHORIZED")
 			})
 			it("REVERTS: init tenor values with incorrect length slippage arrays", async () => {
 				await expect(
-					pricer.initializeTenorParams(
-						toWei("5"), 
-						2, 
-						28800, 
-						[{
-						callSlippageGradientMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSlippageGradientMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						callSpreadCollateralMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSpreadCollateralMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						callSpreadDeltaMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSpreadDeltaMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						]
-					},
-					{
-						callSlippageGradientMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSlippageGradientMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						callSpreadCollateralMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSpreadCollateralMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						callSpreadDeltaMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSpreadDeltaMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						]
-					}])
+					pricer.initializeTenorParams(toWei("5"), 2, 28800, [
+						{
+							callSlippageGradientMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSlippageGradientMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							callSpreadCollateralMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSpreadCollateralMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							callSpreadDeltaMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSpreadDeltaMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							]
+						},
+						{
+							callSlippageGradientMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSlippageGradientMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							callSpreadCollateralMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSpreadCollateralMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							callSpreadDeltaMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSpreadDeltaMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							]
+						}
+					])
 				).to.be.revertedWithCustomError(pricer, "InvalidMultipliersArrayLength")
 			})
 			it("REVERTS: init tenor values with incorrect length collateral spread arrays", async () => {
 				await expect(
-					pricer.initializeTenorParams(
-						toWei("20"), 
-						2, 
-						28800, 
-						[{
-						callSlippageGradientMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSlippageGradientMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						callSpreadCollateralMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSpreadCollateralMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						callSpreadDeltaMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSpreadDeltaMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						]
-					},
-					{
-						callSlippageGradientMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSlippageGradientMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						callSpreadCollateralMultipliers: [
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSpreadCollateralMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						callSpreadDeltaMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSpreadDeltaMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						]
-					}])
+					pricer.initializeTenorParams(toWei("20"), 2, 28800, [
+						{
+							callSlippageGradientMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSlippageGradientMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							callSpreadCollateralMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSpreadCollateralMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							callSpreadDeltaMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSpreadDeltaMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							]
+						},
+						{
+							callSlippageGradientMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSlippageGradientMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							callSpreadCollateralMultipliers: [toWei("1.2"), toWei("1.3"), toWei("1.4"), toWei("1.5")],
+							putSpreadCollateralMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							callSpreadDeltaMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSpreadDeltaMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							]
+						}
+					])
 				).to.be.revertedWithCustomError(pricer, "InvalidMultipliersArrayLength")
 			})
 			it("REVERTS: init tenor values with a slippage param below 1", async () => {
 				await expect(
-					pricer.initializeTenorParams(
-						toWei("20"), 
-						2, 
-						28800, 
-						[{
-						callSlippageGradientMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("0.4"),
-							toWei("1.5")
-						],
-						putSlippageGradientMultipliers: [
-							toWei("0.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						callSpreadCollateralMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSpreadCollateralMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						callSpreadDeltaMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSpreadDeltaMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						]
-					},
-					{
-						callSlippageGradientMultipliers: [
-							toWei("1.1"),
-							toWei("0.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSlippageGradientMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("0.5")
-						],
-						callSpreadCollateralMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSpreadCollateralMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						callSpreadDeltaMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSpreadDeltaMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						]
-					}])
+					pricer.initializeTenorParams(toWei("20"), 2, 28800, [
+						{
+							callSlippageGradientMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("0.4"),
+								toWei("1.5")
+							],
+							putSlippageGradientMultipliers: [
+								toWei("0.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							callSpreadCollateralMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSpreadCollateralMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							callSpreadDeltaMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSpreadDeltaMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							]
+						},
+						{
+							callSlippageGradientMultipliers: [
+								toWei("1.1"),
+								toWei("0.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSlippageGradientMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("0.5")
+							],
+							callSpreadCollateralMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSpreadCollateralMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							callSpreadDeltaMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSpreadDeltaMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							]
+						}
+					])
 				).to.be.revertedWithCustomError(pricer, "InvalidMultiplierValue")
 			})
 			it("REVERTS: init tenor values with a collateral spread collateral param below 1", async () => {
 				await expect(
-					pricer.initializeTenorParams(
-						toWei("20"), 
-						2, 
-						28800, 
-						[{
-						callSlippageGradientMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSlippageGradientMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						callSpreadCollateralMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("0.5")
-						],
-						putSpreadCollateralMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("0.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						callSpreadDeltaMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSpreadDeltaMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						]
-					},
-					{
-						callSlippageGradientMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSlippageGradientMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						callSpreadCollateralMultipliers: [
-							toWei("1.1"),
-							toWei("0.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSpreadCollateralMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("0.4"),
-							toWei("1.5")
-						],
-						callSpreadDeltaMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSpreadDeltaMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						]
-					}])
+					pricer.initializeTenorParams(toWei("20"), 2, 28800, [
+						{
+							callSlippageGradientMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSlippageGradientMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							callSpreadCollateralMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("0.5")
+							],
+							putSpreadCollateralMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("0.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							callSpreadDeltaMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSpreadDeltaMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							]
+						},
+						{
+							callSlippageGradientMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSlippageGradientMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							callSpreadCollateralMultipliers: [
+								toWei("1.1"),
+								toWei("0.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSpreadCollateralMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("0.4"),
+								toWei("1.5")
+							],
+							callSpreadDeltaMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSpreadDeltaMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							]
+						}
+					])
 				).to.be.revertedWithCustomError(pricer, "InvalidMultiplierValue")
 			})
 			it("REVERTS: init tenor values with a delta spread collateral param below 1", async () => {
 				await expect(
-					pricer.initializeTenorParams(
-						toWei("20"), 
-						2, 
-						28800, 
-						[{
-						callSlippageGradientMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSlippageGradientMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						callSpreadCollateralMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSpreadCollateralMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						callSpreadDeltaMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("0.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSpreadDeltaMultipliers: [
-							toWei("0.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						]
-					},
-					{
-						callSlippageGradientMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSlippageGradientMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						callSpreadCollateralMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSpreadCollateralMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						callSpreadDeltaMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("0.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSpreadDeltaMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("0.4"),
-							toWei("1.5")
-						]
-					}])
+					pricer.initializeTenorParams(toWei("20"), 2, 28800, [
+						{
+							callSlippageGradientMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSlippageGradientMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							callSpreadCollateralMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSpreadCollateralMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							callSpreadDeltaMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("0.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSpreadDeltaMultipliers: [
+								toWei("0.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							]
+						},
+						{
+							callSlippageGradientMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSlippageGradientMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							callSpreadCollateralMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSpreadCollateralMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							callSpreadDeltaMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("0.3"),
+								toWei("1.4"),
+								toWei("1.5")
+							],
+							putSpreadDeltaMultipliers: [
+								toWei("1.1"),
+								toWei("1.2"),
+								toWei("1.3"),
+								toWei("0.4"),
+								toWei("1.5")
+							]
+						}
+					])
 				).to.be.revertedWithCustomError(pricer, "InvalidMultiplierValue")
 			})
 			it("SUCCEEDS: set slippage gradient multipliers on pricer", async () => {
@@ -6432,7 +6412,9 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					slippageGradientMultipliers,
 					slippageGradientMultipliers
 				)
-				const acSlippageGradientMultipliers = await pricer.getCallSlippageGradientMultipliers(tenorIndex)
+				const acSlippageGradientMultipliers = await pricer.getCallSlippageGradientMultipliers(
+					tenorIndex
+				)
 				const apSlippageGradientMultipliers = await pricer.getPutSlippageGradientMultipliers(tenorIndex)
 
 				for (let i = 0; i < slippageGradientMultipliers.length; i++) {

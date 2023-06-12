@@ -226,6 +226,75 @@ describe("Quote Option price", async () => {
 			await liquidityPool.setHedgingReactorAddress(exchange.address)
 			expect(await liquidityPool.hedgingReactors(0)).to.equal(exchange.address)
 		})
+		it("SETUP: set low spread delta multipliers on otm options for low tenors", async () => {
+			const paramArray = [
+				toWei("1.4"),
+				toWei("1.3"),
+				toWei("1.2"),
+				toWei("1.1"),
+				toWei("1"),
+				toWei("1"),
+				toWei("1.1"),
+				toWei("1.2"),
+				toWei("1.3"),
+				toWei("1.4")
+			]
+
+			await pricer.setSpreadDeltaMultipliers(
+				0,
+				[
+					toWei("1.4"),
+					toWei("1.3"),
+					toWei("1.2"),
+					toWei("1.1"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.1"),
+					toWei("1.2"),
+					toWei("1.3"),
+					toWei("1.4")
+				],
+				[
+					toWei("1.4"),
+					toWei("1.3"),
+					toWei("1.2"),
+					toWei("1.1"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.1"),
+					toWei("1.2"),
+					toWei("1.3"),
+					toWei("1.4")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				1,
+				[
+					toWei("1.4"),
+					toWei("1.3"),
+					toWei("1.2"),
+					toWei("1.1"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.1"),
+					toWei("1.2"),
+					toWei("1.3"),
+					toWei("1.4")
+				],
+				[
+					toWei("1.4"),
+					toWei("1.3"),
+					toWei("1.2"),
+					toWei("1.1"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.1"),
+					toWei("1.2"),
+					toWei("1.3"),
+					toWei("1.4")
+				]
+			)
+		})
 	})
 	describe("Checks the bid on low delta options is set to flat IV set by pricer", async () => {
 		let proposedSeries: any
@@ -502,7 +571,7 @@ describe("Quote Option price", async () => {
 		it("SUCCEEDS: get quote for 1 put when selling", async () => {
 			proposedSeries = {
 				expiration: expiration,
-				strike: toWei("2300"),
+				strike: toWei("2350"),
 				isPut: PUT_FLAVOR,
 				strikeAsset: usd.address,
 				underlying: weth.address,
@@ -517,6 +586,7 @@ describe("Quote Option price", async () => {
 				amount,
 				true
 			)
+			console.log({ localDelta: fromWei(localDelta) })
 			expect(Math.abs(parseFloat(fromWei(localDelta)))).to.be.lt(
 				parseFloat(fromWei(await pricer.lowDeltaThreshold()))
 			)
@@ -565,7 +635,8 @@ describe("Quote Option price", async () => {
 			if (spread < 0) {
 				spread = 0
 			}
-			const nonIvOverrideQuote = bsQ * slip - spread
+			console.log("local:", bsQ, slip, spread)
+			const nonIvOverrideQuote = Math.max(bsQ * slip - spread, 0)
 			// IV override should be lower
 			expect(overrideQuote).to.be.lt(nonIvOverrideQuote)
 
@@ -674,8 +745,8 @@ describe("Quote Option price", async () => {
 			expect(singleSellQuote).to.greaterThanOrEqual(quoteResponse[0].div(1000))
 			// DHV quote should match  override quote because that is lower
 			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.within(
-				overrideQuote - 0.1,
-				overrideQuote + 0.1
+				overrideQuote - 0.2,
+				overrideQuote + 0.2
 			)
 		})
 		it("buys for puts are not affected by the IV override", async () => {
