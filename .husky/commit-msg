@@ -1,0 +1,26 @@
+#!/bin/sh
+
+# Variables
+COMMIT_MSG_FILE=$1
+COMMIT_SOURCE=$2
+hint=$(cat "$COMMIT_MSG_FILE")
+
+# Logical checks
+is_interactive_commit() {
+  [ -z "$COMMIT_SOURCE" ] || [ "$COMMIT_SOURCE" = "message" ]
+}
+
+has_ticket_number() {
+  echo "$hint" | grep '^RYSK-[0-9][0-9]*' > /dev/null 2>&1
+}
+
+is_not_head() {
+  branch_name=$(git rev-parse --abbrev-ref HEAD)
+  [ "$branch_name" != "HEAD" ]
+}
+
+# Run
+if is_interactive_commit && is_not_head && ! has_ticket_number
+then
+  echo "${branch_name}: ${hint}" > "$COMMIT_MSG_FILE"
+fi
