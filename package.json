@@ -26,8 +26,7 @@
         "black-scholes": "^1.1.0",
         "dayjs": "^1.11.7",
         "ethers": "5.7.2",
-        "greeks": "^1.0.0",
-        "husky": "^8.0.3"
+        "greeks": "^1.0.0"
     },
     "devDependencies": {
         "@types/node": "^18.x.x",
@@ -37,6 +36,7 @@
         "eslint": "^8.41.0",
         "eslint-config-prettier": "^8.8.0",
         "eslint-plugin-react": "^7.32.2",
+        "husky": "^8.0.3",
         "prettier": "^2.8.8",
         "typescript": "^5.0.4"
     }
