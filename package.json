@@ -19,7 +19,8 @@
         ]
     },
     "scripts": {
-        "deps:upgrade": "yarn upgrade-interactive --latest"
+        "deps:upgrade": "yarn upgrade-interactive --latest",
+        "postinstall": "node -e \"process.exit(process.env.NODE_ENV == 'production' ? 0 : 1)\" || husky install"
     },
     "dependencies": {
         "black-scholes": "^1.1.0",
@@ -35,6 +36,7 @@
         "eslint": "^8.41.0",
         "eslint-config-prettier": "^8.8.0",
         "eslint-plugin-react": "^7.32.2",
+        "husky": "^8.0.3",
         "prettier": "^2.8.8",
         "typescript": "^5.0.4"
     }
