@@ -425,7 +425,7 @@ contract SlippageTest is Test {
 
 	// FUNCTION TO BE FUZZED
 
-	/**
+/**
 	 * @notice function to add slippage to orders to prevent over-exposure to a single option type
 	 * @param _amount amount of options contracts being traded. e18
 	 * @param _optionDelta the delta exposure of the option
@@ -433,10 +433,11 @@ contract SlippageTest is Test {
 	 * @param _isSell true if someone is selling option to DHV. False if they're buying from DHV
 	 */
 	function _getSlippageMultiplier(
+		Types.OptionSeries memory _optionSeries,
 		uint256 _amount,
 		int256 _optionDelta,
-		int256 _netDhvExposure,
-		bool _isSell
+		bool _isSell,
+		int256 _netDhvExposure
 	) internal view returns (uint256 slippageMultiplier) {
 		// slippage will be exponential with the exponent being the DHV's net exposure
 		int256 newExposureExponent = _isSell
@@ -447,13 +448,14 @@ contract SlippageTest is Test {
 		// not using math library here, want to reduce to a non e18 integer
 		// integer division rounds down to nearest integer
 		uint256 deltaBandIndex = (uint256(_optionDelta.abs()) * 100) / deltaBandWidth;
-		if (_optionDelta > 0) {
+		(uint16 tenorIndex, int256 remainder) = _getTenorIndex(_optionSeries.expiration);
+		if (_optionDelta < 0) {
 			modifiedSlippageGradient = slippageGradient.mul(
-				deltaBandMultipliers.callSlippageGradientMultipliers[deltaBandIndex]
+				_interpolateSlippageGradient(tenorIndex, remainder, true, deltaBandIndex)
 			);
 		} else {
 			modifiedSlippageGradient = slippageGradient.mul(
-				deltaBandMultipliers.putSlippageGradientMultipliers[deltaBandIndex]
+				_interpolateSlippageGradient(tenorIndex, remainder, false, deltaBandIndex)
 			);
 		}
 		if (slippageGradient == 0) {
@@ -476,6 +478,33 @@ contract SlippageTest is Test {
 					slippageFactor.ln()
 				)
 			).div(_amount);
+		}
+	}
+
+	function _getTenorIndex(
+		uint256 _expiration
+	) internal view returns (uint16 tenorIndex, int256 remainder) {
+		// get the ratio of the square root of seconds to expiry and the max tenor value in e18 form
+		uint unroundedTenorIndex = ((((_expiration - block.timestamp) * 1e18).sqrt()) / maxTenorValue);
+		tenorIndex = uint16(unroundedTenorIndex / 1e18); // always floors
+		remainder = int256(unroundedTenorIndex - tenorIndex); // will be between 0 and 1e18
+	}
+
+	function _interpolateSlippageGradient(
+		uint16 _tenor,
+		int256 _remainder,
+		bool _isPut,
+		uint256 _deltaBand
+	) internal view returns (uint80 slippageGradientMultiplier) {
+		if (_isPut) {
+			int80 y1 = tenorPricingParams[_tenor].putSlippageGradientMultipliers[_deltaBand];
+			int80 y2 = tenorPricingParams[_tenor + 1].putSlippageGradientMultipliers[_deltaBand];
+			return uint80(int80(y1 + _remainder.mul(y2 - y1)));
+		} else {
+			int80 y1 = tenorPricingParams[_tenor].callSlippageGradientMultipliers[_deltaBand];
+			int80 y2 = tenorPricingParams[_tenor + 1].callSlippageGradientMultipliers[_deltaBand];
+			// console.log(uint(y1), uint(y2), uint(_remainder), uint(y2 - y1));
+			return uint80(int80(y1 + _remainder.mul(y2 - y1)));
 		}
 	}
 }

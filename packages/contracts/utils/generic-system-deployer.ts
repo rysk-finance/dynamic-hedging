@@ -391,9 +391,6 @@ export async function deployLiquidityPool(
 		liquidityPool.address,
 		ADDRESS_BOOK[chainId],
 		0,
-		toWei("20"),
-		5,
-		2800,
 		0,
 		{ sellLong: 15000, sellShort: 19500, buyLong: 15000, buyShort: 19500 }
 	)) as BeyondPricer

@@ -149,9 +149,6 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		address _liquidityPool,
 		address _addressBook,
 		uint256 _slippageGradient,
-		uint256 _deltaBandWidth,
-		uint16 _numberOfTenors,
-		uint16 _maxTenorValue,
 		uint256 _collateralLendingRate,
 		DeltaBorrowRates memory _deltaBorrowRates
 	) AccessControl(IAuthority(_authority)) {
