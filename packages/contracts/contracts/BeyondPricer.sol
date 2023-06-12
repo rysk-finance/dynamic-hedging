@@ -499,8 +499,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		// not using math library here, want to reduce to a non e18 integer
 		// integer division rounds down to nearest integer
 		uint256 deltaBandIndex = (uint256(_optionDelta.abs()) * 100) / deltaBandWidth;
-		(uint16 tenorIndex, uint256 remainder) = _getTenorIndex(_optionSeries.expiration);
-		console.log(tenorIndex, remainder, deltaBandIndex);
+		(uint16 tenorIndex, int256 remainder) = _getTenorIndex(_optionSeries.expiration);
+		console.log(tenorIndex, uint(remainder), deltaBandIndex);
 		if (_optionDelta < 0) {
 			modifiedSlippageGradient = slippageGradient.mul(
 				_interpolateSlippageGradient(tenorIndex, remainder, true, deltaBandIndex)
@@ -553,7 +553,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		// get duration of option in years
 		uint256 time = (_optionSeries.expiration - block.timestamp).div(ONE_YEAR_SECONDS);
 		uint256 deltaBandIndex = (uint256(_optionDelta.abs()) * 100) / deltaBandWidth;
-		(uint16 tenorIndex, uint256 remainder) = _getTenorIndex(_optionSeries.expiration);
+		(uint16 tenorIndex, int256 remainder) = _getTenorIndex(_optionSeries.expiration);
 
 		if (!_isSell) {
 			spreadPremium += int(
@@ -590,7 +590,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		uint256 _time,
 		uint256 _deltaBandIndex,
 		uint16 _tenorIndex,
-		uint256 _remainder
+		int256 _remainder
 	) internal view returns (uint256 collateralLendingPremium) {
 		uint256 netShortContracts;
 		if (_netDhvExposure <= 0) {
@@ -630,7 +630,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		uint256 _deltaBandIndex,
 		uint256 _underlyingPrice,
 		uint16 _tenorIndex,
-		uint256 _remainder
+		int256 _remainder
 	) internal view returns (int256 deltaBorrowPremium) {
 		// calculate delta borrow premium on both buy and sells
 		// dollarDelta is just a magnitude value, sign doesnt matter
@@ -667,64 +667,64 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 	function _getTenorIndex(
 		uint256 _expiration
-	) internal view returns (uint16 tenorIndex, uint256 remainder) {
+	) internal view returns (uint16 tenorIndex, int256 remainder) {
 		// get the ratio of the square root of seconds to expiry and the max tenor value in e18 form
 		uint unroundedTenorIndex = ((((_expiration - block.timestamp) * 1e18).sqrt()) / maxTenorValue);
 		tenorIndex = uint16(unroundedTenorIndex / 1e18); // always floors
-		remainder = unroundedTenorIndex - tenorIndex; // will be between 0 and 1e18
+		remainder = int256(unroundedTenorIndex - tenorIndex); // will be between 0 and 1e18
 	}
 
 	function _interpolateSlippageGradient(
 		uint16 _tenor,
-		uint256 _remainder,
+		int256 _remainder,
 		bool _isPut,
 		uint256 _deltaBand
 	) internal view returns (uint80 slippageGradientMultiplier) {
 		if (_isPut) {
-			uint80 y1 = tenorPricingParams[_tenor].putSlippageGradientMultipliers[_deltaBand];
-			uint80 y2 = tenorPricingParams[_tenor + 1].putSlippageGradientMultipliers[_deltaBand];
-			return uint80(y1 + _remainder.mul(y2 - y1));
+			int80 y1 = int80(tenorPricingParams[_tenor].putSlippageGradientMultipliers[_deltaBand]);
+			int80 y2 = int80(tenorPricingParams[_tenor + 1].putSlippageGradientMultipliers[_deltaBand]);
+			return uint80(int80(y1 + _remainder.mul(y2 - y1)));
 		} else {
-			uint80 y1 = tenorPricingParams[_tenor].callSlippageGradientMultipliers[_deltaBand];
-			uint80 y2 = tenorPricingParams[_tenor + 1].callSlippageGradientMultipliers[_deltaBand];
-			console.log(y1, y2, _remainder, y2 - y1);
-			return uint80(y1 + _remainder.mul(y2 - y1));
+			int80 y1 = int80(tenorPricingParams[_tenor].callSlippageGradientMultipliers[_deltaBand]);
+			int80 y2 = int80(tenorPricingParams[_tenor + 1].callSlippageGradientMultipliers[_deltaBand]);
+			// console.log(uint(y1), uint(y2), uint(_remainder), uint(y2 - y1));
+			return uint80(int80(y1 + _remainder.mul(y2 - y1)));
 		}
 	}
 
 	function _interpolateSpreadCollateral(
 		uint16 _tenor,
-		uint256 _remainder,
+		int256 _remainder,
 		bool _isPut,
 		uint256 _deltaBand
 	) internal view returns (uint80 spreadCollateralMultiplier) {
 		if (_isPut) {
-			uint80 y1 = tenorPricingParams[_tenor].putSpreadCollateralMultipliers[_deltaBand];
-			uint80 y2 = tenorPricingParams[_tenor + 1].putSpreadCollateralMultipliers[_deltaBand];
-			console.log("spread collat:", y1, y2, _remainder);
-			return uint80(y1 + _remainder.mul(y2 - y1));
+			int80 y1 = int80(tenorPricingParams[_tenor].putSpreadCollateralMultipliers[_deltaBand]);
+			int80 y2 = int80(tenorPricingParams[_tenor + 1].putSpreadCollateralMultipliers[_deltaBand]);
+			// console.log("spread collat:", uint(y1), uint(y2), uint(_remainder));
+			return uint80(int80(y1 + _remainder.mul(y2 - y1)));
 		} else {
-			uint80 y1 = tenorPricingParams[_tenor].callSpreadCollateralMultipliers[_deltaBand];
-			uint80 y2 = tenorPricingParams[_tenor + 1].callSpreadCollateralMultipliers[_deltaBand];
-			console.log("spread collat:", y1, y2, _remainder);
-			return uint80(y1 + _remainder.mul(y2 - y1));
+			int80 y1 = int80(tenorPricingParams[_tenor].callSpreadCollateralMultipliers[_deltaBand]);
+			int80 y2 = int80(tenorPricingParams[_tenor + 1].callSpreadCollateralMultipliers[_deltaBand]);
+			// console.log("spread collat:", uint(y1), uint(y2), uint(_remainder));
+			return uint80(int80(y1 + _remainder.mul(y2 - y1)));
 		}
 	}
 
 	function _interpolateSpreadDelta(
 		uint16 _tenor,
-		uint256 _remainder,
+		int256 _remainder,
 		bool _isPut,
 		uint256 _deltaBand
 	) internal view returns (int80 spreadDeltaMultiplier) {
 		if (_isPut) {
 			int80 y1 = tenorPricingParams[_tenor].putSpreadDeltaMultipliers[_deltaBand];
 			int80 y2 = tenorPricingParams[_tenor + 1].putSpreadDeltaMultipliers[_deltaBand];
-			return int80(y1 + int(_remainder).mul(y2 - y1));
+			return int80(y1 + _remainder.mul(y2 - y1));
 		} else {
 			int80 y1 = tenorPricingParams[_tenor].callSpreadDeltaMultipliers[_deltaBand];
 			int80 y2 = tenorPricingParams[_tenor + 1].callSpreadDeltaMultipliers[_deltaBand];
-			return int80(y1 + int(_remainder).mul(y2 - y1));
+			return int80(y1 + _remainder.mul(y2 - y1));
 		}
 	}
 

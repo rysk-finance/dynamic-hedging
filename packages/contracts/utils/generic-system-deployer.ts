@@ -50,20 +50,133 @@ const miniExpiry = 86400 * 7
 // 365 days in seconds
 const maxiExpiry = 86400 * 50
 
-let callMultipliers = [
-	toWei("3.1"),
-	toWei("3.2"),
-	toWei("3.3"),
-	toWei("3.4"),
-	toWei("3.5"),
+let callMultipliers1 = [
+	toWei("5"),
+	toWei("4"),
+	toWei("3"),
+	toWei("2"),
+	toWei("1"),
+	toWei("1"),
+	toWei("2"),
+	toWei("3"),
+	toWei("4"),
+	toWei("5")
 ]
 
-let putMultipliers = [
-	toWei("3.8"),
-	toWei("3.9"),
-	toWei("4.1"),
-	toWei("4.2"),
-	toWei("4.5"),
+let putMultipliers1 = [
+	toWei("5"),
+	toWei("4"),
+	toWei("3"),
+	toWei("2"),
+	toWei("1"),
+	toWei("1"),
+	toWei("2"),
+	toWei("3"),
+	toWei("4"),
+	toWei("5")
+]
+let callMultipliers2 = [
+	toWei("3"),
+	toWei("2.5"),
+	toWei("2"),
+	toWei("1.5"),
+	toWei("1"),
+	toWei("1"),
+	toWei("1.5"),
+	toWei("2"),
+	toWei("2.5"),
+	toWei("3")
+]
+
+let putMultipliers2 = [
+	toWei("3"),
+	toWei("2.5"),
+	toWei("2"),
+	toWei("1.5"),
+	toWei("1"),
+	toWei("1"),
+	toWei("1.5"),
+	toWei("2"),
+	toWei("2.5"),
+	toWei("3")
+]
+
+let callMultipliers3 = [
+	toWei("3"),
+	toWei("2.5"),
+	toWei("2"),
+	toWei("1.5"),
+	toWei("1"),
+	toWei("1"),
+	toWei("1.5"),
+	toWei("2"),
+	toWei("2.5"),
+	toWei("3")
+]
+
+let putMultipliers3 = [
+	toWei("1.4"),
+	toWei("1.3"),
+	toWei("1.2"),
+	toWei("1.1"),
+	toWei("1"),
+	toWei("1"),
+	toWei("1.1"),
+	toWei("1.2"),
+	toWei("1.3"),
+	toWei("1.4")
+]
+
+let callMultipliers4 = [
+	toWei("3"),
+	toWei("2.5"),
+	toWei("2"),
+	toWei("1.5"),
+	toWei("1"),
+	toWei("1"),
+	toWei("1.5"),
+	toWei("2"),
+	toWei("2.5"),
+	toWei("3")
+]
+
+let putMultipliers4 = [
+	toWei("3"),
+	toWei("2.5"),
+	toWei("2"),
+	toWei("1.5"),
+	toWei("1"),
+	toWei("1"),
+	toWei("1.5"),
+	toWei("2"),
+	toWei("2.5"),
+	toWei("3")
+]
+
+let callMultipliers5 = [
+	toWei("5"),
+	toWei("4"),
+	toWei("3"),
+	toWei("2"),
+	toWei("1"),
+	toWei("1"),
+	toWei("2"),
+	toWei("3"),
+	toWei("4"),
+	toWei("5")
+]
+
+let putMultipliers5 = [
+	toWei("5"),
+	toWei("4"),
+	toWei("3"),
+	toWei("2"),
+	toWei("1"),
+	toWei("1"),
+	toWei("2"),
+	toWei("3"),
+	toWei("4"),
+	toWei("5")
 ]
 
 export async function deploySystem(
@@ -286,18 +399,48 @@ export async function deployLiquidityPool(
 	)) as BeyondPricer
 	await pricer.setSlippageGradient(toWei("0.0001"))
 	await pricer.setBidAskIVSpread(toWei("0.01"))
-	await pricer.initializeTenorParams(
-		toWei("20"), 
-		5, 
-		2800, 
-		[
-			{callSlippageGradientMultipliers: callMultipliers, putSlippageGradientMultipliers: putMultipliers, callSpreadCollateralMultipliers: callMultipliers, putSpreadCollateralMultipliers: putMultipliers, callSpreadDeltaMultipliers: callMultipliers, putSpreadDeltaMultipliers: putMultipliers},
-			{callSlippageGradientMultipliers: callMultipliers, putSlippageGradientMultipliers: putMultipliers, callSpreadCollateralMultipliers: callMultipliers, putSpreadCollateralMultipliers: putMultipliers, callSpreadDeltaMultipliers: callMultipliers, putSpreadDeltaMultipliers: putMultipliers},
-		 	{callSlippageGradientMultipliers: callMultipliers, putSlippageGradientMultipliers: putMultipliers, callSpreadCollateralMultipliers: callMultipliers, putSpreadCollateralMultipliers: putMultipliers, callSpreadDeltaMultipliers: callMultipliers, putSpreadDeltaMultipliers: putMultipliers},
-		 	{callSlippageGradientMultipliers: callMultipliers, putSlippageGradientMultipliers: putMultipliers, callSpreadCollateralMultipliers: callMultipliers, putSpreadCollateralMultipliers: putMultipliers, callSpreadDeltaMultipliers: callMultipliers, putSpreadDeltaMultipliers: putMultipliers},
-		 	{callSlippageGradientMultipliers: callMultipliers, putSlippageGradientMultipliers: putMultipliers, callSpreadCollateralMultipliers: callMultipliers, putSpreadCollateralMultipliers: putMultipliers, callSpreadDeltaMultipliers: callMultipliers, putSpreadDeltaMultipliers: putMultipliers}
-		]
-		)
+	await pricer.initializeTenorParams(toWei("10"), 5, 2800, [
+		{
+			callSlippageGradientMultipliers: callMultipliers1,
+			putSlippageGradientMultipliers: putMultipliers1,
+			callSpreadCollateralMultipliers: callMultipliers1,
+			putSpreadCollateralMultipliers: putMultipliers1,
+			callSpreadDeltaMultipliers: callMultipliers1,
+			putSpreadDeltaMultipliers: putMultipliers1
+		},
+		{
+			callSlippageGradientMultipliers: callMultipliers2,
+			putSlippageGradientMultipliers: putMultipliers2,
+			callSpreadCollateralMultipliers: callMultipliers2,
+			putSpreadCollateralMultipliers: putMultipliers2,
+			callSpreadDeltaMultipliers: callMultipliers2,
+			putSpreadDeltaMultipliers: putMultipliers2
+		},
+		{
+			callSlippageGradientMultipliers: callMultipliers3,
+			putSlippageGradientMultipliers: putMultipliers3,
+			callSpreadCollateralMultipliers: callMultipliers3,
+			putSpreadCollateralMultipliers: putMultipliers3,
+			callSpreadDeltaMultipliers: callMultipliers3,
+			putSpreadDeltaMultipliers: putMultipliers3
+		},
+		{
+			callSlippageGradientMultipliers: callMultipliers4,
+			putSlippageGradientMultipliers: putMultipliers4,
+			callSpreadCollateralMultipliers: callMultipliers4,
+			putSpreadCollateralMultipliers: putMultipliers4,
+			callSpreadDeltaMultipliers: callMultipliers4,
+			putSpreadDeltaMultipliers: putMultipliers4
+		},
+		{
+			callSlippageGradientMultipliers: callMultipliers5,
+			putSlippageGradientMultipliers: putMultipliers5,
+			callSpreadCollateralMultipliers: callMultipliers5,
+			putSpreadCollateralMultipliers: putMultipliers5,
+			callSpreadDeltaMultipliers: callMultipliers5,
+			putSpreadDeltaMultipliers: putMultipliers5
+		}
+	])
 	// deploy libraries
 	const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
 	const interactions = await interactionsFactory.deploy()
