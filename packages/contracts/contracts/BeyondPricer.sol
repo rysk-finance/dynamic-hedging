@@ -412,6 +412,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			);
 			totalPremium = OptionsCompute.min(totalPremium, overridePremium);
 		}
+		console.log("total Premium: ", totalPremium);
 	}
 
 	///////////////////////////
