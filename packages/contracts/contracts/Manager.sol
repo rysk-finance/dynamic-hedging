@@ -314,8 +314,8 @@ contract Manager is AccessControl {
 
 	function setSlippageGradientMultipliers(
 		uint16 _tenorIndex,
-		uint80[] memory _callSlippageGradientMultipliers,
-		uint80[] memory _putSlippageGradientMultipliers
+		int80[] memory _callSlippageGradientMultipliers,
+		int80[] memory _putSlippageGradientMultipliers
 	) public {
 		_isProxyManager();
 		beyondPricer.setSlippageGradientMultipliers(
@@ -327,8 +327,8 @@ contract Manager is AccessControl {
 
 	function setSpreadCollateralMultipliers(
 		uint16 _tenorIndex,
-		uint80[] memory _callSpreadCollateralMultipliers,
-		uint80[] memory _putSpreadCollateralMultipliers
+		int80[] memory _callSpreadCollateralMultipliers,
+		int80[] memory _putSpreadCollateralMultipliers
 	) public {
 		_isProxyManager();
 		beyondPricer.setSpreadCollateralMultipliers(
