@@ -82,7 +82,28 @@ contract DHVLensMK1 {
 	}
 
 	function getExpirations() external view returns (uint64[] memory) {
-		return catalogue.getExpirations();
+		uint64[] memory allExpirations = catalogue.getExpirations();
+		bool[] memory expirationMask = new bool[](allExpirations.length);
+		uint8 validCount;
+		for (uint i; i < allExpirations.length; i++) {
+			if (allExpirations[i] < block.timestamp) {
+				continue;
+			}
+			if ((allExpirations[i] - 28800) % 86400 != 0) {
+				continue;
+			}
+			expirationMask[i] = true;
+			validCount++;
+		}
+		uint64[] memory expirations = new uint64[](validCount);
+		uint8 c;
+		for (uint i; i < expirationMask.length; i++) {
+			if (expirationMask[i]) {
+				expirations[c] = allExpirations[i];
+				c++;
+			}
+		}
+		return expirations;
 	}
 
 	function getOptionExpirationDrill(
