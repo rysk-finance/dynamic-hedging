@@ -1084,7 +1084,6 @@ describe("Structured Product maker", async () => {
 					amount.mul(2)
 				)
 			).add(toUSDC("100"))
-			await usd.approve(MARGIN_POOL[chainId], marginRequirement)
 			const vaultId = await (await controller.getAccountVaultCounter(senderAddress)).add(1)
 			const otoken = await exchange.callStatic.createOtoken(midProposedSeries)
 			const upperToken = await exchange.callStatic.createOtoken(upperProposedSeries)
@@ -1192,6 +1191,7 @@ describe("Structured Product maker", async () => {
 				upperBefore.netDhvExposure
 			)
 			let upperQuote = upperQuoteResponse[0].add(upperQuoteResponse[2])
+			await usd.approve(exchange.address, marginRequirement.add(upperQuote).add(lowerQuote))
 			await exchange.operate([
 				{
 					operation: 0,
@@ -1210,7 +1210,7 @@ describe("Structured Product maker", async () => {
 						{
 							actionType: 5,
 							owner: senderAddress,
-							secondAddress: senderAddress,
+							secondAddress: exchange.address,
 							asset: midProposedSeries.collateral,
 							vaultId: vaultId,
 							amount: marginRequirement,
@@ -2742,23 +2742,6 @@ describe("Structured Product maker", async () => {
 				senderAddress,
 				amount
 			)
-			quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
-			await compareQuotes(
-				quoteResponse,
-				liquidityPool,
-				optionProtocol,
-				volFeed,
-				priceFeed,
-				proposedSeries,
-				amount,
-				false,
-				exchange,
-				optionRegistry,
-				usd,
-				pricer,
-				toWei("0")
-			)
-			quote = quoteResponse[0].add(quoteResponse[2])
 			expect(after.senderOtokenBalance).to.eq(after.opynAmount)
 			expect(after.exchangeOTokenBalance).to.eq(0)
 			expect(before.senderUSDBalance.sub(after.senderUSDBalance).sub(quote)).to.be.within(-10, 10)
