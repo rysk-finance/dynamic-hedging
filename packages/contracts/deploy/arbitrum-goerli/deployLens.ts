@@ -3,11 +3,11 @@ import { DHVLensMK1 } from "../../types/DHVLensMK1"
 
 // update these addresses to connect to the appropriate set of contracts
 
-const usdcAddress = "0x6775842ae82bf2f0f987b10526768ad89d79536e"
-const wethAddress = "0x53320bE2A35649E9B2a0f244f9E9474929d3B699"
-const catalogueAddress = "0xFE767C13EB75686817E4be774fAEEaBE93346887"
-const pricerAddress = "0xd857e2e104D2493CE7EF12Ed04aCEAfD8b833033"
-const optionProtocolAddress = "0x20E97A4fd0633eDa3112392CC0D8BD62a846011f"
+const usdcAddress = "0x408c5755b5c7a0a28D851558eA3636CfC5b5b19d"
+const wethAddress = "0x3b3a1dE07439eeb04492Fa64A889eE25A130CDd3"
+const catalogueAddress = "0xde458dD32651F27A8895D4a92B7798Cdc4EbF2f0"
+const pricerAddress = "0xc939df369C0Fc240C975A6dEEEE77d87bCFaC259"
+const optionProtocolAddress = "0x81267CBE2d605b7Ae2328462C1EAF51a1Ab57fFd"
 
 export async function deployLens() {
 	const lensFactory = await ethers.getContractFactory("DHVLensMK1")
