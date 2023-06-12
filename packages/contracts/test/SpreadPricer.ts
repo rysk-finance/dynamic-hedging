@@ -373,106 +373,285 @@ describe("Spread Pricer testing", async () => {
 		})
 
 		it("set spread multipliers to 2x their previous values", async () => {
-			expect((await pricer.getCallSpreadCollateralMultipliers())[0]).to.eq(toWei("1.9"))
-			expect((await pricer.getPutSpreadCollateralMultipliers())[7]).to.eq(toWei("1.2"))
-			expect((await pricer.getCallSpreadDeltaMultipliers())[0]).to.eq(toWei("1.9"))
-			expect((await pricer.getPutSpreadDeltaMultipliers())[7]).to.eq(toWei("1.2"))
+			expect((await pricer.getCallSpreadCollateralMultipliers(0))[0]).to.eq(toWei("5"))
+			expect((await pricer.getPutSpreadCollateralMultipliers(0))[7]).to.eq(toWei("3"))
+			expect((await pricer.getCallSpreadDeltaMultipliers(2))[0]).to.eq(toWei("1.4"))
+			expect((await pricer.getPutSpreadDeltaMultipliers(2))[9]).to.eq(toWei("1.4"))
 			await pricer.setSpreadCollateralMultipliers(
+				0,
 				[
-					toWei("3.8"),
-					toWei("3.6"),
-					toWei("3.4"),
-					toWei("3.2"),
-					toWei("3.0"),
-					toWei("2.8"),
-					toWei("2.6"),
-					toWei("2.4"),
-					toWei("2.2"),
-					toWei("2.0"),
-					toWei("2.0"),
-					toWei("2.2"),
-					toWei("2.4"),
-					toWei("2.6"),
-					toWei("2.8"),
-					toWei("3.0"),
-					toWei("3.2"),
-					toWei("3.4"),
-					toWei("3.6"),
-					toWei("3.8")
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
 				],
 				[
-					toWei("3.8"),
-					toWei("3.6"),
-					toWei("3.4"),
-					toWei("3.2"),
-					toWei("3.0"),
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
+				]
+			)
+			await pricer.setSpreadCollateralMultipliers(
+				1,
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				],
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				]
+			)
+			await pricer.setSpreadCollateralMultipliers(
+				2,
+				[
 					toWei("2.8"),
 					toWei("2.6"),
 					toWei("2.4"),
 					toWei("2.2"),
-					toWei("2.0"),
-					toWei("2.0"),
+					toWei("2"),
+					toWei("2"),
 					toWei("2.2"),
 					toWei("2.4"),
 					toWei("2.6"),
+					toWei("2.8")
+				],
+				[
 					toWei("2.8"),
-					toWei("3.0"),
-					toWei("3.2"),
-					toWei("3.4"),
-					toWei("3.6"),
-					toWei("3.8")
+					toWei("2.6"),
+					toWei("2.4"),
+					toWei("2.2"),
+					toWei("2"),
+					toWei("2"),
+					toWei("2.2"),
+					toWei("2.4"),
+					toWei("2.6"),
+					toWei("2.8")
+				]
+			)
+			await pricer.setSpreadCollateralMultipliers(
+				3,
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				],
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				]
+			)
+			await pricer.setSpreadCollateralMultipliers(
+				4,
+				[
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
+				],
+				[
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
 				]
 			)
 			await pricer.setSpreadDeltaMultipliers(
+				0,
 				[
-					toWei("3.8"),
-					toWei("3.6"),
-					toWei("3.4"),
-					toWei("3.2"),
-					toWei("3.0"),
-					toWei("2.8"),
-					toWei("2.6"),
-					toWei("2.4"),
-					toWei("2.2"),
-					toWei("2.0"),
-					toWei("2.0"),
-					toWei("2.2"),
-					toWei("2.4"),
-					toWei("2.6"),
-					toWei("2.8"),
-					toWei("3.0"),
-					toWei("3.2"),
-					toWei("3.4"),
-					toWei("3.6"),
-					toWei("3.8")
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
 				],
 				[
-					toWei("3.8"),
-					toWei("3.6"),
-					toWei("3.4"),
-					toWei("3.2"),
-					toWei("3.0"),
-					toWei("2.8"),
-					toWei("2.6"),
-					toWei("2.4"),
-					toWei("2.2"),
-					toWei("2.0"),
-					toWei("2.0"),
-					toWei("2.2"),
-					toWei("2.4"),
-					toWei("2.6"),
-					toWei("2.8"),
-					toWei("3.0"),
-					toWei("3.2"),
-					toWei("3.4"),
-					toWei("3.6"),
-					toWei("3.8")
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
 				]
 			)
-			expect((await pricer.getCallSpreadCollateralMultipliers())[0]).to.eq(toWei("3.8"))
-			expect((await pricer.getPutSpreadCollateralMultipliers())[7]).to.eq(toWei("2.4"))
-			expect((await pricer.getCallSpreadDeltaMultipliers())[0]).to.eq(toWei("3.8"))
-			expect((await pricer.getPutSpreadDeltaMultipliers())[7]).to.eq(toWei("2.4"))
+			await pricer.setSpreadDeltaMultipliers(
+				1,
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				],
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				2,
+				[
+					toWei("2.8"),
+					toWei("2.6"),
+					toWei("2.4"),
+					toWei("2.2"),
+					toWei("2"),
+					toWei("2"),
+					toWei("2.2"),
+					toWei("2.4"),
+					toWei("2.6"),
+					toWei("2.8")
+				],
+				[
+					toWei("2.8"),
+					toWei("2.6"),
+					toWei("2.4"),
+					toWei("2.2"),
+					toWei("2"),
+					toWei("2"),
+					toWei("2.2"),
+					toWei("2.4"),
+					toWei("2.6"),
+					toWei("2.8")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				3,
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				],
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				4,
+				[
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
+				],
+				[
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
+				]
+			)
+
+			expect((await pricer.getCallSpreadCollateralMultipliers(0))[0]).to.eq(toWei("10"))
+			expect((await pricer.getPutSpreadCollateralMultipliers(0))[7]).to.eq(toWei("6"))
+			expect((await pricer.getCallSpreadDeltaMultipliers(2))[0]).to.eq(toWei("2.8"))
+			expect((await pricer.getPutSpreadDeltaMultipliers(2))[9]).to.eq(toWei("2.8"))
 		})
 		it("SUCCEEDS: get quote for 1 option when buying", async () => {
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -625,106 +804,285 @@ describe("Spread Pricer testing", async () => {
 	})
 	describe("Get quotes successfully for small and big puts", async () => {
 		it("set spread multipliers their original values", async () => {
-			expect((await pricer.getCallSpreadCollateralMultipliers())[0]).to.eq(toWei("3.8"))
-			expect((await pricer.getPutSpreadCollateralMultipliers())[7]).to.eq(toWei("2.4"))
-			expect((await pricer.getCallSpreadDeltaMultipliers())[0]).to.eq(toWei("3.8"))
-			expect((await pricer.getPutSpreadDeltaMultipliers())[7]).to.eq(toWei("2.4"))
+			expect((await pricer.getCallSpreadCollateralMultipliers(0))[0]).to.eq(toWei("10"))
+			expect((await pricer.getPutSpreadCollateralMultipliers(0))[7]).to.eq(toWei("6"))
+			expect((await pricer.getCallSpreadDeltaMultipliers(2))[0]).to.eq(toWei("2.8"))
+			expect((await pricer.getPutSpreadDeltaMultipliers(2))[9]).to.eq(toWei("2.8"))
 			await pricer.setSpreadCollateralMultipliers(
+				0,
 				[
-					toWei("1.9"),
-					toWei("1.8"),
-					toWei("1.7"),
-					toWei("1.6"),
-					toWei("1.5"),
-					toWei("1.4"),
-					toWei("1.3"),
-					toWei("1.2"),
-					toWei("1.1"),
-					toWei("1.0"),
-					toWei("1.0"),
-					toWei("1.1"),
-					toWei("1.2"),
-					toWei("1.3"),
-					toWei("1.4"),
-					toWei("1.5"),
-					toWei("1.6"),
-					toWei("1.7"),
-					toWei("1.8"),
-					toWei("1.9")
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("1"),
+					toWei("1"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5")
 				],
 				[
-					toWei("1.9"),
-					toWei("1.8"),
-					toWei("1.7"),
-					toWei("1.6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("1"),
+					toWei("1"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5")
+				]
+			)
+			await pricer.setSpreadCollateralMultipliers(
+				1,
+				[
+					toWei("3"),
+					toWei("2.5"),
+					toWei("2"),
 					toWei("1.5"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.5"),
+					toWei("2"),
+					toWei("2.5"),
+					toWei("3")
+				],
+				[
+					toWei("3"),
+					toWei("2.5"),
+					toWei("2"),
+					toWei("1.5"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.5"),
+					toWei("2"),
+					toWei("2.5"),
+					toWei("3")
+				]
+			)
+			await pricer.setSpreadCollateralMultipliers(
+				2,
+				[
 					toWei("1.4"),
 					toWei("1.3"),
 					toWei("1.2"),
 					toWei("1.1"),
-					toWei("1.0"),
-					toWei("1.0"),
+					toWei("1"),
+					toWei("1"),
 					toWei("1.1"),
 					toWei("1.2"),
 					toWei("1.3"),
+					toWei("1.4")
+				],
+				[
 					toWei("1.4"),
+					toWei("1.3"),
+					toWei("1.2"),
+					toWei("1.1"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.1"),
+					toWei("1.2"),
+					toWei("1.3"),
+					toWei("1.4")
+				]
+			)
+			await pricer.setSpreadCollateralMultipliers(
+				3,
+				[
+					toWei("3"),
+					toWei("2.5"),
+					toWei("2"),
 					toWei("1.5"),
-					toWei("1.6"),
-					toWei("1.7"),
-					toWei("1.8"),
-					toWei("1.9")
+					toWei("1"),
+					toWei("1"),
+					toWei("1.5"),
+					toWei("2"),
+					toWei("2.5"),
+					toWei("3")
+				],
+				[
+					toWei("3"),
+					toWei("2.5"),
+					toWei("2"),
+					toWei("1.5"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.5"),
+					toWei("2"),
+					toWei("2.5"),
+					toWei("3")
+				]
+			)
+			await pricer.setSpreadCollateralMultipliers(
+				4,
+				[
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("1"),
+					toWei("1"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5")
+				],
+				[
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("1"),
+					toWei("1"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5")
 				]
 			)
 			await pricer.setSpreadDeltaMultipliers(
+				0,
 				[
-					toWei("1.9"),
-					toWei("1.8"),
-					toWei("1.7"),
-					toWei("1.6"),
-					toWei("1.5"),
-					toWei("1.4"),
-					toWei("1.3"),
-					toWei("1.2"),
-					toWei("1.1"),
-					toWei("1.0"),
-					toWei("1.0"),
-					toWei("1.1"),
-					toWei("1.2"),
-					toWei("1.3"),
-					toWei("1.4"),
-					toWei("1.5"),
-					toWei("1.6"),
-					toWei("1.7"),
-					toWei("1.8"),
-					toWei("1.9")
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("1"),
+					toWei("1"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5")
 				],
 				[
-					toWei("1.9"),
-					toWei("1.8"),
-					toWei("1.7"),
-					toWei("1.6"),
-					toWei("1.5"),
-					toWei("1.4"),
-					toWei("1.3"),
-					toWei("1.2"),
-					toWei("1.1"),
-					toWei("1.0"),
-					toWei("1.0"),
-					toWei("1.1"),
-					toWei("1.2"),
-					toWei("1.3"),
-					toWei("1.4"),
-					toWei("1.5"),
-					toWei("1.6"),
-					toWei("1.7"),
-					toWei("1.8"),
-					toWei("1.9")
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("1"),
+					toWei("1"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5")
 				]
 			)
-			expect((await pricer.getCallSpreadCollateralMultipliers())[0]).to.eq(toWei("1.9"))
-			expect((await pricer.getPutSpreadCollateralMultipliers())[7]).to.eq(toWei("1.2"))
-			expect((await pricer.getCallSpreadDeltaMultipliers())[0]).to.eq(toWei("1.9"))
-			expect((await pricer.getPutSpreadDeltaMultipliers())[7]).to.eq(toWei("1.2"))
+			await pricer.setSpreadDeltaMultipliers(
+				1,
+				[
+					toWei("3"),
+					toWei("2.5"),
+					toWei("2"),
+					toWei("1.5"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.5"),
+					toWei("2"),
+					toWei("2.5"),
+					toWei("3")
+				],
+				[
+					toWei("3"),
+					toWei("2.5"),
+					toWei("2"),
+					toWei("1.5"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.5"),
+					toWei("2"),
+					toWei("2.5"),
+					toWei("3")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				2,
+				[
+					toWei("1.4"),
+					toWei("1.3"),
+					toWei("1.2"),
+					toWei("1.1"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.1"),
+					toWei("1.2"),
+					toWei("1.3"),
+					toWei("1.4")
+				],
+				[
+					toWei("1.4"),
+					toWei("1.3"),
+					toWei("1.2"),
+					toWei("1.1"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.1"),
+					toWei("1.2"),
+					toWei("1.3"),
+					toWei("1.4")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				3,
+				[
+					toWei("3"),
+					toWei("2.5"),
+					toWei("2"),
+					toWei("1.5"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.5"),
+					toWei("2"),
+					toWei("2.5"),
+					toWei("3")
+				],
+				[
+					toWei("3"),
+					toWei("2.5"),
+					toWei("2"),
+					toWei("1.5"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.5"),
+					toWei("2"),
+					toWei("2.5"),
+					toWei("3")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				4,
+				[
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("1"),
+					toWei("1"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5")
+				],
+				[
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("1"),
+					toWei("1"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5")
+				]
+			)
+
+			expect((await pricer.getCallSpreadCollateralMultipliers(0))[0]).to.eq(toWei("5"))
+			expect((await pricer.getPutSpreadCollateralMultipliers(0))[7]).to.eq(toWei("3"))
+			expect((await pricer.getCallSpreadDeltaMultipliers(2))[0]).to.eq(toWei("1.4"))
+			expect((await pricer.getPutSpreadDeltaMultipliers(2))[9]).to.eq(toWei("1.4"))
 		})
 		let proposedSeries: any
 		let singleBuyQuote: BigNumber
@@ -877,106 +1235,285 @@ describe("Spread Pricer testing", async () => {
 			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.lt(localQuoteNoSpread)
 		})
 		it("set spread multipliers to 2x their previous values", async () => {
-			expect((await pricer.getCallSpreadCollateralMultipliers())[0]).to.eq(toWei("1.9"))
-			expect((await pricer.getPutSpreadCollateralMultipliers())[7]).to.eq(toWei("1.2"))
-			expect((await pricer.getCallSpreadDeltaMultipliers())[0]).to.eq(toWei("1.9"))
-			expect((await pricer.getPutSpreadDeltaMultipliers())[7]).to.eq(toWei("1.2"))
+			expect((await pricer.getCallSpreadCollateralMultipliers(0))[3]).to.eq(toWei("2"))
+			expect((await pricer.getPutSpreadCollateralMultipliers(1))[7]).to.eq(toWei("2"))
+			expect((await pricer.getCallSpreadDeltaMultipliers(2))[4]).to.eq(toWei("1"))
+			expect((await pricer.getPutSpreadDeltaMultipliers(4))[0]).to.eq(toWei("5"))
 			await pricer.setSpreadCollateralMultipliers(
+				0,
 				[
-					toWei("3.8"),
-					toWei("3.6"),
-					toWei("3.4"),
-					toWei("3.2"),
-					toWei("3.0"),
-					toWei("2.8"),
-					toWei("2.6"),
-					toWei("2.4"),
-					toWei("2.2"),
-					toWei("2.0"),
-					toWei("2.0"),
-					toWei("2.2"),
-					toWei("2.4"),
-					toWei("2.6"),
-					toWei("2.8"),
-					toWei("3.0"),
-					toWei("3.2"),
-					toWei("3.4"),
-					toWei("3.6"),
-					toWei("3.8")
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
 				],
 				[
-					toWei("3.8"),
-					toWei("3.6"),
-					toWei("3.4"),
-					toWei("3.2"),
-					toWei("3.0"),
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
+				]
+			)
+			await pricer.setSpreadCollateralMultipliers(
+				1,
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				],
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				]
+			)
+			await pricer.setSpreadCollateralMultipliers(
+				2,
+				[
 					toWei("2.8"),
 					toWei("2.6"),
 					toWei("2.4"),
 					toWei("2.2"),
-					toWei("2.0"),
-					toWei("2.0"),
+					toWei("2"),
+					toWei("2"),
 					toWei("2.2"),
 					toWei("2.4"),
 					toWei("2.6"),
+					toWei("2.8")
+				],
+				[
 					toWei("2.8"),
-					toWei("3.0"),
-					toWei("3.2"),
-					toWei("3.4"),
-					toWei("3.6"),
-					toWei("3.8")
+					toWei("2.6"),
+					toWei("2.4"),
+					toWei("2.2"),
+					toWei("2"),
+					toWei("2"),
+					toWei("2.2"),
+					toWei("2.4"),
+					toWei("2.6"),
+					toWei("2.8")
+				]
+			)
+			await pricer.setSpreadCollateralMultipliers(
+				3,
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				],
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				]
+			)
+			await pricer.setSpreadCollateralMultipliers(
+				4,
+				[
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
+				],
+				[
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
 				]
 			)
 			await pricer.setSpreadDeltaMultipliers(
+				0,
 				[
-					toWei("3.8"),
-					toWei("3.6"),
-					toWei("3.4"),
-					toWei("3.2"),
-					toWei("3.0"),
-					toWei("2.8"),
-					toWei("2.6"),
-					toWei("2.4"),
-					toWei("2.2"),
-					toWei("2.0"),
-					toWei("2.0"),
-					toWei("2.2"),
-					toWei("2.4"),
-					toWei("2.6"),
-					toWei("2.8"),
-					toWei("3.0"),
-					toWei("3.2"),
-					toWei("3.4"),
-					toWei("3.6"),
-					toWei("3.8")
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
 				],
 				[
-					toWei("3.8"),
-					toWei("3.6"),
-					toWei("3.4"),
-					toWei("3.2"),
-					toWei("3.0"),
-					toWei("2.8"),
-					toWei("2.6"),
-					toWei("2.4"),
-					toWei("2.2"),
-					toWei("2.0"),
-					toWei("2.0"),
-					toWei("2.2"),
-					toWei("2.4"),
-					toWei("2.6"),
-					toWei("2.8"),
-					toWei("3.0"),
-					toWei("3.2"),
-					toWei("3.4"),
-					toWei("3.6"),
-					toWei("3.8")
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
 				]
 			)
-			expect((await pricer.getCallSpreadCollateralMultipliers())[0]).to.eq(toWei("3.8"))
-			expect((await pricer.getPutSpreadCollateralMultipliers())[7]).to.eq(toWei("2.4"))
-			expect((await pricer.getCallSpreadDeltaMultipliers())[0]).to.eq(toWei("3.8"))
-			expect((await pricer.getPutSpreadDeltaMultipliers())[7]).to.eq(toWei("2.4"))
+			await pricer.setSpreadDeltaMultipliers(
+				1,
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				],
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				2,
+				[
+					toWei("2.8"),
+					toWei("2.6"),
+					toWei("2.4"),
+					toWei("2.2"),
+					toWei("2"),
+					toWei("2"),
+					toWei("2.2"),
+					toWei("2.4"),
+					toWei("2.6"),
+					toWei("2.8")
+				],
+				[
+					toWei("2.8"),
+					toWei("2.6"),
+					toWei("2.4"),
+					toWei("2.2"),
+					toWei("2"),
+					toWei("2"),
+					toWei("2.2"),
+					toWei("2.4"),
+					toWei("2.6"),
+					toWei("2.8")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				3,
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				],
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				4,
+				[
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
+				],
+				[
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
+				]
+			)
+
+			expect((await pricer.getCallSpreadCollateralMultipliers(0))[3]).to.eq(toWei("4"))
+			expect((await pricer.getPutSpreadCollateralMultipliers(1))[7]).to.eq(toWei("4"))
+			expect((await pricer.getCallSpreadDeltaMultipliers(2))[4]).to.eq(toWei("2"))
+			expect((await pricer.getPutSpreadDeltaMultipliers(4))[0]).to.eq(toWei("10"))
 		})
 		it("SUCCEEDS: get quote for 1 option when buying", async () => {
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -1562,50 +2099,30 @@ describe("Spread Pricer testing", async () => {
 		it("REVERTS: set collateral spread value below 1", async () => {
 			await expect(
 				pricer.setSpreadCollateralMultipliers(
-					2,
+					4,
 					[
-						toWei("3.8"),
-						toWei("3.6"),
-						toWei("3.4"),
-						toWei("3.2"),
-						toWei("3.0"),
-						toWei("2.8"),
-						toWei("2.6"),
-						toWei("2.4"),
-						toWei("2.2"),
-						toWei("2.0"),
-						toWei("2.0"),
-						toWei("2.2"),
-						toWei("2.4"),
-						toWei("2.6"),
-						toWei("2.8"),
-						toWei("3.0"),
-						toWei("3.2"),
-						toWei("3.4"),
-						toWei("3.6"),
-						toWei("3.8")
+						toWei("10"),
+						toWei("8"),
+						toWei("6"),
+						toWei("4"),
+						toWei("2"),
+						toWei("2"),
+						toWei("4"),
+						toWei("6"),
+						toWei("8"),
+						toWei("10")
 					],
 					[
-						toWei("3.8"),
-						toWei("3.6"),
-						toWei("3.4"),
-						toWei("3.2"),
-						toWei("3.0"),
-						toWei("2.8"),
-						toWei("2.6"),
-						toWei("2.4"),
-						toWei("2.2"),
-						toWei("2.0"),
-						toWei("2.0"),
-						toWei("2.2"),
-						toWei("0.4"),
-						toWei("2.6"),
-						toWei("2.8"),
-						toWei("3.0"),
-						toWei("3.2"),
-						toWei("3.4"),
-						toWei("3.6"),
-						toWei("3.8")
+						toWei("10"),
+						toWei("8"),
+						toWei("6"),
+						toWei("4"),
+						toWei("0.2"),
+						toWei("2"),
+						toWei("4"),
+						toWei("6"),
+						toWei("8"),
+						toWei("10")
 					]
 				)
 			).to.be.revertedWithCustomError(pricer, "InvalidMultiplierValue")
@@ -1615,48 +2132,28 @@ describe("Spread Pricer testing", async () => {
 				pricer.setSpreadDeltaMultipliers(
 					2,
 					[
-						toWei("3.8"),
-						toWei("3.6"),
-						toWei("3.4"),
-						toWei("3.2"),
-						toWei("3.0"),
-						toWei("2.8"),
-						toWei("2.6"),
-						toWei("2.4"),
-						toWei("2.2"),
-						toWei("2.0"),
-						toWei("2.0"),
-						toWei("2.2"),
-						toWei("2.4"),
-						toWei("2.6"),
-						toWei("2.8"),
-						toWei("3.0"),
-						toWei("3.2"),
-						toWei("3.4"),
-						toWei("3.6"),
-						toWei("3.8")
+						toWei("10"),
+						toWei("8"),
+						toWei("6"),
+						toWei("4"),
+						toWei("2"),
+						toWei("2"),
+						toWei("4"),
+						toWei("6"),
+						toWei("8"),
+						toWei("10")
 					],
 					[
-						toWei("3.8"),
-						toWei("3.6"),
-						toWei("3.4"),
-						toWei("3.2"),
-						toWei("3.0"),
-						toWei("2.8"),
-						toWei("2.6"),
-						toWei("2.4"),
-						toWei("2.2"),
-						toWei("2.0"),
-						toWei("2.0"),
-						toWei("2.2"),
-						toWei("0.4"),
-						toWei("2.6"),
-						toWei("2.8"),
-						toWei("3.0"),
-						toWei("3.2"),
-						toWei("3.4"),
-						toWei("3.6"),
-						toWei("3.8")
+						toWei("10"),
+						toWei("8"),
+						toWei("6"),
+						toWei("4"),
+						toWei("0.2"),
+						toWei("2"),
+						toWei("4"),
+						toWei("6"),
+						toWei("8"),
+						toWei("10")
 					]
 				)
 			).to.be.revertedWithCustomError(pricer, "InvalidMultiplierValue")

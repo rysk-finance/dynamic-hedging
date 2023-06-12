@@ -102,16 +102,16 @@ let putMultipliers2 = [
 ]
 
 let callMultipliers3 = [
-	toWei("3"),
-	toWei("2.5"),
-	toWei("2"),
-	toWei("1.5"),
+	toWei("1.4"),
+	toWei("1.3"),
+	toWei("1.2"),
+	toWei("1.1"),
 	toWei("1"),
 	toWei("1"),
-	toWei("1.5"),
-	toWei("2"),
-	toWei("2.5"),
-	toWei("3")
+	toWei("1.1"),
+	toWei("1.2"),
+	toWei("1.3"),
+	toWei("1.4")
 ]
 
 let putMultipliers3 = [
