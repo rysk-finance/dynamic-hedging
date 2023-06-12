@@ -140,9 +140,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	);
 	event LowDeltaThresholdChanged(uint256 newLowDeltaThreshold, uint256 oldLowDeltaThreshold);
 	error InvalidMultipliersArrayLength();
-	error InvalidSlippageGradientMultiplierValue();
-	error InvalidSpreadCollateralMultiplierValue();
-	error InvalidSpreadDeltaMultiplierValue();
+	error InvalidMultiplierValue();
 	error InvalidTenorArrayLength();
 
 	constructor(
@@ -246,6 +244,20 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			) {
 				revert InvalidMultipliersArrayLength();
 			}
+			for (uint256 j = 0; j < _tenorPricingParams[i].callSlippageGradientMultipliers.length; j++) {
+				// arrays must be same length so can check all in same loop
+				// ensure no multiplier is less than 1 due to human error.
+				if (
+					_tenorPricingParams[i].callSlippageGradientMultipliers[j] < ONE_SCALE ||
+					_tenorPricingParams[i].putSlippageGradientMultipliers[j] < ONE_SCALE ||
+					_tenorPricingParams[i].callSpreadCollateralMultipliers[j] < ONE_SCALE ||
+					_tenorPricingParams[i].putSpreadCollateralMultipliers[j] < ONE_SCALE ||
+					_tenorPricingParams[i].callSpreadDeltaMultipliers[j] < int(ONE_SCALE) ||
+					_tenorPricingParams[i].putSpreadDeltaMultipliers[j] < int(ONE_SCALE)
+				) {
+					revert InvalidMultiplierValue();
+				}
+		}
 		}
 		numberOfTenors = _numberOfTenors;
 		maxTenorValue = _maxTenorValue;
@@ -276,7 +288,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 				_callSlippageGradientMultipliers[i] < ONE_SCALE_INT ||
 				_putSlippageGradientMultipliers[i] < ONE_SCALE_INT
 			) {
-				revert InvalidSlippageGradientMultiplierValue();
+				revert InvalidMultiplierValue();
 			}
 		}
 		tenorPricingParams[_tenorIndex]
@@ -304,7 +316,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 				_callSpreadCollateralMultipliers[i] < ONE_SCALE_INT ||
 				_putSpreadCollateralMultipliers[i] < ONE_SCALE_INT
 			) {
-				revert InvalidSpreadCollateralMultiplierValue();
+				revert InvalidMultiplierValue();
 			}
 		}
 		tenorPricingParams[_tenorIndex]
@@ -331,7 +343,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			if (
 				_callSpreadDeltaMultipliers[i] < ONE_SCALE_INT || _putSpreadDeltaMultipliers[i] < ONE_SCALE_INT
 			) {
-				revert InvalidSpreadDeltaMultiplierValue();
+				revert InvalidMultiplierValue();
 			}
 		}
 		tenorPricingParams[_tenorIndex].callSpreadDeltaMultipliers = _callSpreadDeltaMultipliers;

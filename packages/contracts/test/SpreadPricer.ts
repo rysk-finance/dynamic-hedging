@@ -1608,7 +1608,7 @@ describe("Spread Pricer testing", async () => {
 						toWei("3.8")
 					]
 				)
-			).to.be.revertedWithCustomError(pricer, "InvalidSpreadCollateralMultiplierValue")
+			).to.be.revertedWithCustomError(pricer, "InvalidMultiplierValue")
 		})
 		it("REVERTS: set delta spread value below 1", async () => {
 			await expect(
@@ -1659,7 +1659,7 @@ describe("Spread Pricer testing", async () => {
 						toWei("3.8")
 					]
 				)
-			).to.be.revertedWithCustomError(pricer, "InvalidSpreadDeltaMultiplierValue")
+			).to.be.revertedWithCustomError(pricer, "InvalidMultiplierValue")
 		})
 		it("REVERTS: set spread collateral array length of 19 ", async () => {
 			await expect(
@@ -1709,7 +1709,7 @@ describe("Spread Pricer testing", async () => {
 						toWei("3.8")
 					]
 				)
-			).to.be.revertedWithCustomError(pricer, "InvalidSpreadCollateralMultipliersArrayLength")
+			).to.be.revertedWithCustomError(pricer, "InvalidMultipliersArrayLength")
 		})
 		it("REVERTS: set spread delta array length of 19 ", async () => {
 			await expect(
@@ -1759,7 +1759,7 @@ describe("Spread Pricer testing", async () => {
 						toWei("3.8")
 					]
 				)
-			).to.be.revertedWithCustomError(pricer, "InvalidSpreadDeltaMultipliersArrayLength")
+			).to.be.revertedWithCustomError(pricer, "InvalidMultipliersArrayLength")
 		})
 	})
 })
