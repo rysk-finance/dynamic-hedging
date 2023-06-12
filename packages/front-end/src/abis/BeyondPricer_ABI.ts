@@ -84,22 +84,12 @@ export const BeyondPricerABI = [
 	},
 	{
 		"inputs": [],
+		"name": "InvalidMultiplierValue",
+		"type": "error"
+	},
+	{
+		"inputs": [],
 		"name": "InvalidMultipliersArrayLength",
-		"type": "error"
-	},
-	{
-		"inputs": [],
-		"name": "InvalidSlippageGradientMultiplierValue",
-		"type": "error"
-	},
-	{
-		"inputs": [],
-		"name": "InvalidSpreadCollateralMultiplierValue",
-		"type": "error"
-	},
-	{
-		"inputs": [],
-		"name": "InvalidSpreadDeltaMultiplierValue",
 		"type": "error"
 	},
 	{
@@ -618,9 +608,9 @@ export const BeyondPricerABI = [
 		"name": "getCallSlippageGradientMultipliers",
 		"outputs": [
 			{
-				"internalType": "uint80[]",
+				"internalType": "int80[]",
 				"name": "",
-				"type": "uint80[]"
+				"type": "int80[]"
 			}
 		],
 		"stateMutability": "view",
@@ -637,9 +627,9 @@ export const BeyondPricerABI = [
 		"name": "getCallSpreadCollateralMultipliers",
 		"outputs": [
 			{
-				"internalType": "uint80[]",
+				"internalType": "int80[]",
 				"name": "",
-				"type": "uint80[]"
+				"type": "int80[]"
 			}
 		],
 		"stateMutability": "view",
@@ -675,9 +665,9 @@ export const BeyondPricerABI = [
 		"name": "getPutSlippageGradientMultipliers",
 		"outputs": [
 			{
-				"internalType": "uint80[]",
+				"internalType": "int80[]",
 				"name": "",
-				"type": "uint80[]"
+				"type": "int80[]"
 			}
 		],
 		"stateMutability": "view",
@@ -694,9 +684,9 @@ export const BeyondPricerABI = [
 		"name": "getPutSpreadCollateralMultipliers",
 		"outputs": [
 			{
-				"internalType": "uint80[]",
+				"internalType": "int80[]",
 				"name": "",
-				"type": "uint80[]"
+				"type": "int80[]"
 			}
 		],
 		"stateMutability": "view",
@@ -741,24 +731,24 @@ export const BeyondPricerABI = [
 			{
 				"components": [
 					{
-						"internalType": "uint80[]",
+						"internalType": "int80[]",
 						"name": "callSlippageGradientMultipliers",
-						"type": "uint80[]"
+						"type": "int80[]"
 					},
 					{
-						"internalType": "uint80[]",
+						"internalType": "int80[]",
 						"name": "putSlippageGradientMultipliers",
-						"type": "uint80[]"
+						"type": "int80[]"
 					},
 					{
-						"internalType": "uint80[]",
+						"internalType": "int80[]",
 						"name": "callSpreadCollateralMultipliers",
-						"type": "uint80[]"
+						"type": "int80[]"
 					},
 					{
-						"internalType": "uint80[]",
+						"internalType": "int80[]",
 						"name": "putSpreadCollateralMultipliers",
-						"type": "uint80[]"
+						"type": "int80[]"
 					},
 					{
 						"internalType": "int80[]",
@@ -1095,14 +1085,14 @@ export const BeyondPricerABI = [
 				"type": "uint16"
 			},
 			{
-				"internalType": "uint80[]",
+				"internalType": "int80[]",
 				"name": "_callSlippageGradientMultipliers",
-				"type": "uint80[]"
+				"type": "int80[]"
 			},
 			{
-				"internalType": "uint80[]",
+				"internalType": "int80[]",
 				"name": "_putSlippageGradientMultipliers",
-				"type": "uint80[]"
+				"type": "int80[]"
 			}
 		],
 		"name": "setSlippageGradientMultipliers",
@@ -1118,14 +1108,14 @@ export const BeyondPricerABI = [
 				"type": "uint16"
 			},
 			{
-				"internalType": "uint80[]",
+				"internalType": "int80[]",
 				"name": "_callSpreadCollateralMultipliers",
-				"type": "uint80[]"
+				"type": "int80[]"
 			},
 			{
-				"internalType": "uint80[]",
+				"internalType": "int80[]",
 				"name": "_putSpreadCollateralMultipliers",
-				"type": "uint80[]"
+				"type": "int80[]"
 			}
 		],
 		"name": "setSpreadCollateralMultipliers",
