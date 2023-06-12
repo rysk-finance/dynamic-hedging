@@ -1120,6 +1120,7 @@ export async function getTenorIndexAndRemainder(expiration: any, beyondPricer: B
 	const block = await ethers.provider.getBlock(blockNum)
 	const { timestamp } = block
 	const unroundedTenorIndex = Math.sqrt(expiration - timestamp) / maxTenorValue
+	console.log("JS sqrt:", unroundedTenorIndex)
 	const tenorIndex = Math.floor(unroundedTenorIndex)
 	const remainder = unroundedTenorIndex - tenorIndex
 	return [tenorIndex, remainder]

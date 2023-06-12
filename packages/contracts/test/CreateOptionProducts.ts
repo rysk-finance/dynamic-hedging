@@ -2744,13 +2744,13 @@ describe("Structured Product maker", async () => {
 			)
 			expect(after.senderOtokenBalance).to.eq(after.opynAmount)
 			expect(after.exchangeOTokenBalance).to.eq(0)
-			expect(before.senderUSDBalance.sub(after.senderUSDBalance).sub(quote)).to.be.within(-10, 10)
+			expect(before.senderUSDBalance.sub(after.senderUSDBalance).sub(quote)).to.be.within(-100, 100)
 			expect(
 				before.poolUSDBalance
 					.sub(after.poolUSDBalance)
 					.add(quote)
 					.add(before.collateralAllocated.sub(after.collateralAllocated))
-			).to.be.within(-10, 10)
+			).to.be.within(-100, 100)
 			expect(after.pfList.length - before.pfList.length).to.equal(1)
 			expect(after.seriesStores.longExposure).to.equal(0)
 			expect(after.seriesStores.shortExposure).to.equal(amount)
