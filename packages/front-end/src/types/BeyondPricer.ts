@@ -112,7 +112,7 @@ export interface BeyondPricerInterface extends utils.Interface {
     "getPutSlippageGradientMultipliers(uint16)": FunctionFragment;
     "getPutSpreadCollateralMultipliers(uint16)": FunctionFragment;
     "getPutSpreadDeltaMultipliers(uint16)": FunctionFragment;
-    "initializeTenorParams(uint256,uint16,uint16,(uint80[],uint80[],uint80[],uint80[],int80[],int80[])[])": FunctionFragment;
+    "initializeTenorParams(uint256,uint16,uint16,(int80[],int80[],int80[],int80[],int80[],int80[])[])": FunctionFragment;
     "liquidityPool()": FunctionFragment;
     "lowDeltaSellOptionFlatIV()": FunctionFragment;
     "lowDeltaThreshold()": FunctionFragment;
@@ -130,8 +130,8 @@ export interface BeyondPricerInterface extends utils.Interface {
     "setLowDeltaThreshold(uint256)": FunctionFragment;
     "setRiskFreeRate(uint256)": FunctionFragment;
     "setSlippageGradient(uint256)": FunctionFragment;
-    "setSlippageGradientMultipliers(uint16,uint80[],uint80[])": FunctionFragment;
-    "setSpreadCollateralMultipliers(uint16,uint80[],uint80[])": FunctionFragment;
+    "setSlippageGradientMultipliers(uint16,int80[],int80[])": FunctionFragment;
+    "setSpreadCollateralMultipliers(uint16,int80[],int80[])": FunctionFragment;
     "setSpreadDeltaMultipliers(uint16,int80[],int80[])": FunctionFragment;
     "slippageGradient()": FunctionFragment;
     "strikeAsset()": FunctionFragment;
