@@ -5747,8 +5747,12 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(await exchange.maxTradeSize()).to.equal(toWei("1000"))
 				expect(await exchange.minTradeSize()).to.equal(toWei("0.01"))
 			})
-			it("SUCCEEDS: set delta band width on pricer", async () => {
-				await pricer.setDeltaBandWidth(toWei("20"), {
+			it("SUCCEEDS: init tenor values on pricer", async () => {
+				await pricer.initializeTenorParams(
+					toWei("20"), 
+					2, 
+					28800, 
+					[{
 					callSlippageGradientMultipliers: [
 						toWei("1.1"),
 						toWei("1.2"),
@@ -5791,12 +5795,61 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						toWei("1.4"),
 						toWei("1.5")
 					]
-				})
+				},
+				{
+					callSlippageGradientMultipliers: [
+						toWei("1.1"),
+						toWei("1.2"),
+						toWei("1.3"),
+						toWei("1.4"),
+						toWei("1.5")
+					],
+					putSlippageGradientMultipliers: [
+						toWei("1.1"),
+						toWei("1.2"),
+						toWei("1.3"),
+						toWei("1.4"),
+						toWei("1.5")
+					],
+					callSpreadCollateralMultipliers: [
+						toWei("1.1"),
+						toWei("1.2"),
+						toWei("1.3"),
+						toWei("1.4"),
+						toWei("1.5")
+					],
+					putSpreadCollateralMultipliers: [
+						toWei("1.1"),
+						toWei("1.2"),
+						toWei("1.3"),
+						toWei("1.4"),
+						toWei("1.5")
+					],
+					callSpreadDeltaMultipliers: [
+						toWei("1.1"),
+						toWei("1.2"),
+						toWei("1.3"),
+						toWei("1.4"),
+						toWei("1.5")
+					],
+					putSpreadDeltaMultipliers: [
+						toWei("1.1"),
+						toWei("1.2"),
+						toWei("1.3"),
+						toWei("1.4"),
+						toWei("1.5")
+					]
+				}]
+				)
 				expect(await pricer.deltaBandWidth()).to.equal(toWei("20"))
 			})
-			it("REVERTS: set delta band width on pricer when non governance calls", async () => {
+			it("REVERTS: init tenor values on pricer when non governance calls", async () => {
 				await expect(
-					pricer.connect(signers[1]).setDeltaBandWidth(toWei("20"), {
+					pricer.connect(signers[1]).initializeTenorParams(
+						toWei("20"), 
+						2, 
+						28800, 
+						[{
 						callSlippageGradientMultipliers: [
 							toWei("1.1"),
 							toWei("1.2"),
@@ -5839,12 +5892,60 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							toWei("1.4"),
 							toWei("1.5")
 						]
-					})
+					},
+					{
+						callSlippageGradientMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						putSlippageGradientMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						callSpreadCollateralMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						putSpreadCollateralMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						callSpreadDeltaMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						putSpreadDeltaMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						]
+					}])
 				).to.be.revertedWithCustomError(pricer, "UNAUTHORIZED")
 			})
-			it("REVERTS: set delta band width with incorrect length slippage arrays", async () => {
+			it("REVERTS: init tenor values with incorrect length slippage arrays", async () => {
 				await expect(
-					pricer.setDeltaBandWidth(toWei("5"), {
+					pricer.initializeTenorParams(
+						toWei("5"), 
+						2, 
+						28800, 
+						[{
 						callSlippageGradientMultipliers: [
 							toWei("1.1"),
 							toWei("1.2"),
@@ -5887,54 +5988,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							toWei("1.4"),
 							toWei("1.5")
 						]
-					})
-				).to.be.revertedWithCustomError(pricer, "InvalidSlippageGradientMultipliersArrayLength")
-			})
-			it("REVERTS: set delta band width with incorrect length collateral spread arrays", async () => {
-				await expect(
-					pricer.setDeltaBandWidth(toWei("20"), {
-						callSlippageGradientMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSlippageGradientMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						callSpreadCollateralMultipliers: [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.5")],
-						putSpreadCollateralMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						callSpreadDeltaMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						],
-						putSpreadDeltaMultipliers: [
-							toWei("1.1"),
-							toWei("1.2"),
-							toWei("1.3"),
-							toWei("1.4"),
-							toWei("1.5")
-						]
-					})
-				).to.be.revertedWithCustomError(pricer, "InvalidSpreadCollateralMultipliersArrayLength")
-			})
-			it("REVERTS: set delta band width with incorrect length delta spread arrays", async () => {
-				await expect(
-					pricer.setDeltaBandWidth(toWei("20"), {
+					},
+					{
 						callSlippageGradientMultipliers: [
 							toWei("1.1"),
 							toWei("1.2"),
@@ -5970,22 +6025,127 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							toWei("1.4"),
 							toWei("1.5")
 						],
-						putSpreadDeltaMultipliers: [toWei("1.1"), toWei("1.2"), toWei("1.3"), toWei("1.4")]
-					})
-				).to.be.revertedWithCustomError(pricer, "InvalidSpreadDeltaMultipliersArrayLength")
+						putSpreadDeltaMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						]
+					}])
+				).to.be.revertedWithCustomError(pricer, "InvalidMultipliersArrayLength")
 			})
-			it("REVERTS: set delta band width with a slippage param below 1", async () => {
+			it("REVERTS: init tenor values with incorrect length collateral spread arrays", async () => {
 				await expect(
-					pricer.setDeltaBandWidth(toWei("20"), {
+					pricer.initializeTenorParams(
+						toWei("20"), 
+						2, 
+						28800, 
+						[{
 						callSlippageGradientMultipliers: [
 							toWei("1.1"),
 							toWei("1.2"),
 							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						putSlippageGradientMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						callSpreadCollateralMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						putSpreadCollateralMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						callSpreadDeltaMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						putSpreadDeltaMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						]
+					},
+					{
+						callSlippageGradientMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						putSlippageGradientMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						callSpreadCollateralMultipliers: [
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						putSpreadCollateralMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						callSpreadDeltaMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						putSpreadDeltaMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						]
+					}])
+				).to.be.revertedWithCustomError(pricer, "InvalidMultipliersArrayLength")
+			})
+			it("REVERTS: init tenor values with a slippage param below 1", async () => {
+				await expect(
+					pricer.initializeTenorParams(
+						toWei("20"), 
+						2, 
+						28800, 
+						[{
+						callSlippageGradientMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("0.4"),
+							toWei("1.5")
+						],
+						putSlippageGradientMultipliers: [
 							toWei("0.1"),
-							toWei("1.5")
-						],
-						putSlippageGradientMultipliers: [
-							toWei("1.1"),
 							toWei("1.2"),
 							toWei("1.3"),
 							toWei("1.4"),
@@ -6019,12 +6179,60 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							toWei("1.4"),
 							toWei("1.5")
 						]
-					})
-				).to.be.revertedWithCustomError(pricer, "InvalidSlippageGradientMultiplierValue")
+					},
+					{
+						callSlippageGradientMultipliers: [
+							toWei("1.1"),
+							toWei("0.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						putSlippageGradientMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("0.5")
+						],
+						callSpreadCollateralMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						putSpreadCollateralMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						callSpreadDeltaMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						putSpreadDeltaMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						]
+					}])
+				).to.be.revertedWithCustomError(pricer, "InvalidMultiplierValue")
 			})
-			it("REVERTS: set delta band width with a collateral spread collateral param below 1", async () => {
+			it("REVERTS: init tenor values with a collateral spread collateral param below 1", async () => {
 				await expect(
-					pricer.setDeltaBandWidth(toWei("20"), {
+					pricer.initializeTenorParams(
+						toWei("20"), 
+						2, 
+						28800, 
+						[{
 						callSlippageGradientMultipliers: [
 							toWei("1.1"),
 							toWei("1.2"),
@@ -6043,13 +6251,13 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							toWei("1.1"),
 							toWei("1.2"),
 							toWei("1.3"),
-							toWei("0.8"),
-							toWei("1.5")
+							toWei("1.4"),
+							toWei("0.5")
 						],
 						putSpreadCollateralMultipliers: [
 							toWei("1.1"),
 							toWei("1.2"),
-							toWei("1.3"),
+							toWei("0.3"),
 							toWei("1.4"),
 							toWei("1.5")
 						],
@@ -6067,12 +6275,60 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 							toWei("1.4"),
 							toWei("1.5")
 						]
-					})
-				).to.be.revertedWithCustomError(pricer, "InvalidSpreadCollateralMultiplierValue")
+					},
+					{
+						callSlippageGradientMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						putSlippageGradientMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						callSpreadCollateralMultipliers: [
+							toWei("1.1"),
+							toWei("0.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						putSpreadCollateralMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("0.4"),
+							toWei("1.5")
+						],
+						callSpreadDeltaMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						putSpreadDeltaMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						]
+					}])
+				).to.be.revertedWithCustomError(pricer, "InvalidMultiplierValue")
 			})
-			it("REVERTS: set delta band width with a delta spread collateral param below 1", async () => {
+			it("REVERTS: init tenor values with a delta spread collateral param below 1", async () => {
 				await expect(
-					pricer.setDeltaBandWidth(toWei("20"), {
+					pricer.initializeTenorParams(
+						toWei("20"), 
+						2, 
+						28800, 
+						[{
 						callSlippageGradientMultipliers: [
 							toWei("1.1"),
 							toWei("1.2"),
@@ -6104,19 +6360,63 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						callSpreadDeltaMultipliers: [
 							toWei("1.1"),
 							toWei("1.2"),
+							toWei("0.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						putSpreadDeltaMultipliers: [
+							toWei("0.1"),
+							toWei("1.2"),
 							toWei("1.3"),
-							toWei("0.8"),
+							toWei("1.4"),
+							toWei("1.5")
+						]
+					},
+					{
+						callSlippageGradientMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						putSlippageGradientMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						callSpreadCollateralMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						putSpreadCollateralMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("1.3"),
+							toWei("1.4"),
+							toWei("1.5")
+						],
+						callSpreadDeltaMultipliers: [
+							toWei("1.1"),
+							toWei("1.2"),
+							toWei("0.3"),
+							toWei("1.4"),
 							toWei("1.5")
 						],
 						putSpreadDeltaMultipliers: [
 							toWei("1.1"),
 							toWei("1.2"),
 							toWei("1.3"),
-							toWei("1.4"),
+							toWei("0.4"),
 							toWei("1.5")
 						]
-					})
-				).to.be.revertedWithCustomError(pricer, "InvalidSpreadDeltaMultiplierValue")
+					}])
+				).to.be.revertedWithCustomError(pricer, "InvalidMultiplierValue")
 			})
 			it("SUCCEEDS: set slippage gradient multipliers on pricer", async () => {
 				const slippageGradientMultipliers = [
@@ -6126,7 +6426,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					utils.parseUnits("1.4", 18),
 					utils.parseUnits("1.5", 18)
 				]
-				const tenorIndex = 2
+				const tenorIndex = 1
 				await pricer.setSlippageGradientMultipliers(
 					tenorIndex,
 					slippageGradientMultipliers,
