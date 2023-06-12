@@ -40,11 +40,11 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 	struct DeltaBandMultipliers {
 		// array of slippage multipliers for each delta band. e18
-		uint80[] callSlippageGradientMultipliers;
-		uint80[] putSlippageGradientMultipliers;
+		int80[] callSlippageGradientMultipliers;
+		int80[] putSlippageGradientMultipliers;
 		// array of collateral lending spread multipliers for each delta band. e18
-		uint80[] callSpreadCollateralMultipliers;
-		uint80[] putSpreadCollateralMultipliers;
+		int80[] callSpreadCollateralMultipliers;
+		int80[] putSpreadCollateralMultipliers;
 		// array of delta borrow spread multipliers for each delta band. e18
 		int80[] callSpreadDeltaMultipliers;
 		int80[] putSpreadDeltaMultipliers;
@@ -259,8 +259,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 	function setSlippageGradientMultipliers(
 		uint16 _tenorIndex,
-		uint80[] memory _callSlippageGradientMultipliers,
-		uint80[] memory _putSlippageGradientMultipliers
+		int80[] memory _callSlippageGradientMultipliers,
+		int80[] memory _putSlippageGradientMultipliers
 	) public {
 		_onlyManager();
 		if (
@@ -273,8 +273,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			// arrays must be same length so can check both in same loop
 			// ensure no multiplier is less than 1 due to human error.
 			if (
-				_callSlippageGradientMultipliers[i] < ONE_SCALE ||
-				_putSlippageGradientMultipliers[i] < ONE_SCALE
+				_callSlippageGradientMultipliers[i] < ONE_SCALE_INT ||
+				_putSlippageGradientMultipliers[i] < ONE_SCALE_INT
 			) {
 				revert InvalidSlippageGradientMultiplierValue();
 			}
@@ -287,8 +287,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 	function setSpreadCollateralMultipliers(
 		uint16 _tenorIndex,
-		uint80[] memory _callSpreadCollateralMultipliers,
-		uint80[] memory _putSpreadCollateralMultipliers
+		int80[] memory _callSpreadCollateralMultipliers,
+		int80[] memory _putSpreadCollateralMultipliers
 	) public {
 		_onlyManager();
 		if (
@@ -301,8 +301,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			// arrays must be same length so can check both in same loop
 			// ensure no multiplier is less than 1 due to human error.
 			if (
-				_callSpreadCollateralMultipliers[i] < ONE_SCALE ||
-				_putSpreadCollateralMultipliers[i] < ONE_SCALE
+				_callSpreadCollateralMultipliers[i] < ONE_SCALE_INT ||
+				_putSpreadCollateralMultipliers[i] < ONE_SCALE_INT
 			) {
 				revert InvalidSpreadCollateralMultiplierValue();
 			}
@@ -329,8 +329,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			// arrays must be same length so can check both in same loop
 			// ensure no multiplier is less than 1 due to human error.
 			if (
-				_callSpreadDeltaMultipliers[i] < int(ONE_SCALE) ||
-				_putSpreadDeltaMultipliers[i] < int(ONE_SCALE)
+				_callSpreadDeltaMultipliers[i] < ONE_SCALE_INT || _putSpreadDeltaMultipliers[i] < ONE_SCALE_INT
 			) {
 				revert InvalidSpreadDeltaMultiplierValue();
 			}
@@ -421,25 +420,25 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 	function getCallSlippageGradientMultipliers(
 		uint16 _tenorIndex
-	) external view returns (uint80[] memory) {
+	) external view returns (int80[] memory) {
 		return tenorPricingParams[_tenorIndex].callSlippageGradientMultipliers;
 	}
 
 	function getPutSlippageGradientMultipliers(
 		uint16 _tenorIndex
-	) external view returns (uint80[] memory) {
+	) external view returns (int80[] memory) {
 		return tenorPricingParams[_tenorIndex].putSlippageGradientMultipliers;
 	}
 
 	function getCallSpreadCollateralMultipliers(
 		uint16 _tenorIndex
-	) external view returns (uint80[] memory) {
+	) external view returns (int80[] memory) {
 		return tenorPricingParams[_tenorIndex].callSpreadCollateralMultipliers;
 	}
 
 	function getPutSpreadCollateralMultipliers(
 		uint16 _tenorIndex
-	) external view returns (uint80[] memory) {
+	) external view returns (int80[] memory) {
 		return tenorPricingParams[_tenorIndex].putSpreadCollateralMultipliers;
 	}
 
@@ -681,12 +680,12 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		uint256 _deltaBand
 	) internal view returns (uint80 slippageGradientMultiplier) {
 		if (_isPut) {
-			int80 y1 = int80(tenorPricingParams[_tenor].putSlippageGradientMultipliers[_deltaBand]);
-			int80 y2 = int80(tenorPricingParams[_tenor + 1].putSlippageGradientMultipliers[_deltaBand]);
+			int80 y1 = tenorPricingParams[_tenor].putSlippageGradientMultipliers[_deltaBand];
+			int80 y2 = tenorPricingParams[_tenor + 1].putSlippageGradientMultipliers[_deltaBand];
 			return uint80(int80(y1 + _remainder.mul(y2 - y1)));
 		} else {
-			int80 y1 = int80(tenorPricingParams[_tenor].callSlippageGradientMultipliers[_deltaBand]);
-			int80 y2 = int80(tenorPricingParams[_tenor + 1].callSlippageGradientMultipliers[_deltaBand]);
+			int80 y1 = tenorPricingParams[_tenor].callSlippageGradientMultipliers[_deltaBand];
+			int80 y2 = tenorPricingParams[_tenor + 1].callSlippageGradientMultipliers[_deltaBand];
 			// console.log(uint(y1), uint(y2), uint(_remainder), uint(y2 - y1));
 			return uint80(int80(y1 + _remainder.mul(y2 - y1)));
 		}
@@ -699,13 +698,13 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		uint256 _deltaBand
 	) internal view returns (uint80 spreadCollateralMultiplier) {
 		if (_isPut) {
-			int80 y1 = int80(tenorPricingParams[_tenor].putSpreadCollateralMultipliers[_deltaBand]);
-			int80 y2 = int80(tenorPricingParams[_tenor + 1].putSpreadCollateralMultipliers[_deltaBand]);
+			int80 y1 = tenorPricingParams[_tenor].putSpreadCollateralMultipliers[_deltaBand];
+			int80 y2 = tenorPricingParams[_tenor + 1].putSpreadCollateralMultipliers[_deltaBand];
 			// console.log("spread collat:", uint(y1), uint(y2), uint(_remainder));
 			return uint80(int80(y1 + _remainder.mul(y2 - y1)));
 		} else {
-			int80 y1 = int80(tenorPricingParams[_tenor].callSpreadCollateralMultipliers[_deltaBand]);
-			int80 y2 = int80(tenorPricingParams[_tenor + 1].callSpreadCollateralMultipliers[_deltaBand]);
+			int80 y1 = tenorPricingParams[_tenor].callSpreadCollateralMultipliers[_deltaBand];
+			int80 y2 = tenorPricingParams[_tenor + 1].callSpreadCollateralMultipliers[_deltaBand];
 			// console.log("spread collat:", uint(y1), uint(y2), uint(_remainder));
 			return uint80(int80(y1 + _remainder.mul(y2 - y1)));
 		}
