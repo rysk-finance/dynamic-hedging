@@ -21,17 +21,21 @@ contract SpreadTest is Test {
 	}
 	struct DeltaBandMultipliers {
 		// array of slippage multipliers for each delta band. e18
-		uint80[20] callSlippageGradientMultipliers;
-		uint80[20] putSlippageGradientMultipliers;
+		int80[5] callSlippageGradientMultipliers;
+		int80[5] putSlippageGradientMultipliers;
 		// array of collateral lending spread multipliers for each delta band. e18
-		uint80[20] callSpreadCollateralMultipliers;
-		uint80[20] putSpreadCollateralMultipliers;
+		int80[5] callSpreadCollateralMultipliers;
+		int80[5] putSpreadCollateralMultipliers;
 		// array of delta borrow spread multipliers for each delta band. e18
-		int80[20] callSpreadDeltaMultipliers;
-		int80[20] putSpreadDeltaMultipliers;
+		int80[5] callSpreadDeltaMultipliers;
+		int80[5] putSpreadDeltaMultipliers;
 	}
+	// represents the number of tenors for which we want to apply separate slippage and spread parameters to
+	uint256 public numberOfTenors;
 	// multiplier values for spread and slippage delta bands
-	DeltaBandMultipliers internal deltaBandMultipliers;
+	DeltaBandMultipliers[] internal tenorPricingParams;
+	// maximum tenor value. Units are in sqrt(seconds)
+	uint16 public maxTenorValue;
 	uint256 deltaBandWidth;
 	uint256 public collateralLendingRate;
 	//  delta borrow rates for spread func. All denominated in 6 dps
@@ -63,133 +67,126 @@ contract SpreadTest is Test {
 		deltaBorrowRates = DeltaBorrowRates(1500, 1000, 1000, 1500);
 		collateralRequirements = 1000e18;
 		expirationLength = 2419200; // 4 weeks
-		deltaBandMultipliers = DeltaBandMultipliers([
-			uint80(1e18),
+		DeltaBandMultipliers[3] memory _tenorPricingParams = [
+		DeltaBandMultipliers([
+			int80(1e18),
 			1.1e18,
 			1.2e18,
 			1.3e18,
-			1.4e18,
-			1.5e18,
-			1.6e18,
-			1.7e18,
-			1.8e18,
-			1.9e18,
-			2.0e18,
-			2.1e18,
-			2.2e18,
-			2.3e18,
-			2.4e18,
-			2.5e18,
-			2.6e18,
-			2.7e18,
-			2.8e18,
-			2.9e18
+			1.4e18
 		], [
-			uint80(1e18),
+			int80(1e18),
 			1.1e18,
 			1.2e18,
 			1.3e18,
-			1.4e18,
-			1.5e18,
-			1.6e18,
-			1.7e18,
-			1.8e18,
-			1.9e18,
-			2.0e18,
-			2.1e18,
-			2.2e18,
-			2.3e18,
-			2.4e18,
-			2.5e18,
-			2.6e18,
-			2.7e18,
-			2.8e18,
-			2.9e18
+			1.4e18
 		], [
-			uint80(1.1e18),
+			int80(1e18),
+			1.1e18,
 			1.2e18,
 			1.3e18,
-			1.4e18,
-			1.5e18,
-			1.6e18,
-			1.7e18,
-			1.8e18,
-			1.9e18,
-			2.0e18,
-			2.1e18,
-			2.2e18,
-			2.3e18,
-			2.4e18,
-			2.5e18,
-			2.6e18,
-			2.7e18,
-			2.8e18,
-			2.9e18,
-			3.0e18
+			1.4e18
 		], [
-			uint80(1.1e18),
+			int80(1e18),
+			1.1e18,
 			1.2e18,
 			1.3e18,
-			1.4e18,
-			1.5e18,
-			1.6e18,
-			1.7e18,
-			1.8e18,
-			1.9e18,
-			2.0e18,
-			2.1e18,
-			2.2e18,
-			2.3e18,
-			2.4e18,
-			2.5e18,
-			2.6e18,
-			2.7e18,
-			2.8e18,
-			2.9e18,
-			3.0e18
-		], [
-			int80(1.2e18),
+			1.4e18
+		],
+		 [
+			int80(1e18),
+			1.1e18,
+			1.2e18,
 			1.3e18,
-			1.4e18,
-			1.5e18,
-			1.6e18,
-			1.7e18,
-			1.8e18,
-			1.9e18,
-			2.0e18,
-			2.1e18,
-			2.2e18,
-			2.3e18,
-			2.4e18,
-			2.5e18,
-			2.6e18,
-			2.7e18,
-			2.8e18,
-			2.9e18,
-			3.0e18,
-			3.1e18
+			1.4e18
 		], [
-			int80(1.2e18),
+			int80(1e18),
+			1.1e18,
+			1.2e18,
 			1.3e18,
-			1.4e18,
-			1.5e18,
-			1.6e18,
-			1.7e18,
-			1.8e18,
-			1.9e18,
-			2.0e18,
+			1.4e18
+		]),
+		DeltaBandMultipliers([
+			int80(2e18),
 			2.1e18,
 			2.2e18,
 			2.3e18,
-			2.4e18,
-			2.5e18,
-			2.6e18,
-			2.7e18,
-			2.8e18,
-			2.9e18,
-			3.0e18,
-			3.1e18
-		]);
+			2.4e18
+		], [
+			int80(2e18),
+			2.1e18,
+			2.2e18,
+			2.3e18,
+			2.4e18
+		], [
+			int80(2e18),
+			2.1e18,
+			2.2e18,
+			2.3e18,
+			2.4e18
+		], [
+			int80(2e18),
+			2.1e18,
+			2.2e18,
+			2.3e18,
+			2.4e18
+		], [
+			int80(2e18),
+			2.1e18,
+			2.2e18,
+			2.3e18,
+			2.4e18
+		], [
+			int80(2e18),
+			2.1e18,
+			2.2e18,
+			2.3e18,
+			2.4e18
+		]),
+		DeltaBandMultipliers([
+			int80(1e18),
+			1.1e18,
+			1.2e18,
+			1.3e18,
+			1.4e18
+		], [
+			int80(1e18),
+			1.1e18,
+			1.2e18,
+			1.3e18,
+			1.4e18
+		], [
+			int80(1e18),
+			1.1e18,
+			1.2e18,
+			1.3e18,
+			1.4e18
+		], [
+			int80(1e18),
+			1.1e18,
+			1.2e18,
+			1.3e18,
+			1.4e18
+		], [
+			int80(1e18),
+			1.1e18,
+			1.2e18,
+			1.3e18,
+			1.4e18
+		], [
+			int80(1e18),
+			1.1e18,
+			1.2e18,
+			1.3e18,
+			1.4e18
+		])
+		];
+		for (uint i; i < _tenorPricingParams.length; i++) {
+			tenorPricingParams.push(_tenorPricingParams[i]);
+		}
+		deltaBandWidth = 20e18;
+		maxTenorValue = 2800;
+		numberOfTenors = 3;
 		deltaBandWidth = 5e18;
 	}
 
@@ -2281,6 +2278,7 @@ contract SpreadTest is Test {
 		// get duration of option in years
 		uint256 time = (_optionSeries.expiration - block.timestamp).div(ONE_YEAR_SECONDS);
 		uint256 deltaBandIndex = (uint256(_optionDelta.abs()) * 100) / deltaBandWidth;
+		(uint16 tenorIndex, int256 remainder) = _getTenorIndex(_optionSeries.expiration);
 
 		if (!_isSell) {
 			spreadPremium += int(
@@ -2290,19 +2288,12 @@ contract SpreadTest is Test {
 					_optionDelta,
 					_netDhvExposure,
 					time,
-					deltaBandIndex
+					deltaBandIndex,
+					tenorIndex,
+					remainder
 				)
 			);
 		}
-
-		spreadPremium += _getDeltaBorrowPremium(
-			_isSell,
-			_amount,
-			_optionDelta,
-			time,
-			deltaBandIndex,
-			_underlyingPrice
-		);
 	}
 
 	function _getCollateralLendingPremium(
@@ -2311,7 +2302,9 @@ contract SpreadTest is Test {
 		int256 _optionDelta,
 		int256 _netDhvExposure,
 		uint256 _time,
-		uint256 _deltaBandIndex
+		uint256 _deltaBandIndex,
+		uint16 _tenorIndex,
+		int256 _remainder
 	) internal view returns (uint256 collateralLendingPremium) {
 		uint256 netShortContracts;
 		if (_netDhvExposure <= 0) {
@@ -2330,13 +2323,13 @@ contract SpreadTest is Test {
 			collateralLendingPremium =
 				((ONE_SCALE + (collateralLendingRate * ONE_SCALE) / SIX_DPS).pow(_time)).mul(collateralToLend) -
 				collateralToLend;
-			if (_optionDelta > 0) {
+			if (_optionDelta < 0) {
 				collateralLendingPremium = collateralLendingPremium.mul(
-					deltaBandMultipliers.callSpreadCollateralMultipliers[_deltaBandIndex]
+					_interpolateSpreadCollateral(_tenorIndex, _remainder, true, _deltaBandIndex)
 				);
 			} else {
 				collateralLendingPremium = collateralLendingPremium.mul(
-					deltaBandMultipliers.putSpreadCollateralMultipliers[_deltaBandIndex]
+					_interpolateSpreadCollateral(_tenorIndex, _remainder, false, _deltaBandIndex)
 				);
 			}
 		}
@@ -2348,7 +2341,9 @@ contract SpreadTest is Test {
 		int256 _optionDelta,
 		uint256 _time,
 		uint256 _deltaBandIndex,
-		uint256 _underlyingPrice
+		uint256 _underlyingPrice,
+		uint16 _tenorIndex,
+		int256 _remainder
 	) internal view returns (int256 deltaBorrowPremium) {
 		// calculate delta borrow premium on both buy and sells
 		// dollarDelta is just a magnitude value, sign doesnt matter
@@ -2364,7 +2359,7 @@ contract SpreadTest is Test {
 				dollarDelta;
 
 			deltaBorrowPremium = deltaBorrowPremium.mul(
-				int256(deltaBandMultipliers.putSpreadDeltaMultipliers[_deltaBandIndex])
+				_interpolateSpreadDelta(_tenorIndex, _remainder, true, _deltaBandIndex)
 			);
 		} else {
 			// option is positive delta, resulting in short delta exposure for DHV. needs hedging with a long pos
@@ -2377,8 +2372,52 @@ contract SpreadTest is Test {
 				dollarDelta;
 
 			deltaBorrowPremium = deltaBorrowPremium.mul(
-				int256(deltaBandMultipliers.callSpreadDeltaMultipliers[_deltaBandIndex])
+				_interpolateSpreadDelta(_tenorIndex, _remainder, false, _deltaBandIndex)
 			);
+		}
+	}
+
+	function _getTenorIndex(
+		uint256 _expiration
+	) internal view returns (uint16 tenorIndex, int256 remainder) {
+		// get the ratio of the square root of seconds to expiry and the max tenor value in e18 form
+		uint unroundedTenorIndex = ((((_expiration - block.timestamp) * 1e18).sqrt()) / maxTenorValue) *
+			(numberOfTenors - 1);
+		tenorIndex = uint16(unroundedTenorIndex / 1e18); // always floors
+		remainder = int256(unroundedTenorIndex - tenorIndex * 1e18); // will be between 0 and 1e18
+	}
+
+	function _interpolateSpreadCollateral(
+		uint16 _tenor,
+		int256 _remainder,
+		bool _isPut,
+		uint256 _deltaBand
+	) internal view returns (uint80 spreadCollateralMultiplier) {
+		if (_isPut) {
+			int80 y1 = tenorPricingParams[_tenor].putSpreadCollateralMultipliers[_deltaBand];
+			int80 y2 = tenorPricingParams[_tenor + 1].putSpreadCollateralMultipliers[_deltaBand];
+			return uint80(int80(y1 + _remainder.mul(y2 - y1)));
+		} else {
+			int80 y1 = tenorPricingParams[_tenor].callSpreadCollateralMultipliers[_deltaBand];
+			int80 y2 = tenorPricingParams[_tenor + 1].callSpreadCollateralMultipliers[_deltaBand];
+			return uint80(int80(y1 + _remainder.mul(y2 - y1)));
+		}
+	}
+
+	function _interpolateSpreadDelta(
+		uint16 _tenor,
+		int256 _remainder,
+		bool _isPut,
+		uint256 _deltaBand
+	) internal view returns (int80 spreadDeltaMultiplier) {
+		if (_isPut) {
+			int80 y1 = tenorPricingParams[_tenor].putSpreadDeltaMultipliers[_deltaBand];
+			int80 y2 = tenorPricingParams[_tenor + 1].putSpreadDeltaMultipliers[_deltaBand];
+			return int80(y1 + _remainder.mul(y2 - y1));
+		} else {
+			int80 y1 = tenorPricingParams[_tenor].callSpreadDeltaMultipliers[_deltaBand];
+			int80 y2 = tenorPricingParams[_tenor + 1].callSpreadDeltaMultipliers[_deltaBand];
+			return int80(y1 + _remainder.mul(y2 - y1));
 		}
 	}
 
