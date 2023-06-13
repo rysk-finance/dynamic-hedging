@@ -708,7 +708,6 @@ export async function localQuoteOptionPrice(
 		pricer,
 		isSell
 	)
-	console.log({ bsQ })
 	const slip = await applySlippageLocally(
 		pricer,
 		catalogue,
@@ -719,8 +718,6 @@ export async function localQuoteOptionPrice(
 		isSell,
 		netDhvExposure
 	)
-	console.log("JS slippage multiplier:", slip)
-	console.log(bsQ * slip)
 	let spread = 0
 
 	spread = await applySpreadLocally(
@@ -736,7 +733,6 @@ export async function localQuoteOptionPrice(
 	if (spread < 0) {
 		spread = 0
 	}
-	console.log(spread)
 	const totalPremium = isSell ? Math.max(bsQ * slip - spread, 0) : bsQ * slip + spread
 	if (
 		isSell &&
@@ -788,7 +784,6 @@ export async function applySlippageLocally(
 		optionSeries.expiration,
 		beyondPricer
 	)
-	console.log(tenorIndexAndRemainder, deltaBandIndex)
 	if (parseFloat(fromWei(optionDelta)) < 0) {
 		modifiedSlippageGradient =
 			parseFloat(fromWei(slippageGradient)) *
@@ -913,7 +908,6 @@ export async function applySpreadLocally(
 				))
 		}
 	}
-	console.log("JS collateral lending premium", collateralLendingPremium)
 
 	const dollarDelta =
 		parseFloat(fromWei(optionDelta.abs())) *
@@ -963,7 +957,6 @@ export async function applySpreadLocally(
 				Mode.DeltaSpread
 			))
 	}
-	console.log("JS delta borrow premium", deltaBorrowPremium)
 
 	return collateralLendingPremium + deltaBorrowPremium
 }
@@ -1110,7 +1103,6 @@ export async function applyLinearInterpolation(
 	} else {
 		throw new Error("Invalid Mode for Pricing param")
 	}
-	console.log(y1, y2, remainder, y2.sub(y1))
 	return parseFloat(fromWei(y1)) + remainder * (parseFloat(fromWei(y2)) - parseFloat(fromWei(y1)))
 }
 
@@ -1124,6 +1116,5 @@ export async function getTenorIndexAndRemainder(expiration: any, beyondPricer: B
 		(Math.sqrt(expiration - timestamp) / maxTenorValue) * (numberOfTenors - 1)
 	const tenorIndex = Math.floor(unroundedTenorIndex)
 	const remainder = unroundedTenorIndex - tenorIndex
-	console.log("JS sqrt:", unroundedTenorIndex, tenorIndex, remainder)
 	return [tenorIndex, remainder]
 }
