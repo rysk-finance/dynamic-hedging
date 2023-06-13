@@ -663,8 +663,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		uint256 _expiration
 	) internal view returns (uint16 tenorIndex, int256 remainder) {
 		// get the ratio of the square root of seconds to expiry and the max tenor value in e18 form
-		uint unroundedTenorIndex = ((((_expiration - block.timestamp) * 1e18).sqrt()) / maxTenorValue) *
-			(numberOfTenors - 1);
+		uint unroundedTenorIndex = (((((_expiration - block.timestamp) * 1e18).sqrt()) *
+			(numberOfTenors - 1)) / maxTenorValue);
 		tenorIndex = uint16(unroundedTenorIndex / 1e18); // always floors
 		remainder = int256(unroundedTenorIndex - tenorIndex * 1e18); // will be between 0 and 1e18
 	}
