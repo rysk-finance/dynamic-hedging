@@ -5,52 +5,43 @@ import math
 
 from decimal import Decimal
 
-call_slippage_gradient_multipliers = [
+call_multipliers_1 = [
 			Decimal(1.0),
 			Decimal(1.1),
 			Decimal(1.2),
 			Decimal(1.3),
 			Decimal(1.4),
-			Decimal(1.5),
-			Decimal(1.6),
-			Decimal(1.7),
-			Decimal(1.8),
-			Decimal(1.9),
-			Decimal(2.0),
-			Decimal(2.1),
-			Decimal(2.2),
-			Decimal(2.3),
-			Decimal(2.4),
-			Decimal(2.5),
-			Decimal(2.6),
-			Decimal(2.7),
-			Decimal(2.8),
-			Decimal(2.9)
 		]
 
-put_slippage_gradient_multipliers = [
-			Decimal(1.0),
+put_multipliers_1 = [
 			Decimal(1.1),
 			Decimal(1.2),
 			Decimal(1.3),
 			Decimal(1.4),
 			Decimal(1.5),
-			Decimal(1.6),
-			Decimal(1.7),
-			Decimal(1.8),
-			Decimal(1.9),
+		]
+call_multipliers_2 = [
 			Decimal(2.0),
 			Decimal(2.1),
 			Decimal(2.2),
 			Decimal(2.3),
 			Decimal(2.4),
-			Decimal(2.5),
-			Decimal(2.6),
-			Decimal(2.7),
-			Decimal(2.8),
-			Decimal(2.9)
 		]
-delta_band_width = Decimal(5)
+
+put_multipliers_2 = [
+			Decimal(2.1),
+			Decimal(2.2),
+			Decimal(2.3),
+			Decimal(2.4),
+			Decimal(2.5),
+		]
+tenor_multipliers = [
+    [call_multipliers_1, put_multipliers_1, call_multipliers_1, put_multipliers_1, call_multipliers_1, put_multipliers_1],
+    [call_multipliers_2, put_multipliers_2, call_multipliers_2, put_multipliers_2, call_multipliers_2, put_multipliers_2],
+    [call_multipliers_1, put_multipliers_1, call_multipliers_1, put_multipliers_1, call_multipliers_1, put_multipliers_1]]
+delta_band_width = Decimal(20)
+max_tenor_value = 2800
+number_of_tenors = 3
 
 def main(args): 
     if (args.isNetDhvExposureNegative == 1):
@@ -71,13 +62,15 @@ def main(args):
         Decimal(net_dhv_exposure) / Decimal(1e18),
         is_sell,
         Decimal(args.slippageGradient) / Decimal(1e18),
-        Decimal(delta) / Decimal(1e18)
+        Decimal(delta) / Decimal(1e18),
+        args.timestamp,
+        args.expiration
     ) * Decimal(1e18)
     # encode
     enc = encode(['uint256'], [int(slippage_multiplier)])
     print("0x" + enc.hex())
 
-def get_slippage_multiplier(amount: float, net_dhv_exposure: float, is_sell: bool, slippage_gradient: float, delta: float):
+def get_slippage_multiplier(amount: float, net_dhv_exposure: float, is_sell: bool, slippage_gradient: float, delta: float, timestamp: float, expiration: float):
     """
     Get the slippage multiplier that is multiplied against the vanilla premium to give a value for slippage.
     https://www.notion.so/rysk/Slippage-0fc09ef21df747668d8c3d7ffb22226d#5c2a4b076ba244a9b7c625fc95fc21b9
@@ -95,17 +88,34 @@ def get_slippage_multiplier(amount: float, net_dhv_exposure: float, is_sell: boo
     old_exposure_exponent = net_dhv_exposure
     if slippage_gradient == 0:
         return 1
+    tenor_index, remainder = get_tenor_index(expiration, timestamp)
     delta_band_index = int((abs(delta) * 100) // delta_band_width)
-    if (delta > 0):
-        modified_slippage_gradient = slippage_gradient * call_slippage_gradient_multipliers[delta_band_index]
+    if (delta < 0):
+        modified_slippage_gradient = slippage_gradient * interpolate(tenor_index, remainder, True, delta_band_index)
     else:
-        modified_slippage_gradient = slippage_gradient * put_slippage_gradient_multipliers[delta_band_index]
+        modified_slippage_gradient = slippage_gradient * interpolate(tenor_index, remainder, False, delta_band_index)
     slippage_factor = 1 + modified_slippage_gradient
     if(is_sell):
         slippage_multiplier = (((slippage_factor ** -old_exposure_exponent) - (slippage_factor ** -new_exposure_exponent))/Decimal(math.log(slippage_factor))) / amount
     else:
         slippage_multiplier = (((slippage_factor ** -new_exposure_exponent) - (slippage_factor ** -old_exposure_exponent))/Decimal(math.log(slippage_factor))) / amount
     return slippage_multiplier
+
+def interpolate(tenor_index: float, remainder: float, is_put: bool, delta_band_index: float):
+    if (is_put):
+        y_1 = tenor_multipliers[tenor_index][1][delta_band_index]
+        y_2 = tenor_multipliers[tenor_index + 1][1][delta_band_index]
+    else:
+        y_1 = tenor_multipliers[tenor_index][0][delta_band_index]
+        y_2 = tenor_multipliers[tenor_index + 1][0][delta_band_index]
+    return y_1 + (Decimal(remainder) * (y_2 - y_1))
+
+def get_tenor_index(expiration: float, timestamp: float):
+    unrounded_index = (math.sqrt(expiration - timestamp)  * (number_of_tenors - 1)) / max_tenor_value
+    tenor_index = round(unrounded_index)
+    remainder = unrounded_index - tenor_index
+    return tenor_index, remainder
+    
 
 def parse_args(): 
     parser = argparse.ArgumentParser()
@@ -116,6 +126,8 @@ def parse_args():
     parser.add_argument("--slippageGradient", type=int)
     parser.add_argument("--delta", type=int)
     parser.add_argument("--isDeltaNegative", type=int)
+    parser.add_argument("--timestamp", type=int)
+    parser.add_argument("--expiration", type=int)
     return parser.parse_args()
 
 if __name__ == '__main__':
