@@ -74,11 +74,11 @@ contract SlippageTest is Test {
 			1.3e18,
 			1.4e18
 		], [
-			int80(1e18),
-			1.1e18,
+			int80(1.1e18),
 			1.2e18,
 			1.3e18,
-			1.4e18
+			1.4e18,
+			1.5e18
 		], [
 			int80(1e18),
 			1.1e18,
@@ -86,11 +86,11 @@ contract SlippageTest is Test {
 			1.3e18,
 			1.4e18
 		], [
-			int80(1e18),
-			1.1e18,
+			int80(1.1e18),
 			1.2e18,
 			1.3e18,
-			1.4e18
+			1.4e18,
+			1.5e18
 		],
 		 [
 			int80(1e18),
@@ -99,11 +99,11 @@ contract SlippageTest is Test {
 			1.3e18,
 			1.4e18
 		], [
-			int80(1e18),
-			1.1e18,
+			int80(1.1e18),
 			1.2e18,
 			1.3e18,
-			1.4e18
+			1.4e18,
+			1.5e18
 		]),
 		DeltaBandMultipliers([
 			int80(2e18),
@@ -112,11 +112,11 @@ contract SlippageTest is Test {
 			2.3e18,
 			2.4e18
 		], [
-			int80(2e18),
-			2.1e18,
+			int80(2.1e18),
 			2.2e18,
 			2.3e18,
-			2.4e18
+			2.4e18,
+			2.5e18
 		], [
 			int80(2e18),
 			2.1e18,
@@ -124,11 +124,11 @@ contract SlippageTest is Test {
 			2.3e18,
 			2.4e18
 		], [
-			int80(2e18),
-			2.1e18,
+			int80(2.1e18),
 			2.2e18,
 			2.3e18,
-			2.4e18
+			2.4e18,
+			2.5e18
 		], [
 			int80(2e18),
 			2.1e18,
@@ -136,11 +136,11 @@ contract SlippageTest is Test {
 			2.3e18,
 			2.4e18
 		], [
-			int80(2e18),
-			2.1e18,
+			int80(2.1e18),
 			2.2e18,
 			2.3e18,
-			2.4e18
+			2.4e18,
+			2.5e18
 		]),
 		DeltaBandMultipliers([
 			int80(1e18),
@@ -149,11 +149,11 @@ contract SlippageTest is Test {
 			1.3e18,
 			1.4e18
 		], [
-			int80(1e18),
-			1.1e18,
+			int80(1.1e18),
 			1.2e18,
 			1.3e18,
-			1.4e18
+			1.4e18,
+			1.5e18
 		], [
 			int80(1e18),
 			1.1e18,
@@ -161,11 +161,11 @@ contract SlippageTest is Test {
 			1.3e18,
 			1.4e18
 		], [
-			int80(1e18),
-			1.1e18,
+			int80(1.1e18),
 			1.2e18,
 			1.3e18,
-			1.4e18
+			1.4e18,
+			1.5e18
 		], [
 			int80(1e18),
 			1.1e18,
@@ -173,11 +173,11 @@ contract SlippageTest is Test {
 			1.3e18,
 			1.4e18
 		], [
-			int80(1e18),
-			1.1e18,
+			int80(1.1e18),
 			1.2e18,
 			1.3e18,
-			1.4e18
+			1.4e18,
+			1.5e18
 		])
 		];
 		for (uint i; i < _tenorPricingParams.length; i++) {
@@ -457,7 +457,7 @@ contract SlippageTest is Test {
 		if (_isSellBool) {
 			isSell = 1;
 		}
-		string[] memory inputs = new string[](16);
+		string[] memory inputs = new string[](20);
 		inputs[0] = "python3";
 		inputs[1] = "test/foundry/slippage.py";
 		inputs[2] = "--amount";
@@ -474,6 +474,10 @@ contract SlippageTest is Test {
 		inputs[13] = uint256(_delta).toString();
 		inputs[14] = "--isDeltaNegative";
 		inputs[15] = uint256(isDeltaNegative).toString();
+		inputs[16] = "--timestamp";
+		inputs[17] = uint256(block.timestamp).toString();
+		inputs[18] = "--expiration";
+		inputs[19] = uint256(optionSeries.expiration).toString();
 		bytes memory res = vm.ffi(inputs);
 		uint256 vol = abi.decode(res, (uint256));
 		return vol;
@@ -481,7 +485,7 @@ contract SlippageTest is Test {
 
 	// FUNCTION TO BE FUZZED
 
-/**
+	/**
 	 * @notice function to add slippage to orders to prevent over-exposure to a single option type
 	 * @param _amount amount of options contracts being traded. e18
 	 * @param _optionDelta the delta exposure of the option
@@ -541,11 +545,10 @@ contract SlippageTest is Test {
 		uint256 _expiration
 	) internal view returns (uint16 tenorIndex, int256 remainder) {
 		// get the ratio of the square root of seconds to expiry and the max tenor value in e18 form
-		uint unroundedTenorIndex = ((((_expiration - block.timestamp) * 1e18).sqrt()) / maxTenorValue);
+		uint unroundedTenorIndex = ((((_expiration - block.timestamp) * 1e18).sqrt() * (numberOfTenors - 1))/ maxTenorValue);
 		tenorIndex = uint16(unroundedTenorIndex / 1e18); // always floors
-		remainder = int256(unroundedTenorIndex - tenorIndex); // will be between 0 and 1e18
+		remainder = int256(unroundedTenorIndex - tenorIndex * 1e18); // will be between 0 and 1e18
 	}
-
 	function _interpolateSlippageGradient(
 		uint16 _tenor,
 		int256 _remainder,
@@ -559,7 +562,6 @@ contract SlippageTest is Test {
 		} else {
 			int80 y1 = tenorPricingParams[_tenor].callSlippageGradientMultipliers[_deltaBand];
 			int80 y2 = tenorPricingParams[_tenor + 1].callSlippageGradientMultipliers[_deltaBand];
-			// console.log(uint(y1), uint(y2), uint(_remainder), uint(y2 - y1));
 			return uint80(int80(y1 + _remainder.mul(y2 - y1)));
 		}
 	}
