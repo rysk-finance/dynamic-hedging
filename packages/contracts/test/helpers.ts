@@ -1116,12 +1116,14 @@ export async function applyLinearInterpolation(
 
 export async function getTenorIndexAndRemainder(expiration: any, beyondPricer: BeyondPricer) {
 	const maxTenorValue = await beyondPricer.maxTenorValue()
+	const numberOfTenors = await beyondPricer.numberOfTenors()
 	const blockNum = await ethers.provider.getBlockNumber()
 	const block = await ethers.provider.getBlock(blockNum)
 	const { timestamp } = block
-	const unroundedTenorIndex = Math.sqrt(expiration - timestamp) / maxTenorValue
-	console.log("JS sqrt:", unroundedTenorIndex)
+	const unroundedTenorIndex =
+		(Math.sqrt(expiration - timestamp) / maxTenorValue) * (numberOfTenors - 1)
 	const tenorIndex = Math.floor(unroundedTenorIndex)
 	const remainder = unroundedTenorIndex - tenorIndex
+	console.log("JS sqrt:", unroundedTenorIndex, tenorIndex, remainder)
 	return [tenorIndex, remainder]
 }
