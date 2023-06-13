@@ -79,12 +79,10 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 	uint256 public slippageGradient;
 
-	// multiplier of slippageGradient for options < 10 delta
-	// reflects the cost of increased collateral used to back these kind of options relative to their price.
 	// represents the width of delta bands to apply slippage multipliers to. e18
 	uint256 public deltaBandWidth;
 	// represents the number of tenors for which we want to apply separate slippage and spread parameters to
-	uint256 public numberOfTenors;
+	uint16 public numberOfTenors;
 	// multiplier values for spread and slippage delta bands
 	DeltaBandMultipliers[] internal tenorPricingParams;
 	// maximum tenor value. Units are in sqrt(seconds)
@@ -254,7 +252,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 				) {
 					revert InvalidMultiplierValue();
 				}
-		}
+			}
 		}
 		numberOfTenors = _numberOfTenors;
 		maxTenorValue = _maxTenorValue;
@@ -677,9 +675,11 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		uint256 _expiration
 	) internal view returns (uint16 tenorIndex, int256 remainder) {
 		// get the ratio of the square root of seconds to expiry and the max tenor value in e18 form
-		uint unroundedTenorIndex = ((((_expiration - block.timestamp) * 1e18).sqrt()) / maxTenorValue);
+		uint unroundedTenorIndex = ((((_expiration - block.timestamp) * 1e18).sqrt()) / maxTenorValue) *
+			(numberOfTenors - 1);
 		tenorIndex = uint16(unroundedTenorIndex / 1e18); // always floors
-		remainder = int256(unroundedTenorIndex - tenorIndex); // will be between 0 and 1e18
+		remainder = int256(unroundedTenorIndex - tenorIndex * 1e18); // will be between 0 and 1e18
+		console.log("SOL UNDORUNDED INDEX", unroundedTenorIndex, tenorIndex, uint(remainder));
 	}
 
 	function _interpolateSlippageGradient(
