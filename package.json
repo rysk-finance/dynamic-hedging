@@ -20,7 +20,7 @@
     },
     "scripts": {
         "deps:upgrade": "yarn upgrade-interactive --latest",
-        "postinstall": "node -e \"process.exit(process.env.NODE_ENV == 'production' ? 0 : 1)\" || husky install"
+        "postinstall": "node -e \"process.exit(process.env.VERCEL_ENV == 'production' ? 0 : 1)\" || husky install"
     },
     "dependencies": {
         "black-scholes": "^1.1.0",
