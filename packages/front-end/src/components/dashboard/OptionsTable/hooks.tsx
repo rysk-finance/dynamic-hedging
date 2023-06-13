@@ -400,7 +400,7 @@ const usePositions = () => {
               : Number(fromOpyn(expiryPrice || 0)) - humanisedStrikePrice
             : 0;
           const expectedPayout =
-            diff > 0 ? diff * Number(fromWei(netAmount)) : 0;
+            diff > 0 ? diff * Math.abs(Number(fromWei(netAmount))) : 0;
 
           const premiumPerPosition = Math.abs(totPremiumUSDC) / humanisedAmount;
           const breakEven = isPut
