@@ -571,7 +571,6 @@ describe("Quote Option price", async () => {
 				amount,
 				false
 			)
-			console.log({ localDelta: fromWei(localDelta) })
 			expect(Math.abs(parseFloat(fromWei(localDelta)))).to.be.lt(
 				parseFloat(fromWei(await pricer.lowDeltaThreshold()))
 			)
@@ -664,7 +663,6 @@ describe("Quote Option price", async () => {
 				amount,
 				true
 			)
-			console.log({ localDelta: fromWei(localDelta) })
 			expect(Math.abs(parseFloat(fromWei(localDelta)))).to.be.lt(
 				parseFloat(fromWei(await pricer.lowDeltaThreshold()))
 			)
@@ -713,7 +711,6 @@ describe("Quote Option price", async () => {
 			if (spread < 0) {
 				spread = 0
 			}
-			console.log("local:", bsQ, slip, spread)
 			const nonIvOverrideQuote = Math.max(bsQ * slip - spread, 0)
 			// IV override should be lower
 			expect(overrideQuote).to.be.lt(nonIvOverrideQuote)
@@ -1320,28 +1317,6 @@ describe("Quote Option price", async () => {
 			delta20 = fromWei(
 				await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries20, amount, false)
 			)
-			console.log({
-				delta1,
-				delta2,
-				delta3,
-				delta4,
-				delta5,
-				delta6,
-				delta7,
-				delta8,
-				delta9,
-				delta10,
-				delta11,
-				delta12,
-				delta13,
-				delta14,
-				delta15,
-				delta16,
-				delta17,
-				delta18,
-				delta19,
-				delta20
-			})
 		})
 		it("checks interpolation on proposedSeries1", async () => {
 			const maxTenorValue = await pricer.maxTenorValue()
@@ -1374,7 +1349,6 @@ describe("Quote Option price", async () => {
 				0
 			)
 
-			console.log({ multiplierLowerTenor, multiplierUpperTenor, remainder, interpolatedValue, tenor })
 			expect(interpolatedValue).to.eq(
 				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
 			)
@@ -1410,7 +1384,6 @@ describe("Quote Option price", async () => {
 				0
 			)
 
-			console.log({ multiplierLowerTenor, multiplierUpperTenor, remainder, interpolatedValue, tenor })
 			expect(interpolatedValue).to.eq(
 				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
 			)
@@ -1446,7 +1419,6 @@ describe("Quote Option price", async () => {
 				0
 			)
 
-			console.log({ multiplierLowerTenor, multiplierUpperTenor, remainder, interpolatedValue, tenor })
 			expect(interpolatedValue).to.eq(
 				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
 			)
@@ -1482,7 +1454,6 @@ describe("Quote Option price", async () => {
 				0
 			)
 
-			console.log({ multiplierLowerTenor, multiplierUpperTenor, remainder, interpolatedValue, tenor })
 			expect(interpolatedValue).to.eq(
 				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
 			)
@@ -1496,7 +1467,6 @@ describe("Quote Option price", async () => {
 			const sqrtTau = Math.sqrt(proposedSeries5.expiration - timestamp)
 			const tenorWidth = maxTenorValue / (numberOfTenors - 1)
 			const expectedTenor = Math.floor(sqrtTau / tenorWidth)
-			console.log({ sqrtTau, tenorWidth, expectedTenor })
 			const expectedRemainder = sqrtTau / tenorWidth - expectedTenor
 			const [tenor, remainder] = await getTenorIndexAndRemainder(proposedSeries5.expiration, pricer)
 			expect(tenor.toFixed(10)).to.eq(expectedTenor.toFixed(10))
@@ -1519,7 +1489,6 @@ describe("Quote Option price", async () => {
 				0
 			)
 
-			console.log({ multiplierLowerTenor, multiplierUpperTenor, remainder, interpolatedValue, tenor })
 			expect(interpolatedValue).to.eq(
 				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
 			)
@@ -1555,7 +1524,6 @@ describe("Quote Option price", async () => {
 				0
 			)
 
-			console.log({ multiplierLowerTenor, multiplierUpperTenor, remainder, interpolatedValue, tenor })
 			expect(interpolatedValue).to.eq(
 				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
 			)
@@ -1576,7 +1544,6 @@ describe("Quote Option price", async () => {
 			// calculate expected slippage gradient multiplier
 			const deltaBandWidth = await pricer.deltaBandWidth()
 			const deltaBand = Math.floor((delta7 * 100) / parseFloat(fromWei(deltaBandWidth)))
-			console.log({ deltaBand, delta7 })
 			const multiplierLowerTenor = parseFloat(
 				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor))[deltaBand])
 			)
@@ -1592,7 +1559,6 @@ describe("Quote Option price", async () => {
 				0
 			)
 
-			console.log({ multiplierLowerTenor, multiplierUpperTenor, remainder, interpolatedValue, tenor })
 			expect(interpolatedValue).to.eq(
 				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
 			)
@@ -1628,7 +1594,6 @@ describe("Quote Option price", async () => {
 				0
 			)
 
-			console.log({ multiplierLowerTenor, multiplierUpperTenor, remainder, interpolatedValue, tenor })
 			expect(interpolatedValue).to.eq(
 				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
 			)
@@ -1664,7 +1629,6 @@ describe("Quote Option price", async () => {
 				0
 			)
 
-			console.log({ multiplierLowerTenor, multiplierUpperTenor, remainder, interpolatedValue, tenor })
 			expect(interpolatedValue).to.eq(
 				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
 			)
@@ -1700,7 +1664,6 @@ describe("Quote Option price", async () => {
 				0
 			)
 
-			console.log({ multiplierLowerTenor, multiplierUpperTenor, remainder, interpolatedValue, tenor })
 			expect(interpolatedValue).to.eq(
 				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
 			)
@@ -1736,7 +1699,6 @@ describe("Quote Option price", async () => {
 				0
 			)
 
-			console.log({ multiplierLowerTenor, multiplierUpperTenor, remainder, interpolatedValue, tenor })
 			expect(interpolatedValue).to.eq(
 				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
 			)
@@ -1772,7 +1734,6 @@ describe("Quote Option price", async () => {
 				0
 			)
 
-			console.log({ multiplierLowerTenor, multiplierUpperTenor, remainder, interpolatedValue, tenor })
 			expect(interpolatedValue).to.eq(
 				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
 			)
@@ -1808,7 +1769,6 @@ describe("Quote Option price", async () => {
 				0
 			)
 
-			console.log({ multiplierLowerTenor, multiplierUpperTenor, remainder, interpolatedValue, tenor })
 			expect(interpolatedValue).to.eq(
 				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
 			)
@@ -1844,7 +1804,6 @@ describe("Quote Option price", async () => {
 				0
 			)
 
-			console.log({ multiplierLowerTenor, multiplierUpperTenor, remainder, interpolatedValue, tenor })
 			expect(interpolatedValue).to.eq(
 				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
 			)
@@ -1880,7 +1839,6 @@ describe("Quote Option price", async () => {
 				0
 			)
 
-			console.log({ multiplierLowerTenor, multiplierUpperTenor, remainder, interpolatedValue, tenor })
 			expect(interpolatedValue).to.eq(
 				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
 			)
@@ -1916,7 +1874,6 @@ describe("Quote Option price", async () => {
 				0
 			)
 
-			console.log({ multiplierLowerTenor, multiplierUpperTenor, remainder, interpolatedValue, tenor })
 			expect(interpolatedValue).to.eq(
 				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
 			)
@@ -1951,8 +1908,6 @@ describe("Quote Option price", async () => {
 				pricer,
 				0
 			)
-
-			console.log({ multiplierLowerTenor, multiplierUpperTenor, remainder, interpolatedValue, tenor })
 			expect(interpolatedValue).to.eq(
 				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
 			)
@@ -1987,8 +1942,6 @@ describe("Quote Option price", async () => {
 				pricer,
 				0
 			)
-
-			console.log({ multiplierLowerTenor, multiplierUpperTenor, remainder, interpolatedValue, tenor })
 			expect(interpolatedValue).to.eq(
 				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
 			)
@@ -2023,8 +1976,6 @@ describe("Quote Option price", async () => {
 				pricer,
 				0
 			)
-
-			console.log({ multiplierLowerTenor, multiplierUpperTenor, remainder, interpolatedValue, tenor })
 			expect(interpolatedValue).to.eq(
 				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
 			)
@@ -2060,7 +2011,6 @@ describe("Quote Option price", async () => {
 				0
 			)
 
-			console.log({ multiplierLowerTenor, multiplierUpperTenor, remainder, interpolatedValue, tenor })
 			expect(interpolatedValue).to.eq(
 				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
 			)
