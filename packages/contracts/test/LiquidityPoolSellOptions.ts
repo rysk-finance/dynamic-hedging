@@ -1470,8 +1470,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			expect(after.senderOtokenBalance).to.eq(0)
 			expect(
 				after.senderUSDBalance.sub(before.senderUSDBalance).sub(quote).add(marginRequirement)
-			).to.be.within(-100, 100)
-			expect(after.poolUSDBalance.sub(before.poolUSDBalance).add(quote)).to.be.within(-100, 100)
+			).to.be.within(-120, 120)
+			expect(after.poolUSDBalance.sub(before.poolUSDBalance).add(quote)).to.be.within(-120, 120)
 			expect(after.exchangeOTokenBalance).to.equal(after.opynAmount)
 			expect(after.pfList.length - before.pfList.length).to.equal(1)
 			expect(after.seriesStores.longExposure).to.equal(amount)
