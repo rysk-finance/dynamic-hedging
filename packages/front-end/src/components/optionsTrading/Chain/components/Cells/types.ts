@@ -2,6 +2,7 @@ import type { PropsWithChildren } from "react";
 
 export interface CellProps extends PropsWithChildren {
   cellClasses?: string;
+  disabled: boolean;
 }
 
 interface BaseProps {
