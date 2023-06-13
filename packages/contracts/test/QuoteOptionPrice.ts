@@ -114,7 +114,10 @@ async function testInterpolation(optionSeries, optionDelta) {
 		pricer,
 		0
 	)
-
+	expect(slippageInterpolatedValue).to.be.within(
+		slippageMultiplierLowerTenor,
+		slippageMultiplierUpperTenor
+	)
 	expect(slippageInterpolatedValue).to.eq(
 		slippageMultiplierLowerTenor +
 			remainder * (slippageMultiplierUpperTenor - slippageMultiplierLowerTenor)
@@ -134,7 +137,10 @@ async function testInterpolation(optionSeries, optionDelta) {
 		pricer,
 		1
 	)
-
+	expect(spreadCollateralInterpolatedValue).to.be.within(
+		spreadCollateralMultiplierLowerTenor,
+		spreadCollateralMultiplierUpperTenor
+	)
 	expect(spreadCollateralInterpolatedValue).to.eq(
 		spreadCollateralMultiplierLowerTenor +
 			remainder * (spreadCollateralMultiplierUpperTenor - spreadCollateralMultiplierLowerTenor)
@@ -154,7 +160,10 @@ async function testInterpolation(optionSeries, optionDelta) {
 		pricer,
 		2
 	)
-
+	expect(spreadDeltaInterpolatedValue).to.be.within(
+		spreadDeltaMultiplierLowerTenor,
+		spreadDeltaMultiplierUpperTenor
+	)
 	expect(spreadDeltaInterpolatedValue).to.eq(
 		spreadDeltaMultiplierLowerTenor +
 			remainder * (spreadDeltaMultiplierUpperTenor - spreadDeltaMultiplierLowerTenor)
