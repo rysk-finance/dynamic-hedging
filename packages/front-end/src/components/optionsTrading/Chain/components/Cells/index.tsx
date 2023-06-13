@@ -13,7 +13,7 @@ import { Triangle } from "src/Icons";
 
 export const Cell = ({ children, cellClasses, disabled }: CellProps) => {
   const disabledClasses = disabled
-    ? "text-gray-600 cursor-not-allowed group-hover/row:bg-inherit"
+    ? "text-gray-500 cursor-not-allowed group-hover/row:bg-inherit"
     : "cursor-default group-hover/row:bg-green-100/50";
 
   return (
