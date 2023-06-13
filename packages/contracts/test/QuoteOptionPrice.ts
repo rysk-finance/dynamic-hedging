@@ -84,6 +84,83 @@ const expiration3 = dayjs.utc(expiryDate).subtract(15, "days").unix()
 const expiration4 = dayjs.utc(expiryDate).subtract(3, "days").unix()
 const expiration5 = dayjs.utc(expiryDate).add(1, "month").add(20, "days").unix()
 
+async function testInterpolation(optionSeries, optionDelta) {
+	const maxTenorValue = await pricer.maxTenorValue()
+	const numberOfTenors = await pricer.numberOfTenors()
+	const blockNum = await ethers.provider.getBlockNumber()
+	const block = await ethers.provider.getBlock(blockNum)
+	const { timestamp } = block
+	const sqrtTau = Math.sqrt(optionSeries.expiration - timestamp)
+	const tenorWidth = maxTenorValue / (numberOfTenors - 1)
+	const expectedTenor = Math.floor(sqrtTau / tenorWidth)
+	const expectedRemainder = sqrtTau / tenorWidth - expectedTenor
+	const [tenor, remainder] = await getTenorIndexAndRemainder(optionSeries.expiration, pricer)
+	expect(tenor.toFixed(10)).to.eq(expectedTenor.toFixed(10))
+	expect(remainder.toFixed(10)).to.eq(expectedRemainder.toFixed(10))
+	const deltaBandWidth = await pricer.deltaBandWidth()
+	const deltaBand = Math.floor((optionSeries * 100) / parseFloat(fromWei(deltaBandWidth)))
+	// calculate expected slippage gradient multiplier
+	const slippageMultiplierLowerTenor = parseFloat(
+		fromWei((await pricer.getCallSlippageGradientMultipliers(tenor))[deltaBand])
+	)
+	const slippageMultiplierUpperTenor = parseFloat(
+		fromWei((await pricer.getCallSlippageGradientMultipliers(tenor + 1))[deltaBand])
+	)
+	const slippageInterpolatedValue = await applyLinearInterpolation(
+		tenor,
+		remainder,
+		optionSeries.isPut,
+		deltaBand,
+		pricer,
+		0
+	)
+
+	expect(slippageInterpolatedValue).to.eq(
+		slippageMultiplierLowerTenor +
+			remainder * (slippageMultiplierUpperTenor - slippageMultiplierLowerTenor)
+	)
+	// calculate spread Collateral mutliplier
+	const spreadCollateralMultiplierLowerTenor = parseFloat(
+		fromWei((await pricer.getCallSpreadCollateralMultipliers(tenor))[deltaBand])
+	)
+	const spreadCollateralMultiplierUpperTenor = parseFloat(
+		fromWei((await pricer.getCallSpreadCollateralMultipliers(tenor + 1))[deltaBand])
+	)
+	const spreadCollateralInterpolatedValue = await applyLinearInterpolation(
+		tenor,
+		remainder,
+		optionSeries.isPut,
+		deltaBand,
+		pricer,
+		1
+	)
+
+	expect(spreadCollateralInterpolatedValue).to.eq(
+		spreadCollateralMultiplierLowerTenor +
+			remainder * (spreadCollateralMultiplierUpperTenor - spreadCollateralMultiplierLowerTenor)
+	)
+	// calculate spread Delta mutliplier
+	const spreadDeltaMultiplierLowerTenor = parseFloat(
+		fromWei((await pricer.getCallSpreadDeltaMultipliers(tenor))[deltaBand])
+	)
+	const spreadDeltaMultiplierUpperTenor = parseFloat(
+		fromWei((await pricer.getCallSpreadDeltaMultipliers(tenor + 1))[deltaBand])
+	)
+	const spreadDeltaInterpolatedValue = await applyLinearInterpolation(
+		tenor,
+		remainder,
+		optionSeries.isPut,
+		deltaBand,
+		pricer,
+		2
+	)
+
+	expect(spreadDeltaInterpolatedValue).to.eq(
+		spreadDeltaMultiplierLowerTenor +
+			remainder * (spreadDeltaMultiplierUpperTenor - spreadDeltaMultiplierLowerTenor)
+	)
+}
+
 describe("Quote Option price", async () => {
 	before(async function () {
 		await hre.network.provider.request({
@@ -1072,6 +1149,26 @@ describe("Quote Option price", async () => {
 	let proposedSeries18
 	let proposedSeries19
 	let proposedSeries20
+	let proposedSeries21
+	let proposedSeries22
+	let proposedSeries23
+	let proposedSeries24
+	let proposedSeries25
+	let proposedSeries26
+	let proposedSeries27
+	let proposedSeries28
+	let proposedSeries29
+	let proposedSeries30
+	let proposedSeries31
+	let proposedSeries32
+	let proposedSeries33
+	let proposedSeries34
+	let proposedSeries35
+	let proposedSeries36
+	let proposedSeries37
+	let proposedSeries38
+	let proposedSeries39
+	let proposedSeries40
 	let delta1
 	let delta2
 	let delta3
@@ -1092,6 +1189,26 @@ describe("Quote Option price", async () => {
 	let delta18
 	let delta19
 	let delta20
+	let delta21
+	let delta22
+	let delta23
+	let delta24
+	let delta25
+	let delta26
+	let delta27
+	let delta28
+	let delta29
+	let delta30
+	let delta31
+	let delta32
+	let delta33
+	let delta34
+	let delta35
+	let delta36
+	let delta37
+	let delta38
+	let delta39
+	let delta40
 
 	describe("check interpolation values", async () => {
 		it("gets deltas", async () => {
@@ -1257,6 +1374,166 @@ describe("Quote Option price", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
+			proposedSeries21 = {
+				expiration: expiration,
+				strike: priceQuote.add(toWei("200")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries22 = {
+				expiration: expiration,
+				strike: priceQuote.add(toWei("50")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries23 = {
+				expiration: expiration,
+				strike: priceQuote.sub(toWei("300")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries24 = {
+				expiration: expiration,
+				strike: priceQuote.sub(toWei("50")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries25 = {
+				expiration: expiration2,
+				strike: priceQuote.add(toWei("50")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries26 = {
+				expiration: expiration2,
+				strike: priceQuote.add(toWei("10")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries27 = {
+				expiration: expiration2,
+				strike: priceQuote.sub(toWei("20")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries28 = {
+				expiration: expiration2,
+				strike: priceQuote.sub(toWei("50")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries29 = {
+				expiration: expiration3,
+				strike: priceQuote.add(toWei("150")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries30 = {
+				expiration: expiration3,
+				strike: priceQuote.add(toWei("75")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries31 = {
+				expiration: expiration3,
+				strike: priceQuote.sub(toWei("30")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries32 = {
+				expiration: expiration3,
+				strike: priceQuote.sub(toWei("150")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries33 = {
+				expiration: expiration4,
+				strike: priceQuote.add(toWei("300")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries34 = {
+				expiration: expiration4,
+				strike: priceQuote.add(toWei("150")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries35 = {
+				expiration: expiration4,
+				strike: priceQuote.sub(toWei("50")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries36 = {
+				expiration: expiration4,
+				strike: priceQuote.sub(toWei("300")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries37 = {
+				expiration: expiration5,
+				strike: priceQuote.add(toWei("1000")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries38 = {
+				expiration: expiration5,
+				strike: priceQuote.add(toWei("400")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries39 = {
+				expiration: expiration5,
+				strike: priceQuote.sub(toWei("0")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries40 = {
+				expiration: expiration5,
+				strike: priceQuote.sub(toWei("480")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
 			delta1 = fromWei(
 				await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries1, amount, false)
 			)
@@ -1317,703 +1594,188 @@ describe("Quote Option price", async () => {
 			delta20 = fromWei(
 				await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries20, amount, false)
 			)
-		})
-		it("checks interpolation on proposedSeries1", async () => {
-			const maxTenorValue = await pricer.maxTenorValue()
-			const numberOfTenors = await pricer.numberOfTenors()
-			const blockNum = await ethers.provider.getBlockNumber()
-			const block = await ethers.provider.getBlock(blockNum)
-			const { timestamp } = block
-			const sqrtTau = Math.sqrt(proposedSeries1.expiration - timestamp)
-			const tenorWidth = maxTenorValue / (numberOfTenors - 1)
-			const expectedTenor = Math.floor(sqrtTau / tenorWidth)
-			const expectedRemainder = sqrtTau / tenorWidth - expectedTenor
-			const [tenor, remainder] = await getTenorIndexAndRemainder(proposedSeries1.expiration, pricer)
-			expect(tenor.toFixed(10)).to.eq(expectedTenor.toFixed(10))
-			expect(remainder.toFixed(10)).to.eq(expectedRemainder.toFixed(10))
-			// calculate expected slippage gradient multiplier
-			const deltaBandWidth = await pricer.deltaBandWidth()
-			const deltaBand = Math.floor((delta1 * 100) / parseFloat(fromWei(deltaBandWidth)))
-			const multiplierLowerTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor))[deltaBand])
+			delta21 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries21, amount, false)
+					)
+				)
 			)
-			const multiplierUpperTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor + 1))[deltaBand])
+			delta22 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries22, amount, false)
+					)
+				)
 			)
-			const interpolatedValue = await applyLinearInterpolation(
-				tenor,
-				remainder,
-				false,
-				deltaBand,
-				pricer,
-				0
+			delta23 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries23, amount, false)
+					)
+				)
 			)
-
-			expect(interpolatedValue).to.eq(
-				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
+			delta24 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries24, amount, false)
+					)
+				)
 			)
-		})
-		it("checks interpolation on proposedSeries2", async () => {
-			const maxTenorValue = await pricer.maxTenorValue()
-			const numberOfTenors = await pricer.numberOfTenors()
-			const blockNum = await ethers.provider.getBlockNumber()
-			const block = await ethers.provider.getBlock(blockNum)
-			const { timestamp } = block
-			const sqrtTau = Math.sqrt(proposedSeries2.expiration - timestamp)
-			const tenorWidth = maxTenorValue / (numberOfTenors - 1)
-			const expectedTenor = Math.floor(sqrtTau / tenorWidth)
-			const expectedRemainder = sqrtTau / tenorWidth - expectedTenor
-			const [tenor, remainder] = await getTenorIndexAndRemainder(proposedSeries2.expiration, pricer)
-			expect(tenor.toFixed(10)).to.eq(expectedTenor.toFixed(10))
-			expect(remainder.toFixed(10)).to.eq(expectedRemainder.toFixed(10))
-			// calculate expected slippage gradient multiplier
-			const deltaBandWidth = await pricer.deltaBandWidth()
-			const deltaBand = Math.floor((delta2 * 100) / parseFloat(fromWei(deltaBandWidth)))
-			const multiplierLowerTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor))[deltaBand])
+			delta25 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries25, amount, false)
+					)
+				)
 			)
-			const multiplierUpperTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor + 1))[deltaBand])
+			delta26 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries26, amount, false)
+					)
+				)
 			)
-			const interpolatedValue = await applyLinearInterpolation(
-				tenor,
-				remainder,
-				false,
-				deltaBand,
-				pricer,
-				0
+			delta27 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries27, amount, false)
+					)
+				)
 			)
-
-			expect(interpolatedValue).to.eq(
-				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
+			delta28 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries28, amount, false)
+					)
+				)
 			)
-		})
-		it("checks interpolation on proposedSeries3", async () => {
-			const maxTenorValue = await pricer.maxTenorValue()
-			const numberOfTenors = await pricer.numberOfTenors()
-			const blockNum = await ethers.provider.getBlockNumber()
-			const block = await ethers.provider.getBlock(blockNum)
-			const { timestamp } = block
-			const sqrtTau = Math.sqrt(proposedSeries3.expiration - timestamp)
-			const tenorWidth = maxTenorValue / (numberOfTenors - 1)
-			const expectedTenor = Math.floor(sqrtTau / tenorWidth)
-			const expectedRemainder = sqrtTau / tenorWidth - expectedTenor
-			const [tenor, remainder] = await getTenorIndexAndRemainder(proposedSeries3.expiration, pricer)
-			expect(tenor.toFixed(10)).to.eq(expectedTenor.toFixed(10))
-			expect(remainder.toFixed(10)).to.eq(expectedRemainder.toFixed(10))
-			// calculate expected slippage gradient multiplier
-			const deltaBandWidth = await pricer.deltaBandWidth()
-			const deltaBand = Math.floor((delta3 * 100) / parseFloat(fromWei(deltaBandWidth)))
-			const multiplierLowerTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor))[deltaBand])
+			delta29 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries29, amount, false)
+					)
+				)
 			)
-			const multiplierUpperTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor + 1))[deltaBand])
+			delta30 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries30, amount, false)
+					)
+				)
 			)
-			const interpolatedValue = await applyLinearInterpolation(
-				tenor,
-				remainder,
-				false,
-				deltaBand,
-				pricer,
-				0
+			delta31 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries31, amount, false)
+					)
+				)
 			)
-
-			expect(interpolatedValue).to.eq(
-				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
+			delta32 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries32, amount, false)
+					)
+				)
 			)
-		})
-		it("checks interpolation on proposedSeries4", async () => {
-			const maxTenorValue = await pricer.maxTenorValue()
-			const numberOfTenors = await pricer.numberOfTenors()
-			const blockNum = await ethers.provider.getBlockNumber()
-			const block = await ethers.provider.getBlock(blockNum)
-			const { timestamp } = block
-			const sqrtTau = Math.sqrt(proposedSeries4.expiration - timestamp)
-			const tenorWidth = maxTenorValue / (numberOfTenors - 1)
-			const expectedTenor = Math.floor(sqrtTau / tenorWidth)
-			const expectedRemainder = sqrtTau / tenorWidth - expectedTenor
-			const [tenor, remainder] = await getTenorIndexAndRemainder(proposedSeries4.expiration, pricer)
-			expect(tenor.toFixed(10)).to.eq(expectedTenor.toFixed(10))
-			expect(remainder.toFixed(10)).to.eq(expectedRemainder.toFixed(10))
-			// calculate expected slippage gradient multiplier
-			const deltaBandWidth = await pricer.deltaBandWidth()
-			const deltaBand = Math.floor((delta4 * 100) / parseFloat(fromWei(deltaBandWidth)))
-			const multiplierLowerTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor))[deltaBand])
+			delta33 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries33, amount, false)
+					)
+				)
 			)
-			const multiplierUpperTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor + 1))[deltaBand])
+			delta34 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries34, amount, false)
+					)
+				)
 			)
-			const interpolatedValue = await applyLinearInterpolation(
-				tenor,
-				remainder,
-				false,
-				deltaBand,
-				pricer,
-				0
+			delta35 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries35, amount, false)
+					)
+				)
 			)
-
-			expect(interpolatedValue).to.eq(
-				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
+			delta36 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries36, amount, false)
+					)
+				)
 			)
-		})
-		it("checks interpolation on proposedSeries5", async () => {
-			const maxTenorValue = await pricer.maxTenorValue()
-			const numberOfTenors = await pricer.numberOfTenors()
-			const blockNum = await ethers.provider.getBlockNumber()
-			const block = await ethers.provider.getBlock(blockNum)
-			const { timestamp } = block
-			const sqrtTau = Math.sqrt(proposedSeries5.expiration - timestamp)
-			const tenorWidth = maxTenorValue / (numberOfTenors - 1)
-			const expectedTenor = Math.floor(sqrtTau / tenorWidth)
-			const expectedRemainder = sqrtTau / tenorWidth - expectedTenor
-			const [tenor, remainder] = await getTenorIndexAndRemainder(proposedSeries5.expiration, pricer)
-			expect(tenor.toFixed(10)).to.eq(expectedTenor.toFixed(10))
-			expect(remainder.toFixed(10)).to.eq(expectedRemainder.toFixed(10))
-			// calculate expected slippage gradient multiplier
-			const deltaBandWidth = await pricer.deltaBandWidth()
-			const deltaBand = Math.floor((delta5 * 100) / parseFloat(fromWei(deltaBandWidth)))
-			const multiplierLowerTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor))[deltaBand])
+			delta37 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries37, amount, false)
+					)
+				)
 			)
-			const multiplierUpperTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor + 1))[deltaBand])
+			delta38 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries38, amount, false)
+					)
+				)
 			)
-			const interpolatedValue = await applyLinearInterpolation(
-				tenor,
-				remainder,
-				false,
-				deltaBand,
-				pricer,
-				0
+			delta39 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries39, amount, false)
+					)
+				)
 			)
-
-			expect(interpolatedValue).to.eq(
-				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
+			delta40 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries40, amount, false)
+					)
+				)
 			)
 		})
-		it("checks interpolation on proposedSeries6", async () => {
-			const maxTenorValue = await pricer.maxTenorValue()
-			const numberOfTenors = await pricer.numberOfTenors()
-			const blockNum = await ethers.provider.getBlockNumber()
-			const block = await ethers.provider.getBlock(blockNum)
-			const { timestamp } = block
-			const sqrtTau = Math.sqrt(proposedSeries6.expiration - timestamp)
-			const tenorWidth = maxTenorValue / (numberOfTenors - 1)
-			const expectedTenor = Math.floor(sqrtTau / tenorWidth)
-			const expectedRemainder = sqrtTau / tenorWidth - expectedTenor
-			const [tenor, remainder] = await getTenorIndexAndRemainder(proposedSeries6.expiration, pricer)
-			expect(tenor.toFixed(10)).to.eq(expectedTenor.toFixed(10))
-			expect(remainder.toFixed(10)).to.eq(expectedRemainder.toFixed(10))
-			// calculate expected slippage gradient multiplier
-			const deltaBandWidth = await pricer.deltaBandWidth()
-			const deltaBand = Math.floor((delta6 * 100) / parseFloat(fromWei(deltaBandWidth)))
-			const multiplierLowerTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor))[deltaBand])
-			)
-			const multiplierUpperTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor + 1))[deltaBand])
-			)
-			const interpolatedValue = await applyLinearInterpolation(
-				tenor,
-				remainder,
-				false,
-				deltaBand,
-				pricer,
-				0
-			)
-
-			expect(interpolatedValue).to.eq(
-				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
-			)
-		})
-		it("checks interpolation on proposedSeries7", async () => {
-			const maxTenorValue = await pricer.maxTenorValue()
-			const numberOfTenors = await pricer.numberOfTenors()
-			const blockNum = await ethers.provider.getBlockNumber()
-			const block = await ethers.provider.getBlock(blockNum)
-			const { timestamp } = block
-			const sqrtTau = Math.sqrt(proposedSeries7.expiration - timestamp)
-			const tenorWidth = maxTenorValue / (numberOfTenors - 1)
-			const expectedTenor = Math.floor(sqrtTau / tenorWidth)
-			const expectedRemainder = sqrtTau / tenorWidth - expectedTenor
-			const [tenor, remainder] = await getTenorIndexAndRemainder(proposedSeries7.expiration, pricer)
-			expect(tenor.toFixed(10)).to.eq(expectedTenor.toFixed(10))
-			expect(remainder.toFixed(10)).to.eq(expectedRemainder.toFixed(10))
-			// calculate expected slippage gradient multiplier
-			const deltaBandWidth = await pricer.deltaBandWidth()
-			const deltaBand = Math.floor((delta7 * 100) / parseFloat(fromWei(deltaBandWidth)))
-			const multiplierLowerTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor))[deltaBand])
-			)
-			const multiplierUpperTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor + 1))[deltaBand])
-			)
-			const interpolatedValue = await applyLinearInterpolation(
-				tenor,
-				remainder,
-				false,
-				deltaBand,
-				pricer,
-				0
-			)
-
-			expect(interpolatedValue).to.eq(
-				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
-			)
-		})
-		it("checks interpolation on proposedSeries8", async () => {
-			const maxTenorValue = await pricer.maxTenorValue()
-			const numberOfTenors = await pricer.numberOfTenors()
-			const blockNum = await ethers.provider.getBlockNumber()
-			const block = await ethers.provider.getBlock(blockNum)
-			const { timestamp } = block
-			const sqrtTau = Math.sqrt(proposedSeries8.expiration - timestamp)
-			const tenorWidth = maxTenorValue / (numberOfTenors - 1)
-			const expectedTenor = Math.floor(sqrtTau / tenorWidth)
-			const expectedRemainder = sqrtTau / tenorWidth - expectedTenor
-			const [tenor, remainder] = await getTenorIndexAndRemainder(proposedSeries8.expiration, pricer)
-			expect(tenor.toFixed(10)).to.eq(expectedTenor.toFixed(10))
-			expect(remainder.toFixed(10)).to.eq(expectedRemainder.toFixed(10))
-			// calculate expected slippage gradient multiplier
-			const deltaBandWidth = await pricer.deltaBandWidth()
-			const deltaBand = Math.floor((delta8 * 100) / parseFloat(fromWei(deltaBandWidth)))
-			const multiplierLowerTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor))[deltaBand])
-			)
-			const multiplierUpperTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor + 1))[deltaBand])
-			)
-			const interpolatedValue = await applyLinearInterpolation(
-				tenor,
-				remainder,
-				false,
-				deltaBand,
-				pricer,
-				0
-			)
-
-			expect(interpolatedValue).to.eq(
-				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
-			)
-		})
-		it("checks interpolation on proposedSeries9", async () => {
-			const maxTenorValue = await pricer.maxTenorValue()
-			const numberOfTenors = await pricer.numberOfTenors()
-			const blockNum = await ethers.provider.getBlockNumber()
-			const block = await ethers.provider.getBlock(blockNum)
-			const { timestamp } = block
-			const sqrtTau = Math.sqrt(proposedSeries9.expiration - timestamp)
-			const tenorWidth = maxTenorValue / (numberOfTenors - 1)
-			const expectedTenor = Math.floor(sqrtTau / tenorWidth)
-			const expectedRemainder = sqrtTau / tenorWidth - expectedTenor
-			const [tenor, remainder] = await getTenorIndexAndRemainder(proposedSeries9.expiration, pricer)
-			expect(tenor.toFixed(10)).to.eq(expectedTenor.toFixed(10))
-			expect(remainder.toFixed(10)).to.eq(expectedRemainder.toFixed(10))
-			// calculate expected slippage gradient multiplier
-			const deltaBandWidth = await pricer.deltaBandWidth()
-			const deltaBand = Math.floor((delta9 * 100) / parseFloat(fromWei(deltaBandWidth)))
-			const multiplierLowerTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor))[deltaBand])
-			)
-			const multiplierUpperTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor + 1))[deltaBand])
-			)
-			const interpolatedValue = await applyLinearInterpolation(
-				tenor,
-				remainder,
-				false,
-				deltaBand,
-				pricer,
-				0
-			)
-
-			expect(interpolatedValue).to.eq(
-				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
-			)
-		})
-		it("checks interpolation on proposedSeries10", async () => {
-			const maxTenorValue = await pricer.maxTenorValue()
-			const numberOfTenors = await pricer.numberOfTenors()
-			const blockNum = await ethers.provider.getBlockNumber()
-			const block = await ethers.provider.getBlock(blockNum)
-			const { timestamp } = block
-			const sqrtTau = Math.sqrt(proposedSeries10.expiration - timestamp)
-			const tenorWidth = maxTenorValue / (numberOfTenors - 1)
-			const expectedTenor = Math.floor(sqrtTau / tenorWidth)
-			const expectedRemainder = sqrtTau / tenorWidth - expectedTenor
-			const [tenor, remainder] = await getTenorIndexAndRemainder(proposedSeries10.expiration, pricer)
-			expect(tenor.toFixed(10)).to.eq(expectedTenor.toFixed(10))
-			expect(remainder.toFixed(10)).to.eq(expectedRemainder.toFixed(10))
-			// calculate expected slippage gradient multiplier
-			const deltaBandWidth = await pricer.deltaBandWidth()
-			const deltaBand = Math.floor((delta10 * 100) / parseFloat(fromWei(deltaBandWidth)))
-			const multiplierLowerTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor))[deltaBand])
-			)
-			const multiplierUpperTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor + 1))[deltaBand])
-			)
-			const interpolatedValue = await applyLinearInterpolation(
-				tenor,
-				remainder,
-				false,
-				deltaBand,
-				pricer,
-				0
-			)
-
-			expect(interpolatedValue).to.eq(
-				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
-			)
-		})
-		it("checks interpolation on proposedSeries11", async () => {
-			const maxTenorValue = await pricer.maxTenorValue()
-			const numberOfTenors = await pricer.numberOfTenors()
-			const blockNum = await ethers.provider.getBlockNumber()
-			const block = await ethers.provider.getBlock(blockNum)
-			const { timestamp } = block
-			const sqrtTau = Math.sqrt(proposedSeries11.expiration - timestamp)
-			const tenorWidth = maxTenorValue / (numberOfTenors - 1)
-			const expectedTenor = Math.floor(sqrtTau / tenorWidth)
-			const expectedRemainder = sqrtTau / tenorWidth - expectedTenor
-			const [tenor, remainder] = await getTenorIndexAndRemainder(proposedSeries11.expiration, pricer)
-			expect(tenor.toFixed(10)).to.eq(expectedTenor.toFixed(10))
-			expect(remainder.toFixed(10)).to.eq(expectedRemainder.toFixed(10))
-			// calculate expected slippage gradient multiplier
-			const deltaBandWidth = await pricer.deltaBandWidth()
-			const deltaBand = Math.floor((delta11 * 100) / parseFloat(fromWei(deltaBandWidth)))
-			const multiplierLowerTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor))[deltaBand])
-			)
-			const multiplierUpperTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor + 1))[deltaBand])
-			)
-			const interpolatedValue = await applyLinearInterpolation(
-				tenor,
-				remainder,
-				false,
-				deltaBand,
-				pricer,
-				0
-			)
-
-			expect(interpolatedValue).to.eq(
-				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
-			)
-		})
-		it("checks interpolation on proposedSeries12", async () => {
-			const maxTenorValue = await pricer.maxTenorValue()
-			const numberOfTenors = await pricer.numberOfTenors()
-			const blockNum = await ethers.provider.getBlockNumber()
-			const block = await ethers.provider.getBlock(blockNum)
-			const { timestamp } = block
-			const sqrtTau = Math.sqrt(proposedSeries12.expiration - timestamp)
-			const tenorWidth = maxTenorValue / (numberOfTenors - 1)
-			const expectedTenor = Math.floor(sqrtTau / tenorWidth)
-			const expectedRemainder = sqrtTau / tenorWidth - expectedTenor
-			const [tenor, remainder] = await getTenorIndexAndRemainder(proposedSeries12.expiration, pricer)
-			expect(tenor.toFixed(10)).to.eq(expectedTenor.toFixed(10))
-			expect(remainder.toFixed(10)).to.eq(expectedRemainder.toFixed(10))
-			// calculate expected slippage gradient multiplier
-			const deltaBandWidth = await pricer.deltaBandWidth()
-			const deltaBand = Math.floor((delta12 * 100) / parseFloat(fromWei(deltaBandWidth)))
-			const multiplierLowerTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor))[deltaBand])
-			)
-			const multiplierUpperTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor + 1))[deltaBand])
-			)
-			const interpolatedValue = await applyLinearInterpolation(
-				tenor,
-				remainder,
-				false,
-				deltaBand,
-				pricer,
-				0
-			)
-
-			expect(interpolatedValue).to.eq(
-				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
-			)
-		})
-		it("checks interpolation on proposedSeries13", async () => {
-			const maxTenorValue = await pricer.maxTenorValue()
-			const numberOfTenors = await pricer.numberOfTenors()
-			const blockNum = await ethers.provider.getBlockNumber()
-			const block = await ethers.provider.getBlock(blockNum)
-			const { timestamp } = block
-			const sqrtTau = Math.sqrt(proposedSeries13.expiration - timestamp)
-			const tenorWidth = maxTenorValue / (numberOfTenors - 1)
-			const expectedTenor = Math.floor(sqrtTau / tenorWidth)
-			const expectedRemainder = sqrtTau / tenorWidth - expectedTenor
-			const [tenor, remainder] = await getTenorIndexAndRemainder(proposedSeries13.expiration, pricer)
-			expect(tenor.toFixed(10)).to.eq(expectedTenor.toFixed(10))
-			expect(remainder.toFixed(10)).to.eq(expectedRemainder.toFixed(10))
-			// calculate expected slippage gradient multiplier
-			const deltaBandWidth = await pricer.deltaBandWidth()
-			const deltaBand = Math.floor((delta13 * 100) / parseFloat(fromWei(deltaBandWidth)))
-			const multiplierLowerTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor))[deltaBand])
-			)
-			const multiplierUpperTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor + 1))[deltaBand])
-			)
-			const interpolatedValue = await applyLinearInterpolation(
-				tenor,
-				remainder,
-				false,
-				deltaBand,
-				pricer,
-				0
-			)
-
-			expect(interpolatedValue).to.eq(
-				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
-			)
-		})
-		it("checks interpolation on proposedSeries14", async () => {
-			const maxTenorValue = await pricer.maxTenorValue()
-			const numberOfTenors = await pricer.numberOfTenors()
-			const blockNum = await ethers.provider.getBlockNumber()
-			const block = await ethers.provider.getBlock(blockNum)
-			const { timestamp } = block
-			const sqrtTau = Math.sqrt(proposedSeries14.expiration - timestamp)
-			const tenorWidth = maxTenorValue / (numberOfTenors - 1)
-			const expectedTenor = Math.floor(sqrtTau / tenorWidth)
-			const expectedRemainder = sqrtTau / tenorWidth - expectedTenor
-			const [tenor, remainder] = await getTenorIndexAndRemainder(proposedSeries14.expiration, pricer)
-			expect(tenor.toFixed(10)).to.eq(expectedTenor.toFixed(10))
-			expect(remainder.toFixed(10)).to.eq(expectedRemainder.toFixed(10))
-			// calculate expected slippage gradient multiplier
-			const deltaBandWidth = await pricer.deltaBandWidth()
-			const deltaBand = Math.floor((delta14 * 100) / parseFloat(fromWei(deltaBandWidth)))
-			const multiplierLowerTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor))[deltaBand])
-			)
-			const multiplierUpperTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor + 1))[deltaBand])
-			)
-			const interpolatedValue = await applyLinearInterpolation(
-				tenor,
-				remainder,
-				false,
-				deltaBand,
-				pricer,
-				0
-			)
-
-			expect(interpolatedValue).to.eq(
-				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
-			)
-		})
-		it("checks interpolation on proposedSeries15", async () => {
-			const maxTenorValue = await pricer.maxTenorValue()
-			const numberOfTenors = await pricer.numberOfTenors()
-			const blockNum = await ethers.provider.getBlockNumber()
-			const block = await ethers.provider.getBlock(blockNum)
-			const { timestamp } = block
-			const sqrtTau = Math.sqrt(proposedSeries15.expiration - timestamp)
-			const tenorWidth = maxTenorValue / (numberOfTenors - 1)
-			const expectedTenor = Math.floor(sqrtTau / tenorWidth)
-			const expectedRemainder = sqrtTau / tenorWidth - expectedTenor
-			const [tenor, remainder] = await getTenorIndexAndRemainder(proposedSeries15.expiration, pricer)
-			expect(tenor.toFixed(10)).to.eq(expectedTenor.toFixed(10))
-			expect(remainder.toFixed(10)).to.eq(expectedRemainder.toFixed(10))
-			// calculate expected slippage gradient multiplier
-			const deltaBandWidth = await pricer.deltaBandWidth()
-			const deltaBand = Math.floor((delta15 * 100) / parseFloat(fromWei(deltaBandWidth)))
-			const multiplierLowerTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor))[deltaBand])
-			)
-			const multiplierUpperTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor + 1))[deltaBand])
-			)
-			const interpolatedValue = await applyLinearInterpolation(
-				tenor,
-				remainder,
-				false,
-				deltaBand,
-				pricer,
-				0
-			)
-
-			expect(interpolatedValue).to.eq(
-				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
-			)
-		})
-		it("checks interpolation on proposedSeries16", async () => {
-			const maxTenorValue = await pricer.maxTenorValue()
-			const numberOfTenors = await pricer.numberOfTenors()
-			const blockNum = await ethers.provider.getBlockNumber()
-			const block = await ethers.provider.getBlock(blockNum)
-			const { timestamp } = block
-			const sqrtTau = Math.sqrt(proposedSeries16.expiration - timestamp)
-			const tenorWidth = maxTenorValue / (numberOfTenors - 1)
-			const expectedTenor = Math.floor(sqrtTau / tenorWidth)
-			const expectedRemainder = sqrtTau / tenorWidth - expectedTenor
-			const [tenor, remainder] = await getTenorIndexAndRemainder(proposedSeries16.expiration, pricer)
-			expect(tenor.toFixed(10)).to.eq(expectedTenor.toFixed(10))
-			expect(remainder.toFixed(10)).to.eq(expectedRemainder.toFixed(10))
-			// calculate expected slippage gradient multiplier
-			const deltaBandWidth = await pricer.deltaBandWidth()
-			const deltaBand = Math.floor((delta16 * 100) / parseFloat(fromWei(deltaBandWidth)))
-			const multiplierLowerTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor))[deltaBand])
-			)
-			const multiplierUpperTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor + 1))[deltaBand])
-			)
-			const interpolatedValue = await applyLinearInterpolation(
-				tenor,
-				remainder,
-				false,
-				deltaBand,
-				pricer,
-				0
-			)
-
-			expect(interpolatedValue).to.eq(
-				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
-			)
-		})
-		it("checks interpolation on proposedSeries17", async () => {
-			const maxTenorValue = await pricer.maxTenorValue()
-			const numberOfTenors = await pricer.numberOfTenors()
-			const blockNum = await ethers.provider.getBlockNumber()
-			const block = await ethers.provider.getBlock(blockNum)
-			const { timestamp } = block
-			const sqrtTau = Math.sqrt(proposedSeries17.expiration - timestamp)
-			const tenorWidth = maxTenorValue / (numberOfTenors - 1)
-			const expectedTenor = Math.floor(sqrtTau / tenorWidth)
-			const expectedRemainder = sqrtTau / tenorWidth - expectedTenor
-			const [tenor, remainder] = await getTenorIndexAndRemainder(proposedSeries17.expiration, pricer)
-			expect(tenor.toFixed(10)).to.eq(expectedTenor.toFixed(10))
-			expect(remainder.toFixed(10)).to.eq(expectedRemainder.toFixed(10))
-			// calculate expected slippage gradient multiplier
-			const deltaBandWidth = await pricer.deltaBandWidth()
-			const deltaBand = Math.floor((delta17 * 100) / parseFloat(fromWei(deltaBandWidth)))
-			const multiplierLowerTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor))[deltaBand])
-			)
-			const multiplierUpperTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor + 1))[deltaBand])
-			)
-			const interpolatedValue = await applyLinearInterpolation(
-				tenor,
-				remainder,
-				false,
-				deltaBand,
-				pricer,
-				0
-			)
-			expect(interpolatedValue).to.eq(
-				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
-			)
-		})
-		it("checks interpolation on proposedSeries18", async () => {
-			const maxTenorValue = await pricer.maxTenorValue()
-			const numberOfTenors = await pricer.numberOfTenors()
-			const blockNum = await ethers.provider.getBlockNumber()
-			const block = await ethers.provider.getBlock(blockNum)
-			const { timestamp } = block
-			const sqrtTau = Math.sqrt(proposedSeries18.expiration - timestamp)
-			const tenorWidth = maxTenorValue / (numberOfTenors - 1)
-			const expectedTenor = Math.floor(sqrtTau / tenorWidth)
-			const expectedRemainder = sqrtTau / tenorWidth - expectedTenor
-			const [tenor, remainder] = await getTenorIndexAndRemainder(proposedSeries18.expiration, pricer)
-			expect(tenor.toFixed(10)).to.eq(expectedTenor.toFixed(10))
-			expect(remainder.toFixed(10)).to.eq(expectedRemainder.toFixed(10))
-			// calculate expected slippage gradient multiplier
-			const deltaBandWidth = await pricer.deltaBandWidth()
-			const deltaBand = Math.floor((delta18 * 100) / parseFloat(fromWei(deltaBandWidth)))
-			const multiplierLowerTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor))[deltaBand])
-			)
-			const multiplierUpperTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor + 1))[deltaBand])
-			)
-			const interpolatedValue = await applyLinearInterpolation(
-				tenor,
-				remainder,
-				false,
-				deltaBand,
-				pricer,
-				0
-			)
-			expect(interpolatedValue).to.eq(
-				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
-			)
-		})
-		it("checks interpolation on proposedSeries19", async () => {
-			const maxTenorValue = await pricer.maxTenorValue()
-			const numberOfTenors = await pricer.numberOfTenors()
-			const blockNum = await ethers.provider.getBlockNumber()
-			const block = await ethers.provider.getBlock(blockNum)
-			const { timestamp } = block
-			const sqrtTau = Math.sqrt(proposedSeries19.expiration - timestamp)
-			const tenorWidth = maxTenorValue / (numberOfTenors - 1)
-			const expectedTenor = Math.floor(sqrtTau / tenorWidth)
-			const expectedRemainder = sqrtTau / tenorWidth - expectedTenor
-			const [tenor, remainder] = await getTenorIndexAndRemainder(proposedSeries19.expiration, pricer)
-			expect(tenor.toFixed(10)).to.eq(expectedTenor.toFixed(10))
-			expect(remainder.toFixed(10)).to.eq(expectedRemainder.toFixed(10))
-			// calculate expected slippage gradient multiplier
-			const deltaBandWidth = await pricer.deltaBandWidth()
-			const deltaBand = Math.floor((delta19 * 100) / parseFloat(fromWei(deltaBandWidth)))
-			const multiplierLowerTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor))[deltaBand])
-			)
-			const multiplierUpperTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor + 1))[deltaBand])
-			)
-			const interpolatedValue = await applyLinearInterpolation(
-				tenor,
-				remainder,
-				false,
-				deltaBand,
-				pricer,
-				0
-			)
-			expect(interpolatedValue).to.eq(
-				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
-			)
-		})
-		it("checks interpolation on proposedSeries20", async () => {
-			const maxTenorValue = await pricer.maxTenorValue()
-			const numberOfTenors = await pricer.numberOfTenors()
-			const blockNum = await ethers.provider.getBlockNumber()
-			const block = await ethers.provider.getBlock(blockNum)
-			const { timestamp } = block
-			const sqrtTau = Math.sqrt(proposedSeries20.expiration - timestamp)
-			const tenorWidth = maxTenorValue / (numberOfTenors - 1)
-			const expectedTenor = Math.floor(sqrtTau / tenorWidth)
-			const expectedRemainder = sqrtTau / tenorWidth - expectedTenor
-			const [tenor, remainder] = await getTenorIndexAndRemainder(proposedSeries20.expiration, pricer)
-			expect(tenor.toFixed(10)).to.eq(expectedTenor.toFixed(10))
-			expect(remainder.toFixed(10)).to.eq(expectedRemainder.toFixed(10))
-			// calculate expected slippage gradient multiplier
-			const deltaBandWidth = await pricer.deltaBandWidth()
-			const deltaBand = Math.floor((delta20 * 100) / parseFloat(fromWei(deltaBandWidth)))
-			const multiplierLowerTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor))[deltaBand])
-			)
-			const multiplierUpperTenor = parseFloat(
-				fromWei((await pricer.getCallSlippageGradientMultipliers(tenor + 1))[deltaBand])
-			)
-			const interpolatedValue = await applyLinearInterpolation(
-				tenor,
-				remainder,
-				false,
-				deltaBand,
-				pricer,
-				0
-			)
-
-			expect(interpolatedValue).to.eq(
-				multiplierLowerTenor + remainder * (multiplierUpperTenor - multiplierLowerTenor)
-			)
+		it("checks interpolations on proposedSeries", async () => {
+			testInterpolation(proposedSeries1, delta1)
+			testInterpolation(proposedSeries2, delta2)
+			testInterpolation(proposedSeries3, delta3)
+			testInterpolation(proposedSeries4, delta4)
+			testInterpolation(proposedSeries5, delta5)
+			testInterpolation(proposedSeries6, delta6)
+			testInterpolation(proposedSeries7, delta7)
+			testInterpolation(proposedSeries8, delta8)
+			testInterpolation(proposedSeries9, delta9)
+			testInterpolation(proposedSeries10, delta10)
+			testInterpolation(proposedSeries11, delta11)
+			testInterpolation(proposedSeries12, delta12)
+			testInterpolation(proposedSeries13, delta13)
+			testInterpolation(proposedSeries14, delta14)
+			testInterpolation(proposedSeries15, delta15)
+			testInterpolation(proposedSeries16, delta16)
+			testInterpolation(proposedSeries17, delta17)
+			testInterpolation(proposedSeries18, delta18)
+			testInterpolation(proposedSeries19, delta19)
+			testInterpolation(proposedSeries20, delta20)
+			testInterpolation(proposedSeries21, delta21)
+			testInterpolation(proposedSeries22, delta22)
+			testInterpolation(proposedSeries23, delta23)
+			testInterpolation(proposedSeries24, delta24)
+			testInterpolation(proposedSeries25, delta25)
+			testInterpolation(proposedSeries26, delta26)
+			testInterpolation(proposedSeries27, delta27)
+			testInterpolation(proposedSeries28, delta28)
+			testInterpolation(proposedSeries29, delta29)
+			testInterpolation(proposedSeries30, delta10)
+			testInterpolation(proposedSeries31, delta31)
+			testInterpolation(proposedSeries32, delta32)
+			testInterpolation(proposedSeries33, delta33)
+			testInterpolation(proposedSeries34, delta34)
+			testInterpolation(proposedSeries35, delta35)
+			testInterpolation(proposedSeries36, delta36)
+			testInterpolation(proposedSeries37, delta37)
+			testInterpolation(proposedSeries38, delta38)
+			testInterpolation(proposedSeries39, delta39)
+			testInterpolation(proposedSeries40, delta40)
 		})
 	})
 	describe("set flat IV params", async () => {
