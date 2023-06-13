@@ -11,11 +11,13 @@ import type {
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
 import { Triangle } from "src/Icons";
 
-export const Cell = ({ children, cellClasses }: CellProps) => {
+export const Cell = ({ children, cellClasses, disabled }: CellProps) => {
+  const disabledClasses = disabled
+    ? "text-gray-600 cursor-not-allowed group-hover/row:bg-inherit"
+    : "cursor-default group-hover/row:bg-green-100/50";
+
   return (
-    <td
-      className={`py-4 xl:py-2.5 px-1 group-hover/row:bg-green-100/50 ${cellClasses}`}
-    >
+    <td className={`py-4 xl:py-2.5 px-1 ${cellClasses} ${disabledClasses}`}>
       {children}
     </td>
   );
