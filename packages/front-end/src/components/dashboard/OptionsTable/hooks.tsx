@@ -305,7 +305,7 @@ const usePositions = () => {
                     >
                       <Button
                         color="white"
-                        className="min-w-[50%]"
+                        className="min-w-[80%]"
                         title="Click to close position"
                       >
                         {`Close`}
