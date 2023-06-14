@@ -75,11 +75,11 @@ contract SpreadTest is Test {
 			1.3e18,
 			1.4e18
 		], [
-			int80(1e18),
-			1.1e18,
+			int80(1.1e18),
 			1.2e18,
 			1.3e18,
-			1.4e18
+			1.4e18,
+			1.5e18
 		], [
 			int80(1e18),
 			1.1e18,
@@ -87,11 +87,11 @@ contract SpreadTest is Test {
 			1.3e18,
 			1.4e18
 		], [
-			int80(1e18),
-			1.1e18,
+			int80(1.1e18),
 			1.2e18,
 			1.3e18,
-			1.4e18
+			1.4e18,
+			1.5e18
 		],
 		 [
 			int80(1e18),
@@ -100,11 +100,11 @@ contract SpreadTest is Test {
 			1.3e18,
 			1.4e18
 		], [
-			int80(1e18),
-			1.1e18,
+			int80(1.1e18),
 			1.2e18,
 			1.3e18,
-			1.4e18
+			1.4e18,
+			1.5e18
 		]),
 		DeltaBandMultipliers([
 			int80(2e18),
@@ -113,11 +113,11 @@ contract SpreadTest is Test {
 			2.3e18,
 			2.4e18
 		], [
-			int80(2e18),
-			2.1e18,
+			int80(2.1e18),
 			2.2e18,
 			2.3e18,
-			2.4e18
+			2.4e18,
+			2.5e18
 		], [
 			int80(2e18),
 			2.1e18,
@@ -125,11 +125,11 @@ contract SpreadTest is Test {
 			2.3e18,
 			2.4e18
 		], [
-			int80(2e18),
-			2.1e18,
+			int80(2.1e18),
 			2.2e18,
 			2.3e18,
-			2.4e18
+			2.4e18,
+			2.5e18
 		], [
 			int80(2e18),
 			2.1e18,
@@ -137,11 +137,11 @@ contract SpreadTest is Test {
 			2.3e18,
 			2.4e18
 		], [
-			int80(2e18),
-			2.1e18,
+			int80(2.1e18),
 			2.2e18,
 			2.3e18,
-			2.4e18
+			2.4e18,
+			2.5e18
 		]),
 		DeltaBandMultipliers([
 			int80(1e18),
@@ -150,11 +150,11 @@ contract SpreadTest is Test {
 			1.3e18,
 			1.4e18
 		], [
-			int80(1e18),
-			1.1e18,
+			int80(1.1e18),
 			1.2e18,
 			1.3e18,
-			1.4e18
+			1.4e18,
+			1.5e18
 		], [
 			int80(1e18),
 			1.1e18,
@@ -162,11 +162,11 @@ contract SpreadTest is Test {
 			1.3e18,
 			1.4e18
 		], [
-			int80(1e18),
-			1.1e18,
+			int80(1.1e18),
 			1.2e18,
 			1.3e18,
-			1.4e18
+			1.4e18,
+			1.5e18
 		], [
 			int80(1e18),
 			1.1e18,
@@ -174,11 +174,11 @@ contract SpreadTest is Test {
 			1.3e18,
 			1.4e18
 		], [
-			int80(1e18),
-			1.1e18,
+			int80(1.1e18),
 			1.2e18,
 			1.3e18,
-			1.4e18
+			1.4e18,
+			1.5e18
 		])
 		];
 		for (uint i; i < _tenorPricingParams.length; i++) {
@@ -187,7 +187,6 @@ contract SpreadTest is Test {
 		deltaBandWidth = 20e18;
 		maxTenorValue = 2800;
 		numberOfTenors = 3;
-		deltaBandWidth = 5e18;
 	}
 
 	function testSpreadValueFuzzLongDeltaBorrowRate(uint16 _longDeltaBorrowRate) public {
@@ -1246,7 +1245,7 @@ contract SpreadTest is Test {
 
 	function testSpreadValueFuzzTimestamp(uint32 _expirationTimestamp) public {
 		vm.assume(_expirationTimestamp > block.timestamp);
-		vm.assume(_expirationTimestamp < block.timestamp + ONE_YEAR_SECONDS);
+		vm.assume(_expirationTimestamp < block.timestamp + 7.776e6);
 		Types.OptionSeries memory _optionSeries = optionSeries;
 		_optionSeries.expiration = _expirationTimestamp;
 		_getSpreadValue(true, _optionSeries, 1000e18, 5e17, 100e18, 2000e18);
@@ -2221,7 +2220,7 @@ contract SpreadTest is Test {
 		if (_isSellBool) {
 			isSell = 1;
 		}
-		string[] memory inputs = new string[](30);
+		string[] memory inputs = new string[](34);
 		inputs[0] = "python3";
 		inputs[1] = "test/foundry/spread.py";
 		inputs[2] = "--amount";
@@ -2252,6 +2251,10 @@ contract SpreadTest is Test {
 		inputs[27] = uint256(_underlyingPrice).toString();
 		inputs[28] = "--time";
 		inputs[29] = uint256(time).toString();
+		inputs[30] = "--expiration";
+		inputs[31] = uint256(optionSeries.expiration).toString();
+		inputs[32] = "--timestamp";
+		inputs[33] = uint256(block.timestamp).toString();
 		bytes memory res = vm.ffi(inputs);
 		uint256 vol = abi.decode(res, (uint256));
 		return vol;
@@ -2294,6 +2297,17 @@ contract SpreadTest is Test {
 				)
 			);
 		}
+
+		spreadPremium += _getDeltaBorrowPremium(
+			_isSell,
+			_amount,
+			_optionDelta,
+			time,
+			deltaBandIndex,
+			_underlyingPrice,
+			tenorIndex,
+			remainder
+		);
 	}
 
 	function _getCollateralLendingPremium(
@@ -2334,6 +2348,7 @@ contract SpreadTest is Test {
 			}
 		}
 	}
+
 
 	function _getDeltaBorrowPremium(
 		bool _isSell,
@@ -2381,8 +2396,8 @@ contract SpreadTest is Test {
 		uint256 _expiration
 	) internal view returns (uint16 tenorIndex, int256 remainder) {
 		// get the ratio of the square root of seconds to expiry and the max tenor value in e18 form
-		uint unroundedTenorIndex = ((((_expiration - block.timestamp) * 1e18).sqrt()) / maxTenorValue) *
-			(numberOfTenors - 1);
+		uint unroundedTenorIndex = (((((_expiration - block.timestamp) * 1e18).sqrt()) *
+			(numberOfTenors - 1)) / maxTenorValue);
 		tenorIndex = uint16(unroundedTenorIndex / 1e18); // always floors
 		remainder = int256(unroundedTenorIndex - tenorIndex * 1e18); // will be between 0 and 1e18
 	}
