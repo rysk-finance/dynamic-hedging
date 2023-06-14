@@ -1,13 +1,13 @@
 import hre, { ethers } from "hardhat"
 import { expect } from "chai"
-import { toWei } from "../../utils/conversion-helper"
+import { toUSDC, toWei } from "../../utils/conversion-helper"
 import { BeyondPricer, OptionExchange } from "../../types"
 
 // deploys a new Beyond Pricer contract and links it to the protocol
 
-const authorityAddress = "0xd6DE605977A8540BEf4A08429DA0A2BfB09f14Be"
-const optionProtocolAddress = "0x8964381a078e3b2C5F761d6141f8D210180b31b2"
-const liquidityPoolAddress = "0xa9FD112cC1192f59078c20f6F39D7B42563Ea716"
+const authorityAddress = "0x68256a51a6777129968b88bd21b6f657eCE8B0E6"
+const optionProtocolAddress = "0x81267CBE2d605b7Ae2328462C1EAF51a1Ab57fFd"
+const liquidityPoolAddress = "0x0B1Bf5fb77AA36cD48Baa1395Bc2B5fa0f135d8C"
 const opynAddressBookAddress = "0xd6e67bF0b1Cdb34C37f31A2652812CB30746a94A"
 const blackScholesAddress = "0x0D7776e816E774D5d8Ce0af78F6C51582846a66c"
 const optionExchangeAddress = "0xb672fE86693bF6f3b034730f5d2C77C8844d6b45"
@@ -216,6 +216,7 @@ export async function deployNewBeyondPricer() {
 			putSpreadDeltaMultipliers: putMultipliers5
 		}
 	])
+	await pricer.setFeePerContract(toUSDC("0.5"))
 	const exchange = await ethers.getContractAt("OptionExchange", optionExchangeAddress)
 	await exchange.setPricer(pricer.address)
 }
