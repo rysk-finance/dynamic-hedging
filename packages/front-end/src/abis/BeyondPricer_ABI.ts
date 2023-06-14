@@ -28,21 +28,6 @@ export const BeyondPricerABI = [
 			},
 			{
 				"internalType": "uint256",
-				"name": "_deltaBandWidth",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint16",
-				"name": "_numberOfTenors",
-				"type": "uint16"
-			},
-			{
-				"internalType": "uint16",
-				"name": "_maxTenorValue",
-				"type": "uint16"
-			},
-			{
-				"internalType": "uint256",
 				"name": "_collateralLendingRate",
 				"type": "uint256"
 			},
@@ -848,9 +833,9 @@ export const BeyondPricerABI = [
 		"name": "numberOfTenors",
 		"outputs": [
 			{
-				"internalType": "uint256",
+				"internalType": "uint16",
 				"name": "",
-				"type": "uint256"
+				"type": "uint16"
 			}
 		],
 		"stateMutability": "view",

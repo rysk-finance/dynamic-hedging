@@ -749,7 +749,7 @@ export interface BeyondPricer extends BaseContract {
 
     maxTenorValue(overrides?: CallOverrides): Promise<[number]>;
 
-    numberOfTenors(overrides?: CallOverrides): Promise<[BigNumber]>;
+    numberOfTenors(overrides?: CallOverrides): Promise<[number]>;
 
     protocol(overrides?: CallOverrides): Promise<[string]>;
 
@@ -921,7 +921,7 @@ export interface BeyondPricer extends BaseContract {
 
   maxTenorValue(overrides?: CallOverrides): Promise<number>;
 
-  numberOfTenors(overrides?: CallOverrides): Promise<BigNumber>;
+  numberOfTenors(overrides?: CallOverrides): Promise<number>;
 
   protocol(overrides?: CallOverrides): Promise<string>;
 
@@ -1093,7 +1093,7 @@ export interface BeyondPricer extends BaseContract {
 
     maxTenorValue(overrides?: CallOverrides): Promise<number>;
 
-    numberOfTenors(overrides?: CallOverrides): Promise<BigNumber>;
+    numberOfTenors(overrides?: CallOverrides): Promise<number>;
 
     protocol(overrides?: CallOverrides): Promise<string>;
 
