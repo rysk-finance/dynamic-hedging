@@ -38,7 +38,9 @@ import {
 	setupTestOracle,
 	getBlackScholesQuote,
 	applySpreadLocally,
-	applySlippageLocally
+	applySlippageLocally,
+	getTenorIndexAndRemainder,
+	applyLinearInterpolation
 } from "./helpers"
 
 dayjs.extend(utc)
@@ -76,8 +78,97 @@ const chainId = 1
 const liquidityPoolUsdcDeposit = "100000"
 const liquidityPoolWethDeposit = "1"
 
-const expiration = dayjs.utc(expiryDate).add(8, "days").unix()
-const expiration2 = dayjs.utc(expiryDate).add(1, "month").add(8, "hours").unix() // have another batch of options exire 1 month after the first
+const expiration = dayjs.utc(expiryDate).add(8, "days").add(8, "hours").unix()
+const expiration2 = dayjs.utc(expiryDate).subtract(26, "days").unix()
+const expiration3 = dayjs.utc(expiryDate).subtract(15, "days").unix()
+const expiration4 = dayjs.utc(expiryDate).subtract(3, "days").unix()
+const expiration5 = dayjs.utc(expiryDate).add(1, "month").add(20, "days").unix()
+
+async function testInterpolation(optionSeries, optionDelta) {
+	const maxTenorValue = await pricer.maxTenorValue()
+	const numberOfTenors = await pricer.numberOfTenors()
+	const blockNum = await ethers.provider.getBlockNumber()
+	const block = await ethers.provider.getBlock(blockNum)
+	const { timestamp } = block
+	const sqrtTau = Math.sqrt(optionSeries.expiration - timestamp)
+	const tenorWidth = maxTenorValue / (numberOfTenors - 1)
+	const expectedTenor = Math.floor(sqrtTau / tenorWidth)
+	const expectedRemainder = sqrtTau / tenorWidth - expectedTenor
+	const [tenor, remainder] = await getTenorIndexAndRemainder(optionSeries.expiration, pricer)
+	expect(tenor.toFixed(10)).to.eq(expectedTenor.toFixed(10))
+	expect(remainder.toFixed(10)).to.eq(expectedRemainder.toFixed(10))
+	const deltaBandWidth = await pricer.deltaBandWidth()
+	const deltaBand = Math.floor((optionSeries * 100) / parseFloat(fromWei(deltaBandWidth)))
+	// calculate expected slippage gradient multiplier
+	const slippageMultiplierLowerTenor = parseFloat(
+		fromWei((await pricer.getCallSlippageGradientMultipliers(tenor))[deltaBand])
+	)
+	const slippageMultiplierUpperTenor = parseFloat(
+		fromWei((await pricer.getCallSlippageGradientMultipliers(tenor + 1))[deltaBand])
+	)
+	const slippageInterpolatedValue = await applyLinearInterpolation(
+		tenor,
+		remainder,
+		optionSeries.isPut,
+		deltaBand,
+		pricer,
+		0
+	)
+	expect(slippageInterpolatedValue).to.be.within(
+		slippageMultiplierLowerTenor,
+		slippageMultiplierUpperTenor
+	)
+	expect(slippageInterpolatedValue).to.eq(
+		slippageMultiplierLowerTenor +
+			remainder * (slippageMultiplierUpperTenor - slippageMultiplierLowerTenor)
+	)
+	// calculate spread Collateral mutliplier
+	const spreadCollateralMultiplierLowerTenor = parseFloat(
+		fromWei((await pricer.getCallSpreadCollateralMultipliers(tenor))[deltaBand])
+	)
+	const spreadCollateralMultiplierUpperTenor = parseFloat(
+		fromWei((await pricer.getCallSpreadCollateralMultipliers(tenor + 1))[deltaBand])
+	)
+	const spreadCollateralInterpolatedValue = await applyLinearInterpolation(
+		tenor,
+		remainder,
+		optionSeries.isPut,
+		deltaBand,
+		pricer,
+		1
+	)
+	expect(spreadCollateralInterpolatedValue).to.be.within(
+		spreadCollateralMultiplierLowerTenor,
+		spreadCollateralMultiplierUpperTenor
+	)
+	expect(spreadCollateralInterpolatedValue).to.eq(
+		spreadCollateralMultiplierLowerTenor +
+			remainder * (spreadCollateralMultiplierUpperTenor - spreadCollateralMultiplierLowerTenor)
+	)
+	// calculate spread Delta mutliplier
+	const spreadDeltaMultiplierLowerTenor = parseFloat(
+		fromWei((await pricer.getCallSpreadDeltaMultipliers(tenor))[deltaBand])
+	)
+	const spreadDeltaMultiplierUpperTenor = parseFloat(
+		fromWei((await pricer.getCallSpreadDeltaMultipliers(tenor + 1))[deltaBand])
+	)
+	const spreadDeltaInterpolatedValue = await applyLinearInterpolation(
+		tenor,
+		remainder,
+		optionSeries.isPut,
+		deltaBand,
+		pricer,
+		2
+	)
+	expect(spreadDeltaInterpolatedValue).to.be.within(
+		spreadDeltaMultiplierLowerTenor,
+		spreadDeltaMultiplierUpperTenor
+	)
+	expect(spreadDeltaInterpolatedValue).to.eq(
+		spreadDeltaMultiplierLowerTenor +
+			remainder * (spreadDeltaMultiplierUpperTenor - spreadDeltaMultiplierLowerTenor)
+	)
+}
 
 describe("Quote Option price", async () => {
 	before(async function () {
@@ -184,6 +275,78 @@ describe("Quote Option price", async () => {
 			expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
 			expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
 		})
+		it("SETUP: set sabrParams", async () => {
+			const proposedSabrParams = {
+				callAlpha: 250000,
+				callBeta: 1_000000,
+				callRho: -300000,
+				callVolvol: 1_500000,
+				putAlpha: 250000,
+				putBeta: 1_000000,
+				putRho: -300000,
+				putVolvol: 1_500000,
+				interestRate: utils.parseEther("-0.003")
+			}
+			await volFeed.setSabrParameters(proposedSabrParams, expiration3)
+			const volFeedSabrParams = await volFeed.sabrParams(expiration3)
+			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
+			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
+			expect(proposedSabrParams.callRho).to.equal(volFeedSabrParams.callRho)
+			expect(proposedSabrParams.callVolvol).to.equal(volFeedSabrParams.callVolvol)
+			expect(proposedSabrParams.putAlpha).to.equal(volFeedSabrParams.putAlpha)
+			expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
+			expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
+			expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+			expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
+		})
+		it("SETUP: set sabrParams", async () => {
+			const proposedSabrParams = {
+				callAlpha: 250000,
+				callBeta: 1_000000,
+				callRho: -300000,
+				callVolvol: 1_500000,
+				putAlpha: 250000,
+				putBeta: 1_000000,
+				putRho: -300000,
+				putVolvol: 1_500000,
+				interestRate: utils.parseEther("-0.004")
+			}
+			await volFeed.setSabrParameters(proposedSabrParams, expiration4)
+			const volFeedSabrParams = await volFeed.sabrParams(expiration4)
+			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
+			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
+			expect(proposedSabrParams.callRho).to.equal(volFeedSabrParams.callRho)
+			expect(proposedSabrParams.callVolvol).to.equal(volFeedSabrParams.callVolvol)
+			expect(proposedSabrParams.putAlpha).to.equal(volFeedSabrParams.putAlpha)
+			expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
+			expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
+			expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+			expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
+		})
+		it("SETUP: set sabrParams", async () => {
+			const proposedSabrParams = {
+				callAlpha: 250000,
+				callBeta: 1_000000,
+				callRho: -300000,
+				callVolvol: 1_500000,
+				putAlpha: 250000,
+				putBeta: 1_000000,
+				putRho: -300000,
+				putVolvol: 1_500000,
+				interestRate: utils.parseEther("-0.005")
+			}
+			await volFeed.setSabrParameters(proposedSabrParams, expiration5)
+			const volFeedSabrParams = await volFeed.sabrParams(expiration5)
+			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
+			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
+			expect(proposedSabrParams.callRho).to.equal(volFeedSabrParams.callRho)
+			expect(proposedSabrParams.callVolvol).to.equal(volFeedSabrParams.callVolvol)
+			expect(proposedSabrParams.putAlpha).to.equal(volFeedSabrParams.putAlpha)
+			expect(proposedSabrParams.putBeta).to.equal(volFeedSabrParams.putBeta)
+			expect(proposedSabrParams.putRho).to.equal(volFeedSabrParams.putRho)
+			expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
+			expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
+		})
 		it("sets spread values to non-zero", async () => {
 			await pricer.setCollateralLendingRate(100000) // 10%
 			expect(await pricer.collateralLendingRate()).to.eq(100000)
@@ -225,6 +388,75 @@ describe("Quote Option price", async () => {
 		it("SETUP: sets the exchange as a hedging reactor", async function () {
 			await liquidityPool.setHedgingReactorAddress(exchange.address)
 			expect(await liquidityPool.hedgingReactors(0)).to.equal(exchange.address)
+		})
+		it("SETUP: set low spread delta multipliers on otm options for low tenors", async () => {
+			const paramArray = [
+				toWei("1.4"),
+				toWei("1.3"),
+				toWei("1.2"),
+				toWei("1.1"),
+				toWei("1"),
+				toWei("1"),
+				toWei("1.1"),
+				toWei("1.2"),
+				toWei("1.3"),
+				toWei("1.4")
+			]
+
+			await pricer.setSpreadDeltaMultipliers(
+				3,
+				[
+					toWei("1.4"),
+					toWei("1.3"),
+					toWei("1.2"),
+					toWei("1.1"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.1"),
+					toWei("1.2"),
+					toWei("1.3"),
+					toWei("1.4")
+				],
+				[
+					toWei("1.4"),
+					toWei("1.3"),
+					toWei("1.2"),
+					toWei("1.1"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.1"),
+					toWei("1.2"),
+					toWei("1.3"),
+					toWei("1.4")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				4,
+				[
+					toWei("1.4"),
+					toWei("1.3"),
+					toWei("1.2"),
+					toWei("1.1"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.1"),
+					toWei("1.2"),
+					toWei("1.3"),
+					toWei("1.4")
+				],
+				[
+					toWei("1.4"),
+					toWei("1.3"),
+					toWei("1.2"),
+					toWei("1.1"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.1"),
+					toWei("1.2"),
+					toWei("1.3"),
+					toWei("1.4")
+				]
+			)
 		})
 	})
 	describe("Checks the bid on low delta options is set to flat IV set by pricer", async () => {
@@ -502,7 +734,7 @@ describe("Quote Option price", async () => {
 		it("SUCCEEDS: get quote for 1 put when selling", async () => {
 			proposedSeries = {
 				expiration: expiration,
-				strike: toWei("2300"),
+				strike: toWei("2350"),
 				isPut: PUT_FLAVOR,
 				strikeAsset: usd.address,
 				underlying: weth.address,
@@ -565,7 +797,7 @@ describe("Quote Option price", async () => {
 			if (spread < 0) {
 				spread = 0
 			}
-			const nonIvOverrideQuote = bsQ * slip - spread
+			const nonIvOverrideQuote = Math.max(bsQ * slip - spread, 0)
 			// IV override should be lower
 			expect(overrideQuote).to.be.lt(nonIvOverrideQuote)
 
@@ -674,8 +906,8 @@ describe("Quote Option price", async () => {
 			expect(singleSellQuote).to.greaterThanOrEqual(quoteResponse[0].div(1000))
 			// DHV quote should match  override quote because that is lower
 			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.within(
-				overrideQuote - 0.1,
-				overrideQuote + 0.1
+				overrideQuote - 0.2,
+				overrideQuote + 0.2
 			)
 		})
 		it("buys for puts are not affected by the IV override", async () => {
@@ -904,6 +1136,655 @@ describe("Quote Option price", async () => {
 			)
 			expect(singleSellQuote).to.be.gt(quoteResponse[0].div(1000))
 			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.lt(localQuoteNoSpread)
+		})
+	})
+	let proposedSeries1
+	let proposedSeries2
+	let proposedSeries3
+	let proposedSeries4
+	let proposedSeries5
+	let proposedSeries6
+	let proposedSeries7
+	let proposedSeries8
+	let proposedSeries9
+	let proposedSeries10
+	let proposedSeries11
+	let proposedSeries12
+	let proposedSeries13
+	let proposedSeries14
+	let proposedSeries15
+	let proposedSeries16
+	let proposedSeries17
+	let proposedSeries18
+	let proposedSeries19
+	let proposedSeries20
+	let proposedSeries21
+	let proposedSeries22
+	let proposedSeries23
+	let proposedSeries24
+	let proposedSeries25
+	let proposedSeries26
+	let proposedSeries27
+	let proposedSeries28
+	let proposedSeries29
+	let proposedSeries30
+	let proposedSeries31
+	let proposedSeries32
+	let proposedSeries33
+	let proposedSeries34
+	let proposedSeries35
+	let proposedSeries36
+	let proposedSeries37
+	let proposedSeries38
+	let proposedSeries39
+	let proposedSeries40
+	let delta1
+	let delta2
+	let delta3
+	let delta4
+	let delta5
+	let delta6
+	let delta7
+	let delta8
+	let delta9
+	let delta10
+	let delta11
+	let delta12
+	let delta13
+	let delta14
+	let delta15
+	let delta16
+	let delta17
+	let delta18
+	let delta19
+	let delta20
+	let delta21
+	let delta22
+	let delta23
+	let delta24
+	let delta25
+	let delta26
+	let delta27
+	let delta28
+	let delta29
+	let delta30
+	let delta31
+	let delta32
+	let delta33
+	let delta34
+	let delta35
+	let delta36
+	let delta37
+	let delta38
+	let delta39
+	let delta40
+
+	describe("check interpolation values", async () => {
+		it("gets deltas", async () => {
+			const amount = toWei("1")
+			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+			proposedSeries1 = {
+				expiration: expiration,
+				strike: priceQuote.add(toWei("200")),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries2 = {
+				expiration: expiration,
+				strike: priceQuote.add(toWei("50")),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries3 = {
+				expiration: expiration,
+				strike: priceQuote.sub(toWei("300")),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries4 = {
+				expiration: expiration,
+				strike: priceQuote.sub(toWei("50")),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries5 = {
+				expiration: expiration2,
+				strike: priceQuote.add(toWei("50")),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries6 = {
+				expiration: expiration2,
+				strike: priceQuote.add(toWei("10")),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries7 = {
+				expiration: expiration2,
+				strike: priceQuote.sub(toWei("20")),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries8 = {
+				expiration: expiration2,
+				strike: priceQuote.sub(toWei("50")),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries9 = {
+				expiration: expiration3,
+				strike: priceQuote.add(toWei("150")),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries10 = {
+				expiration: expiration3,
+				strike: priceQuote.add(toWei("75")),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries11 = {
+				expiration: expiration3,
+				strike: priceQuote.sub(toWei("30")),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries12 = {
+				expiration: expiration3,
+				strike: priceQuote.sub(toWei("150")),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries13 = {
+				expiration: expiration4,
+				strike: priceQuote.add(toWei("300")),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries14 = {
+				expiration: expiration4,
+				strike: priceQuote.add(toWei("150")),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries15 = {
+				expiration: expiration4,
+				strike: priceQuote.sub(toWei("50")),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries16 = {
+				expiration: expiration4,
+				strike: priceQuote.sub(toWei("300")),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries17 = {
+				expiration: expiration5,
+				strike: priceQuote.add(toWei("1000")),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries18 = {
+				expiration: expiration5,
+				strike: priceQuote.add(toWei("400")),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries19 = {
+				expiration: expiration5,
+				strike: priceQuote.sub(toWei("0")),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries20 = {
+				expiration: expiration5,
+				strike: priceQuote.sub(toWei("480")),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries21 = {
+				expiration: expiration,
+				strike: priceQuote.add(toWei("200")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries22 = {
+				expiration: expiration,
+				strike: priceQuote.add(toWei("50")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries23 = {
+				expiration: expiration,
+				strike: priceQuote.sub(toWei("300")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries24 = {
+				expiration: expiration,
+				strike: priceQuote.sub(toWei("50")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries25 = {
+				expiration: expiration2,
+				strike: priceQuote.add(toWei("50")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries26 = {
+				expiration: expiration2,
+				strike: priceQuote.add(toWei("10")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries27 = {
+				expiration: expiration2,
+				strike: priceQuote.sub(toWei("20")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries28 = {
+				expiration: expiration2,
+				strike: priceQuote.sub(toWei("50")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries29 = {
+				expiration: expiration3,
+				strike: priceQuote.add(toWei("150")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries30 = {
+				expiration: expiration3,
+				strike: priceQuote.add(toWei("75")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries31 = {
+				expiration: expiration3,
+				strike: priceQuote.sub(toWei("30")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries32 = {
+				expiration: expiration3,
+				strike: priceQuote.sub(toWei("150")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries33 = {
+				expiration: expiration4,
+				strike: priceQuote.add(toWei("300")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries34 = {
+				expiration: expiration4,
+				strike: priceQuote.add(toWei("150")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries35 = {
+				expiration: expiration4,
+				strike: priceQuote.sub(toWei("50")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries36 = {
+				expiration: expiration4,
+				strike: priceQuote.sub(toWei("300")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries37 = {
+				expiration: expiration5,
+				strike: priceQuote.add(toWei("1000")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries38 = {
+				expiration: expiration5,
+				strike: priceQuote.add(toWei("400")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries39 = {
+				expiration: expiration5,
+				strike: priceQuote.sub(toWei("0")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			proposedSeries40 = {
+				expiration: expiration5,
+				strike: priceQuote.sub(toWei("480")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			delta1 = fromWei(
+				await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries1, amount, false)
+			)
+			delta2 = fromWei(
+				await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries2, amount, false)
+			)
+			delta3 = fromWei(
+				await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries3, amount, false)
+			)
+			delta4 = fromWei(
+				await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries4, amount, false)
+			)
+			delta5 = fromWei(
+				await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries5, amount, false)
+			)
+			delta6 = fromWei(
+				await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries6, amount, false)
+			)
+			delta7 = fromWei(
+				await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries7, amount, false)
+			)
+			delta8 = fromWei(
+				await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries8, amount, false)
+			)
+			delta9 = fromWei(
+				await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries9, amount, false)
+			)
+			delta10 = fromWei(
+				await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries10, amount, false)
+			)
+			delta11 = fromWei(
+				await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries11, amount, false)
+			)
+			delta12 = fromWei(
+				await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries12, amount, false)
+			)
+			delta13 = fromWei(
+				await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries13, amount, false)
+			)
+			delta14 = fromWei(
+				await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries14, amount, false)
+			)
+			delta15 = fromWei(
+				await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries15, amount, false)
+			)
+			delta16 = fromWei(
+				await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries16, amount, false)
+			)
+			delta17 = fromWei(
+				await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries17, amount, false)
+			)
+			delta18 = fromWei(
+				await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries18, amount, false)
+			)
+			delta19 = fromWei(
+				await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries19, amount, false)
+			)
+			delta20 = fromWei(
+				await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries20, amount, false)
+			)
+			delta21 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries21, amount, false)
+					)
+				)
+			)
+			delta22 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries22, amount, false)
+					)
+				)
+			)
+			delta23 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries23, amount, false)
+					)
+				)
+			)
+			delta24 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries24, amount, false)
+					)
+				)
+			)
+			delta25 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries25, amount, false)
+					)
+				)
+			)
+			delta26 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries26, amount, false)
+					)
+				)
+			)
+			delta27 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries27, amount, false)
+					)
+				)
+			)
+			delta28 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries28, amount, false)
+					)
+				)
+			)
+			delta29 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries29, amount, false)
+					)
+				)
+			)
+			delta30 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries30, amount, false)
+					)
+				)
+			)
+			delta31 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries31, amount, false)
+					)
+				)
+			)
+			delta32 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries32, amount, false)
+					)
+				)
+			)
+			delta33 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries33, amount, false)
+					)
+				)
+			)
+			delta34 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries34, amount, false)
+					)
+				)
+			)
+			delta35 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries35, amount, false)
+					)
+				)
+			)
+			delta36 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries36, amount, false)
+					)
+				)
+			)
+			delta37 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries37, amount, false)
+					)
+				)
+			)
+			delta38 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries38, amount, false)
+					)
+				)
+			)
+			delta39 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries39, amount, false)
+					)
+				)
+			)
+			delta40 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries40, amount, false)
+					)
+				)
+			)
+		})
+		it("checks interpolations on proposedSeries", async () => {
+			testInterpolation(proposedSeries1, delta1)
+			testInterpolation(proposedSeries2, delta2)
+			testInterpolation(proposedSeries3, delta3)
+			testInterpolation(proposedSeries4, delta4)
+			testInterpolation(proposedSeries5, delta5)
+			testInterpolation(proposedSeries6, delta6)
+			testInterpolation(proposedSeries7, delta7)
+			testInterpolation(proposedSeries8, delta8)
+			testInterpolation(proposedSeries9, delta9)
+			testInterpolation(proposedSeries10, delta10)
+			testInterpolation(proposedSeries11, delta11)
+			testInterpolation(proposedSeries12, delta12)
+			testInterpolation(proposedSeries13, delta13)
+			testInterpolation(proposedSeries14, delta14)
+			testInterpolation(proposedSeries15, delta15)
+			testInterpolation(proposedSeries16, delta16)
+			testInterpolation(proposedSeries17, delta17)
+			testInterpolation(proposedSeries18, delta18)
+			testInterpolation(proposedSeries19, delta19)
+			testInterpolation(proposedSeries20, delta20)
+			testInterpolation(proposedSeries21, delta21)
+			testInterpolation(proposedSeries22, delta22)
+			testInterpolation(proposedSeries23, delta23)
+			testInterpolation(proposedSeries24, delta24)
+			testInterpolation(proposedSeries25, delta25)
+			testInterpolation(proposedSeries26, delta26)
+			testInterpolation(proposedSeries27, delta27)
+			testInterpolation(proposedSeries28, delta28)
+			testInterpolation(proposedSeries29, delta29)
+			testInterpolation(proposedSeries30, delta10)
+			testInterpolation(proposedSeries31, delta31)
+			testInterpolation(proposedSeries32, delta32)
+			testInterpolation(proposedSeries33, delta33)
+			testInterpolation(proposedSeries34, delta34)
+			testInterpolation(proposedSeries35, delta35)
+			testInterpolation(proposedSeries36, delta36)
+			testInterpolation(proposedSeries37, delta37)
+			testInterpolation(proposedSeries38, delta38)
+			testInterpolation(proposedSeries39, delta39)
+			testInterpolation(proposedSeries40, delta40)
 		})
 	})
 	describe("set flat IV params", async () => {

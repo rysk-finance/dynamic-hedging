@@ -414,50 +414,94 @@ describe("Authority tests", async () => {
 			expect((await pricer.deltaBorrowRates()).buyLong).to.eq(1000003)
 			expect((await pricer.deltaBorrowRates()).buyShort).to.eq(1000004)
 		})
-		it("SUCCEEDS: sets deltaBandwidth in beyond pricer", async () => {
-			await managerContract.setDeltaBandWidth(utils.parseEther("25"), {
-				callSlippageGradientMultipliers: [
-					utils.parseEther("1"),
-					utils.parseEther("2"),
-					utils.parseEther("3"),
-					utils.parseEther("4")
-				],
-				putSlippageGradientMultipliers: [
-					utils.parseEther("1"),
-					utils.parseEther("2"),
-					utils.parseEther("3"),
-					utils.parseEther("4")
-				],
-				callSpreadCollateralMultipliers: [
-					utils.parseEther("1"),
-					utils.parseEther("2"),
-					utils.parseEther("3"),
-					utils.parseEther("4")
-				],
-				putSpreadCollateralMultipliers: [
-					utils.parseEther("1"),
-					utils.parseEther("2"),
-					utils.parseEther("3"),
-					utils.parseEther("4")
-				],
-				callSpreadDeltaMultipliers: [
-					utils.parseEther("1"),
-					utils.parseEther("2"),
-					utils.parseEther("3"),
-					utils.parseEther("4")
-				],
-				putSpreadDeltaMultipliers: [
-					utils.parseEther("1"),
-					utils.parseEther("2"),
-					utils.parseEther("3"),
-					utils.parseEther("4")
-				]
-			})
+		it("SUCCEEDS: initialize tenor params in beyond pricer", async () => {
+			await managerContract.initializeTenorParams(utils.parseEther("25"), 2, 3000, [
+				{
+					callSlippageGradientMultipliers: [
+						utils.parseEther("1"),
+						utils.parseEther("2"),
+						utils.parseEther("3"),
+						utils.parseEther("4")
+					],
+					putSlippageGradientMultipliers: [
+						utils.parseEther("1"),
+						utils.parseEther("2"),
+						utils.parseEther("3"),
+						utils.parseEther("4")
+					],
+					callSpreadCollateralMultipliers: [
+						utils.parseEther("1"),
+						utils.parseEther("2"),
+						utils.parseEther("3"),
+						utils.parseEther("4")
+					],
+					putSpreadCollateralMultipliers: [
+						utils.parseEther("1"),
+						utils.parseEther("2"),
+						utils.parseEther("3"),
+						utils.parseEther("4")
+					],
+					callSpreadDeltaMultipliers: [
+						utils.parseEther("1"),
+						utils.parseEther("2"),
+						utils.parseEther("3"),
+						utils.parseEther("4")
+					],
+					putSpreadDeltaMultipliers: [
+						utils.parseEther("1"),
+						utils.parseEther("2"),
+						utils.parseEther("3"),
+						utils.parseEther("4")
+					]
+				},
+				{
+					callSlippageGradientMultipliers: [
+						utils.parseEther("2"),
+						utils.parseEther("4"),
+						utils.parseEther("6"),
+						utils.parseEther("8")
+					],
+					putSlippageGradientMultipliers: [
+						utils.parseEther("2"),
+						utils.parseEther("4"),
+						utils.parseEther("6"),
+						utils.parseEther("8")
+					],
+					callSpreadCollateralMultipliers: [
+						utils.parseEther("2"),
+						utils.parseEther("4"),
+						utils.parseEther("6"),
+						utils.parseEther("8")
+					],
+					putSpreadCollateralMultipliers: [
+						utils.parseEther("2"),
+						utils.parseEther("4"),
+						utils.parseEther("6"),
+						utils.parseEther("8")
+					],
+					callSpreadDeltaMultipliers: [
+						utils.parseEther("2"),
+						utils.parseEther("4"),
+						utils.parseEther("6"),
+						utils.parseEther("8")
+					],
+					putSpreadDeltaMultipliers: [
+						utils.parseEther("2"),
+						utils.parseEther("4"),
+						utils.parseEther("6"),
+						utils.parseEther("8")
+					]
+				}
+			])
 			expect(await pricer.deltaBandWidth()).to.eq(utils.parseEther("25"))
+			expect(await pricer.numberOfTenors()).to.eq(2)
+			expect(await pricer.maxTenorValue()).to.eq(3000)
+			expect((await pricer.getCallSlippageGradientMultipliers(1))[0]).to.eq(utils.parseEther("2"))
 		})
 		it("SUCCEEDS: sets slippageMultipliers in beyond pricer", async () => {
-			expect((await pricer.getCallSlippageGradientMultipliers())[0]).to.eq(utils.parseEther("1"))
+			expect((await pricer.getCallSlippageGradientMultipliers(0))[0]).to.eq(utils.parseEther("1"))
 			await managerContract.setSlippageGradientMultipliers(
+				0,
 				[
 					utils.parseEther("10"),
 					utils.parseEther("20"),
@@ -466,11 +510,12 @@ describe("Authority tests", async () => {
 				],
 				[utils.parseEther("10"), utils.parseEther("20"), utils.parseEther("30"), utils.parseEther("40")]
 			)
-			expect((await pricer.getCallSlippageGradientMultipliers())[0]).to.eq(utils.parseEther("10"))
+			expect((await pricer.getCallSlippageGradientMultipliers(0))[0]).to.eq(utils.parseEther("10"))
 		})
 		it("SUCCEEDS: sets spreadCollateralMultipliers in beyond pricer", async () => {
-			expect((await pricer.getCallSpreadCollateralMultipliers())[0]).to.eq(utils.parseEther("1"))
+			expect((await pricer.getCallSpreadCollateralMultipliers(1))[3]).to.eq(utils.parseEther("8"))
 			await managerContract.setSpreadCollateralMultipliers(
+				1,
 				[
 					utils.parseEther("10"),
 					utils.parseEther("20"),
@@ -479,11 +524,12 @@ describe("Authority tests", async () => {
 				],
 				[utils.parseEther("10"), utils.parseEther("20"), utils.parseEther("30"), utils.parseEther("40")]
 			)
-			expect((await pricer.getCallSpreadCollateralMultipliers())[0]).to.eq(utils.parseEther("10"))
+			expect((await pricer.getCallSpreadCollateralMultipliers(1))[3]).to.eq(utils.parseEther("40"))
 		})
 		it("SUCCEEDS: sets spreadDeltaMultipliers in beyond pricer", async () => {
-			expect((await pricer.getCallSpreadDeltaMultipliers())[0]).to.eq(utils.parseEther("1"))
+			expect((await pricer.getCallSpreadDeltaMultipliers(0))[3]).to.eq(utils.parseEther("4"))
 			await managerContract.setSpreadDeltaMultipliers(
+				0,
 				[
 					utils.parseEther("10"),
 					utils.parseEther("20"),
@@ -492,7 +538,7 @@ describe("Authority tests", async () => {
 				],
 				[utils.parseEther("10"), utils.parseEther("20"), utils.parseEther("30"), utils.parseEther("40")]
 			)
-			expect((await pricer.getCallSpreadDeltaMultipliers())[0]).to.eq(utils.parseEther("10"))
+			expect((await pricer.getCallSpreadDeltaMultipliers(0))[3]).to.eq(utils.parseEther("40"))
 		})
 	})
 })

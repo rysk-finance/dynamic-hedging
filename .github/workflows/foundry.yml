@@ -1,0 +1,45 @@
+name: Foundry Fuzzing
+
+on:   
+  pull_request:
+    paths:
+      - "packages/contracts/**"
+      - "package.json"
+      - ".github/workflows/hardhat.yml"
+
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: ./packages/contracts
+
+jobs:
+  check:
+    name: Foundry project
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Cancel old runs
+        uses: styfle/cancel-workflow-action@0.9.1
+        with:
+          access_token: ${{ github.token }}
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v1
+        with:
+          python-version: "3.10"
+      - name: Install poetry
+        run: pip install poetry
+      - name: Install python dependencies
+        run: |
+          rm -f poetry.lock
+          poetry install
+        
+      - name: Run tests
+        run: poetry run forge test --ffi -vvv

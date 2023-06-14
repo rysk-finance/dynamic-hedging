@@ -38,11 +38,11 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 	struct DeltaBandMultipliers {
 		// array of slippage multipliers for each delta band. e18
-		uint80[] callSlippageGradientMultipliers;
-		uint80[] putSlippageGradientMultipliers;
+		int80[] callSlippageGradientMultipliers;
+		int80[] putSlippageGradientMultipliers;
 		// array of collateral lending spread multipliers for each delta band. e18
-		uint80[] callSpreadCollateralMultipliers;
-		uint80[] putSpreadCollateralMultipliers;
+		int80[] callSpreadCollateralMultipliers;
+		int80[] putSpreadCollateralMultipliers;
 		// array of delta borrow spread multipliers for each delta band. e18
 		int80[] callSpreadDeltaMultipliers;
 		int80[] putSpreadDeltaMultipliers;
@@ -77,17 +77,19 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 	uint256 public slippageGradient;
 
-	// multiplier of slippageGradient for options < 10 delta
-	// reflects the cost of increased collateral used to back these kind of options relative to their price.
 	// represents the width of delta bands to apply slippage multipliers to. e18
 	uint256 public deltaBandWidth;
+	// represents the number of tenors for which we want to apply separate slippage and spread parameters to
+	uint16 public numberOfTenors;
+	// multiplier values for spread and slippage delta bands
+	DeltaBandMultipliers[] internal tenorPricingParams;
+	// maximum tenor value. Units are in sqrt(seconds)
+	uint16 public maxTenorValue;
 
 	// represents the lending rate of collateral used to collateralise short options by the DHV. denominated in 6 dps
 	uint256 public collateralLendingRate;
 	//  delta borrow rates for spread func. All denominated in 6 dps
 	DeltaBorrowRates public deltaBorrowRates;
-	// multiplier values for spread and slippage delta bands
-	DeltaBandMultipliers internal deltaBandMultipliers;
 	// flat IV value which will override our pricing formula for bids on options below a low delta threshold
 	uint256 public lowDeltaSellOptionFlatIV = 35e16;
 	// threshold for delta of options below which lowDeltaSellOptionFlatIV kicks in
@@ -111,6 +113,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	/// structs && events ///
 	/////////////////////////
 
+	event TenorParamsSet();
 	event SlippageGradientMultipliersChanged();
 	event SpreadCollateralMultipliersChanged();
 	event SpreadDeltaMultipliersChanged();
@@ -132,12 +135,9 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		uint256 oldLowDeltaSellOptionFlatIV
 	);
 	event LowDeltaThresholdChanged(uint256 newLowDeltaThreshold, uint256 oldLowDeltaThreshold);
-	error InvalidSlippageGradientMultipliersArrayLength();
-	error InvalidSlippageGradientMultiplierValue();
-	error InvalidSpreadCollateralMultipliersArrayLength();
-	error InvalidSpreadCollateralMultiplierValue();
-	error InvalidSpreadDeltaMultipliersArrayLength();
-	error InvalidSpreadDeltaMultiplierValue();
+	error InvalidMultipliersArrayLength();
+	error InvalidMultiplierValue();
+	error InvalidTenorArrayLength();
 
 	constructor(
 		address _authority,
@@ -145,8 +145,6 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		address _liquidityPool,
 		address _addressBook,
 		uint256 _slippageGradient,
-		uint256 _deltaBandWidth,
-		DeltaBandMultipliers memory _deltaBandMultipliers,
 		uint256 _collateralLendingRate,
 		DeltaBorrowRates memory _deltaBorrowRates
 	) AccessControl(IAuthority(_authority)) {
@@ -157,7 +155,6 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		underlyingAsset = liquidityPool.underlyingAsset();
 		strikeAsset = liquidityPool.strikeAsset();
 		slippageGradient = _slippageGradient;
-		setDeltaBandWidth(_deltaBandWidth, _deltaBandMultipliers);
 		collateralLendingRate = _collateralLendingRate;
 		deltaBorrowRates = _deltaBorrowRates;
 	}
@@ -214,81 +211,115 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		deltaBorrowRates = _deltaBorrowRates;
 	}
 
-	/// @dev must also update delta band arrays to fit the new delta band width
-	function setDeltaBandWidth(
+	/** @notice function used to set the slippage and spread delta band multipliers initially, and
+	 *  also if the number of tenors or the delta band width is changed, since this would require
+	 *  all existing tenors to be adjusted.
+	 */
+
+	function initializeTenorParams(
 		uint256 _deltaBandWidth,
-		DeltaBandMultipliers memory _deltaBandMultipliers
-	) public {
+		uint16 _numberOfTenors,
+		uint16 _maxTenorValue,
+		DeltaBandMultipliers[] memory _tenorPricingParams
+	) external {
 		_onlyManager();
-		emit DeltaBandWidthChanged(_deltaBandWidth, deltaBandWidth);
+		if (_tenorPricingParams.length != _numberOfTenors) {
+			revert InvalidTenorArrayLength();
+		}
+		for (uint16 i = 0; i < _numberOfTenors; i++) {
+			if (
+				_tenorPricingParams[i].callSlippageGradientMultipliers.length != ONE_DELTA / _deltaBandWidth ||
+				_tenorPricingParams[i].putSlippageGradientMultipliers.length != ONE_DELTA / _deltaBandWidth ||
+				_tenorPricingParams[i].callSpreadCollateralMultipliers.length != ONE_DELTA / _deltaBandWidth ||
+				_tenorPricingParams[i].putSpreadCollateralMultipliers.length != ONE_DELTA / _deltaBandWidth ||
+				_tenorPricingParams[i].callSpreadDeltaMultipliers.length != ONE_DELTA / _deltaBandWidth ||
+				_tenorPricingParams[i].putSpreadDeltaMultipliers.length != ONE_DELTA / _deltaBandWidth
+			) {
+				revert InvalidMultipliersArrayLength();
+			}
+			for (uint256 j = 0; j < _tenorPricingParams[i].callSlippageGradientMultipliers.length; j++) {
+				// arrays must be same length so can check all in same loop
+				// ensure no multiplier is less than 1 due to human error.
+				if (
+					_tenorPricingParams[i].callSlippageGradientMultipliers[j] < ONE_SCALE_INT ||
+					_tenorPricingParams[i].putSlippageGradientMultipliers[j] < ONE_SCALE_INT ||
+					_tenorPricingParams[i].callSpreadCollateralMultipliers[j] < ONE_SCALE_INT ||
+					_tenorPricingParams[i].putSpreadCollateralMultipliers[j] < ONE_SCALE_INT ||
+					_tenorPricingParams[i].callSpreadDeltaMultipliers[j] < ONE_SCALE_INT ||
+					_tenorPricingParams[i].putSpreadDeltaMultipliers[j] < ONE_SCALE_INT
+				) {
+					revert InvalidMultiplierValue();
+				}
+			}
+		}
+		numberOfTenors = _numberOfTenors;
+		maxTenorValue = _maxTenorValue;
 		deltaBandWidth = _deltaBandWidth;
-		setSlippageGradientMultipliers(
-			_deltaBandMultipliers.callSlippageGradientMultipliers,
-			_deltaBandMultipliers.putSlippageGradientMultipliers
-		);
-		setSpreadCollateralMultipliers(
-			_deltaBandMultipliers.callSpreadCollateralMultipliers,
-			_deltaBandMultipliers.putSpreadCollateralMultipliers
-		);
-		setSpreadDeltaMultipliers(
-			_deltaBandMultipliers.callSpreadDeltaMultipliers,
-			_deltaBandMultipliers.putSpreadDeltaMultipliers
-		);
+		delete tenorPricingParams;
+		for (uint i = 0; i < _numberOfTenors; i++) {
+			tenorPricingParams.push(_tenorPricingParams[i]);
+		}
+		emit TenorParamsSet();
 	}
 
 	function setSlippageGradientMultipliers(
-		uint80[] memory _callSlippageGradientMultipliers,
-		uint80[] memory _putSlippageGradientMultipliers
+		uint16 _tenorIndex,
+		int80[] memory _callSlippageGradientMultipliers,
+		int80[] memory _putSlippageGradientMultipliers
 	) public {
 		_onlyManager();
 		if (
 			_callSlippageGradientMultipliers.length != ONE_DELTA / deltaBandWidth ||
 			_putSlippageGradientMultipliers.length != ONE_DELTA / deltaBandWidth
 		) {
-			revert InvalidSlippageGradientMultipliersArrayLength();
+			revert InvalidMultipliersArrayLength();
 		}
 		for (uint256 i = 0; i < _callSlippageGradientMultipliers.length; i++) {
 			// arrays must be same length so can check both in same loop
 			// ensure no multiplier is less than 1 due to human error.
 			if (
-				_callSlippageGradientMultipliers[i] < ONE_SCALE ||
-				_putSlippageGradientMultipliers[i] < ONE_SCALE
+				_callSlippageGradientMultipliers[i] < ONE_SCALE_INT ||
+				_putSlippageGradientMultipliers[i] < ONE_SCALE_INT
 			) {
-				revert InvalidSlippageGradientMultiplierValue();
+				revert InvalidMultiplierValue();
 			}
 		}
-		deltaBandMultipliers.callSlippageGradientMultipliers = _callSlippageGradientMultipliers;
-		deltaBandMultipliers.putSlippageGradientMultipliers = _putSlippageGradientMultipliers;
+		tenorPricingParams[_tenorIndex]
+			.callSlippageGradientMultipliers = _callSlippageGradientMultipliers;
+		tenorPricingParams[_tenorIndex].putSlippageGradientMultipliers = _putSlippageGradientMultipliers;
 		emit SlippageGradientMultipliersChanged();
 	}
 
 	function setSpreadCollateralMultipliers(
-		uint80[] memory _callSpreadCollateralMultipliers,
-		uint80[] memory _putSpreadCollateralMultipliers
+		uint16 _tenorIndex,
+		int80[] memory _callSpreadCollateralMultipliers,
+		int80[] memory _putSpreadCollateralMultipliers
 	) public {
 		_onlyManager();
 		if (
 			_callSpreadCollateralMultipliers.length != ONE_DELTA / deltaBandWidth ||
 			_putSpreadCollateralMultipliers.length != ONE_DELTA / deltaBandWidth
 		) {
-			revert InvalidSpreadCollateralMultipliersArrayLength();
+			revert InvalidMultipliersArrayLength();
 		}
 		for (uint256 i = 0; i < _callSpreadCollateralMultipliers.length; i++) {
 			// arrays must be same length so can check both in same loop
 			// ensure no multiplier is less than 1 due to human error.
 			if (
-				_callSpreadCollateralMultipliers[i] < ONE_SCALE ||
-				_putSpreadCollateralMultipliers[i] < ONE_SCALE
+				_callSpreadCollateralMultipliers[i] < ONE_SCALE_INT ||
+				_putSpreadCollateralMultipliers[i] < ONE_SCALE_INT
 			) {
-				revert InvalidSpreadCollateralMultiplierValue();
+				revert InvalidMultiplierValue();
 			}
 		}
-		deltaBandMultipliers.callSpreadCollateralMultipliers = _callSpreadCollateralMultipliers;
-		deltaBandMultipliers.putSpreadCollateralMultipliers = _putSpreadCollateralMultipliers;
+		tenorPricingParams[_tenorIndex]
+			.callSpreadCollateralMultipliers = _callSpreadCollateralMultipliers;
+		tenorPricingParams[_tenorIndex].putSpreadCollateralMultipliers = _putSpreadCollateralMultipliers;
 		emit SpreadCollateralMultipliersChanged();
 	}
 
 	function setSpreadDeltaMultipliers(
+		uint16 _tenorIndex,
 		int80[] memory _callSpreadDeltaMultipliers,
 		int80[] memory _putSpreadDeltaMultipliers
 	) public {
@@ -297,20 +328,19 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			_callSpreadDeltaMultipliers.length != ONE_DELTA / deltaBandWidth ||
 			_putSpreadDeltaMultipliers.length != ONE_DELTA / deltaBandWidth
 		) {
-			revert InvalidSpreadDeltaMultipliersArrayLength();
+			revert InvalidMultipliersArrayLength();
 		}
 		for (uint256 i = 0; i < _callSpreadDeltaMultipliers.length; i++) {
 			// arrays must be same length so can check both in same loop
 			// ensure no multiplier is less than 1 due to human error.
 			if (
-				_callSpreadDeltaMultipliers[i] < int(ONE_SCALE) ||
-				_putSpreadDeltaMultipliers[i] < int(ONE_SCALE)
+				_callSpreadDeltaMultipliers[i] < ONE_SCALE_INT || _putSpreadDeltaMultipliers[i] < ONE_SCALE_INT
 			) {
-				revert InvalidSpreadDeltaMultiplierValue();
+				revert InvalidMultiplierValue();
 			}
 		}
-		deltaBandMultipliers.callSpreadDeltaMultipliers = _callSpreadDeltaMultipliers;
-		deltaBandMultipliers.putSpreadDeltaMultipliers = _putSpreadDeltaMultipliers;
+		tenorPricingParams[_tenorIndex].callSpreadDeltaMultipliers = _callSpreadDeltaMultipliers;
+		tenorPricingParams[_tenorIndex].putSpreadDeltaMultipliers = _putSpreadDeltaMultipliers;
 		emit SpreadDeltaMultipliersChanged();
 	}
 
@@ -342,8 +372,9 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		);
 		vanillaPremium = vanillaPremium.mul(underlyingPrice).div(forward);
 		uint256 premium = vanillaPremium.mul(
-			_getSlippageMultiplier(_amount, delta, netDhvExposure, isSell)
+			_getSlippageMultiplier(_optionSeries, _amount, delta, isSell, netDhvExposure)
 		);
+
 		int spread = _getSpreadValue(
 			isSell,
 			_optionSeries,
@@ -355,8 +386,6 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		if (spread < 0) {
 			spread = 0;
 		}
-		// the delta returned is the delta of a long position of the option the sign of delta should be handled elsewhere.
-
 		totalPremium = isSell
 			? uint(OptionsCompute.max(int(premium.mul(_amount)) - spread, 0))
 			: premium.mul(_amount) + uint(spread);
@@ -388,28 +417,36 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	/// non-complex getters ///
 	///////////////////////////
 
-	function getCallSlippageGradientMultipliers() external view returns (uint80[] memory) {
-		return deltaBandMultipliers.callSlippageGradientMultipliers;
+	function getCallSlippageGradientMultipliers(
+		uint16 _tenorIndex
+	) external view returns (int80[] memory) {
+		return tenorPricingParams[_tenorIndex].callSlippageGradientMultipliers;
 	}
 
-	function getPutSlippageGradientMultipliers() external view returns (uint80[] memory) {
-		return deltaBandMultipliers.putSlippageGradientMultipliers;
+	function getPutSlippageGradientMultipliers(
+		uint16 _tenorIndex
+	) external view returns (int80[] memory) {
+		return tenorPricingParams[_tenorIndex].putSlippageGradientMultipliers;
 	}
 
-	function getCallSpreadCollateralMultipliers() external view returns (uint80[] memory) {
-		return deltaBandMultipliers.callSpreadCollateralMultipliers;
+	function getCallSpreadCollateralMultipliers(
+		uint16 _tenorIndex
+	) external view returns (int80[] memory) {
+		return tenorPricingParams[_tenorIndex].callSpreadCollateralMultipliers;
 	}
 
-	function getPutSpreadCollateralMultipliers() external view returns (uint80[] memory) {
-		return deltaBandMultipliers.putSpreadCollateralMultipliers;
+	function getPutSpreadCollateralMultipliers(
+		uint16 _tenorIndex
+	) external view returns (int80[] memory) {
+		return tenorPricingParams[_tenorIndex].putSpreadCollateralMultipliers;
 	}
 
-	function getCallSpreadDeltaMultipliers() external view returns (int80[] memory) {
-		return deltaBandMultipliers.callSpreadDeltaMultipliers;
+	function getCallSpreadDeltaMultipliers(uint16 _tenorIndex) external view returns (int80[] memory) {
+		return tenorPricingParams[_tenorIndex].callSpreadDeltaMultipliers;
 	}
 
-	function getPutSpreadDeltaMultipliers() external view returns (int80[] memory) {
-		return deltaBandMultipliers.putSpreadDeltaMultipliers;
+	function getPutSpreadDeltaMultipliers(uint16 _tenorIndex) external view returns (int80[] memory) {
+		return tenorPricingParams[_tenorIndex].putSpreadDeltaMultipliers;
 	}
 
 	/**
@@ -445,10 +482,11 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	 * @param _isSell true if someone is selling option to DHV. False if they're buying from DHV
 	 */
 	function _getSlippageMultiplier(
+		Types.OptionSeries memory _optionSeries,
 		uint256 _amount,
 		int256 _optionDelta,
-		int256 _netDhvExposure,
-		bool _isSell
+		bool _isSell,
+		int256 _netDhvExposure
 	) internal view returns (uint256 slippageMultiplier) {
 		// slippage will be exponential with the exponent being the DHV's net exposure
 		int256 newExposureExponent = _isSell
@@ -459,13 +497,14 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		// not using math library here, want to reduce to a non e18 integer
 		// integer division rounds down to nearest integer
 		uint256 deltaBandIndex = (uint256(_optionDelta.abs()) * 100) / deltaBandWidth;
-		if (_optionDelta > 0) {
+		(uint16 tenorIndex, int256 remainder) = _getTenorIndex(_optionSeries.expiration);
+		if (_optionDelta < 0) {
 			modifiedSlippageGradient = slippageGradient.mul(
-				deltaBandMultipliers.callSlippageGradientMultipliers[deltaBandIndex]
+				_interpolateSlippageGradient(tenorIndex, remainder, true, deltaBandIndex)
 			);
 		} else {
 			modifiedSlippageGradient = slippageGradient.mul(
-				deltaBandMultipliers.putSlippageGradientMultipliers[deltaBandIndex]
+				_interpolateSlippageGradient(tenorIndex, remainder, false, deltaBandIndex)
 			);
 		}
 		if (slippageGradient == 0) {
@@ -510,6 +549,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		// get duration of option in years
 		uint256 time = (_optionSeries.expiration - block.timestamp).div(ONE_YEAR_SECONDS);
 		uint256 deltaBandIndex = (uint256(_optionDelta.abs()) * 100) / deltaBandWidth;
+		(uint16 tenorIndex, int256 remainder) = _getTenorIndex(_optionSeries.expiration);
 
 		if (!_isSell) {
 			spreadPremium += int(
@@ -519,7 +559,9 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 					_optionDelta,
 					_netDhvExposure,
 					time,
-					deltaBandIndex
+					deltaBandIndex,
+					tenorIndex,
+					remainder
 				)
 			);
 		}
@@ -530,7 +572,9 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			_optionDelta,
 			time,
 			deltaBandIndex,
-			_underlyingPrice
+			_underlyingPrice,
+			tenorIndex,
+			remainder
 		);
 	}
 
@@ -540,7 +584,9 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		int256 _optionDelta,
 		int256 _netDhvExposure,
 		uint256 _time,
-		uint256 _deltaBandIndex
+		uint256 _deltaBandIndex,
+		uint16 _tenorIndex,
+		int256 _remainder
 	) internal view returns (uint256 collateralLendingPremium) {
 		uint256 netShortContracts;
 		if (_netDhvExposure <= 0) {
@@ -559,13 +605,13 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			collateralLendingPremium =
 				((ONE_SCALE + (collateralLendingRate * ONE_SCALE) / SIX_DPS).pow(_time)).mul(collateralToLend) -
 				collateralToLend;
-			if (_optionDelta > 0) {
+			if (_optionDelta < 0) {
 				collateralLendingPremium = collateralLendingPremium.mul(
-					deltaBandMultipliers.callSpreadCollateralMultipliers[_deltaBandIndex]
+					_interpolateSpreadCollateral(_tenorIndex, _remainder, true, _deltaBandIndex)
 				);
 			} else {
 				collateralLendingPremium = collateralLendingPremium.mul(
-					deltaBandMultipliers.putSpreadCollateralMultipliers[_deltaBandIndex]
+					_interpolateSpreadCollateral(_tenorIndex, _remainder, false, _deltaBandIndex)
 				);
 			}
 		}
@@ -577,7 +623,9 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		int256 _optionDelta,
 		uint256 _time,
 		uint256 _deltaBandIndex,
-		uint256 _underlyingPrice
+		uint256 _underlyingPrice,
+		uint16 _tenorIndex,
+		int256 _remainder
 	) internal view returns (int256 deltaBorrowPremium) {
 		// calculate delta borrow premium on both buy and sells
 		// dollarDelta is just a magnitude value, sign doesnt matter
@@ -593,7 +641,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 				dollarDelta;
 
 			deltaBorrowPremium = deltaBorrowPremium.mul(
-				int256(deltaBandMultipliers.putSpreadDeltaMultipliers[_deltaBandIndex])
+				_interpolateSpreadDelta(_tenorIndex, _remainder, true, _deltaBandIndex)
 			);
 		} else {
 			// option is positive delta, resulting in short delta exposure for DHV. needs hedging with a long pos
@@ -606,8 +654,69 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 				dollarDelta;
 
 			deltaBorrowPremium = deltaBorrowPremium.mul(
-				int256(deltaBandMultipliers.callSpreadDeltaMultipliers[_deltaBandIndex])
+				_interpolateSpreadDelta(_tenorIndex, _remainder, false, _deltaBandIndex)
 			);
+		}
+	}
+
+	function _getTenorIndex(
+		uint256 _expiration
+	) internal view returns (uint16 tenorIndex, int256 remainder) {
+		// get the ratio of the square root of seconds to expiry and the max tenor value in e18 form
+		uint unroundedTenorIndex = (((((_expiration - block.timestamp) * 1e18).sqrt()) *
+			(numberOfTenors - 1)) / maxTenorValue);
+		tenorIndex = uint16(unroundedTenorIndex / 1e18); // always floors
+		remainder = int256(unroundedTenorIndex - tenorIndex * 1e18); // will be between 0 and 1e18
+	}
+
+	function _interpolateSlippageGradient(
+		uint16 _tenor,
+		int256 _remainder,
+		bool _isPut,
+		uint256 _deltaBand
+	) internal view returns (uint80 slippageGradientMultiplier) {
+		if (_isPut) {
+			int80 y1 = tenorPricingParams[_tenor].putSlippageGradientMultipliers[_deltaBand];
+			int80 y2 = tenorPricingParams[_tenor + 1].putSlippageGradientMultipliers[_deltaBand];
+			return uint80(int80(y1 + _remainder.mul(y2 - y1)));
+		} else {
+			int80 y1 = tenorPricingParams[_tenor].callSlippageGradientMultipliers[_deltaBand];
+			int80 y2 = tenorPricingParams[_tenor + 1].callSlippageGradientMultipliers[_deltaBand];
+			return uint80(int80(y1 + _remainder.mul(y2 - y1)));
+		}
+	}
+
+	function _interpolateSpreadCollateral(
+		uint16 _tenor,
+		int256 _remainder,
+		bool _isPut,
+		uint256 _deltaBand
+	) internal view returns (uint80 spreadCollateralMultiplier) {
+		if (_isPut) {
+			int80 y1 = tenorPricingParams[_tenor].putSpreadCollateralMultipliers[_deltaBand];
+			int80 y2 = tenorPricingParams[_tenor + 1].putSpreadCollateralMultipliers[_deltaBand];
+			return uint80(int80(y1 + _remainder.mul(y2 - y1)));
+		} else {
+			int80 y1 = tenorPricingParams[_tenor].callSpreadCollateralMultipliers[_deltaBand];
+			int80 y2 = tenorPricingParams[_tenor + 1].callSpreadCollateralMultipliers[_deltaBand];
+			return uint80(int80(y1 + _remainder.mul(y2 - y1)));
+		}
+	}
+
+	function _interpolateSpreadDelta(
+		uint16 _tenor,
+		int256 _remainder,
+		bool _isPut,
+		uint256 _deltaBand
+	) internal view returns (int80 spreadDeltaMultiplier) {
+		if (_isPut) {
+			int80 y1 = tenorPricingParams[_tenor].putSpreadDeltaMultipliers[_deltaBand];
+			int80 y2 = tenorPricingParams[_tenor + 1].putSpreadDeltaMultipliers[_deltaBand];
+			return int80(y1 + _remainder.mul(y2 - y1));
+		} else {
+			int80 y1 = tenorPricingParams[_tenor].callSpreadDeltaMultipliers[_deltaBand];
+			int80 y2 = tenorPricingParams[_tenor + 1].callSpreadDeltaMultipliers[_deltaBand];
+			return int80(y1 + _remainder.mul(y2 - y1));
 		}
 	}
 
