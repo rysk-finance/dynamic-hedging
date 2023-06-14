@@ -687,6 +687,59 @@ describe("APVF gas tests", async () => {
 			)
 		})
 	})
+	describe("Change net dhv exposure", async () => {
+		it("SUCCEEDS: set net dhv exposures", async () => {
+			const exposures = [toWei("130"), toWei("110")]
+			const hashes = [ethers.utils.solidityKeccak256(
+				["uint64", "uint128", "bool"],
+				[expiration2, toWei("2500"), false]
+			), 
+			ethers.utils.solidityKeccak256(
+				["uint64", "uint128", "bool"],
+				[expiration2, toWei("2200"), true]
+			)
+		]			
+			await portfolioValuesFeed.setNetDhvExposures(hashes, exposures)
+			for (let i=0; i < hashes.length; i++) {
+				expect(await portfolioValuesFeed.netDhvExposure(hashes[i])).to.equal(exposures[i])
+			}
+		})
+		it("FAILS: set net dhv exposure fails when not the manager", async () => {
+			const exposures = [toWei("130"), toWei("110")]
+			const hashes = [ethers.utils.solidityKeccak256(
+				["uint64", "uint128", "bool"],
+				[expiration2, toWei("2500"), false]
+			), 
+			ethers.utils.solidityKeccak256(
+				["uint64", "uint128", "bool"],
+				[expiration2, toWei("2200"), true]
+			)
+			]			
+			await expect(portfolioValuesFeed.connect(signers[1]).setNetDhvExposures(hashes, exposures)).to.be.revertedWithCustomError(portfolioValuesFeed, "UNAUTHORIZED")
+		})
+		it("FAILS: set net dhv exposure fails when value exceeds max net dhv exposure", async () => {
+			const exposures = [toWei("1300"), toWei("11000000")]
+			const hashes = [ethers.utils.solidityKeccak256(
+				["uint64", "uint128", "bool"],
+				[expiration2, toWei("2500"), false]
+			), 
+			ethers.utils.solidityKeccak256(
+				["uint64", "uint128", "bool"],
+				[expiration2, toWei("2200"), true]
+			)
+			]			
+			await expect(portfolioValuesFeed.setNetDhvExposures(hashes, exposures)).to.be.revertedWithCustomError(portfolioValuesFeed, "MaxNetDhvExposureExceeded")
+		})
+		it("FAILS: set net dhv exposure fails when arrays are different length", async () => {
+			const exposures = [toWei("1300"), toWei("11000000")]
+			const hashes = [ethers.utils.solidityKeccak256(
+				["uint64", "uint128", "bool"],
+				[expiration2, toWei("2500"), false]
+			)
+			]			
+			await expect(portfolioValuesFeed.setNetDhvExposures(hashes, exposures)).to.be.reverted
+		})
+	})
 	describe("Access Control checks", async () => {
 		it("SUCCEEDS: set liquidity pool", async () => {
 			await portfolioValuesFeed.setLiquidityPool(optionRegistry.address)

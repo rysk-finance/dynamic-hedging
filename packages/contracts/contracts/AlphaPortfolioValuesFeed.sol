@@ -91,6 +91,7 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 		Types.OptionSeries optionSeries
 	);
 	event MaxNetDhvExposureUpdated(uint256 maxNetDhvExposure);
+	event NetDhvExposureChanged(int256 oldNetDhvExposure, int256 newNetDhvExposure);
 
 	error OptionHasExpiredInStores(uint256 index, address seriesAddress);
 	error MaxNetDhvExposureExceeded();
@@ -149,6 +150,26 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 		_onlyGovernor();
 		maxNetDhvExposure = _maxNetDhvExposure;
 		emit MaxNetDhvExposureUpdated(_maxNetDhvExposure);
+	}
+
+	/**
+	 * @notice change the net dhv exposures for a specific option hash arrays, this is to manage risk in case of 
+	 *         mispricing scenarios
+	 * @param  _optionHashes - list of optionhashes in bytes32 that defines the index of the net dhv exposure to be changed
+	 * @param  _netDhvExposures - list of net dhv exposures that correspond to the option hashes above 
+	 */
+	function setNetDhvExposures(
+		bytes32[] memory _optionHashes,
+		int256[] memory _netDhvExposures
+	) external {
+		_onlyGovernor();
+		uint256 arrayLength = _optionHashes.length;
+		require(arrayLength == _netDhvExposures.length);
+		for (uint i; i < arrayLength; i++) {
+			if (uint256(_netDhvExposures[i].abs()) > maxNetDhvExposure) revert MaxNetDhvExposureExceeded();
+			emit NetDhvExposureChanged(netDhvExposure[_optionHashes[i]], _netDhvExposures[i]);
+			netDhvExposure[_optionHashes[i]] = _netDhvExposures[i];
+		}
 	}
 
 	/**

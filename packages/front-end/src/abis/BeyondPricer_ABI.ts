@@ -99,6 +99,26 @@ export const BeyondPricerABI = [
 	},
 	{
 		"inputs": [],
+		"name": "InvalidSpreadCollateralMultiplierValue",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "InvalidSpreadCollateralMultipliersArrayLength",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "InvalidSpreadDeltaMultiplierValue",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "InvalidSpreadDeltaMultipliersArrayLength",
+		"type": "error"
+	},
+	{
+		"inputs": [],
 		"name": "OptionExpiryInvalid",
 		"type": "error"
 	},
@@ -773,12 +793,12 @@ export const BeyondPricerABI = [
 	},
 	{
 		"inputs": [],
-		"name": "liquidityPool",
+		"name": "getPutSpreadCollateralMultipliers",
 		"outputs": [
 			{
-				"internalType": "contract ILiquidityPool",
+				"internalType": "uint80[]",
 				"name": "",
-				"type": "address"
+				"type": "uint80[]"
 			}
 		],
 		"stateMutability": "view",

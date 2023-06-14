@@ -178,6 +178,25 @@ export const AlphaPortfolioValuesFeedABI = [
 		"inputs": [
 			{
 				"indexed": false,
+				"internalType": "int256",
+				"name": "oldNetDhvExposure",
+				"type": "int256"
+			},
+			{
+				"indexed": false,
+				"internalType": "int256",
+				"name": "newNetDhvExposure",
+				"type": "int256"
+			}
+		],
+		"name": "NetDhvExposureChanged",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
 				"internalType": "address",
 				"name": "_underlying",
 				"type": "address"
@@ -654,6 +673,24 @@ export const AlphaPortfolioValuesFeedABI = [
 			}
 		],
 		"name": "setMaxNetDhvExposure",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32[]",
+				"name": "_optionHashes",
+				"type": "bytes32[]"
+			},
+			{
+				"internalType": "int256[]",
+				"name": "_netDhvExposures",
+				"type": "int256[]"
+			}
+		],
+		"name": "setNetDhvExposures",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"

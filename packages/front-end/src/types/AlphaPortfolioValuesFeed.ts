@@ -103,6 +103,7 @@ export interface AlphaPortfolioValuesFeedInterface extends utils.Interface {
     "setKeeper(address,bool)": FunctionFragment;
     "setLiquidityPool(address)": FunctionFragment;
     "setMaxNetDhvExposure(uint256)": FunctionFragment;
+    "setNetDhvExposures(bytes32[],int256[])": FunctionFragment;
     "setProtocol(address)": FunctionFragment;
     "setRFR(uint256)": FunctionFragment;
     "storesForAddress(address)": FunctionFragment;
@@ -183,6 +184,10 @@ export interface AlphaPortfolioValuesFeedInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "setMaxNetDhvExposure",
     values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setNetDhvExposures",
+    values: [BytesLike[], BigNumberish[]]
   ): string;
   encodeFunctionData(functionFragment: "setProtocol", values: [string]): string;
   encodeFunctionData(
@@ -268,6 +273,10 @@ export interface AlphaPortfolioValuesFeedInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "setNetDhvExposures",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "setProtocol",
     data: BytesLike
   ): Result;
@@ -286,6 +295,7 @@ export interface AlphaPortfolioValuesFeedInterface extends utils.Interface {
     "AuthorityUpdated(address)": EventFragment;
     "DataFullfilled(address,address,int256,int256,int256,int256,int256)": EventFragment;
     "MaxNetDhvExposureUpdated(uint256)": EventFragment;
+    "NetDhvExposureChanged(int256,int256)": EventFragment;
     "RequestedUpdate(address,address)": EventFragment;
     "StoresUpdated(address,int256,int256,tuple)": EventFragment;
   };
@@ -293,6 +303,7 @@ export interface AlphaPortfolioValuesFeedInterface extends utils.Interface {
   getEvent(nameOrSignatureOrTopic: "AuthorityUpdated"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "DataFullfilled"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "MaxNetDhvExposureUpdated"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "NetDhvExposureChanged"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "RequestedUpdate"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "StoresUpdated"): EventFragment;
 }
@@ -324,6 +335,14 @@ export type MaxNetDhvExposureUpdatedEvent = TypedEvent<
 
 export type MaxNetDhvExposureUpdatedEventFilter =
   TypedEventFilter<MaxNetDhvExposureUpdatedEvent>;
+
+export type NetDhvExposureChangedEvent = TypedEvent<
+  [BigNumber, BigNumber],
+  { oldNetDhvExposure: BigNumber; newNetDhvExposure: BigNumber }
+>;
+
+export type NetDhvExposureChangedEventFilter =
+  TypedEventFilter<NetDhvExposureChangedEvent>;
 
 export type RequestedUpdateEvent = TypedEvent<
   [string, string],
@@ -462,6 +481,12 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
+    setNetDhvExposures(
+      _optionHashes: BytesLike[],
+      _netDhvExposures: BigNumberish[],
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
     setProtocol(
       _protocol: string,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -586,6 +611,12 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
+  setNetDhvExposures(
+    _optionHashes: BytesLike[],
+    _netDhvExposures: BigNumberish[],
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   setProtocol(
     _protocol: string,
     overrides?: Overrides & { from?: string | Promise<string> }
@@ -707,6 +738,12 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    setNetDhvExposures(
+      _optionHashes: BytesLike[],
+      _netDhvExposures: BigNumberish[],
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     setProtocol(_protocol: string, overrides?: CallOverrides): Promise<void>;
 
     setRFR(_rfr: BigNumberish, overrides?: CallOverrides): Promise<void>;
@@ -762,6 +799,15 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
     MaxNetDhvExposureUpdated(
       maxNetDhvExposure?: null
     ): MaxNetDhvExposureUpdatedEventFilter;
+
+    "NetDhvExposureChanged(int256,int256)"(
+      oldNetDhvExposure?: null,
+      newNetDhvExposure?: null
+    ): NetDhvExposureChangedEventFilter;
+    NetDhvExposureChanged(
+      oldNetDhvExposure?: null,
+      newNetDhvExposure?: null
+    ): NetDhvExposureChangedEventFilter;
 
     "RequestedUpdate(address,address)"(
       _underlying?: null,
@@ -874,6 +920,12 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
 
     setMaxNetDhvExposure(
       _maxNetDhvExposure: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    setNetDhvExposures(
+      _optionHashes: BytesLike[],
+      _netDhvExposures: BigNumberish[],
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
@@ -1002,6 +1054,12 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
 
     setMaxNetDhvExposure(
       _maxNetDhvExposure: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    setNetDhvExposures(
+      _optionHashes: BytesLike[],
+      _netDhvExposures: BigNumberish[],
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
