@@ -5,99 +5,44 @@ import math
 
 from decimal import Decimal
 
-call_collat_spread_multipliers = [
+call_multipliers_1 = [
+			Decimal(1.0),
+			Decimal(1.1),
+			Decimal(1.2),
+			Decimal(1.3),
+			Decimal(1.4),
+		]
+
+put_multipliers_1 = [
 			Decimal(1.1),
 			Decimal(1.2),
 			Decimal(1.3),
 			Decimal(1.4),
 			Decimal(1.5),
-			Decimal(1.6),
-			Decimal(1.7),
-			Decimal(1.8),
-			Decimal(1.9),
+		]
+call_multipliers_2 = [
 			Decimal(2.0),
 			Decimal(2.1),
 			Decimal(2.2),
 			Decimal(2.3),
 			Decimal(2.4),
-			Decimal(2.5),
-			Decimal(2.6),
-			Decimal(2.7),
-			Decimal(2.8),
-			Decimal(2.9),
-			Decimal(3.0)
 		]
 
-put_collat_spread_multipliers = [
-			Decimal(1.1),
-			Decimal(1.2),
-			Decimal(1.3),
-			Decimal(1.4),
-			Decimal(1.5),
-			Decimal(1.6),
-			Decimal(1.7),
-			Decimal(1.8),
-			Decimal(1.9),
-			Decimal(2.0),
+put_multipliers_2 = [
 			Decimal(2.1),
 			Decimal(2.2),
 			Decimal(2.3),
 			Decimal(2.4),
 			Decimal(2.5),
-			Decimal(2.6),
-			Decimal(2.7),
-			Decimal(2.8),
-			Decimal(2.9),
-			Decimal(3.0)
 		]
+tenor_multipliers = [
+    [call_multipliers_1, put_multipliers_1, call_multipliers_1, put_multipliers_1, call_multipliers_1, put_multipliers_1],
+    [call_multipliers_2, put_multipliers_2, call_multipliers_2, put_multipliers_2, call_multipliers_2, put_multipliers_2],
+    [call_multipliers_1, put_multipliers_1, call_multipliers_1, put_multipliers_1, call_multipliers_1, put_multipliers_1]]
+delta_band_width = Decimal(20)
+max_tenor_value = 2800
+number_of_tenors = 3
 
-call_delta_spread_multipliers = [
-			Decimal(1.2),
-			Decimal(1.3),
-			Decimal(1.4),
-			Decimal(1.5),
-			Decimal(1.6),
-			Decimal(1.7),
-			Decimal(1.8),
-			Decimal(1.9),
-			Decimal(2.0),
-			Decimal(2.1),
-			Decimal(2.2),
-			Decimal(2.3),
-			Decimal(2.4),
-			Decimal(2.5),
-			Decimal(2.6),
-			Decimal(2.7),
-			Decimal(2.8),
-			Decimal(2.9),
-			Decimal(3.0),
-			Decimal(3.1)
-		]
-
-put_delta_spread_multipliers =  [
-			Decimal(1.2),
-			Decimal(1.3),
-			Decimal(1.4),
-			Decimal(1.5),
-			Decimal(1.6),
-			Decimal(1.7),
-			Decimal(1.8),
-			Decimal(1.9),
-			Decimal(2.0),
-			Decimal(2.1),
-			Decimal(2.2),
-			Decimal(2.3),
-			Decimal(2.4),
-			Decimal(2.5),
-			Decimal(2.6),
-			Decimal(2.7),
-			Decimal(2.8),
-			Decimal(2.9),
-			Decimal(3.0),
-			Decimal(3.1)
-		]
-
-delta_band_width = Decimal(5)
 # TODO: allow rates to be negative
 def main(args): 
     if (args.isNetDhvExposureNegative == 1):
@@ -125,7 +70,9 @@ def main(args):
         Decimal(args.sellShortRate) / Decimal(1e6),
         Decimal(args.buyLongRate) / Decimal(1e6),
         Decimal(args.buyShortRate) / Decimal(1e6),
-        Decimal(args.underlyingPrice) / Decimal(1e18)
+        Decimal(args.underlyingPrice) / Decimal(1e18),
+        args.expiration, 
+        args.timestamp
         ) * Decimal(1e18)
     # encode
     enc = encode(['uint256'], [int(spread)])
@@ -143,9 +90,12 @@ def get_spread(
         sell_short_rate: float,
         buy_long_rate: float,
         buy_short_rate: float,
-        underlying_price: float
+        underlying_price: float,
+        expiration: float,
+        timestamp: float
         ):
     spread = 0
+    tenor_index, remainder = get_tenor_index(expiration, timestamp)
     if (not is_sell):
         net_short_contracts = 0
         if (net_dhv_exposure <= 0):
@@ -156,15 +106,17 @@ def get_spread(
             else:
                 net_short_contracts = amount - net_dhv_exposure
         margin_requirement = margin_requirement_per_contract * net_short_contracts
-        spread = get_collat_spread(time, margin_requirement, collat_lending_rate, delta)
-    spread += get_delta_spread(time, is_sell, sell_long_rate, sell_short_rate, buy_long_rate, buy_short_rate, delta, amount, underlying_price)
+        spread = get_collat_spread(time, margin_requirement, collat_lending_rate, delta, tenor_index, remainder)
+    spread += get_delta_spread(time, is_sell, sell_long_rate, sell_short_rate, buy_long_rate, buy_short_rate, delta, amount, underlying_price, tenor_index, remainder)
     return spread
 
 def get_collat_spread(
     time: float,
     margin_requirement: float,
     collat_lending_rate: float,
-    delta: float
+    delta: float,
+    tenor_index: float,
+    remainder: float
 ):
     """
     get the collateral lending rate for a given trade
@@ -176,10 +128,11 @@ def get_collat_spread(
     """
     spread = (margin_requirement * ((1 + collat_lending_rate) ** (time))) - margin_requirement
     delta_band_index = int((abs(delta) * 100) // delta_band_width)
-    if (delta > 0):
-        spread = spread * call_collat_spread_multipliers[delta_band_index]
+    
+    if (delta < 0):
+        spread = spread * interpolate_collateral(tenor_index, remainder, True, delta_band_index)
     else:
-        spread = spread * put_collat_spread_multipliers[delta_band_index]
+        spread = spread * interpolate_collateral(tenor_index, remainder, False, delta_band_index)
     return spread
 
 
@@ -192,7 +145,9 @@ def get_delta_spread(
     buy_short_rate: float,
     option_delta: float,
     amount: float,
-    underlying_price: float
+    underlying_price: float,
+    tenor_index: float,
+    remainder: float
 ):
     """
     get the delta spread for a given trade
@@ -223,12 +178,36 @@ def get_delta_spread(
         delta_premium = (
             dollar_delta * ((1 + delta_rate) ** time)) - dollar_delta
     delta_band_index = int((abs(option_delta) * 100) // delta_band_width)
-    if (option_delta > 0):
-        delta_premium = delta_premium * call_delta_spread_multipliers[delta_band_index]
+    if (option_delta < 0):
+        delta_premium = delta_premium * interpolate_delta(tenor_index, remainder, True, delta_band_index)
     else:
-        delta_premium = delta_premium * put_delta_spread_multipliers[delta_band_index]
+        delta_premium = delta_premium * interpolate_delta(tenor_index, remainder, False, delta_band_index)
     return delta_premium
 
+def interpolate_collateral(tenor_index: float, remainder: float, is_put: bool, delta_band_index: float):
+    if (is_put):
+        y_1 = tenor_multipliers[tenor_index][3][delta_band_index]
+        y_2 = tenor_multipliers[tenor_index + 1][3][delta_band_index]
+    else:
+        y_1 = tenor_multipliers[tenor_index][2][delta_band_index]
+        y_2 = tenor_multipliers[tenor_index + 1][2][delta_band_index]
+    return y_1 + (Decimal(remainder) * (y_2 - y_1))
+
+
+def interpolate_delta(tenor_index: float, remainder: float, is_put: bool, delta_band_index: float):
+    if (is_put):
+        y_1 = tenor_multipliers[tenor_index][5][delta_band_index]
+        y_2 = tenor_multipliers[tenor_index + 1][5][delta_band_index]
+    else:
+        y_1 = tenor_multipliers[tenor_index][4][delta_band_index]
+        y_2 = tenor_multipliers[tenor_index + 1][4][delta_band_index]
+    return y_1 + (Decimal(remainder) * (y_2 - y_1))
+
+def get_tenor_index(expiration: float, timestamp: float):
+    unrounded_index = (math.sqrt(expiration - timestamp)  * (number_of_tenors - 1)) / max_tenor_value
+    tenor_index = round(unrounded_index)
+    remainder = unrounded_index - tenor_index
+    return tenor_index, remainder
 
 def parse_args(): 
     parser = argparse.ArgumentParser()
@@ -246,6 +225,8 @@ def parse_args():
     parser.add_argument("--buyShortRate", type=int)
     parser.add_argument("--underlyingPrice", type=int)
     parser.add_argument("--time", type=int)
+    parser.add_argument("--expiration", type=int)
+    parser.add_argument("--timestamp", type=int)
     return parser.parse_args()
 
 if __name__ == '__main__':
