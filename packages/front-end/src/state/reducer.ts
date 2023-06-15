@@ -183,6 +183,11 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
         ...state,
         balances: action.balances,
       };
+    case ActionType.SET_USER_GEO_DATA:
+      return {
+        ...state,
+        geoData: action.geoData,
+      };
   }
 };
 
