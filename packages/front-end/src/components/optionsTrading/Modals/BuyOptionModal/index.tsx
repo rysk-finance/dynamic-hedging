@@ -6,9 +6,10 @@ import { BigNumber } from "ethers";
 import { useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 
+import { readContract } from "@wagmi/core";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
-import { toRysk, toUSDC, toWei } from "src/utils/conversion-helper";
+import { toOpyn, toRysk, toUSDC, toWei } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { Disclaimer } from "../Shared/components/Disclaimer";
 import { Button, Input, Label, Wrapper } from "../Shared/components/Form";
@@ -19,6 +20,9 @@ import { getButtonProps } from "../Shared/utils/getButtonProps";
 import { approveAllowance, buy } from "../Shared/utils/transactions";
 import { Pricing } from "./components/Pricing";
 import { useBuyOption } from "./hooks/useBuyOption";
+import { OptionExchangeABI } from "src/abis/OptionExchange_ABI";
+import { ZERO_ADDRESS } from "src/config/constants";
+import { erc20ABI } from "src/abis/erc20_ABI";
 
 export const BuyOptionModal = () => {
   const {
@@ -89,6 +93,30 @@ export const BuyOptionModal = () => {
           underlying: getContractAddress("WETH"),
           collateral: addresses.token,
         };
+
+        // check weth collateralised optionSeries
+        const optionDetails = await readContract({
+          address: addresses.exchange,
+          abi: OptionExchangeABI,
+          functionName: "getOptionDetails",
+          args: [
+            ZERO_ADDRESS,
+            { ...optionSeries, collateral: getContractAddress("WETH") },
+          ],
+        });
+
+        // check if exchange has optionSeries
+        const optionExchangeAmount = await readContract({
+          address: optionDetails[0],
+          abi: erc20ABI,
+          functionName: "balanceOf",
+          args: [addresses.exchange],
+        });
+
+        // if exchange optionSeries covers amount, use weth as collateral
+        if (BigNumber.from(optionExchangeAmount).gte(toOpyn(amountToBuy))) {
+          optionSeries.collateral = getContractAddress("WETH");
+        }
 
         const hash = await buy(
           positionData.acceptablePremium,
