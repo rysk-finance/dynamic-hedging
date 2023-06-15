@@ -115,6 +115,12 @@ export const defaultGlobalState: GlobalState = {
     USDC: 0,
     WETH: 0,
   },
+
+  // User geo-location details
+  geoData: {
+    blocked: false,
+    country: undefined,
+  },
 };
 
 export const GlobalReactContext = createContext<GlobalContext>({

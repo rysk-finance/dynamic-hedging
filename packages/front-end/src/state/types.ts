@@ -125,6 +125,11 @@ export interface LiquidityPool {
   utilisationLow: boolean;
 }
 
+export interface GeoData {
+  blocked: boolean;
+  country?: string;
+}
+
 // Global context
 export type GlobalState = {
   ethPrice: number | null;
@@ -184,6 +189,9 @@ export type GlobalState = {
 
   // User balances
   balances: Balances;
+
+  // User geo-location details
+  geoData: GeoData;
 };
 
 export enum ActionType {
@@ -217,6 +225,9 @@ export enum ActionType {
 
   // User balances
   SET_USER_BALANCES,
+
+  // User geo-location details
+  SET_USER_GEO_DATA,
 }
 
 export enum DashboardModalActions {
@@ -334,6 +345,10 @@ export type GlobalAction =
   | {
       type: ActionType.SET_USER_BALANCES;
       balances: Balances;
+    }
+  | {
+      type: ActionType.SET_USER_GEO_DATA;
+      geoData: GeoData;
     };
 
 export type GlobalContext = {
