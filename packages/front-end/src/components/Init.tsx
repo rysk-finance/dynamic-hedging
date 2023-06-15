@@ -1,5 +1,6 @@
 import { useBalances } from "src/hooks/useBalances";
 import useFathom from "src/hooks/useFathom";
+import { useGeoBlock } from "src/hooks/useGeoBlock/useGeoBlock";
 import { useInitialData } from "src/hooks/useInitialData";
 import { useLatestEthPrice } from "src/hooks/useLatestEthPrice/useLatestEthPrice";
 import { useSentry } from "src/hooks/useSentry";
@@ -8,6 +9,8 @@ import { useSentry } from "src/hooks/useSentry";
  * Initialiser component to trigger onLoad events:
  * - Initialise Sentry.
  * - Initialise Fathom.
+
+ * - Initialise user geo-blocking.
  * - Initialise user balances.
  * - Initialise state with graph and contract data.
  * - Initialise polling for latest Ether price.
@@ -18,6 +21,7 @@ export const Init = () => {
   useFathom();
   useSentry();
 
+  useGeoBlock();
   useBalances();
   useInitialData();
   useLatestEthPrice();
