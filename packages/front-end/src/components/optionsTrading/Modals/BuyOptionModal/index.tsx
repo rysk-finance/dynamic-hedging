@@ -23,6 +23,7 @@ import { useBuyOption } from "./hooks/useBuyOption";
 export const BuyOptionModal = () => {
   const {
     state: {
+      geoData: { blocked },
       options: { activeExpiry, refresh },
       selectedOption,
     },
@@ -154,7 +155,8 @@ export const BuyOptionModal = () => {
             !addresses.user ||
             positionData.remainingBalance < 0 ||
             transactionPending ||
-            loading
+            loading ||
+            blocked
           }
           id="buy-button"
           {...getButtonProps(

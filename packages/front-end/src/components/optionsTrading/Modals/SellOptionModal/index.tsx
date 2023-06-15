@@ -26,6 +26,7 @@ export const SellOptionModal = () => {
   const {
     state: {
       collateralPreferences,
+      geoData: { blocked },
       options: { activeExpiry, refresh, vaults },
       selectedOption,
     },
@@ -169,7 +170,8 @@ export const SellOptionModal = () => {
               positionData.remainingBalanceWETH <= 0) ||
             !positionData.hasRequiredCapital ||
             transactionPending ||
-            loading
+            loading ||
+            blocked
           }
           id="sell-button"
           {...getButtonProps(
