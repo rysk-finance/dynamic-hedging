@@ -23,7 +23,7 @@ export const UserOptions = () => {
 
   const [, setSearchParams] = useSearchParams();
 
-  const [loading, error] = usePositions();
+  const [status, error] = usePositions();
   const [completeRedeem] = useRedeem();
   const [completeSettle] = useSettle();
 
@@ -42,13 +42,15 @@ export const UserOptions = () => {
       tabs={[
         {
           label:
-            loading && !activePositions.length
+            status == "loading"
               ? "Loading Open..."
+              : status == "idle"
+              ? "Booting..."
               : "RYSK.Open",
           content: (
             <>
               <AnimatePresence initial={false} mode="wait">
-                {!activePositions.length && (loading || error) && (
+                {(status == "loading" || error) && (
                   <LoadingOrError
                     key="loading-or-error"
                     error={error}
@@ -62,7 +64,7 @@ export const UserOptions = () => {
                   />
                 )}
 
-                {isConnected && (
+                {isConnected && status == "success" && (
                   <>
                     {activePositions.length ? (
                       <Table
@@ -85,13 +87,15 @@ export const UserOptions = () => {
         },
         {
           label:
-            loading && !inactivePositions.length
+            status == "loading"
               ? "Loading Closed..."
+              : status == "idle"
+              ? "Booting..."
               : "RYSK.Closed",
           content: (
             <>
               <AnimatePresence initial={false} mode="wait">
-                {!inactivePositions.length && (loading || error) && (
+                {(status == "loading" || error) && (
                   <LoadingOrError
                     key="loading-or-error"
                     error={error}
@@ -105,7 +109,7 @@ export const UserOptions = () => {
                   />
                 )}
 
-                {isConnected && (
+                {isConnected && status == "success" && (
                   <>
                     {inactivePositions.length ? (
                       <Table

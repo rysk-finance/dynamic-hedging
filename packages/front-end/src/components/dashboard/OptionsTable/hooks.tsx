@@ -57,7 +57,7 @@ const usePositions = () => {
     },
   } = useGlobalContext();
 
-  const [hookLoading, setHookLoading] = useState(false);
+  const [status, setStatus] = useState("idle");
 
   // NOTE: Only getting positions opened after redeploy of contracts
   const { error, data } = useQuery<{
@@ -180,7 +180,7 @@ const usePositions = () => {
 
     const constructPositionsData = async () => {
       if (Object.keys(chainData).length && data && allOracleAssets) {
-        setHookLoading(true);
+        setStatus("loading");
 
         const timeNow = dayjs().unix();
 
@@ -467,14 +467,14 @@ const usePositions = () => {
           inactivePositions: parsedInactivePositions,
         });
 
-        setHookLoading(false);
+        setStatus("success");
       }
     };
 
     constructPositionsData();
   }, [chainData, data, allOracleAssets, isDisconnected, ethPrice]);
 
-  return [hookLoading, error] as const;
+  return [status, error] as const;
 };
 
 /**
