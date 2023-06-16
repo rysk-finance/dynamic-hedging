@@ -41,12 +41,9 @@ export const UserOptions = () => {
       tabWidth={280}
       tabs={[
         {
-          label:
-            status == "loading"
-              ? "Loading Open..."
-              : status == "idle"
-              ? "Booting..."
-              : "RYSK.Open",
+          label: ["loading", "idle"].includes(status)
+            ? "Loading Open..."
+            : "RYSK.Open",
           content: (
             <>
               <AnimatePresence initial={false} mode="wait">
@@ -86,12 +83,9 @@ export const UserOptions = () => {
           ),
         },
         {
-          label:
-            status == "loading"
-              ? "Loading Closed..."
-              : status == "idle"
-              ? "Booting..."
-              : "RYSK.Closed",
+          label: ["loading", "idle"].includes(status)
+            ? "Loading Closed..."
+            : "RYSK.Closed",
           content: (
             <>
               <AnimatePresence initial={false} mode="wait">
