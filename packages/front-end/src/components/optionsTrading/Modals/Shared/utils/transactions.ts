@@ -71,33 +71,37 @@ export const buy = async (
   optionSeries: OptionSeries,
   refresh: () => void
 ) => {
+  const operations = [];
+
+  if (optionSeries.collateral !== getContractAddress("WETH"))
+    operations.push({
+      actionType: BigNumber.from(RyskActionType.Issue),
+      owner: ZERO_ADDRESS,
+      secondAddress: ZERO_ADDRESS,
+      asset: ZERO_ADDRESS,
+      vaultId: BigNumber.from(0),
+      amount: BigNumber.from(0),
+      optionSeries,
+      indexOrAcceptablePremium: BigNumber.from(0),
+      data: ZERO_ADDRESS,
+    });
+
+  operations.push({
+    actionType: BigNumber.from(RyskActionType.BuyOption),
+    owner: ZERO_ADDRESS,
+    secondAddress: addresses.user,
+    asset: ZERO_ADDRESS,
+    vaultId: BigNumber.from(0),
+    amount,
+    optionSeries,
+    indexOrAcceptablePremium: acceptablePremium,
+    data: ZERO_ADDRESS,
+  });
+
   const txData = [
     {
       operation: OperationType.RyskAction,
-      operationQueue: [
-        {
-          actionType: BigNumber.from(RyskActionType.Issue),
-          owner: ZERO_ADDRESS,
-          secondAddress: ZERO_ADDRESS,
-          asset: ZERO_ADDRESS,
-          vaultId: BigNumber.from(0),
-          amount: BigNumber.from(0),
-          optionSeries,
-          indexOrAcceptablePremium: BigNumber.from(0),
-          data: ZERO_ADDRESS,
-        },
-        {
-          actionType: BigNumber.from(RyskActionType.BuyOption),
-          owner: ZERO_ADDRESS,
-          secondAddress: addresses.user,
-          asset: ZERO_ADDRESS,
-          vaultId: BigNumber.from(0),
-          amount,
-          optionSeries,
-          indexOrAcceptablePremium: acceptablePremium,
-          data: ZERO_ADDRESS,
-        },
-      ],
+      operationQueue: operations,
     },
   ];
 
