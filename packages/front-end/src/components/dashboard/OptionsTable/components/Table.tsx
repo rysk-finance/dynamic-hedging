@@ -197,7 +197,9 @@ const Table = ({
               />
               <NumberFormat
                 value={
-                  collateralAsset
+                  // 1. If no collateral asset --> either a long or inactive short
+                  // 2. Inactive short can have collateralAsset true if position vault has collateral leftover
+                  collateralAsset && amount != 0
                     ? {
                         USDC: fromUSDC(collateralAmount),
                         "Wrapped Ether": fromWei(collateralAmount),
