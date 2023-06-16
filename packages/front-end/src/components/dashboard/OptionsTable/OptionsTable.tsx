@@ -62,7 +62,7 @@ export const UserOptions = () => {
                   />
                 )}
 
-                {isConnected && activePositions.length && (
+                {isConnected && (
                   <>
                     {activePositions.length ? (
                       <Table
@@ -105,7 +105,7 @@ export const UserOptions = () => {
                   />
                 )}
 
-                {isConnected && inactivePositions.length && (
+                {isConnected && (
                   <>
                     {inactivePositions.length ? (
                       <Table
