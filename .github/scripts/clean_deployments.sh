@@ -8,9 +8,19 @@ VERCEL_PROJECT=$(printenv VERCEL_PROJECT)
 IFS=$' \t\r\n'
 
 if [[ $TARGET == "production"  ]]; then
+  deployments=$(
+    curl \
+    -X GET \
+    -H "Authorization: Bearer $VERCEL_TOKEN" \
+    -s \
+    "https://api.vercel.com/v6/deployments?teamId=$VERCEL_TEAM_ID&projectId=$VERCEL_PROJECT&limit=100&target=$TARGET"
+  )
+
+  deployments_length=$(echo $deployments | jq -c '.deployments | map(.uid) | length')
+
   before=$(date -d '30 days ago' +%s000)
 
-  deployments=$(
+  matching_deployments=$(
     curl \
     -X GET \
     -H "Authorization: Bearer $VERCEL_TOKEN" \
@@ -19,8 +29,16 @@ if [[ $TARGET == "production"  ]]; then
   )
 
   matching=$(
-    echo $deployments | jq -c '.deployments | map(.uid)'
+    echo $matching_deployments | jq -c '.deployments | map(.uid)'
   )
+  matching_length=$(echo $matching | jq '. | length')
+
+  # Checking here to see if all deployments matches deployments over 30 days.
+  # If this is true, it means all deployments are over 30 days.
+  # In this case, we should cancel the clean as it would also clean the current deployment.
+  if [[ $matching_length == $deployments_length ]]; then
+    exit
+  fi
 
 elif [[ $BRANCH && $TARGET == "preview" ]]; then
   deployments=$(
