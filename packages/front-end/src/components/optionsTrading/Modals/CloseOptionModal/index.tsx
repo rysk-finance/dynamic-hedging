@@ -32,6 +32,7 @@ dayjs.extend(LocalizedFormat);
 export const CloseOptionModal = () => {
   const {
     state: {
+      geoData: { blocked },
       options: { refresh },
     },
   } = useGlobalContext();
@@ -156,7 +157,8 @@ export const CloseOptionModal = () => {
               !Number(amountToClose) ||
               !addresses.user ||
               !addresses.token ||
-              transactionPending
+              transactionPending ||
+              blocked
             }
             {...FadeInOutQuick}
             {...getButtonProps(

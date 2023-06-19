@@ -31,11 +31,11 @@ export const Pricing = ({ positionData }: PricingProps) => {
 
   const errorMessage = useMemo(() => {
     switch (true) {
-      case utilisationLow:
-        return "DHV utilisation is high. Some TXs may fail.";
-
       case remainingBalance <= 0 && Boolean(quote):
         return "Final balance cannot be negative.";
+
+      case utilisationLow:
+        return "DHV utilisation is high. Some TXs may fail.";
 
       default:
         return "";
