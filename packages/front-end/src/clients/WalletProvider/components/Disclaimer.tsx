@@ -1,15 +1,17 @@
 import type { DisclaimerComponent } from "@rainbow-me/rainbowkit";
 
+import { TERMS_LINK, PP_LINK } from "src/config/links";
+
 const Disclaimer: DisclaimerComponent = ({ Text, Link }) => {
   return (
     <Text>
       {`You have read and understand, and do hereby agree to the `}
-      <Link href="https://docs.rysk.finance/terms-of-service">
-        <small className="text-xs text-cyan-dark">{`Rysk Alpha User Terms of Service`}</small>
+      <Link href={TERMS_LINK}>
+        <small className="text-xs text-cyan-dark">{`Rysk user terms of service`}</small>
       </Link>
       {` and acknowledge that you have read and understand the `}
-      <Link href="https://docs.rysk.finance/privacy-policy">
-        <small className="text-xs text-cyan-dark">{`Rysk Alpha Privacy Policy.`}</small>
+      <Link href={PP_LINK}>
+        <small className="text-xs text-cyan-dark">{`Rysk privacy policy.`}</small>
       </Link>
     </Text>
   );
