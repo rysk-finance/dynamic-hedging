@@ -18,14 +18,14 @@ export const Disclaimer = ({ children }: PropsWithChildren) => {
         <>
           {`Trading is not available for people or entities in ${
             country || "your country"
-          } and other restricted jurisdictions. Learn more in our `}
+          } and other restricted jurisdictions. Learn more in the `}
           <a
             href={TERMS_LINK}
             className={`!${color} underline`}
             rel="noreferrer noopener"
             target="_blank"
           >
-            {`terms of service.`}
+            {`Rysk user terms of service.`}
           </a>
         </>
       ) : (
