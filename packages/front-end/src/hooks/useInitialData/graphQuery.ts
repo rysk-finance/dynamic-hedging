@@ -10,6 +10,7 @@ query ${QueriesEnum.INITIAL_DATA} (
   ) {
     active
     netAmount
+    realizedPnl
     oToken {
       createdAt
       expiryTimestamp
@@ -34,7 +35,11 @@ query ${QueriesEnum.INITIAL_DATA} (
   ) {
     active
     netAmount
+    realizedPnl
     oToken {
+      collateralAsset {
+        symbol
+      }
       createdAt
       expiryTimestamp
       id
@@ -49,6 +54,9 @@ query ${QueriesEnum.INITIAL_DATA} (
     optionsSoldTransactions {
       fee
       premium
+    }
+    liquidateActions {
+      collateralPayout
     }
     vault {
       id

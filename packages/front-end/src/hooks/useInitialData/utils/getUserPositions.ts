@@ -1,12 +1,12 @@
 import type { UserPositions } from "src/state/types";
-import type { InitialDataQuery, OptionsTransaction } from "../types";
+import type { OptionsTransaction, LongPosition, ShortPosition } from "../types";
 
 import dayjs from "dayjs";
 
 import { tFormatUSDC } from "src/utils/conversion-helper";
 
 export const getUserPositions = (
-  positions: InitialDataQuery["longPositions" | "shortPositions"]
+  positions: (LongPosition | ShortPosition)[]
 ): UserPositions => {
   return positions.reduce(
     (
