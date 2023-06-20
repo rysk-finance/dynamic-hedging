@@ -1,7 +1,6 @@
 import type { InitialDataQuery } from "./types";
 
 import { gql, useQuery } from "@apollo/client";
-import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 
@@ -49,7 +48,6 @@ export const useInitialData = () => {
       skip: skip,
       variables: {
         address: address?.toLowerCase(),
-        now: String(dayjs().unix()),
         underlying: getContractAddress("WETH"),
       },
     }

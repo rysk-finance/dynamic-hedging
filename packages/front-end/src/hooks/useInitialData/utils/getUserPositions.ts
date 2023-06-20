@@ -1,6 +1,8 @@
 import type { UserPositions } from "src/state/types";
 import type { InitialDataQuery, OptionsTransaction } from "../types";
 
+import dayjs from "dayjs";
+
 import { tFormatUSDC } from "src/utils/conversion-helper";
 
 export const getUserPositions = (
@@ -10,6 +12,7 @@ export const getUserPositions = (
     (
       positions,
       {
+        active,
         netAmount,
         oToken,
         optionsBoughtTransactions,
@@ -18,6 +21,11 @@ export const getUserPositions = (
       }
     ) => {
       const { expiryTimestamp } = oToken;
+
+      // Early return if the position isn't active and unexpired.
+      if (!(active && parseInt(expiryTimestamp) >= dayjs().unix()))
+        return positions;
+
       const isLong = Number(netAmount) > 0;
       const isShort = Number(netAmount) < 0;
 
