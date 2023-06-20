@@ -5,8 +5,10 @@ query ${QueriesEnum.INITIAL_DATA} (
   $address: String, $now: String, $underlying: String
 ) {
   longPositions(
-    where: { account: $address, active: true, oToken_: { expiryTimestamp_gte: $now } }
+    first: 1000,
+    where: { account: $address }
   ) {
+    active
     netAmount
     oToken {
       createdAt
@@ -27,8 +29,10 @@ query ${QueriesEnum.INITIAL_DATA} (
   }
   
   shortPositions(
-    where: { account: $address, active: true, oToken_: { expiryTimestamp_gte: $now } }
+    first: 1000,
+    where: { account: $address }
   ) {
+    active
     netAmount
     oToken {
       createdAt

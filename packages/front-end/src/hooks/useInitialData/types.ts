@@ -15,6 +15,7 @@ export interface OptionsTransaction {
 }
 
 interface Position {
+  active: boolean;
   netAmount: string;
   oToken: PositionOToken;
   optionsBoughtTransactions: OptionsTransaction[];
