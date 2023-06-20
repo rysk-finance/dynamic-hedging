@@ -64,7 +64,7 @@ export const usePositionData = (amountToClose: string) => {
 
       try {
         if (activeExpiry && tokenAddress && userPositions) {
-          const userPosition = userPositions[activeExpiry]?.tokens.find(
+          const userPosition = userPositions[activeExpiry]?.activeTokens.find(
             ({ id }) => id === searchParams.get("token")
           );
 

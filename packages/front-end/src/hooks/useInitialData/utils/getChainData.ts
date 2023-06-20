@@ -93,7 +93,7 @@ export const getChainData = async (
           // UI PLAN
           // Single column UI (net position) --> click to open modal with checkboxes for each possible position.
           // Pass all token IDs as an array to the chain state.
-          const positions = (userPositions[expiry]?.tokens || []).reduce(
+          const positions = (userPositions[expiry]?.activeTokens || []).reduce(
             (acc, position) => {
               if (
                 fromWeiToOpyn(strike).eq(position.strikePrice) &&
