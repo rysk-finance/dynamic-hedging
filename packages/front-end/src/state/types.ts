@@ -13,7 +13,7 @@ export type AppSettings = {
 // Types related to useInitialData hook.
 export type Expiries = string[];
 
-interface UserPositionToken extends PositionOToken {
+export interface UserPositionToken extends PositionOToken {
   netAmount: BigNumberish;
   totalPremium: number;
   vault?: Vault;
@@ -130,6 +130,10 @@ export interface GeoData {
   country?: string;
 }
 
+export interface WethOracleHashMap {
+  [expiry: string]: number;
+}
+
 // Global context
 export type GlobalState = {
   ethPrice: number | null;
@@ -168,6 +172,7 @@ export type GlobalState = {
     timesToExpiry: TimesToExpiry;
     userPositions: UserPositions;
     vaults: UserVaults;
+    wethOracleHashMap: WethOracleHashMap;
   };
 
   dashboard: {
@@ -289,6 +294,7 @@ export type GlobalAction =
       timesToExpiry?: TimesToExpiry;
       userPositions?: UserPositions;
       vaults?: UserVaults;
+      wethOracleHashMap?: WethOracleHashMap;
     }
   | {
       type: ActionType.SET_DASHBOARD;

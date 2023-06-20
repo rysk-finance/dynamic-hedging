@@ -24,16 +24,21 @@ interface Position {
 
 export interface Vault {
   id: string;
-  shortOToken: {
-    id: HexString;
-  };
   vaultId: string;
   collateralAmount: string;
   shortAmount: string;
   collateralAsset: { id: string };
 }
 
+export interface OraclePrices {
+  prices: {
+    expiry: string;
+    price: BigNumberish;
+  }[];
+}
+
 export interface InitialDataQuery {
   longPositions: Position[];
   shortPositions: Position[];
+  oracleAsset: OraclePrices;
 }

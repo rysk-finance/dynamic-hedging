@@ -77,6 +77,8 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
           timesToExpiry: action.timesToExpiry || state.options.timesToExpiry,
           userPositions: action.userPositions || state.options.userPositions,
           vaults: action.vaults || state.options.vaults,
+          wethOracleHashMap:
+            action.wethOracleHashMap || state.options.wethOracleHashMap,
         },
       };
     case ActionType.SET_DASHBOARD:

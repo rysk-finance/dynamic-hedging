@@ -7,6 +7,7 @@ import { useAccount } from "wagmi";
 
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
+import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useUpdateEthPrice } from "../useUpdateEthPrice";
 import { initialDataQuery } from "./graphQuery";
@@ -47,6 +48,7 @@ export const useInitialData = () => {
       variables: {
         address: address?.toLowerCase(),
         now: String(dayjs().unix()),
+        underlying: getContractAddress("WETH"),
       },
     }
   );
@@ -87,6 +89,7 @@ export const useInitialData = () => {
           userVaults,
           liquidationParameters,
           liquidityPoolInfo,
+          oracleHashMap,
         ]) => {
           dispatch({
             type: ActionType.SET_OPTIONS,
@@ -102,6 +105,7 @@ export const useInitialData = () => {
             timesToExpiry: liquidationParameters.timesToExpiry,
             userPositions,
             vaults: userVaults,
+            wethOracleHashMap: oracleHashMap,
           });
 
           if (activeExpiry && selectedOption) {
