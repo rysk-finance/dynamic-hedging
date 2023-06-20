@@ -34,7 +34,7 @@ import { logError } from "src/utils/logError";
 import { BIG_NUMBER_DECIMALS, ZERO_ADDRESS } from "../../../config/constants";
 import { useExpiryPriceData } from "../../../hooks/useExpiryPriceData";
 import { getLiquidationPrice } from "../../optionsTrading/Modals/Shared/utils/getLiquidationPrice";
-import { getQuote } from "../../optionsTrading/Modals/Shared/utils/getQuote";
+import { getQuotes } from "../../shared/utils/getQuote";
 
 /**
  * Hook using GraphQL to fetch all positions for the user
@@ -380,19 +380,23 @@ const usePositions = () => {
 
           // pnl
           const graphPnl = fromUSDC(realizedPnl);
-          const { quote } =
+          const [{ quote }] =
             amount !== 0 && !anyExpiredAction
-              ? await getQuote(
-                  Number(expiryTimestamp),
-                  toRysk(fromOpyn(strikePrice)),
-                  isPut,
-                  humanisedAmount,
-                  vault.vaultId ? false : true,
-                  collateralAssetSymbol
-                )
-              : {
-                  quote: 0,
-                };
+              ? await getQuotes([
+                  {
+                    expiry: Number(expiryTimestamp),
+                    strike: toRysk(fromOpyn(strikePrice)),
+                    isPut,
+                    orderSize: humanisedAmount,
+                    isSell: vault.vaultId ? false : true,
+                    collateral: collateralAssetSymbol,
+                  },
+                ])
+              : [
+                  {
+                    quote: 0,
+                  },
+                ];
 
           const diff = anyExpiredAction
             ? isPut
