@@ -66,7 +66,7 @@ export const useShortPositionData = (amountToClose: string) => {
 
   const userPosition =
     activeExpiry && userPositions
-      ? userPositions[activeExpiry]?.tokens.find(
+      ? userPositions[activeExpiry]?.activeTokens.find(
           ({ id, netAmount }) =>
             id === searchParams.get("token") && BigNumber.from(netAmount).lt(0)
         )
