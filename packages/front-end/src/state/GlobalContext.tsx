@@ -78,7 +78,7 @@ export const defaultGlobalState: GlobalState = {
     },
     userPositions: {},
     vaults: { length: 0 },
-    wethOracleHashMap: {}
+    wethOracleHashMap: {},
   },
 
   dashboard: {
@@ -121,6 +121,12 @@ export const defaultGlobalState: GlobalState = {
   geoData: {
     blocked: false,
     country: undefined,
+  },
+
+  // User stats
+  userStats: {
+    delta: 0,
+    allTimePnL: 0,
   },
 };
 

@@ -190,6 +190,14 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
         ...state,
         geoData: action.geoData,
       };
+    case ActionType.SET_USER_STATS:
+      return {
+        ...state,
+        userStats: {
+          delta: action.delta ?? state.userStats.delta,
+          allTimePnL: action.allTimePnL ?? state.userStats.allTimePnL,
+        },
+      };
   }
 };
 
