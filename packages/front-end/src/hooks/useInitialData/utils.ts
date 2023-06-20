@@ -10,9 +10,14 @@ import type {
   TimesToExpiry,
   UserPositions,
   UserVaults,
+  WethOracleHashMap,
 } from "src/state/types";
 import type { DHVLensMK1 } from "src/types/DHVLensMK1";
-import type { InitialDataQuery, OptionsTransaction } from "./types";
+import type {
+  InitialDataQuery,
+  OptionsTransaction,
+  OraclePrices,
+} from "./types";
 
 import { readContract, readContracts } from "@wagmi/core";
 import dayjs from "dayjs";
@@ -32,6 +37,7 @@ import {
 import {
   SECONDS_IN_YEAR,
   fromE27toInt,
+  fromOpynToNumber,
   fromUSDC,
   fromWei,
   fromWeiToInt,
@@ -465,11 +471,25 @@ const getLiquidityPoolInfo = async (): Promise<LiquidityPool> => {
   }
 };
 
+const buildOracleHashMap = (oracleAsset: OraclePrices) => {
+  try {
+    return oracleAsset.prices.reduce((map, { expiry, price }) => {
+      map[expiry] = fromOpynToNumber(price);
+
+      return map;
+    }, {} as WethOracleHashMap);
+  } catch (error) {
+    logError(error);
+
+    return {};
+  }
+};
+
 export const getInitialData = async (
   data: InitialDataQuery,
   address?: HexString
 ) => {
-  const { longPositions, shortPositions } = data;
+  const { longPositions, shortPositions, oracleAsset } = data;
 
   // Get expiries.
   const validExpiries = await getExpiries();
@@ -492,6 +512,9 @@ export const getInitialData = async (
   // Get information about the liquidity pool.
   const liquidityPoolInfo = await getLiquidityPoolInfo();
 
+  // Construct HashMap from WETH oracle prices.
+  const oracleHashMap = buildOracleHashMap(oracleAsset);
+
   return [
     validExpiries,
     userPositions,
@@ -500,5 +523,6 @@ export const getInitialData = async (
     userVaults,
     liquidationParameters,
     liquidityPoolInfo,
+    oracleHashMap,
   ] as const;
 };
