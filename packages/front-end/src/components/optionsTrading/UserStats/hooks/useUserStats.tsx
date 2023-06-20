@@ -41,7 +41,10 @@ export const useUserStats = () => {
         allTimePnL: 0,
         delta: 0,
       });
-    } else if (Object.values(userPositions).length) {
+    } else if (
+      Object.values(data).length &&
+      Object.values(userPositions).length
+    ) {
       calculate().then((values) =>
         dispatch({ type: ActionType.SET_USER_STATS, ...values })
       );
