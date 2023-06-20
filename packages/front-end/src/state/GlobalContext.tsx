@@ -78,6 +78,7 @@ export const defaultGlobalState: GlobalState = {
     },
     userPositions: {},
     vaults: { length: 0 },
+    wethOracleHashMap: {}
   },
 
   dashboard: {
