@@ -15,9 +15,11 @@ import { getInitialData } from "./utils";
 
 /**
  * Initialiser hook to pre-fetch:
- * - Ether price data.
+ * - Ether price data include oracle prices.
  * - Options chain data.
  * - User position data if a wallet is connected.
+ * - Liquidation calculation parameters.
+ * - Liquidity pool info.
  *
  * Also sets the error and loading states, as well as
  * a refresh function into global context state for
