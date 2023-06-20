@@ -110,6 +110,8 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 		// make a perp account
 		accountId = clearingHouse.createAccount();
 		swapRouter = ISwapRouter(_swapRouter);
+		SafeTransferLib.safeApprove(ERC20(_collateralAsset), address(swapRouter), MAX_UINT);
+		SafeTransferLib.safeApprove(ERC20(_LPcollateralAsset), address(swapRouter), MAX_UINT);
 	}
 
 	///////////////
@@ -198,7 +200,6 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 		clearingHouse.settleProfit(accountId);
 	}
 
-	// TODO: transferOut function
 	/// @inheritdoc IHedgingReactor
 	function update() public returns (uint256) {
 		_isKeeper();
@@ -231,7 +232,6 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 			if (ILiquidityPool(parentLiquidityPool).getBalance(LPcollateralAsset) < (collatRequired - collat)) {
 				revert CustomErrors.WithdrawExceedsLiquidity();
 			}
-			// TODO: transferIn function
 			_transferIn(collatRequired - collat);
 			// deposit the collateral into the margin account
 			clearingHouse.updateMargin(accountId, collateralId, int256(collatRequired - collat));
@@ -330,8 +330,6 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 	/// internal utilities ///
 	//////////////////////////
 
-	// TODO: transferIn function
-	// TODO: transferOut function
 	/** @notice function to change the perp position
         @param _amount the amount of position to open or close
         @return deltaChange The resulting difference in delta exposure
@@ -486,6 +484,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 			amountOutMinimum: _amountOutMinimum,
 			sqrtPriceLimitX96: 0
 		});
+		uint256 amountOut = swapRouter.exactInputSingle(params);
 	}
 
 	/// @dev keepers, managers or governors can access

@@ -13,7 +13,7 @@ import { ClearingHouse } from "../types/ClearingHouse"
 import { ClearingHouseLens } from "../types/ClearingHouseLens"
 import { OracleMock } from "../types/OracleMock"
 import { priceToSqrtPriceX96 } from '../utils/price-tick'
-const chainId = 1
+const chainId = 42161
 export async function initializePool(
     rageTradeFactory: RageTradeFactory,
     initialMarginRatioBps: BigNumberish,
