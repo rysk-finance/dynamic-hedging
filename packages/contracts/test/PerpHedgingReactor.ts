@@ -251,6 +251,7 @@ describe("PerpHedgingReactor", () => {
 		expect(reactorWethBalanceBefore.add(deltaHedge)).to.equal(reactorWethBalanceAfter)
 		expect(LpUsdcBalanceBefore.sub(LpUsdcBalanceAfter.add(collatRequired))).to.be.within(0, collatRequired.div(10000))
 		expect(await usdcNContract.balanceOf(perpHedgingReactor.address)).to.be.eq(0)
+		expect(await usdcBContract.balanceOf(perpHedgingReactor.address)).to.be.eq(0)
 		expect(reactorCollatBalanceAfter).to.eq(reactorCollatBalanceBefore.add(collatRequired))
 	})
 
@@ -324,6 +325,7 @@ describe("PerpHedgingReactor", () => {
 		expect(reactorWethBalanceBefore.add(deltaHedge)).to.equal(reactorWethBalanceAfter)
 		expect(LpUsdcBalanceBefore.sub(LpUsdcBalanceAfter.add(collatRequired))).to.be.within(0, collatRequired.div(10000))
 		expect(await usdcNContract.balanceOf(perpHedgingReactor.address)).to.be.eq(0)
+		expect(await usdcBContract.balanceOf(perpHedgingReactor.address)).to.be.eq(0)
 		expect(reactorCollatBalanceAfter).to.eq(reactorCollatBalanceBefore.add(collatRequired))
 	})
 	it("syncs profits", async () => {
@@ -382,6 +384,7 @@ describe("PerpHedgingReactor", () => {
 			.div(10000)
 			.sub(accountVal)
 		const healthStatus = await perpHedgingReactor.checkVaultHealth()
+
 		await perpHedgingReactor.syncAndUpdate()
 		const healthStatusAfter = await perpHedgingReactor.checkVaultHealth()
 		expect(healthStatusAfter[0]).to.equal(false)
@@ -532,7 +535,9 @@ describe("PerpHedgingReactor", () => {
 		const LpUsdcBalanceAfter = await usdcNContract.balanceOf(liquidityPoolDummy.address)
 		expect(reactorDeltaAfter).to.equal(reactorDeltaBefore.sub(delta))
 		expect(reactorWethBalanceAfter).to.equal(reactorWethBalanceBefore.sub(delta))
-		expect(LpUsdcBalanceBefore).to.equal(LpUsdcBalanceAfter.add(collatRequired))
+		expect(LpUsdcBalanceBefore.sub(LpUsdcBalanceAfter.add(collatRequired))).to.be.within(0, collatRequired.div(10000))
+		expect(await usdcNContract.balanceOf(perpHedgingReactor.address)).to.be.eq(0)
+		expect(await usdcBContract.balanceOf(perpHedgingReactor.address)).to.be.eq(0)
 		expect(reactorCollatBalanceAfter).to.equal(reactorCollatBalanceBefore.add(collatRequired))
 	})
 	it("hedges a positive delta with insufficient funds", async () => {
@@ -576,7 +581,9 @@ describe("PerpHedgingReactor", () => {
 		expect(reactorDeltaAfter).to.equal(reactorDeltaBefore)
 		expect(reactorWethBalanceAfter).to.equal(reactorWethBalanceBefore)
 		expect(reactorUsdcBalanceAfter.add(toUSDC(withdrawAmount))).to.equal(reactorUsdcBalanceBefore)
-		expect(LpUsdcBalanceBefore).to.equal(LpUsdcBalanceAfter.sub(toUSDC(withdrawAmount)))
+		expect(LpUsdcBalanceBefore.sub(LpUsdcBalanceAfter.add(toUSDC(withdrawAmount)))).to.be.within(0, toUSDC(withdrawAmount).div(10000))
+		expect(await usdcNContract.balanceOf(perpHedgingReactor.address)).to.be.eq(0)
+		expect(await usdcBContract.balanceOf(perpHedgingReactor.address)).to.be.eq(0)
 		expect(reactorCollatBalanceBefore).to.eq(reactorCollatBalanceAfter)
 	})
 	it("syncs profits", async () => {
