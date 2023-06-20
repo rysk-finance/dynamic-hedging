@@ -450,7 +450,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 			revert CustomErrors.WithdrawExceedsLiquidity();
 		}
 		// transfer funds from the liquidity pool here
-		SafeTransferLib.safeTransferFrom(LPcollateralAsset, msg.sender, address(this), _amountInMaximum);
+		SafeTransferLib.safeTransferFrom(LPcollateralAsset, parentLiquidityPool, address(this), _amountInMaximum);
 		// convert from the native usdc to bridged usdc 
 		ISwapRouter.ExactOutputSingleParams memory params = ISwapRouter.ExactOutputSingleParams({
 			tokenIn: LPcollateralAsset,
