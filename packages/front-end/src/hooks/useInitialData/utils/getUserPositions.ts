@@ -29,8 +29,6 @@ export const getUserPositions = (
       const isLong = Number(netAmount) > 0;
       const isShort = Number(netAmount) < 0;
 
-      const key = positions[expiryTimestamp];
-
       const _getPremium = (
         transactions: OptionsTransaction[],
         plusFee: boolean
@@ -56,6 +54,8 @@ export const getUserPositions = (
         totalPremium,
         vault,
       };
+
+      const key = positions[expiryTimestamp];
 
       if (!key) {
         positions[expiryTimestamp] = {
