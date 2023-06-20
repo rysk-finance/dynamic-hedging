@@ -143,6 +143,11 @@ export interface WethOracleHashMap {
   [expiry: string]: number;
 }
 
+export interface UserStats {
+  delta: number;
+  allTimePnL: number;
+}
+
 // Global context
 export type GlobalState = {
   ethPrice: number | null;
@@ -206,6 +211,9 @@ export type GlobalState = {
 
   // User geo-location details
   geoData: GeoData;
+
+  // User stats
+  userStats: UserStats;
 };
 
 export enum ActionType {
@@ -242,6 +250,9 @@ export enum ActionType {
 
   // User geo-location details
   SET_USER_GEO_DATA,
+
+  // User stats
+  SET_USER_STATS,
 }
 
 export enum DashboardModalActions {
@@ -364,6 +375,11 @@ export type GlobalAction =
   | {
       type: ActionType.SET_USER_GEO_DATA;
       geoData: GeoData;
+    }
+  | {
+      type: ActionType.SET_USER_STATS;
+      delta: number;
+      allTimePnL: number;
     };
 
 export type GlobalContext = {
