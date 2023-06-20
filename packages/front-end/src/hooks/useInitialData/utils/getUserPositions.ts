@@ -1,13 +1,13 @@
 import type { UserPositions } from "src/state/types";
-import type { OptionsTransaction, LongPosition, ShortPosition } from "../types";
+import type { OptionsTransaction, Position } from "../types";
 
 import dayjs from "dayjs";
 
 import { tFormatUSDC } from "src/utils/conversion-helper";
 
-export const getUserPositions = (
-  positions: (LongPosition | ShortPosition)[]
-): UserPositions => {
+export const getUserPositions = (positions: Position[]): UserPositions => {
+  const now = dayjs().unix();
+
   return positions.reduce(
     (
       positions,
@@ -17,14 +17,12 @@ export const getUserPositions = (
         oToken,
         optionsBoughtTransactions,
         optionsSoldTransactions,
+        liquidateActions,
+        realizedPnl,
         vault,
       }
     ) => {
       const { expiryTimestamp } = oToken;
-
-      // Early return if the position isn't active and unexpired.
-      if (!(active && parseInt(expiryTimestamp) >= dayjs().unix()))
-        return positions;
 
       const isLong = Number(netAmount) > 0;
       const isShort = Number(netAmount) < 0;
@@ -50,11 +48,16 @@ export const getUserPositions = (
 
       const token = {
         ...oToken,
+        active,
         netAmount,
         totalPremium,
+        liquidateActions,
+        realizedPnl,
         vault,
       };
 
+      const isActive = active && parseInt(expiryTimestamp) >= now;
+      const hasCollateral = Boolean(token.collateralAsset);
       const key = positions[expiryTimestamp];
 
       if (!key) {
@@ -62,14 +65,24 @@ export const getUserPositions = (
           netAmount,
           isLong,
           isShort,
-          tokens: [token],
+          activeTokens: isActive ? [token] : [],
+          longTokens: hasCollateral ? [] : [token],
+          shortTokens: hasCollateral ? [token] : [],
         };
       } else {
         positions[expiryTimestamp] = {
           ...key,
           isLong: key.isLong || isLong,
           isShort: key.isShort || isShort,
-          tokens: [...key.tokens, token],
+          activeTokens: isActive
+            ? [...key.activeTokens, token]
+            : key.activeTokens,
+          longTokens: hasCollateral
+            ? key.longTokens
+            : [...key.longTokens, token],
+          shortTokens: hasCollateral
+            ? [...key.shortTokens, token]
+            : key.shortTokens,
         };
       }
 

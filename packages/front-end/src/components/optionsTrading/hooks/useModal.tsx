@@ -59,7 +59,7 @@ export const useModal = () => {
     if (activeExpiry) {
       const hasSellRef = searchParams.get("ref") === "close";
       const hasVaultCloseRef = searchParams.get("ref") === "vault-close";
-      const hasUserPosition = userPositions[activeExpiry]?.tokens.find(
+      const hasUserPosition = userPositions[activeExpiry]?.activeTokens.find(
         ({ id, netAmount }) =>
           id === searchParams.get("token") &&
           (hasVaultCloseRef

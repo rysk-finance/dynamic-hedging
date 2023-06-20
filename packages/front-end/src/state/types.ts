@@ -1,7 +1,11 @@
 import type { ApolloError } from "@apollo/client";
 import type { BigNumber, BigNumberish } from "ethers";
 
-import type { LongPositionOToken, Vault } from "src/hooks/useInitialData/types";
+import type {
+  PositionOToken,
+  LiquidateActions,
+  Vault,
+} from "src/hooks/useInitialData/types";
 
 import { Dispatch, ReactNode } from "react";
 
@@ -13,9 +17,12 @@ export type AppSettings = {
 // Types related to useInitialData hook.
 export type Expiries = string[];
 
-export interface UserPositionToken extends LongPositionOToken {
+export interface UserPositionToken extends PositionOToken {
+  active: boolean;
   netAmount: BigNumberish;
   totalPremium: number;
+  liquidateActions?: LiquidateActions[];
+  realizedPnl: BigNumberish;
   vault?: Vault;
 }
 
@@ -24,7 +31,9 @@ export interface UserPositions {
     netAmount: BigNumberish;
     isLong: boolean;
     isShort: boolean;
-    tokens: UserPositionToken[];
+    activeTokens: UserPositionToken[];
+    longTokens: UserPositionToken[];
+    shortTokens: UserPositionToken[];
   };
 }
 
