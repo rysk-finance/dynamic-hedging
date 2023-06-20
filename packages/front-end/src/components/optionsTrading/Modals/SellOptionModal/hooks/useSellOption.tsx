@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 
 import { NewMarginCalculatorABI } from "src/abis/NewMarginCalculator_ABI";
+import { getQuotes } from "src/components/shared/utils/getQuote";
 import { DECIMALS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
 import {
@@ -22,7 +23,6 @@ import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
 import { getLiquidationPrice } from "../../Shared/utils/getLiquidationPrice";
-import { getQuote } from "../../Shared/utils/getQuote";
 
 export const useSellOption = (amountToSell: string) => {
   // Global state.
@@ -83,21 +83,18 @@ export const useSellOption = (amountToSell: string) => {
         if (amount > 0 && ethPrice && selectedOption) {
           const strike = selectedOption.strikeOptions.strike;
 
-          const {
-            acceptablePremium,
-            breakEven,
-            fee,
-            premium,
-            quote,
-            slippage,
-          } = await getQuote(
-            Number(activeExpiry),
-            toRysk(strike.toString()),
-            selectedOption.callOrPut === "put",
-            amount,
-            selectedOption.buyOrSell === "sell",
-            collateralPreferences.type
-          );
+          const [
+            { acceptablePremium, breakEven, fee, premium, quote, slippage },
+          ] = await getQuotes([
+            {
+              expiry: Number(activeExpiry),
+              strike: toRysk(strike.toString()),
+              isPut: selectedOption.callOrPut === "put",
+              orderSize: amount,
+              isSell: selectedOption.buyOrSell === "sell",
+              collateral: collateralPreferences.type,
+            },
+          ]);
 
           const _getCollateralAmount = async () => {
             const requiredCollateral = await readContract({

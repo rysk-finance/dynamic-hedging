@@ -6,12 +6,12 @@ import { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 
 import { BigNumber } from "ethers";
+import { getQuotes } from "src/components/shared/utils/getQuote";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { tFormatUSDC, toRysk, toUSDC } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
-import { getQuote } from "../../Shared/utils/getQuote";
 
 export const useBuyOption = (amountToBuy: string) => {
   // Global state.
@@ -57,20 +57,17 @@ export const useBuyOption = (amountToBuy: string) => {
 
       try {
         if (amount > 0 && selectedOption) {
-          const {
-            acceptablePremium,
-            breakEven,
-            fee,
-            premium,
-            quote,
-            slippage,
-          } = await getQuote(
-            Number(activeExpiry),
-            toRysk(selectedOption.strikeOptions.strike.toString()),
-            selectedOption.callOrPut === "put",
-            amount,
-            false
-          );
+          const [
+            { acceptablePremium, breakEven, fee, premium, quote, slippage },
+          ] = await getQuotes([
+            {
+              expiry: Number(activeExpiry),
+              strike: toRysk(selectedOption.strikeOptions.strike.toString()),
+              isPut: selectedOption.callOrPut === "put",
+              orderSize: amount,
+              isSell: false,
+            },
+          ]);
 
           const remainingBalance =
             balances.USDC === 0 ? 0 : balances.USDC - quote;
