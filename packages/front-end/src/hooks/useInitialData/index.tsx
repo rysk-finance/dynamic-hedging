@@ -1,12 +1,12 @@
 import type { InitialDataQuery } from "./types";
 
 import { gql, useQuery } from "@apollo/client";
-import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
+import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useUpdateEthPrice } from "../useUpdateEthPrice";
 import { initialDataQuery } from "./graphQuery";
@@ -14,9 +14,11 @@ import { getInitialData } from "./utils";
 
 /**
  * Initialiser hook to pre-fetch:
- * - Ether price data.
+ * - Ether price data include oracle prices.
  * - Options chain data.
  * - User position data if a wallet is connected.
+ * - Liquidation calculation parameters.
+ * - Liquidity pool info.
  *
  * Also sets the error and loading states, as well as
  * a refresh function into global context state for
@@ -46,7 +48,7 @@ export const useInitialData = () => {
       skip: skip,
       variables: {
         address: address?.toLowerCase(),
-        now: String(dayjs().unix()),
+        underlying: getContractAddress("WETH"),
       },
     }
   );
@@ -87,6 +89,7 @@ export const useInitialData = () => {
           userVaults,
           liquidationParameters,
           liquidityPoolInfo,
+          oracleHashMap,
         ]) => {
           dispatch({
             type: ActionType.SET_OPTIONS,
@@ -102,6 +105,7 @@ export const useInitialData = () => {
             timesToExpiry: liquidationParameters.timesToExpiry,
             userPositions,
             vaults: userVaults,
+            wethOracleHashMap: oracleHashMap,
           });
 
           if (activeExpiry && selectedOption) {

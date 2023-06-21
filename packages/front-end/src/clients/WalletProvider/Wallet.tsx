@@ -74,6 +74,9 @@ const wagmiClient = createClient({
   autoConnect: true,
   connectors,
   provider,
+  logger: {
+    warn: null,
+  },
 });
 
 const WalletProvider = ({ children }: PropsWithChildren<unknown>) => {

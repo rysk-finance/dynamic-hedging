@@ -1,7 +1,11 @@
 import type { ApolloError } from "@apollo/client";
 import type { BigNumber, BigNumberish } from "ethers";
 
-import type { PositionOToken, Vault } from "src/hooks/useInitialData/types";
+import type {
+  PositionOToken,
+  LiquidateActions,
+  Vault,
+} from "src/hooks/useInitialData/types";
 
 import { Dispatch, ReactNode } from "react";
 
@@ -13,9 +17,12 @@ export type AppSettings = {
 // Types related to useInitialData hook.
 export type Expiries = string[];
 
-interface UserPositionToken extends PositionOToken {
+export interface UserPositionToken extends PositionOToken {
+  active: boolean;
   netAmount: BigNumberish;
   totalPremium: number;
+  liquidateActions?: LiquidateActions[];
+  realizedPnl: BigNumberish;
   vault?: Vault;
 }
 
@@ -24,7 +31,9 @@ export interface UserPositions {
     netAmount: BigNumberish;
     isLong: boolean;
     isShort: boolean;
-    tokens: UserPositionToken[];
+    activeTokens: UserPositionToken[];
+    longTokens: UserPositionToken[];
+    shortTokens: UserPositionToken[];
   };
 }
 
@@ -130,6 +139,15 @@ export interface GeoData {
   country?: string;
 }
 
+export interface WethOracleHashMap {
+  [expiry: string]: number;
+}
+
+export interface UserStats {
+  delta: number;
+  allTimePnL: number;
+}
+
 // Global context
 export type GlobalState = {
   ethPrice: number | null;
@@ -168,6 +186,7 @@ export type GlobalState = {
     timesToExpiry: TimesToExpiry;
     userPositions: UserPositions;
     vaults: UserVaults;
+    wethOracleHashMap: WethOracleHashMap;
   };
 
   dashboard: {
@@ -192,6 +211,9 @@ export type GlobalState = {
 
   // User geo-location details
   geoData: GeoData;
+
+  // User stats
+  userStats: UserStats;
 };
 
 export enum ActionType {
@@ -228,6 +250,9 @@ export enum ActionType {
 
   // User geo-location details
   SET_USER_GEO_DATA,
+
+  // User stats
+  SET_USER_STATS,
 }
 
 export enum DashboardModalActions {
@@ -289,6 +314,7 @@ export type GlobalAction =
       timesToExpiry?: TimesToExpiry;
       userPositions?: UserPositions;
       vaults?: UserVaults;
+      wethOracleHashMap?: WethOracleHashMap;
     }
   | {
       type: ActionType.SET_DASHBOARD;
@@ -349,6 +375,11 @@ export type GlobalAction =
   | {
       type: ActionType.SET_USER_GEO_DATA;
       geoData: GeoData;
+    }
+  | {
+      type: ActionType.SET_USER_STATS;
+      delta: number;
+      allTimePnL: number;
     };
 
 export type GlobalContext = {

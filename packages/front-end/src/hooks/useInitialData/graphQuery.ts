@@ -1,11 +1,16 @@
 import { QueriesEnum } from "src/clients/Apollo/Queries";
 
 export const initialDataQuery = `
-query ${QueriesEnum.INITIAL_DATA} ($address: String, $now: String) {
+query ${QueriesEnum.INITIAL_DATA} (
+  $address: String, $now: String, $underlying: String
+) {
   longPositions(
-    where: { account: $address, active: true, oToken_: { expiryTimestamp_gte: $now } }
+    first: 1000,
+    where: { account: $address }
   ) {
+    active
     netAmount
+    realizedPnl
     oToken {
       createdAt
       expiryTimestamp
@@ -24,11 +29,17 @@ query ${QueriesEnum.INITIAL_DATA} ($address: String, $now: String) {
     }
   }
   
-    shortPositions(
-    where: { account: $address, active: true, oToken_: { expiryTimestamp_gte: $now } }
+  shortPositions(
+    first: 1000,
+    where: { account: $address }
   ) {
+    active
     netAmount
+    realizedPnl
     oToken {
+      collateralAsset {
+        symbol
+      }
       createdAt
       expiryTimestamp
       id
@@ -44,6 +55,9 @@ query ${QueriesEnum.INITIAL_DATA} ($address: String, $now: String) {
       fee
       premium
     }
+    liquidateActions {
+      collateralPayout
+    }
     vault {
       id
       vaultId
@@ -52,6 +66,15 @@ query ${QueriesEnum.INITIAL_DATA} ($address: String, $now: String) {
       collateralAsset {
         id
       } 
+    }
+  }
+
+  oracleAsset(
+    id: $underlying
+  ) {
+    prices {
+      expiry
+      price
     }
   }
 }

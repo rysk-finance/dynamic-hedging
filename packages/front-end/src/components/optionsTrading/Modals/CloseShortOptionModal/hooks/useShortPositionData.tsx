@@ -7,6 +7,7 @@ import { useSearchParams } from "react-router-dom";
 import { useAccount } from "wagmi";
 
 import { BigNumber } from "ethers";
+import { getQuotes } from "src/components/shared/utils/getQuote";
 import { BIG_NUMBER_DECIMALS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { optionSymbolFromOToken } from "src/utils";
@@ -21,7 +22,6 @@ import {
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
-import { getQuote } from "../../Shared/utils/getQuote";
 
 export const useShortPositionData = (amountToClose: string) => {
   // URL query params.
@@ -66,7 +66,7 @@ export const useShortPositionData = (amountToClose: string) => {
 
   const userPosition =
     activeExpiry && userPositions
-      ? userPositions[activeExpiry]?.tokens.find(
+      ? userPositions[activeExpiry]?.activeTokens.find(
           ({ id, netAmount }) =>
             id === searchParams.get("token") && BigNumber.from(netAmount).lt(0)
         )
@@ -107,15 +107,17 @@ export const useShortPositionData = (amountToClose: string) => {
           } (${totalSize})`.toUpperCase();
 
           if (amount > 0 && userPosition) {
-            const { acceptablePremium, fee, premium, quote, slippage } =
-              await getQuote(
-                Number(activeExpiry),
-                toRysk(fromOpyn(userPosition.strikePrice)),
-                userPosition.isPut,
-                amount,
-                false,
-                collateralType
-              );
+            const [{ acceptablePremium, fee, premium, quote, slippage }] =
+              await getQuotes([
+                {
+                  expiry: Number(activeExpiry),
+                  strike: toRysk(fromOpyn(userPosition.strikePrice)),
+                  isPut: userPosition.isPut,
+                  orderSize: amount,
+                  isSell: false,
+                  collateral: collateralType,
+                },
+              ]);
 
             // Calculate collateral to remove and remaining collateral.
             const collateralAmount = BigNumber.from(

@@ -77,6 +77,8 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
           timesToExpiry: action.timesToExpiry || state.options.timesToExpiry,
           userPositions: action.userPositions || state.options.userPositions,
           vaults: action.vaults || state.options.vaults,
+          wethOracleHashMap:
+            action.wethOracleHashMap || state.options.wethOracleHashMap,
         },
       };
     case ActionType.SET_DASHBOARD:
@@ -187,6 +189,14 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
       return {
         ...state,
         geoData: action.geoData,
+      };
+    case ActionType.SET_USER_STATS:
+      return {
+        ...state,
+        userStats: {
+          delta: action.delta ?? state.userStats.delta,
+          allTimePnL: action.allTimePnL ?? state.userStats.allTimePnL,
+        },
       };
   }
 };
