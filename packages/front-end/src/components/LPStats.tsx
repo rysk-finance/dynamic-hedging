@@ -31,11 +31,9 @@ export const LPStats = () => {
       }
     };
     const getCollateralCap = async () => {
-      // TODO uncomment this before production and remove lines below
       if (lpContract) {
-          const cap = await lpContract.collateralCap();
-          setCollateralCap(cap);
-
+        const cap = await lpContract.collateralCap();
+        setCollateralCap(cap);
       }
     };
 
