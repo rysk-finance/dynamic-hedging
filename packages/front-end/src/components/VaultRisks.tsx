@@ -1,7 +1,7 @@
 import { DHV_NAME } from "../config/constants";
 // import { AlphaBanner } from "./shared/AlphaBanner";
 // import { Card } from "./shared/Card";
-import { VaultRisksStats } from "./VaultRisksStats";
+// import { VaultRisksStats } from "./VaultRisksStats";
 
 export const VaultRisks = () => {
   return (
@@ -10,9 +10,9 @@ export const VaultRisks = () => {
         <AlphaBanner />
       </div> */}
 
-      <VaultRisksStats />
+      {/* <VaultRisksStats /> */}
 
-      <hr />
+      {/* <hr /> */}
 
       <div className="pb-8 py-12 px-8">
         <div className="grid grid-cols-2">

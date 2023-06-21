@@ -63,7 +63,7 @@ export const Chart = ({ chartData }: ChartProps) => (
           tickFormatter={(value: string) => `${value}%`}
         />
         <Tooltip content={<CustomTooltip />} />
-        <Legend verticalAlign="bottom" formatter={() => "Cumulative Yield"} />
+        <Legend verticalAlign="bottom" formatter={() => "Returns"} />
       </LineChart>
     </ResponsiveContainer>
   </div>
