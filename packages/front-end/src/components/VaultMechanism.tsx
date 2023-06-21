@@ -13,7 +13,7 @@ export const VaultMechanism = () => {
                 Your deposit will be deployed within the vault on Friday.
               </li>
               <li className="pb-2">
-                The deployed funds are used to fund ETH options strategies.
+                The deployed funds are used to fund ETH options trading.
               </li>
               <li className="pb-2">
                 Your funds could appreciate over time as the {DHV_NAME}{" "}

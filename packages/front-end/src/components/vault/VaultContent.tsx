@@ -1,11 +1,11 @@
 import { useEffect, useMemo } from "react";
 import { useAccount, useNetwork } from "wagmi";
 
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { VaultPerformance } from "src/components/VaultPerformance/VaultPerformance";
 import { LPStats } from "../../components/LPStats";
 import { Card } from "../../components/shared/Card";
-import { VaultTrades } from "../../components/VaultTrades";
+// import { VaultTrades } from "../../components/VaultTrades";
 import { CHAINID, DHV_NAME } from "../../config/constants";
 import { DISCORD_LINK } from "../../config/links";
 import addresses from "../../contracts.json";
@@ -15,6 +15,7 @@ import { VaultRisks } from "../VaultRisks";
 import { VaultStrategy } from "../VaultStrategy";
 // import { VaultDeposit } from "./VaultDeposit";
 import { VaultWithdraw } from "./VaultWithdraw";
+import { AppPaths } from "src/config/appPaths";
 
 export const VaultContent = () => {
   const { address } = useAccount();
@@ -44,7 +45,7 @@ export const VaultContent = () => {
 
   return (
     <>
-      <div className="w-full flex justify-between bg-black text-white items-center p-4 col-start-1 col-end-17 -mt-12 mb-16">
+      {/* <div className="w-full flex justify-between bg-black text-white items-center p-4 col-start-1 col-end-17 -mt-12 mb-16">
         {envChainID && (
           <div className="flex items-center w-[240px]">
             <p>
@@ -74,7 +75,8 @@ export const VaultContent = () => {
           <p className="mr-2">Contract</p>{" "}
           <img src="/icons/link_cyan.svg" className="" />
         </a>
-      </div>
+      </div> */}
+
       <div className="col-start-1 col-end-8">
         <div className="font-parabole mb-8">
           <h4 className="pb-4 text-xl">Dynamic Hedging Vault</h4>
@@ -82,8 +84,11 @@ export const VaultContent = () => {
         </div>
 
         <p className="mt-8">
-          {DHV_NAME} generates uncorrelated returns on USDC by market making ETH
-          options strategies.
+          {DHV_NAME} generates uncorrelated returns on USDC by market making 
+          <Link to={AppPaths.TRADE}>
+          {" "} ETH options {" "}
+          </Link>
+          trades.
         </p>
         <p className="py-4">
           The {DHV_NAME} exposure is dynamically hedged to target market
@@ -121,10 +126,10 @@ export const VaultContent = () => {
               label: "Risks",
               content: <VaultRisks />,
             },
-            {
-              label: "Trades",
-              content: <VaultTrades />,
-            },
+            // {
+            //   label: "Trades",
+            //   content: <VaultTrades />,
+            // },
           ]}
         />
       </section>
