@@ -3,11 +3,12 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useAccount, useNetwork } from "wagmi";
 
-import ERC20ABI from "../../abis/erc20.json";
 import LPABI from "../../abis/LiquidityPool.json";
+import ERC20ABI from "../../abis/erc20.json";
 import {
   BIG_NUMBER_DECIMALS,
   DECIMALS,
+  DHV_NAME,
   MAX_UINT_256,
   ZERO_UINT_256,
 } from "../../config/constants";
@@ -17,8 +18,8 @@ import { useContract } from "../../hooks/useContract";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { useUserPosition } from "../../hooks/useUserPosition";
 import { useGlobalContext } from "../../state/GlobalContext";
-import { ActionType, AppSettings, VaultActionType } from "../../state/types";
 import { useVaultContext } from "../../state/VaultContext";
+import { ActionType, AppSettings, VaultActionType } from "../../state/types";
 import {
   ContractAddresses,
   Currency,
@@ -26,9 +27,9 @@ import {
   ETHNetwork,
 } from "../../types";
 import { BigNumberDisplay } from "../BigNumberDisplay";
-import { LOCAL_STORAGE_SETTINGS_KEY } from "../dashboard/Settings";
 import { Loader } from "../Loader";
 import { RyskTooltip } from "../RyskTooltip";
+import { LOCAL_STORAGE_SETTINGS_KEY } from "../dashboard/Settings";
 import { Button } from "../shared/Button";
 import { TextInput } from "../shared/TextInput";
 import { Toggle } from "../shared/Toggle";
@@ -41,6 +42,7 @@ export const VaultDeposit = () => {
   const {
     state: {
       depositEpoch: currentEpoch,
+      whitelistedAddresses,
       withdrawPricePerShare: currentPricePerShare,
     },
     dispatch,
@@ -304,13 +306,19 @@ export const VaultDeposit = () => {
       ? approvedAmount?.gt(BigNumber.from(MAX_UINT_256).div(2))
       : true);
 
+  const isWhitelisted = whitelistedAddresses.includes(
+    address?.toLowerCase() as HexString
+  );
   const approveIsDisabled =
     !inputValue ||
     amountIsApproved ||
     listeningForApproval ||
-    ethers.utils.parseUnits(inputValue)._hex === ZERO_UINT_256;
+    ethers.utils.parseUnits(inputValue)._hex === ZERO_UINT_256 ||
+    !isWhitelisted;
   const depositIsDisabled =
-    !(inputValue && address && approveIsDisabled) || listeningForDeposit;
+    !(inputValue && address && approveIsDisabled) ||
+    listeningForDeposit ||
+    !isWhitelisted;
 
   return (
     <div className="flex-col items-center justify-between h-full">
@@ -404,6 +412,13 @@ export const VaultDeposit = () => {
               maxLength={30}
             />
           </div>
+
+          {!isWhitelisted && (
+            <small className="flex border-b-2 border-black p-2 text-red-900">
+              {`Depositing is currently only available for early access to whitelisted addresses. Please come back soon to deposit into the ${DHV_NAME}.`}
+            </small>
+          )}
+
           <div className="flex items-center border-b-2 border-black p-2 justify-between">
             <p className="text-[12px] mr-2">Unlimited Approval: </p>
             <Toggle
@@ -412,6 +427,7 @@ export const VaultDeposit = () => {
               size="sm"
             />
           </div>
+
           <div className="flex">
             <>
               <Button
@@ -422,9 +438,9 @@ export const VaultDeposit = () => {
                 requiresConnection
               >
                 {amountIsApproved
-                  ? "✅ Approved"
+                  ? "Approved"
                   : listeningForApproval
-                  ? "⏱ Awaiting Approval"
+                  ? "Awaiting Approval"
                   : "Approve"}
               </Button>
               {address && (
@@ -440,7 +456,7 @@ export const VaultDeposit = () => {
                   disabled={depositIsDisabled}
                   color="black"
                 >
-                  {listeningForDeposit ? "⏱ Awaiting deposit" : "Deposit"}
+                  {listeningForDeposit ? "Awaiting deposit" : "Deposit"}
                 </Button>
               )}
             </>
