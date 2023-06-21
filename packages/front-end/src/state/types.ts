@@ -389,11 +389,12 @@ export type GlobalContext = {
 
 // Vault context
 export type VaultState = {
-  userDHVBalance: BigNumber | null;
   depositEpoch: BigNumber | null;
+  userDHVBalance: BigNumber | null;
   withdrawalEpoch: BigNumber | null;
   withdrawPricePerShare: BigNumber | null;
   withdrawalPricePerShare: BigNumber | null;
+  whitelistedAddresses: HexString[];
 };
 
 export enum VaultActionType {
