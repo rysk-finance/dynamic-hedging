@@ -15,13 +15,15 @@ import "@rage/core/contracts/extsloads/ClearingHouseExtsload.sol";
 
 import "@openzeppelin/contracts/utils/math/Math.sol";
 
+import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
+
 /**
  *  @title A hedging reactor that will manage delta by opening or closing short or long perp positions using rage trade
  *  @dev interacts with LiquidityPool via hedgeDelta, getDelta, getPoolDenominatedValue and withdraw,
  *       interacts with Rage Trade and chainlink via the change position, update and sync
  */
 
-contract PerpHedgingReactor is IHedgingReactor, AccessControl {
+contract PerpHedgingReactorWithSwap is IHedgingReactor, AccessControl {
 	using ClearingHouseExtsload for IClearingHouse;
 	/////////////////////////////////
 	/// immutable state variables ///
@@ -33,6 +35,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 	address public immutable priceFeed;
 	/// @notice collateralAsset used for collateralising the pool
 	address public immutable collateralAsset;
+	address public immutable LPcollateralAsset;
 	/// @notice address of the wETH contract
 	address public immutable wETH;
 	/// @notice instance of the clearing house interface
@@ -43,6 +46,8 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 	uint32 public immutable poolId;
 	/// @notice accountId for the perp pool
 	uint256 public immutable accountId;
+	/// @notice instance of the uniswap V3 router interface
+	ISwapRouter public immutable swapRouter;
 
 	/////////////////////////
 	/// dynamic variables ///
@@ -85,15 +90,18 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 	constructor(
 		address _clearingHouse,
 		address _collateralAsset,
+		address _LPcollateralAsset,
 		address _wethAddress,
 		address _parentLiquidityPool,
 		uint32 _poolId,
 		uint32 _collateralId,
 		address _priceFeed,
-		address _authority
+		address _authority,
+		address _swapRouter
 	) AccessControl(IAuthority(_authority)) {
 		clearingHouse = IClearingHouse(_clearingHouse);
 		collateralAsset = _collateralAsset;
+		LPcollateralAsset = _LPcollateralAsset;
 		wETH = _wethAddress;
 		parentLiquidityPool = _parentLiquidityPool;
 		priceFeed = _priceFeed;
@@ -101,6 +109,9 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 		collateralId = _collateralId;
 		// make a perp account
 		accountId = clearingHouse.createAccount();
+		swapRouter = ISwapRouter(_swapRouter);
+		SafeTransferLib.safeApprove(ERC20(_collateralAsset), address(swapRouter), MAX_UINT);
+		SafeTransferLib.safeApprove(ERC20(_LPcollateralAsset), address(swapRouter), MAX_UINT);
 	}
 
 	///////////////
@@ -153,7 +164,7 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 		// record the delta change internally
 		internalDelta += deltaChange;
 	}
-
+	// TODO: transferOut function
 	/// @inheritdoc IHedgingReactor
 	function withdraw(uint256 _amount) external returns (uint256) {
 		require(msg.sender == parentLiquidityPool, "!vault");
@@ -164,11 +175,11 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 			return 0;
 		}
 		if (_amount <= balance) {
-			SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, _amount);
+			_transferOut(_amount);
 			// return in collateral format
 			return _amount;
 		} else {
-			SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, balance);
+			_transferOut(balance);
 			// return in collateral format
 			return balance;
 		}
@@ -218,28 +229,17 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 		// if there is not enough collateral then request more
 		// if there is too much collateral then return some to the pool
 		if (collatRequired > collat) {
-			if (ILiquidityPool(parentLiquidityPool).getBalance(collateralAsset) < (collatRequired - collat)) {
+			if (ILiquidityPool(parentLiquidityPool).getBalance(LPcollateralAsset) < (collatRequired - collat)) {
 				revert CustomErrors.WithdrawExceedsLiquidity();
 			}
-			// transfer assets from the liquidityPool to here to collateralise the pool
-			SafeTransferLib.safeTransferFrom(
-				collateralAsset,
-				parentLiquidityPool,
-				address(this),
-				collatRequired - collat
-			);
+			_transferIn(collatRequired - collat);
 			// deposit the collateral into the margin account
 			clearingHouse.updateMargin(accountId, collateralId, int256(collatRequired - collat));
 			return collatRequired - collat;
 		} else if (collatRequired < collat) {
 			// withdraw excess collateral from the margin account
 			clearingHouse.updateMargin(accountId, collateralId, -int256(collat - collatRequired));
-			// transfer assets back to the liquidityPool
-			SafeTransferLib.safeTransfer(
-				ERC20(collateralAsset),
-				parentLiquidityPool,
-				collat - collatRequired
-			);
+			_transferOut(collat - collatRequired);
 			return collat - collatRequired;
 		} else {
 			return 0;
@@ -390,11 +390,11 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 		// if the current margin held is larger than the new margin required then swap tokens out and
 		// withdraw the excess margin
 		if (collatToDeposit > 0) {
-			if (ILiquidityPool(parentLiquidityPool).getBalance(collateralAsset) < collatToDeposit) {
+			if (ILiquidityPool(parentLiquidityPool).getBalance(LPcollateralAsset) < collatToDeposit) {
 				revert CustomErrors.WithdrawExceedsLiquidity();
 			}
 			// transfer assets from the liquidityPool to here to collateralise the pool
-			SafeTransferLib.safeTransferFrom(collateralAsset, msg.sender, address(this), collatToDeposit);
+			_transferIn(collatToDeposit);
 			// deposit the collateral into the margin account
 			clearingHouse.updateMargin(accountId, collateralId, int256(collatToDeposit));
 			// make the swapParams
@@ -437,11 +437,54 @@ contract PerpHedgingReactor is IHedgingReactor, AccessControl {
 				clearingHouse.updateMargin(accountId, collateralId, -int256(collatToWithdraw));
 			}
 			// transfer assets back to the liquidityPool
-			SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, uint256(collatToWithdraw));
+			_transferOut(collatToWithdraw);
 		}
 		// make sure that _amount and positionOpened are the same, if they are not then revert
 		if (positionOpened != _amount) { revert IncorrectDeltaChange();}
 		return _amount;
+	}
+
+	function _transferIn(uint256 _amount) internal {
+		uint256 _amountInMaximum = (_amount * 10050) / 10000;
+		if (ILiquidityPool(parentLiquidityPool).getBalance(LPcollateralAsset) < _amountInMaximum) {
+			revert CustomErrors.WithdrawExceedsLiquidity();
+		}
+		// transfer funds from the liquidity pool here
+		SafeTransferLib.safeTransferFrom(LPcollateralAsset, parentLiquidityPool, address(this), _amountInMaximum);
+		// convert from the native usdc to bridged usdc 
+		ISwapRouter.ExactOutputSingleParams memory params = ISwapRouter.ExactOutputSingleParams({
+			tokenIn: LPcollateralAsset,
+			tokenOut: collateralAsset,
+			fee: 100,
+			recipient: address(this),
+			deadline: block.timestamp,
+			amountOut: _amount,
+			amountInMaximum: _amountInMaximum,
+			sqrtPriceLimitX96: 0
+		});
+		// Executes the swap returning the amountIn needed to spend to receive the desired amountOut.
+		uint256 amountIn = swapRouter.exactOutputSingle(params);
+		// transfer any remainder funds back to the liquidity pool
+		SafeTransferLib.safeTransfer(
+			ERC20(LPcollateralAsset),
+			parentLiquidityPool,
+			ERC20(LPcollateralAsset).balanceOf(address(this))
+		);
+	}
+
+	function _transferOut(uint256 _amount) internal {
+		uint256 _amountOutMinimum = (_amount * 9950) / 10000;
+		ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
+			tokenIn: collateralAsset,
+			tokenOut: LPcollateralAsset,
+			fee: 100,
+			recipient: parentLiquidityPool,
+			deadline: block.timestamp,
+			amountIn: _amount,
+			amountOutMinimum: _amountOutMinimum,
+			sqrtPriceLimitX96: 0
+		});
+		uint256 amountOut = swapRouter.exactInputSingle(params);
 	}
 
 	/// @dev keepers, managers or governors can access
