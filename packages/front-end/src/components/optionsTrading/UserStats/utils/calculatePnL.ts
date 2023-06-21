@@ -83,8 +83,8 @@ export const calculatePnL = async (
           const strike = fromOpynToNumber(strikePrice);
 
           const valueAtExpiry = isPut
-            ? strike - priceAtExpiry
-            : priceAtExpiry - strike;
+            ? Math.max(strike - priceAtExpiry, 0)
+            : Math.max(priceAtExpiry - strike, 0);
 
           return totalPnL + realizedPnL + valueAtExpiry;
         }
@@ -124,16 +124,9 @@ export const calculatePnL = async (
           const priceAtExpiry = wethOracleHashMap[expiryTimestamp];
           const strike = fromOpynToNumber(strikePrice);
 
-          if (
-            (priceAtExpiry > strike && isPut) ||
-            (priceAtExpiry < strike && !isPut)
-          ) {
-            return totalPnL + realizedPnL;
-          }
-
           const valueAtExpiry = isPut
-            ? strike - priceAtExpiry
-            : priceAtExpiry - strike;
+            ? Math.max(strike - priceAtExpiry, 0)
+            : Math.max(priceAtExpiry - strike, 0);
 
           return totalPnL + realizedPnL - valueAtExpiry;
         }
