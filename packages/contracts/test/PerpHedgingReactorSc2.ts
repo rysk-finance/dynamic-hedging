@@ -28,7 +28,7 @@ let vQuoteAddress: string
 let rageOracle: OracleMock
 let clearingHouseLens: ClearingHouseLens
 // edit depending on the chain id to be tested on
-const chainId = 1
+const chainId = 42161
 const USDC_SCALE = "1000000000000"
 const e18 = "1000000000000000000"
 
@@ -39,9 +39,9 @@ describe("PerpHedgingReactor Sc2", () => {
 			params: [
 				{
 					forking: {
-						chainId: 1,
-						jsonRpcUrl: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY}`,
-						blockNumber: 12821000
+						jsonRpcUrl: `https://arb-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY}`,
+						chainId: 42161,
+						blockNumber: 103144800
 					}
 				}
 			]
@@ -115,7 +115,7 @@ describe("PerpHedgingReactor Sc2", () => {
 	})
 
 	it("#deploys rage", async () => {
-		let rageParams = await deployRage()
+		let rageParams = await deployRage(chainId)
 		clearingHouse = rageParams.clearingHouse
 		poolId = rageParams.poolId
 		collateralId = rageParams.collateralId

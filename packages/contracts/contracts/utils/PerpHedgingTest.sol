@@ -17,6 +17,11 @@ contract PerpHedgingTest {
 			_address,
 			MAX_UINT
 		);
+		SafeTransferLib.safeApprove(
+			ERC20(0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8),
+			_address,
+			MAX_UINT
+		);
 	}
 
 	function hedgeDelta(int256 _delta) public returns (int256 deltaChange) {
