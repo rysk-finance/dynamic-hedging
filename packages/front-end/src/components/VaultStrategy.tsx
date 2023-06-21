@@ -31,12 +31,17 @@ export const VaultStrategy = () => {
         <div className="pr-8">
           <h4 className="text-xl">Dynamic Hedging Overview</h4>
           <p className="pt-4">
-            USDC deposited into {DHV_NAME} vault is used to fund ETH options
-            strategies.
+            The DHV acts as a permissionless vanilla options AMM (Automated Market Maker), allowing anyone to trade (buy or sell) using the vault as counterparty.
           </p>
           <p className="pt-4">
-            The {DHV_NAME} runs ETH options strategies such as strangles,
-            straddles, or single legs (calls and puts) targeting a{" "}
+            USDC deposited into {DHV_NAME} vault is used to fund ETH options trading, as collateral for the options sold by the DHV or as premium paid for options being bought by the DHV. 
+          </p>
+          <p className="pt-4">
+            The DHV collects premiums from traders buying options from the vault and pays out a premium for each option sold to the vault. 
+            The corresponding spread between the buy and sell forms the yield generated to depositors.
+          </p>
+          <p className="pt-4">
+            At all times the DHV will be aware of its own position, targeting a{" "}
             <a
               href="https://medium.com/@rysk-finance/looking-under-the-hood-of-rysks-dynamic-hedging-vault-e059e1b87e41"
               target="_blank"
@@ -47,11 +52,10 @@ export const VaultStrategy = () => {
             </a>{" "}
             close to zero.
             <br />
-          </p>
-          <p className="pt-4">
+            DHV will price its options in such a way as to incentivize the sale/purchase of options that bring the exposure closer to 0.
             If the {DHV_NAME} delta moves too far from zero, the position will
             be dynamically hedged by trading spot, other derivatives (such as
-            perpetuals), or buying options to minimize the market exposure and
+            perpetuals) to minimize the market exposure and
             reduce directionality.
           </p>
         </div>
