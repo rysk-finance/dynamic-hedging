@@ -125,8 +125,9 @@ export const defaultGlobalState: GlobalState = {
 
   // User stats
   userStats: {
+    activePnL: 0,
     delta: 0,
-    allTimePnL: 0,
+    historicalPnL: 0,
   },
 };
 

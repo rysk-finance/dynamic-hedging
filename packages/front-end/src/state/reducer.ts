@@ -194,8 +194,9 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
       return {
         ...state,
         userStats: {
+          activePnL: action.activePnL ?? state.userStats.activePnL,
           delta: action.delta ?? state.userStats.delta,
-          allTimePnL: action.allTimePnL ?? state.userStats.allTimePnL,
+          historicalPnL: action.historicalPnL ?? state.userStats.historicalPnL,
         },
       };
   }
