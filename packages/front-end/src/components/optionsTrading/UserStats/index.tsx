@@ -9,7 +9,7 @@ export const UserStats = () => {
   const {
     state: {
       options: { data },
-      userStats: { allTimePnL, delta },
+      userStats: { activePnL, delta, historicalPnL },
     },
   } = useGlobalContext();
 
@@ -24,10 +24,16 @@ export const UserStats = () => {
           {...FadeInUpDelayed(0.3)}
         >
           <Card
+            explainer="Total P/L for all unexpired positions."
+            symbol="$"
+            title="P/L (active)"
+            value={activePnL}
+          />
+          <Card
             explainer="Total P/L for all open and closed positions."
             symbol="$"
-            title="P/L"
-            value={allTimePnL}
+            title="P/L (historical)"
+            value={historicalPnL}
           />
           <Card
             explainer="Total delta for all open positions."
