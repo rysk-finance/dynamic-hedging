@@ -6,6 +6,12 @@ import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
 
 const checkGeoLocation = async () => {
+  const geoBlockDisabled = Boolean(process.env.REACT_APP_GEO_BLOCK_DISABLED);
+
+  if (geoBlockDisabled) {
+    return { blocked: false } as GeoData;
+  }
+
   try {
     const response = await fetch("https://www.rysk.finance/api/geo-block/");
     const data: GeoData = await response.json();
