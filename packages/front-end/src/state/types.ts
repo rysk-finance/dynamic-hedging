@@ -144,8 +144,9 @@ export interface WethOracleHashMap {
 }
 
 export interface UserStats {
+  activePnL: number;
   delta: number;
-  allTimePnL: number;
+  historicalPnL: number;
 }
 
 // Global context
@@ -378,8 +379,9 @@ export type GlobalAction =
     }
   | {
       type: ActionType.SET_USER_STATS;
-      delta: number;
-      allTimePnL: number;
+      activePnL?: number;
+      delta?: number;
+      historicalPnL?: number;
     };
 
 export type GlobalContext = {
