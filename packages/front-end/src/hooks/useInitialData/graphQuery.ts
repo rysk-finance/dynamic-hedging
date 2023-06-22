@@ -2,7 +2,7 @@ import { QueriesEnum } from "src/clients/Apollo/Queries";
 
 export const initialDataQuery = `
 query ${QueriesEnum.INITIAL_DATA} (
-  $address: String, $now: String, $underlying: String
+  $address: String, $underlying: String
 ) {
   longPositions(
     first: 1000,
