@@ -14,23 +14,25 @@ import {
 
 /**
  * Calculate P/L value for all historical positions.
+ * Index 0 - Historical P/L.
+ * Index 1 - Active P/L.
  *
  * @param ethPrice - Ether price from global state.
  * @param longs - List of historical user long positions.
  * @param shorts - List of historical user short positions.
  * @param wethOracleHashMap - Oracle Ether price HashMap from global state.
  *
- * @returns Promise<number>
+ * @returns Promise<[number, number]>
  */
 export const calculatePnL = async (
   ethPrice: number,
   longs: UserPositionToken[] = [],
   shorts: UserPositionToken[] = [],
   wethOracleHashMap: WethOracleHashMap
-): Promise<number> => {
+): Promise<[number, number]> => {
   const allPositions = [...longs, ...shorts];
 
-  if (!allPositions.length) return 0;
+  if (!allPositions.length) return [0, 0];
 
   const quotes = await getQuotes(
     allPositions.map(
@@ -51,7 +53,7 @@ export const calculatePnL = async (
 
   return allPositions.reduce(
     (
-      totalPnL: number,
+      [historicalPnL, activePnL],
       {
         active,
         collateralAsset,
@@ -71,12 +73,13 @@ export const calculatePnL = async (
 
         if (!active) {
           // Manually closed or expired and redeemed.
-          return totalPnL + realizedPnL;
+          return [historicalPnL + realizedPnL, activePnL];
         } else if (expiriesAt > nowToUnix) {
           // Open positions.
           const { quote } = quotes[index];
+          const value = realizedPnL + quote;
 
-          return totalPnL + realizedPnL + quote;
+          return [historicalPnL + value, activePnL + value];
         } else {
           // Expired but not yet redeemed.
           const priceAtExpiry = wethOracleHashMap[expiryTimestamp];
@@ -86,7 +89,7 @@ export const calculatePnL = async (
             ? Math.max(strike - priceAtExpiry, 0)
             : Math.max(priceAtExpiry - strike, 0);
 
-          return totalPnL + realizedPnL + valueAtExpiry;
+          return [historicalPnL + realizedPnL + valueAtExpiry, activePnL];
         }
       } else {
         // Shorts
@@ -98,7 +101,7 @@ export const calculatePnL = async (
 
         if (!active && !hasBeenLiquidated) {
           // Manually closed or expired and settled.
-          return totalPnL + realizedPnL;
+          return [historicalPnL + realizedPnL, activePnL];
         } else if (!active && hasBeenLiquidated) {
           // Liquidated.
           const collateralLost = liquidateActions.reduce(
@@ -113,12 +116,13 @@ export const calculatePnL = async (
             0
           );
 
-          return totalPnL + realizedPnL - collateralLost;
+          return [historicalPnL + realizedPnL - collateralLost, activePnL];
         } else if (expiriesAt > nowToUnix) {
           // Open positions.
           const { quote } = quotes[index];
+          const value = realizedPnL - quote;
 
-          return totalPnL + realizedPnL - quote;
+          return [historicalPnL + value, activePnL + value];
         } else {
           // Expired but not yet settled.
           const priceAtExpiry = wethOracleHashMap[expiryTimestamp];
@@ -128,10 +132,10 @@ export const calculatePnL = async (
             ? Math.max(strike - priceAtExpiry, 0)
             : Math.max(priceAtExpiry - strike, 0);
 
-          return totalPnL + realizedPnL - valueAtExpiry;
+          return [historicalPnL + realizedPnL - valueAtExpiry, activePnL];
         }
       }
     },
-    0
+    [0, 0]
   );
 };

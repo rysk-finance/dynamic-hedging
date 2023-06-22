@@ -44,6 +44,7 @@ export const useInitialData = () => {
   const { data, error, loading } = useQuery<InitialDataQuery>(
     gql(initialDataQuery),
     {
+      fetchPolicy: "cache-and-network",
       onError: logError,
       skip: skip,
       variables: {

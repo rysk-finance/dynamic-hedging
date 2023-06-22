@@ -24,7 +24,7 @@ export const useUserStats = () => {
       const [activePositions, longPositions, shortPositions] =
         getTokenLists(userPositions);
 
-      const allTimePnL = await calculatePnL(
+      const [historicalPnL, activePnL] = await calculatePnL(
         ethPrice || 0,
         longPositions,
         shortPositions,
@@ -32,14 +32,15 @@ export const useUserStats = () => {
       );
       const delta = calculateDelta(data, activePositions);
 
-      return { allTimePnL, delta };
+      return { activePnL, delta, historicalPnL };
     };
 
     if (isDisconnected) {
       dispatch({
         type: ActionType.SET_USER_STATS,
-        allTimePnL: 0,
+        activePnL: 0,
         delta: 0,
+        historicalPnL: 0,
       });
     } else if (
       Object.values(data).length &&
