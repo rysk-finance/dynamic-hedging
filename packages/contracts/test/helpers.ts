@@ -1079,25 +1079,43 @@ export async function applyLinearInterpolation(
 	if (mode == Mode.Slippage) {
 		if (isPut) {
 			y1 = (await beyondPricer.getPutSlippageGradientMultipliers(tenorIndex))[deltaBandIndex]
+			if (remainder == 0) {
+				return parseFloat(fromWei(y1))
+			}
 			y2 = (await beyondPricer.getPutSlippageGradientMultipliers(tenorIndex + 1))[deltaBandIndex]
 		} else {
 			y1 = (await beyondPricer.getCallSlippageGradientMultipliers(tenorIndex))[deltaBandIndex]
+			if (remainder == 0) {
+				return parseFloat(fromWei(y1))
+			}
 			y2 = (await beyondPricer.getCallSlippageGradientMultipliers(tenorIndex + 1))[deltaBandIndex]
 		}
 	} else if (mode == Mode.CollatSpread) {
 		if (isPut) {
 			y1 = (await beyondPricer.getPutSpreadCollateralMultipliers(tenorIndex))[deltaBandIndex]
+			if (remainder == 0) {
+				return parseFloat(fromWei(y1))
+			}
 			y2 = (await beyondPricer.getPutSpreadCollateralMultipliers(tenorIndex + 1))[deltaBandIndex]
 		} else {
 			y1 = (await beyondPricer.getCallSpreadCollateralMultipliers(tenorIndex))[deltaBandIndex]
+			if (remainder == 0) {
+				return parseFloat(fromWei(y1))
+			}
 			y2 = (await beyondPricer.getCallSpreadCollateralMultipliers(tenorIndex + 1))[deltaBandIndex]
 		}
 	} else if (mode == Mode.DeltaSpread) {
 		if (isPut) {
 			y1 = (await beyondPricer.getPutSpreadDeltaMultipliers(tenorIndex))[deltaBandIndex]
+			if (remainder == 0) {
+				return parseFloat(fromWei(y1))
+			}
 			y2 = (await beyondPricer.getPutSpreadDeltaMultipliers(tenorIndex + 1))[deltaBandIndex]
 		} else {
 			y1 = (await beyondPricer.getCallSpreadDeltaMultipliers(tenorIndex))[deltaBandIndex]
+			if (remainder == 0) {
+				return parseFloat(fromWei(y1))
+			}
 			y2 = (await beyondPricer.getCallSpreadDeltaMultipliers(tenorIndex + 1))[deltaBandIndex]
 		}
 	} else {

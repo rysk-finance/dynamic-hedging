@@ -98,13 +98,11 @@ async function testInterpolation(optionSeries, optionDelta) {
 	expect(tenor.toFixed(10)).to.eq(expectedTenor.toFixed(10))
 	expect(remainder.toFixed(10)).to.eq(expectedRemainder.toFixed(10))
 	const deltaBandWidth = await pricer.deltaBandWidth()
-	const deltaBand = Math.floor((optionSeries * 100) / parseFloat(fromWei(deltaBandWidth)))
+	const deltaBand = Math.floor((optionDelta * 100) / parseFloat(fromWei(deltaBandWidth)))
+	console.log({ tenor, remainder })
 	// calculate expected slippage gradient multiplier
 	const slippageMultiplierLowerTenor = parseFloat(
 		fromWei((await pricer.getCallSlippageGradientMultipliers(tenor))[deltaBand])
-	)
-	const slippageMultiplierUpperTenor = parseFloat(
-		fromWei((await pricer.getCallSlippageGradientMultipliers(tenor + 1))[deltaBand])
 	)
 	const slippageInterpolatedValue = await applyLinearInterpolation(
 		tenor,
@@ -114,20 +112,24 @@ async function testInterpolation(optionSeries, optionDelta) {
 		pricer,
 		0
 	)
-	expect(slippageInterpolatedValue).to.be.within(
-		slippageMultiplierLowerTenor,
-		slippageMultiplierUpperTenor
-	)
-	expect(slippageInterpolatedValue).to.eq(
-		slippageMultiplierLowerTenor +
-			remainder * (slippageMultiplierUpperTenor - slippageMultiplierLowerTenor)
-	)
+	if (remainder > 0) {
+		const slippageMultiplierUpperTenor = parseFloat(
+			fromWei((await pricer.getCallSlippageGradientMultipliers(tenor + 1))[deltaBand])
+		)
+		expect(slippageInterpolatedValue).to.be.within(
+			Math.min(slippageMultiplierLowerTenor, slippageMultiplierUpperTenor),
+			Math.max(slippageMultiplierLowerTenor, slippageMultiplierUpperTenor)
+		)
+		expect(slippageInterpolatedValue).to.eq(
+			slippageMultiplierLowerTenor +
+				remainder * (slippageMultiplierUpperTenor - slippageMultiplierLowerTenor)
+		)
+	} else {
+		expect(slippageInterpolatedValue).to.eq(slippageMultiplierLowerTenor)
+	}
 	// calculate spread Collateral mutliplier
 	const spreadCollateralMultiplierLowerTenor = parseFloat(
 		fromWei((await pricer.getCallSpreadCollateralMultipliers(tenor))[deltaBand])
-	)
-	const spreadCollateralMultiplierUpperTenor = parseFloat(
-		fromWei((await pricer.getCallSpreadCollateralMultipliers(tenor + 1))[deltaBand])
 	)
 	const spreadCollateralInterpolatedValue = await applyLinearInterpolation(
 		tenor,
@@ -135,22 +137,26 @@ async function testInterpolation(optionSeries, optionDelta) {
 		optionSeries.isPut,
 		deltaBand,
 		pricer,
-		1
+		2
 	)
-	expect(spreadCollateralInterpolatedValue).to.be.within(
-		spreadCollateralMultiplierLowerTenor,
-		spreadCollateralMultiplierUpperTenor
-	)
-	expect(spreadCollateralInterpolatedValue).to.eq(
-		spreadCollateralMultiplierLowerTenor +
-			remainder * (spreadCollateralMultiplierUpperTenor - spreadCollateralMultiplierLowerTenor)
-	)
+	if (remainder > 0) {
+		const spreadCollateralMultiplierUpperTenor = parseFloat(
+			fromWei((await pricer.getCallSpreadCollateralMultipliers(tenor + 1))[deltaBand])
+		)
+		expect(spreadCollateralInterpolatedValue).to.be.within(
+			Math.min(spreadCollateralMultiplierLowerTenor, spreadCollateralMultiplierUpperTenor),
+			Math.max(spreadCollateralMultiplierLowerTenor, spreadCollateralMultiplierUpperTenor)
+		)
+		expect(spreadCollateralInterpolatedValue).to.eq(
+			spreadCollateralMultiplierLowerTenor +
+				remainder * (spreadCollateralMultiplierUpperTenor - spreadCollateralMultiplierLowerTenor)
+		)
+	} else {
+		expect(spreadCollateralInterpolatedValue).to.eq(spreadCollateralMultiplierLowerTenor)
+	}
 	// calculate spread Delta mutliplier
 	const spreadDeltaMultiplierLowerTenor = parseFloat(
 		fromWei((await pricer.getCallSpreadDeltaMultipliers(tenor))[deltaBand])
-	)
-	const spreadDeltaMultiplierUpperTenor = parseFloat(
-		fromWei((await pricer.getCallSpreadDeltaMultipliers(tenor + 1))[deltaBand])
 	)
 	const spreadDeltaInterpolatedValue = await applyLinearInterpolation(
 		tenor,
@@ -158,16 +164,23 @@ async function testInterpolation(optionSeries, optionDelta) {
 		optionSeries.isPut,
 		deltaBand,
 		pricer,
-		2
+		1
 	)
-	expect(spreadDeltaInterpolatedValue).to.be.within(
-		spreadDeltaMultiplierLowerTenor,
-		spreadDeltaMultiplierUpperTenor
-	)
-	expect(spreadDeltaInterpolatedValue).to.eq(
-		spreadDeltaMultiplierLowerTenor +
-			remainder * (spreadDeltaMultiplierUpperTenor - spreadDeltaMultiplierLowerTenor)
-	)
+	if (remainder > 0) {
+		const spreadDeltaMultiplierUpperTenor = parseFloat(
+			fromWei((await pricer.getCallSpreadDeltaMultipliers(tenor + 1))[deltaBand])
+		)
+		expect(spreadDeltaInterpolatedValue).to.be.within(
+			Math.min(spreadDeltaMultiplierLowerTenor, spreadDeltaMultiplierUpperTenor),
+			Math.max(spreadDeltaMultiplierLowerTenor, spreadDeltaMultiplierUpperTenor)
+		)
+		expect(spreadDeltaInterpolatedValue).to.eq(
+			spreadDeltaMultiplierLowerTenor +
+				remainder * (spreadDeltaMultiplierUpperTenor - spreadDeltaMultiplierLowerTenor)
+		)
+	} else {
+		expect(spreadDeltaInterpolatedValue).to.eq(spreadDeltaMultiplierLowerTenor)
+	}
 }
 
 describe("Quote Option price", async () => {
@@ -1178,6 +1191,7 @@ describe("Quote Option price", async () => {
 	let proposedSeries38
 	let proposedSeries39
 	let proposedSeries40
+	let proposedSeries41
 	let delta1
 	let delta2
 	let delta3
@@ -1218,11 +1232,29 @@ describe("Quote Option price", async () => {
 	let delta38
 	let delta39
 	let delta40
+	let delta41
 
 	describe("check interpolation values", async () => {
 		it("gets deltas", async () => {
 			const amount = toWei("1")
 			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+			const blockNum = await ethers.provider.getBlockNumber()
+			const block = await ethers.provider.getBlock(blockNum)
+			const { timestamp } = block
+
+			const proposedSabrParams = {
+				callAlpha: 250000,
+				callBeta: 1_000000,
+				callRho: -300000,
+				callVolvol: 1_500000,
+				putAlpha: 250000,
+				putBeta: 1_000000,
+				putRho: -300000,
+				putVolvol: 1_500000,
+				interestRate: utils.parseEther("-0.004")
+			}
+			await volFeed.setSabrParameters(proposedSabrParams, timestamp + 4 + 2800 ** 2)
+
 			proposedSeries1 = {
 				expiration: expiration,
 				strike: priceQuote.add(toWei("200")),
@@ -1543,6 +1575,14 @@ describe("Quote Option price", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
+			proposedSeries41 = {
+				expiration: timestamp + 4 + 2800 ** 2,
+				strike: priceQuote.sub(toWei("480")),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
 			delta1 = fromWei(
 				await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries1, amount, false)
 			)
@@ -1743,48 +1783,57 @@ describe("Quote Option price", async () => {
 					)
 				)
 			)
+			delta41 = Math.abs(
+				parseFloat(
+					fromWei(
+						await calculateOptionDeltaLocally(liquidityPool, priceFeed, proposedSeries41, amount, false)
+					)
+				)
+			)
 		})
+
 		it("checks interpolations on proposedSeries", async () => {
-			testInterpolation(proposedSeries1, delta1)
-			testInterpolation(proposedSeries2, delta2)
-			testInterpolation(proposedSeries3, delta3)
-			testInterpolation(proposedSeries4, delta4)
-			testInterpolation(proposedSeries5, delta5)
-			testInterpolation(proposedSeries6, delta6)
-			testInterpolation(proposedSeries7, delta7)
-			testInterpolation(proposedSeries8, delta8)
-			testInterpolation(proposedSeries9, delta9)
-			testInterpolation(proposedSeries10, delta10)
-			testInterpolation(proposedSeries11, delta11)
-			testInterpolation(proposedSeries12, delta12)
-			testInterpolation(proposedSeries13, delta13)
-			testInterpolation(proposedSeries14, delta14)
-			testInterpolation(proposedSeries15, delta15)
-			testInterpolation(proposedSeries16, delta16)
-			testInterpolation(proposedSeries17, delta17)
-			testInterpolation(proposedSeries18, delta18)
-			testInterpolation(proposedSeries19, delta19)
-			testInterpolation(proposedSeries20, delta20)
-			testInterpolation(proposedSeries21, delta21)
-			testInterpolation(proposedSeries22, delta22)
-			testInterpolation(proposedSeries23, delta23)
-			testInterpolation(proposedSeries24, delta24)
-			testInterpolation(proposedSeries25, delta25)
-			testInterpolation(proposedSeries26, delta26)
-			testInterpolation(proposedSeries27, delta27)
-			testInterpolation(proposedSeries28, delta28)
-			testInterpolation(proposedSeries29, delta29)
-			testInterpolation(proposedSeries30, delta10)
-			testInterpolation(proposedSeries31, delta31)
-			testInterpolation(proposedSeries32, delta32)
-			testInterpolation(proposedSeries33, delta33)
-			testInterpolation(proposedSeries34, delta34)
-			testInterpolation(proposedSeries35, delta35)
-			testInterpolation(proposedSeries36, delta36)
-			testInterpolation(proposedSeries37, delta37)
-			testInterpolation(proposedSeries38, delta38)
-			testInterpolation(proposedSeries39, delta39)
-			testInterpolation(proposedSeries40, delta40)
+			await testInterpolation(proposedSeries1, delta1)
+			await testInterpolation(proposedSeries2, delta2)
+			await testInterpolation(proposedSeries3, delta3)
+			await testInterpolation(proposedSeries4, delta4)
+			await testInterpolation(proposedSeries5, delta5)
+			await testInterpolation(proposedSeries6, delta6)
+			await testInterpolation(proposedSeries7, delta7)
+			await testInterpolation(proposedSeries8, delta8)
+			await testInterpolation(proposedSeries9, delta9)
+			await testInterpolation(proposedSeries10, delta10)
+			await testInterpolation(proposedSeries11, delta11)
+			await testInterpolation(proposedSeries12, delta12)
+			await testInterpolation(proposedSeries13, delta13)
+			await testInterpolation(proposedSeries14, delta14)
+			await testInterpolation(proposedSeries15, delta15)
+			await testInterpolation(proposedSeries16, delta16)
+			await testInterpolation(proposedSeries17, delta17)
+			await testInterpolation(proposedSeries18, delta18)
+			await testInterpolation(proposedSeries19, delta19)
+			await testInterpolation(proposedSeries20, delta20)
+			await testInterpolation(proposedSeries21, delta21)
+			await testInterpolation(proposedSeries22, delta22)
+			await testInterpolation(proposedSeries23, delta23)
+			await testInterpolation(proposedSeries24, delta24)
+			await testInterpolation(proposedSeries25, delta25)
+			await testInterpolation(proposedSeries26, delta26)
+			await testInterpolation(proposedSeries27, delta27)
+			await testInterpolation(proposedSeries28, delta28)
+			await testInterpolation(proposedSeries29, delta29)
+			await testInterpolation(proposedSeries30, delta10)
+			await testInterpolation(proposedSeries31, delta31)
+			await testInterpolation(proposedSeries32, delta32)
+			await testInterpolation(proposedSeries33, delta33)
+			await testInterpolation(proposedSeries34, delta34)
+			await testInterpolation(proposedSeries35, delta35)
+			await testInterpolation(proposedSeries36, delta36)
+			await testInterpolation(proposedSeries37, delta37)
+			await testInterpolation(proposedSeries38, delta38)
+			await testInterpolation(proposedSeries39, delta39)
+			await testInterpolation(proposedSeries40, delta40)
+			await testInterpolation(proposedSeries41, delta41)
 		})
 	})
 	describe("set flat IV params", async () => {
