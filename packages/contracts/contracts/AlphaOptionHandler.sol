@@ -309,7 +309,7 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			order.optionSeries.isPut,
 			underlyingAsset,
 			strikeAsset,
-			collateralAsset
+			order.optionSeries.collateral
 		);
 		if (ERC20(order.seriesAddress).balanceOf(address(this)) >= convertedAmount) {
 			// transfer otoken
