@@ -91,7 +91,7 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 		Types.OptionSeries optionSeries
 	);
 	event MaxNetDhvExposureUpdated(uint256 maxNetDhvExposure);
-	event NetDhvExposureChanged(int256 oldNetDhvExposure, int256 newNetDhvExposure);
+	event NetDhvExposureChanged(bytes32 indexed optionHash, int256 oldNetDhvExposure, int256 newNetDhvExposure);
 
 	error OptionHasExpiredInStores(uint256 index, address seriesAddress);
 	error MaxNetDhvExposureExceeded();
@@ -167,7 +167,7 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 		require(arrayLength == _netDhvExposures.length);
 		for (uint i; i < arrayLength; i++) {
 			if (uint256(_netDhvExposures[i].abs()) > maxNetDhvExposure) revert MaxNetDhvExposureExceeded();
-			emit NetDhvExposureChanged(netDhvExposure[_optionHashes[i]], _netDhvExposures[i]);
+			emit NetDhvExposureChanged(_optionHashes[i], netDhvExposure[_optionHashes[i]], _netDhvExposures[i]);
 			netDhvExposure[_optionHashes[i]] = _netDhvExposures[i];
 		}
 	}

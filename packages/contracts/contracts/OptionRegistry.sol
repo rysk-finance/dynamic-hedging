@@ -249,6 +249,9 @@ contract OptionRegistry is AccessControl {
 			optionSeries.expiration,
 			optionSeries.isPut
 		);
+		if (seriesAddress[issuanceHash] != address(0)) {
+			return series;
+		}
 		// store the option data as a hash
 		seriesInfo[series] = Types.OptionSeries(
 			optionSeries.expiration,

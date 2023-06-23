@@ -158,11 +158,7 @@ describe("Options protocol", function () {
 	it("Returns correct oToken when calling getOrDeployOtoken", async () => {
 		const [sender] = signers
 		const issue = await optionRegistry.issue(proposedSeries)
-		await expect(issue).to.emit(optionRegistry, "OptionTokenCreated")
-		const receipt = await issue.wait(1)
-		const events = receipt.events
-		const removeEvent = events?.find(x => x.event == "OptionTokenCreated")
-		const seriesAddress = removeEvent?.args?.token
+		const seriesAddress = await optionRegistry.callStatic.issue(proposedSeries)
 		expect(seriesAddress).to.equal(optionTokenUSDC.address)
 	})
 	it("Returns correct oToken when calling getOToken", async () => {
