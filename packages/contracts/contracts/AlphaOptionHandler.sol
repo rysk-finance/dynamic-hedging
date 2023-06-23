@@ -232,11 +232,11 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	}
 
 	/**
-	 * @notice migrate otokens held by this address to an option exchange
+	 * @notice transfer otokens held by this address to an option exchange
 	 * @param optionExchange the option exchange to send otokens to
 	 * @param otokens the otoken addresses to transfer
 	 */
-	function migrateOtokens(address optionExchange, address[] memory otokens) external {
+	function transferOtokens(address optionExchange, address[] memory otokens) external {
 		_onlyGovernor();
 		uint256 len = otokens.length;
 		for (uint256 i = 0; i < len; i++) {
