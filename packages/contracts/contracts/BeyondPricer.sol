@@ -666,6 +666,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		// get the ratio of the square root of seconds to expiry and the max tenor value in e18 form
 		uint unroundedTenorIndex = (((((_expiration - block.timestamp) * 1e18).sqrt()) *
 			(numberOfTenors - 1)) / maxTenorValue);
+		require(unroundedTenorIndex / 1e18 <= 65535, "tenor index overflow");
 		tenorIndex = uint16(unroundedTenorIndex / 1e18); // always floors
 		remainder = int256(unroundedTenorIndex - tenorIndex * 1e18); // will be between 0 and 1e18
 	}
