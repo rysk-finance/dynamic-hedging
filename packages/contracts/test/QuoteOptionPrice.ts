@@ -99,7 +99,6 @@ async function testInterpolation(optionSeries, optionDelta) {
 	expect(remainder.toFixed(10)).to.eq(expectedRemainder.toFixed(10))
 	const deltaBandWidth = await pricer.deltaBandWidth()
 	const deltaBand = Math.floor((optionDelta * 100) / parseFloat(fromWei(deltaBandWidth)))
-	console.log({ tenor, remainder })
 	// calculate expected slippage gradient multiplier
 	const slippageMultiplierLowerTenor = parseFloat(
 		fromWei((await pricer.getCallSlippageGradientMultipliers(tenor))[deltaBand])
