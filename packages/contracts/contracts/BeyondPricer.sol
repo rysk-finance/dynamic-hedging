@@ -404,7 +404,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 				forward,
 				true // override IV
 			);
-
+			// discount by forward rate
+			overridePremium = overridePremium.mul(underlyingPrice).div(forward);
 			overridePremium = OptionsCompute.convertToDecimals(
 				overridePremium.mul(_amount),
 				ERC20(collateralAsset).decimals()
