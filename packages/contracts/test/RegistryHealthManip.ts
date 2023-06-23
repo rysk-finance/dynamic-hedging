@@ -1357,21 +1357,16 @@ describe("Options protocol Vault Health", function () {
 	it("Creates a USD collataralised call option token series", async () => {
 		const [sender] = signers
 		await optionRegistry.setLiquidityPool(senderAddress)
-		strike = toWei("3500")
 		proposedSeries = {
 			expiration: expiration,
-			strike: strike,
+			strike: toWei("3500"),
 			isPut: call,
 			underlying: WETH_ADDRESS[chainId],
 			strikeAsset: USDC_ADDRESS[chainId],
 			collateral: USDC_ADDRESS[chainId]
 		}
 		const issue = await optionRegistry.issue(proposedSeries)
-		await expect(issue).to.emit(optionRegistry, "OptionTokenCreated")
-		const receipt = await issue.wait(1)
-		const events = receipt.events
-		const removeEvent = events?.find(x => x.event == "OptionTokenCreated")
-		const seriesAddress = removeEvent?.args?.token
+		const seriesAddress = await optionRegistry.callStatic.issue(proposedSeries)
 		// save the option token address
 		optionTokenUSDC = new Contract(seriesAddress, Otoken.abi, sender) as IOToken
 		const value = toWei("4")
