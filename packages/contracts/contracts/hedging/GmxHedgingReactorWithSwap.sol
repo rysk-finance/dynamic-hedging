@@ -18,7 +18,6 @@ import "../interfaces/IPositionRouter.sol";
 import "../interfaces/IReader.sol";
 import "../interfaces/IGmxVault.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
-import "hardhat/console.sol";
 
 /**
  *  @title A hedging reactor that will manage delta by opening or closing short or long perp positions using GMX
@@ -281,7 +280,6 @@ contract GmxHedgingReactorWithSwap is IHedgingReactor, AccessControl {
 
 	/// @inheritdoc IHedgingReactor
 	function update() external returns (uint256) {
-		console.log("update");
 
 		_isKeeper();
 		int _internalDelta = sync();
@@ -547,7 +545,6 @@ contract GmxHedgingReactorWithSwap is IHedgingReactor, AccessControl {
 				uint256(_amount),
 				true
 			);
-			console.log("amount:", uint(_amount), collateralToAdd);
 
 			(positionKey, deltaChange) = _increasePosition(uint256(_amount), collateralToAdd, true);
 			// update deltaChange for callback function
@@ -636,7 +633,6 @@ contract GmxHedgingReactorWithSwap is IHedgingReactor, AccessControl {
 		pendingIncreaseCallback++;
 		pendingIncreaseCollateralValue = _collateralSize;
 		pendingIncreaseOrders[positionKey] = true;
-		console.log("finish increase:");
 
 		return (positionKey, _isLong ? int256(_size) : -int256(_size));
 	}
@@ -945,9 +941,7 @@ contract GmxHedgingReactorWithSwap is IHedgingReactor, AccessControl {
 		if (msg.sender != address(gmxPositionRouter)) {
 			revert CustomErrors.InvalidGmxCallback();
 		}
-		console.log("IS CALLED");
 		if (isExecuted) {
-			console.log("IS EXECUTED");
 
 			if (isIncrease && pendingIncreaseOrders[positionKey]) {
 				int deltaChange = increaseOrderDeltaChange[positionKey];
@@ -1011,7 +1005,6 @@ contract GmxHedgingReactorWithSwap is IHedgingReactor, AccessControl {
 		// send any collateral back to the liquidity pool
 		uint256 balance = ERC20(bridgedCollateralAsset).balanceOf(address(this));
 		if (balance > 0) {
-			console.log("call back transfer");
 			_transferOut(balance);
 		}
 	}
@@ -1030,7 +1023,6 @@ contract GmxHedgingReactorWithSwap is IHedgingReactor, AccessControl {
 	}
 
 	function _transferIn(uint256 _amount) internal {
-		console.log("in");
 		uint256 _amountInMaximum = (_amount * 10050) / 10000;
 		if (ILiquidityPool(parentLiquidityPool).getBalance(collateralAsset) < _amountInMaximum) {
 			revert CustomErrors.WithdrawExceedsLiquidity();
@@ -1064,7 +1056,6 @@ contract GmxHedgingReactorWithSwap is IHedgingReactor, AccessControl {
 	}
 
 	function _transferOut(uint256 _amount) internal {
-		console.log("out");
 		uint256 _amountOutMinimum = (_amount * 9950) / 10000;
 		ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
 			tokenIn: bridgedCollateralAsset,

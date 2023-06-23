@@ -164,7 +164,6 @@ contract PerpHedgingReactorWithSwap is IHedgingReactor, AccessControl {
 		// record the delta change internally
 		internalDelta += deltaChange;
 	}
-	// TODO: transferOut function
 	/// @inheritdoc IHedgingReactor
 	function withdraw(uint256 _amount) external returns (uint256) {
 		require(msg.sender == parentLiquidityPool, "!vault");
