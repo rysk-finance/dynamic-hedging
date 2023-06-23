@@ -343,7 +343,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		// deploy an oToken contract address
 		// assumes strike is passed in e18, converts to e8
 		uint128 formattedStrike = uint128(
-			OptionsCompute.formatStrikePrice(optionSeries.strike, optionSeries.collateral)
+			OptionsCompute.formatStrikePrice(optionSeries.strike, collateralAsset)
 		);
 		// check for an opyn oToken if it doesn't exist deploy it
 		series = OpynInteractions.getOrDeployOtoken(
