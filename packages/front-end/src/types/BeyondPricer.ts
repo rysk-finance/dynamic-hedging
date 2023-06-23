@@ -23,31 +23,6 @@ import type {
 } from "./common";
 
 export declare namespace BeyondPricer {
-  export type DeltaBandMultipliersStruct = {
-    callSlippageGradientMultipliers: BigNumberish[];
-    putSlippageGradientMultipliers: BigNumberish[];
-    callSpreadCollateralMultipliers: BigNumberish[];
-    putSpreadCollateralMultipliers: BigNumberish[];
-    callSpreadDeltaMultipliers: BigNumberish[];
-    putSpreadDeltaMultipliers: BigNumberish[];
-  };
-
-  export type DeltaBandMultipliersStructOutput = [
-    BigNumber[],
-    BigNumber[],
-    BigNumber[],
-    BigNumber[],
-    BigNumber[],
-    BigNumber[]
-  ] & {
-    callSlippageGradientMultipliers: BigNumber[];
-    putSlippageGradientMultipliers: BigNumber[];
-    callSpreadCollateralMultipliers: BigNumber[];
-    putSpreadCollateralMultipliers: BigNumber[];
-    callSpreadDeltaMultipliers: BigNumber[];
-    putSpreadDeltaMultipliers: BigNumber[];
-  };
-
   export type DeltaBorrowRatesStruct = {
     sellLong: BigNumberish;
     sellShort: BigNumberish;
@@ -205,14 +180,6 @@ export interface BeyondPricerInterface extends utils.Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "getCallSpreadCollateralMultipliers",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getCallSpreadDeltaMultipliers",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
     functionFragment: "getPutSlippageGradientMultipliers",
     values: [BigNumberish]
   ): string;
@@ -232,14 +199,6 @@ export interface BeyondPricerInterface extends utils.Interface {
       BigNumberish,
       BeyondPricer.DeltaBandMultipliersStruct[]
     ]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getPutSpreadCollateralMultipliers",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getPutSpreadDeltaMultipliers",
-    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "liquidityPool",
@@ -317,14 +276,6 @@ export interface BeyondPricerInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "setSpreadDeltaMultipliers",
     values: [BigNumberish, BigNumberish[], BigNumberish[]]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "setSpreadCollateralMultipliers",
-    values: [BigNumberish[], BigNumberish[]]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "setSpreadDeltaMultipliers",
-    values: [BigNumberish[], BigNumberish[]]
   ): string;
   encodeFunctionData(
     functionFragment: "slippageGradient",
@@ -443,14 +394,6 @@ export interface BeyondPricerInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "setFeePerContract",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "setLowDeltaSellOptionFlatIV",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "setLowDeltaThreshold",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -710,14 +653,6 @@ export interface BeyondPricer extends BaseContract {
       overrides?: CallOverrides
     ): Promise<[BigNumber[]]>;
 
-    getCallSpreadCollateralMultipliers(
-      overrides?: CallOverrides
-    ): Promise<[BigNumber[]]>;
-
-    getCallSpreadDeltaMultipliers(
-      overrides?: CallOverrides
-    ): Promise<[BigNumber[]]>;
-
     getPutSlippageGradientMultipliers(
       _tenorIndex: BigNumberish,
       overrides?: CallOverrides
@@ -882,14 +817,6 @@ export interface BeyondPricer extends BaseContract {
     overrides?: CallOverrides
   ): Promise<BigNumber[]>;
 
-  getCallSpreadCollateralMultipliers(
-    overrides?: CallOverrides
-  ): Promise<BigNumber[]>;
-
-  getCallSpreadDeltaMultipliers(
-    overrides?: CallOverrides
-  ): Promise<BigNumber[]>;
-
   getPutSlippageGradientMultipliers(
     _tenorIndex: BigNumberish,
     overrides?: CallOverrides
@@ -1051,14 +978,6 @@ export interface BeyondPricer extends BaseContract {
 
     getCallSpreadDeltaMultipliers(
       _tenorIndex: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<BigNumber[]>;
-
-    getCallSpreadCollateralMultipliers(
-      overrides?: CallOverrides
-    ): Promise<BigNumber[]>;
-
-    getCallSpreadDeltaMultipliers(
       overrides?: CallOverrides
     ): Promise<BigNumber[]>;
 
@@ -1465,14 +1384,6 @@ export interface BeyondPricer extends BaseContract {
 
     getCallSpreadDeltaMultipliers(
       _tenorIndex: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    getCallSpreadCollateralMultipliers(
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    getCallSpreadDeltaMultipliers(
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 

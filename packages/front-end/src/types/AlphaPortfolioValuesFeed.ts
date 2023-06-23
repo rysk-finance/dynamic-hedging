@@ -295,7 +295,7 @@ export interface AlphaPortfolioValuesFeedInterface extends utils.Interface {
     "AuthorityUpdated(address)": EventFragment;
     "DataFullfilled(address,address,int256,int256,int256,int256,int256)": EventFragment;
     "MaxNetDhvExposureUpdated(uint256)": EventFragment;
-    "NetDhvExposureChanged(int256,int256)": EventFragment;
+    "NetDhvExposureChanged(bytes32,int256,int256)": EventFragment;
     "RequestedUpdate(address,address)": EventFragment;
     "StoresUpdated(address,int256,int256,tuple)": EventFragment;
   };
@@ -337,8 +337,12 @@ export type MaxNetDhvExposureUpdatedEventFilter =
   TypedEventFilter<MaxNetDhvExposureUpdatedEvent>;
 
 export type NetDhvExposureChangedEvent = TypedEvent<
-  [BigNumber, BigNumber],
-  { oldNetDhvExposure: BigNumber; newNetDhvExposure: BigNumber }
+  [string, BigNumber, BigNumber],
+  {
+    optionHash: string;
+    oldNetDhvExposure: BigNumber;
+    newNetDhvExposure: BigNumber;
+  }
 >;
 
 export type NetDhvExposureChangedEventFilter =
@@ -800,11 +804,13 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
       maxNetDhvExposure?: null
     ): MaxNetDhvExposureUpdatedEventFilter;
 
-    "NetDhvExposureChanged(int256,int256)"(
+    "NetDhvExposureChanged(bytes32,int256,int256)"(
+      optionHash?: BytesLike | null,
       oldNetDhvExposure?: null,
       newNetDhvExposure?: null
     ): NetDhvExposureChangedEventFilter;
     NetDhvExposureChanged(
+      optionHash?: BytesLike | null,
       oldNetDhvExposure?: null,
       newNetDhvExposure?: null
     ): NetDhvExposureChangedEventFilter;
