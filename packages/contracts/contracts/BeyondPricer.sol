@@ -677,10 +677,16 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	) internal view returns (uint80 slippageGradientMultiplier) {
 		if (_isPut) {
 			int80 y1 = tenorPricingParams[_tenor].putSlippageGradientMultipliers[_deltaBand];
+			if (_remainder == 0) {
+				return uint80(y1);
+			}
 			int80 y2 = tenorPricingParams[_tenor + 1].putSlippageGradientMultipliers[_deltaBand];
 			return uint80(int80(y1 + _remainder.mul(y2 - y1)));
 		} else {
 			int80 y1 = tenorPricingParams[_tenor].callSlippageGradientMultipliers[_deltaBand];
+			if (_remainder == 0) {
+				return uint80(y1);
+			}
 			int80 y2 = tenorPricingParams[_tenor + 1].callSlippageGradientMultipliers[_deltaBand];
 			return uint80(int80(y1 + _remainder.mul(y2 - y1)));
 		}
@@ -694,10 +700,16 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	) internal view returns (uint80 spreadCollateralMultiplier) {
 		if (_isPut) {
 			int80 y1 = tenorPricingParams[_tenor].putSpreadCollateralMultipliers[_deltaBand];
+			if (_remainder == 0) {
+				return uint80(y1);
+			}
 			int80 y2 = tenorPricingParams[_tenor + 1].putSpreadCollateralMultipliers[_deltaBand];
 			return uint80(int80(y1 + _remainder.mul(y2 - y1)));
 		} else {
 			int80 y1 = tenorPricingParams[_tenor].callSpreadCollateralMultipliers[_deltaBand];
+			if (_remainder == 0) {
+				return uint80(y1);
+			}
 			int80 y2 = tenorPricingParams[_tenor + 1].callSpreadCollateralMultipliers[_deltaBand];
 			return uint80(int80(y1 + _remainder.mul(y2 - y1)));
 		}
@@ -711,10 +723,16 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 	) internal view returns (int80 spreadDeltaMultiplier) {
 		if (_isPut) {
 			int80 y1 = tenorPricingParams[_tenor].putSpreadDeltaMultipliers[_deltaBand];
+			if (_remainder == 0) {
+				return y1;
+			}
 			int80 y2 = tenorPricingParams[_tenor + 1].putSpreadDeltaMultipliers[_deltaBand];
 			return int80(y1 + _remainder.mul(y2 - y1));
 		} else {
 			int80 y1 = tenorPricingParams[_tenor].callSpreadDeltaMultipliers[_deltaBand];
+			if (_remainder == 0) {
+				return y1;
+			}
 			int80 y2 = tenorPricingParams[_tenor + 1].callSpreadDeltaMultipliers[_deltaBand];
 			return int80(y1 + _remainder.mul(y2 - y1));
 		}
