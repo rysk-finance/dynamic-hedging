@@ -237,7 +237,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 			) {
 				revert InvalidMultipliersArrayLength();
 			}
-			for (uint256 j = 0; j < _tenorPricingParams[i].callSlippageGradientMultipliers.length; j++) {
+			uint256 len = _tenorPricingParams[i].callSlippageGradientMultipliers.length;
+			for (uint256 j = 0; j < len; j++) {
 				// arrays must be same length so can check all in same loop
 				// ensure no multiplier is less than 1 due to human error.
 				if (
@@ -274,7 +275,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		) {
 			revert InvalidMultipliersArrayLength();
 		}
-		for (uint256 i = 0; i < _callSlippageGradientMultipliers.length; i++) {
+		uint256 len = _callSlippageGradientMultipliers.length;
+		for (uint256 i = 0; i < len; i++) {
 			// arrays must be same length so can check both in same loop
 			// ensure no multiplier is less than 1 due to human error.
 			if (
@@ -302,7 +304,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		) {
 			revert InvalidMultipliersArrayLength();
 		}
-		for (uint256 i = 0; i < _callSpreadCollateralMultipliers.length; i++) {
+		uint256 len = _callSpreadCollateralMultipliers.length;
+		for (uint256 i = 0; i < len; i++) {
 			// arrays must be same length so can check both in same loop
 			// ensure no multiplier is less than 1 due to human error.
 			if (
@@ -330,7 +333,8 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		) {
 			revert InvalidMultipliersArrayLength();
 		}
-		for (uint256 i = 0; i < _callSpreadDeltaMultipliers.length; i++) {
+		uint256 len = _callSpreadDeltaMultipliers.length;
+		for (uint256 i = 0; i < len; i++) {
 			// arrays must be same length so can check both in same loop
 			// ensure no multiplier is less than 1 due to human error.
 			if (
