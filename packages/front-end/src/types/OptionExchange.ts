@@ -117,7 +117,6 @@ export interface OptionExchangeInterface extends utils.Interface {
     "heldTokens(address,address)": FunctionFragment;
     "liquidityPool()": FunctionFragment;
     "maxTradeSize()": FunctionFragment;
-    "migrateOtokens(address,address[])": FunctionFragment;
     "minTradeSize()": FunctionFragment;
     "operate((uint8,(uint256,address,address,address,uint256,uint256,(uint64,uint128,bool,address,address,address),uint256,bytes)[])[])": FunctionFragment;
     "pause()": FunctionFragment;
@@ -134,6 +133,7 @@ export interface OptionExchangeInterface extends utils.Interface {
     "setTradeSizeLimits(uint256,uint256)": FunctionFragment;
     "strikeAsset()": FunctionFragment;
     "swapRouter()": FunctionFragment;
+    "transferOtokens(address,address[])": FunctionFragment;
     "underlyingAsset()": FunctionFragment;
     "unpause()": FunctionFragment;
     "update()": FunctionFragment;
@@ -196,10 +196,6 @@ export interface OptionExchangeInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "migrateOtokens",
-    values: [string, string[]]
-  ): string;
-  encodeFunctionData(
     functionFragment: "minTradeSize",
     values?: undefined
   ): string;
@@ -244,6 +240,10 @@ export interface OptionExchangeInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "swapRouter",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "transferOtokens",
+    values: [string, string[]]
   ): string;
   encodeFunctionData(
     functionFragment: "underlyingAsset",
@@ -303,10 +303,6 @@ export interface OptionExchangeInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "migrateOtokens",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "minTradeSize",
     data: BytesLike
   ): Result;
@@ -340,6 +336,10 @@ export interface OptionExchangeInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "swapRouter", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "transferOtokens",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "underlyingAsset",
     data: BytesLike
@@ -530,12 +530,6 @@ export interface OptionExchange extends BaseContract {
 
     maxTradeSize(overrides?: CallOverrides): Promise<[BigNumber]>;
 
-    migrateOtokens(
-      newOptionExchange: string,
-      otokens: string[],
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
     minTradeSize(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     operate(
@@ -596,6 +590,12 @@ export interface OptionExchange extends BaseContract {
     strikeAsset(overrides?: CallOverrides): Promise<[string]>;
 
     swapRouter(overrides?: CallOverrides): Promise<[string]>;
+
+    transferOtokens(
+      newOptionExchange: string,
+      otokens: string[],
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
 
     underlyingAsset(overrides?: CallOverrides): Promise<[string]>;
 
@@ -671,12 +671,6 @@ export interface OptionExchange extends BaseContract {
 
   maxTradeSize(overrides?: CallOverrides): Promise<BigNumber>;
 
-  migrateOtokens(
-    newOptionExchange: string,
-    otokens: string[],
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
   minTradeSize(overrides?: CallOverrides): Promise<BigNumber>;
 
   operate(
@@ -737,6 +731,12 @@ export interface OptionExchange extends BaseContract {
   strikeAsset(overrides?: CallOverrides): Promise<string>;
 
   swapRouter(overrides?: CallOverrides): Promise<string>;
+
+  transferOtokens(
+    newOptionExchange: string,
+    otokens: string[],
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
 
   underlyingAsset(overrides?: CallOverrides): Promise<string>;
 
@@ -812,12 +812,6 @@ export interface OptionExchange extends BaseContract {
 
     maxTradeSize(overrides?: CallOverrides): Promise<BigNumber>;
 
-    migrateOtokens(
-      newOptionExchange: string,
-      otokens: string[],
-      overrides?: CallOverrides
-    ): Promise<void>;
-
     minTradeSize(overrides?: CallOverrides): Promise<BigNumber>;
 
     operate(
@@ -873,6 +867,12 @@ export interface OptionExchange extends BaseContract {
     strikeAsset(overrides?: CallOverrides): Promise<string>;
 
     swapRouter(overrides?: CallOverrides): Promise<string>;
+
+    transferOtokens(
+      newOptionExchange: string,
+      otokens: string[],
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     underlyingAsset(overrides?: CallOverrides): Promise<string>;
 
@@ -1026,12 +1026,6 @@ export interface OptionExchange extends BaseContract {
 
     maxTradeSize(overrides?: CallOverrides): Promise<BigNumber>;
 
-    migrateOtokens(
-      newOptionExchange: string,
-      otokens: string[],
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
     minTradeSize(overrides?: CallOverrides): Promise<BigNumber>;
 
     operate(
@@ -1092,6 +1086,12 @@ export interface OptionExchange extends BaseContract {
     strikeAsset(overrides?: CallOverrides): Promise<BigNumber>;
 
     swapRouter(overrides?: CallOverrides): Promise<BigNumber>;
+
+    transferOtokens(
+      newOptionExchange: string,
+      otokens: string[],
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
 
     underlyingAsset(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -1170,12 +1170,6 @@ export interface OptionExchange extends BaseContract {
 
     maxTradeSize(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    migrateOtokens(
-      newOptionExchange: string,
-      otokens: string[],
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
     minTradeSize(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     operate(
@@ -1239,6 +1233,12 @@ export interface OptionExchange extends BaseContract {
     strikeAsset(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     swapRouter(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    transferOtokens(
+      newOptionExchange: string,
+      otokens: string[],
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
 
     underlyingAsset(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 

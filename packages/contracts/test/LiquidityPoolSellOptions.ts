@@ -4637,7 +4637,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					otokenBalancesEx[i] = await otokens[i].balanceOf(exchange.address)
 					otokenBalancesMigEx[i] = await otokens[i].balanceOf(handler.address)
 				}
-				const tx = await exchange.migrateOtokens(handler.address, otokenArray)
+				const tx = await exchange.transferOtokens(handler.address, otokenArray)
 				for (let i = 0; i < otokenArray.length; i++) {
 					expect(otokenBalancesEx[i].sub(await otokens[i].balanceOf(handler.address))).to.equal(0)
 					expect(await otokens[i].balanceOf(exchange.address)).to.equal(0)
@@ -4861,7 +4861,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					otokenBalancesEx[i] = await otokens[i].balanceOf(handler.address)
 					otokenBalancesMigEx[i] = await otokens[i].balanceOf(exchange.address)
 				}
-				const tx = await handler.migrateOtokens(exchange.address, otokenArray)
+				const tx = await handler.transferOtokens(exchange.address, otokenArray)
 				for (let i = 0; i < otokenArray.length; i++) {
 					expect(otokenBalancesEx[i].sub(await otokens[i].balanceOf(exchange.address))).to.equal(0)
 					expect(await otokens[i].balanceOf(handler.address)).to.equal(0)
@@ -5052,7 +5052,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					otokenBalancesEx[i] = await otokens[i].balanceOf(exchange.address)
 					otokenBalancesMigEx[i] = await otokens[i].balanceOf(handler.address)
 				}
-				const tx = await exchange.migrateOtokens(handler.address, otokenArray)
+				const tx = await exchange.transferOtokens(handler.address, otokenArray)
 				for (let i = 0; i < otokenArray.length; i++) {
 					expect(otokenBalancesEx[i].sub(await otokens[i].balanceOf(handler.address))).to.equal(0)
 					expect(await otokens[i].balanceOf(exchange.address)).to.equal(0)
@@ -5417,7 +5417,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					otokenBalancesEx[i] = await otokens[i].balanceOf(exchange.address)
 					otokenBalancesMigEx[i] = await otokens[i].balanceOf(handler.address)
 				}
-				const tx = await exchange.migrateOtokens(handler.address, otokenArray)
+				const tx = await exchange.transferOtokens(handler.address, otokenArray)
 				for (let i = 0; i < otokenArray.length; i++) {
 					expect(otokenBalancesEx[i].sub(await otokens[i].balanceOf(handler.address))).to.equal(0)
 					expect(await otokens[i].balanceOf(exchange.address)).to.equal(0)
@@ -5499,7 +5499,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			it("SETUP: migrate option to exchange", async () => {
 				const otokens = [optionToken]
 				const otokenArray = [optionToken.address]
-				await handler.migrateOtokens(exchange.address, otokenArray)
+				await handler.transferOtokens(exchange.address, otokenArray)
 			})
 			it("REVERTS: Executes a buy order for weth collat token held by handler but there are no tokens left", async () => {
 				await usd.connect(signers[1]).approve(handler.address, 100000000000)
@@ -5681,7 +5681,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				await expect(
 					exchange
 						.connect(signers[1])
-						.migrateOtokens(migExchange.address, [
+						.transferOtokens(migExchange.address, [
 							oTokenUSDC1650NC.address,
 							oTokenETH1600C.address,
 							oTokenUSDCSXC.address
@@ -5698,7 +5698,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					otokenBalancesEx[i] = await otokens[i].balanceOf(exchange.address)
 					otokenBalancesMigEx[i] = await otokens[i].balanceOf(migExchange.address)
 				}
-				const tx = await exchange.migrateOtokens(migExchange.address, otokenArray)
+				const tx = await exchange.transferOtokens(migExchange.address, otokenArray)
 				for (let i = 0; i < otokenArray.length; i++) {
 					expect(otokenBalancesEx[i].sub(await otokens[i].balanceOf(migExchange.address))).to.equal(0)
 					expect(await otokens[i].balanceOf(exchange.address)).to.equal(0)

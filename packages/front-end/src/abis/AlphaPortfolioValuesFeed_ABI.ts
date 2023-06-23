@@ -177,6 +177,12 @@ export const AlphaPortfolioValuesFeedABI = [
 		"anonymous": false,
 		"inputs": [
 			{
+				"indexed": true,
+				"internalType": "bytes32",
+				"name": "optionHash",
+				"type": "bytes32"
+			},
+			{
 				"indexed": false,
 				"internalType": "int256",
 				"name": "oldNetDhvExposure",

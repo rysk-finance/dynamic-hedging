@@ -313,11 +313,11 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	}
 
 	/**
-	 * @notice migrate otokens held by this address to a new option exchange
-	 * @param newOptionExchange the option exchange to migrate to
+	 * @notice transfer otokens held by this address to a new option exchange or to the option handler
+	 * @param newOptionExchange the option exchange to migrate to or handler
 	 * @param otokens the otoken addresses to transfer
 	 */
-	function migrateOtokens(address newOptionExchange, address[] memory otokens) external {
+	function transferOtokens(address newOptionExchange, address[] memory otokens) external {
 		_onlyGovernor();
 		uint256 len = otokens.length;
 		for (uint256 i = 0; i < len; i++) {
