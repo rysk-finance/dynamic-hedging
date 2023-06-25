@@ -379,6 +379,7 @@ describe("Authority tests", async () => {
 			expect(await catalogue.isBuyable(oHash)).to.be.false
 		})
 		it("SUCCEEDS: sets lowDeltaSellOptionIV in beyond pricer", async () => {
+			await exchange.pause()
 			await managerContract.setLowDeltaSellOptionFlatIV(toWei("0.8"))
 			expect(await pricer.lowDeltaSellOptionFlatIV()).to.eq(toWei("0.8"))
 		})
@@ -538,6 +539,8 @@ describe("Authority tests", async () => {
 				],
 				[utils.parseEther("10"), utils.parseEther("20"), utils.parseEther("30"), utils.parseEther("40")]
 			)
+			await exchange.unpause()
+
 			expect((await pricer.getCallSpreadDeltaMultipliers(0))[3]).to.eq(utils.parseEther("40"))
 		})
 	})

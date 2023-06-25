@@ -491,7 +491,9 @@ describe("Slippage Pricer testing", async () => {
 	describe("Get quotes with no slippage if slippage gradient is zero", async () => {
 		let proposedSeries: any
 		it("SETUP: sets slippage to zero", async () => {
+			await exchange.pause()
 			await pricer.setSlippageGradient(0)
+			await exchange.unpause()
 			expect(await pricer.slippageGradient()).to.equal(0)
 		})
 		it("SUCCEEDS: get quote for 1 option when buying", async () => {
@@ -521,6 +523,51 @@ describe("Slippage Pricer testing", async () => {
 				pricer,
 				toWei("0")
 			)
+		})
+	})
+	describe("Sets slippage parameters when exchange is not paused", async () => {
+		it("REVERTS: sets slippage gradient", async () => {
+			await expect(pricer.setSlippageGradient(0)).to.be.revertedWithCustomError(
+				pricer,
+				"ExchangeNotPaused"
+			)
+		})
+		it("REVERTS: sets slippage gradient", async () => {
+			await expect(pricer.setSlippageGradient(0)).to.be.revertedWithCustomError(
+				pricer,
+				"ExchangeNotPaused"
+			)
+		})
+		it("REVERTS: set slippage multipliers", async () => {
+			await expect(
+				pricer.setSlippageGradientMultipliers(
+					4,
+					[
+						toWei("10"),
+						toWei("8"),
+						toWei("6"),
+						toWei("4"),
+						toWei("2"),
+						toWei("2"),
+						toWei("4"),
+						toWei("6"),
+						toWei("8"),
+						toWei("10")
+					],
+					[
+						toWei("10"),
+						toWei("8"),
+						toWei("6"),
+						toWei("4"),
+						toWei("0.2"),
+						toWei("2"),
+						toWei("4"),
+						toWei("6"),
+						toWei("8"),
+						toWei("10")
+					]
+				)
+			).to.be.revertedWithCustomError(pricer, "ExchangeNotPaused")
 		})
 	})
 })

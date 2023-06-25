@@ -27,6 +27,7 @@ interface CustomErrors {
 	error UnauthorizedExit();
 	error UnapprovedSeries();
 	error SeriesNotBuyable();
+	error ExchangeNotPaused();
 	error DeltaNotDecreased();
 	error NonExistentOtoken();
 	error SeriesNotSellable();
