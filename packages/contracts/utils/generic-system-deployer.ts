@@ -33,6 +33,7 @@ import {
 	VolatilityFeed,
 	WETH
 } from "../types"
+import { protocol } from "@ragetrade/sdk/dist/typechain/core/contracts"
 
 dayjs.extend(utc)
 
@@ -394,6 +395,40 @@ export async function deployLiquidityPool(
 		0,
 		{ sellLong: 15000, sellShort: 19500, buyLong: 15000, buyShort: 19500 }
 	)) as BeyondPricer
+
+	// deploy libraries
+	const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
+	const interactions = await interactionsFactory.deploy()
+	const computeFactory = await hre.ethers.getContractFactory("OptionsCompute")
+	const compute = await computeFactory.deploy()
+	const catalogueFactory = await ethers.getContractFactory("OptionCatalogue", {
+		libraries: {
+			OptionsCompute: compute.address
+		}
+	})
+	const catalogue = (await catalogueFactory.deploy(authority, usd.address)) as OptionCatalogue
+	const exchangeFactory = await ethers.getContractFactory("OptionExchange", {
+		libraries: {
+			OpynInteractions: interactions.address,
+			OptionsCompute: compute.address
+		}
+	})
+	const exchange = (await exchangeFactory.deploy(
+		authority,
+		optionProtocol.address,
+		liquidityPool.address,
+		pricer.address,
+		ADDRESS_BOOK[chainId],
+		UNISWAP_V3_SWAP_ROUTER[chainId],
+		liquidityPool.address,
+		catalogue.address
+	)) as OptionExchange
+	await exchange.changeApprovedCollateral(usd.address, true, true)
+	await exchange.changeApprovedCollateral(usd.address, false, true)
+	await exchange.changeApprovedCollateral(weth.address, true, true)
+	await exchange.changeApprovedCollateral(weth.address, false, true)
+	await optionProtocol.changeOptionExchange(exchange.address)
+	await exchange.pause()
 	await pricer.setSlippageGradient(toWei("0.0001"))
 	await pricer.setBidAskIVSpread(toWei("0.01"))
 	await pricer.initializeTenorParams(toWei("10"), 5, 2800, [
@@ -438,37 +473,7 @@ export async function deployLiquidityPool(
 			putSpreadDeltaMultipliers: putMultipliers5
 		}
 	])
-	// deploy libraries
-	const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
-	const interactions = await interactionsFactory.deploy()
-	const computeFactory = await hre.ethers.getContractFactory("OptionsCompute")
-	const compute = await computeFactory.deploy()
-	const catalogueFactory = await ethers.getContractFactory("OptionCatalogue", {
-		libraries: {
-			OptionsCompute: compute.address
-		}
-	})
-	const catalogue = (await catalogueFactory.deploy(authority, usd.address)) as OptionCatalogue
-	const exchangeFactory = await ethers.getContractFactory("OptionExchange", {
-		libraries: {
-			OpynInteractions: interactions.address,
-			OptionsCompute: compute.address
-		}
-	})
-	const exchange = (await exchangeFactory.deploy(
-		authority,
-		optionProtocol.address,
-		liquidityPool.address,
-		pricer.address,
-		ADDRESS_BOOK[chainId],
-		UNISWAP_V3_SWAP_ROUTER[chainId],
-		liquidityPool.address,
-		catalogue.address
-	)) as OptionExchange
-	await exchange.changeApprovedCollateral(usd.address, true, true)
-	await exchange.changeApprovedCollateral(usd.address, false, true)
-	await exchange.changeApprovedCollateral(weth.address, true, true)
-	await exchange.changeApprovedCollateral(weth.address, false, true)
+	await exchange.unpause()
 
 	await liquidityPool.changeHandler(exchange.address, true)
 	const handlerFactory = await ethers.getContractFactory("AlphaOptionHandler", {

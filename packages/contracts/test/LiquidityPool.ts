@@ -223,7 +223,9 @@ describe("Liquidity Pools", async () => {
 		expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
 	})
 	it("sets slippage gradient in pricer contract", async () => {
+		await exchange.pause()
 		await pricer.setSlippageGradient(slippageGradient)
+		await exchange.unpause()
 
 		expect(await pricer.slippageGradient()).to.eq(slippageGradient)
 	})
@@ -573,7 +575,20 @@ describe("Liquidity Pools", async () => {
 		}
 
 		let quoteResponse = await pricer.quoteOptionPrice(optionSeries, amount, true, 0)
-		compareQuotes(quoteResponse, liquidityPool, optionProtocol, volFeed, priceFeed, optionSeries, amount, true, exchange, optionRegistry, usd, pricer)
+		compareQuotes(
+			quoteResponse,
+			liquidityPool,
+			optionProtocol,
+			volFeed,
+			priceFeed,
+			optionSeries,
+			amount,
+			true,
+			exchange,
+			optionRegistry,
+			usd,
+			pricer
+		)
 	})
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -1193,7 +1208,20 @@ describe("Liquidity Pools", async () => {
 		}
 		let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
 		let quote = quoteResponse[0].add(quoteResponse[2])
-		compareQuotes(quoteResponse, liquidityPool, optionProtocol, volFeed, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer)
+		compareQuotes(
+			quoteResponse,
+			liquidityPool,
+			optionProtocol,
+			volFeed,
+			priceFeed,
+			proposedSeries,
+			amount,
+			false,
+			exchange,
+			optionRegistry,
+			usd,
+			pricer
+		)
 
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const senderUSDBalanceBefore = await usd.balanceOf(senderAddress)
@@ -1514,7 +1542,21 @@ describe("Liquidity Pools", async () => {
 		)
 		let quote = quoteResponse[0].add(quoteResponse[2])
 		const delta = quoteResponse[1]
-		compareQuotes(quoteResponse, liquidityPool, optionProtocol, volFeed, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer, netDhvExposure)
+		compareQuotes(
+			quoteResponse,
+			liquidityPool,
+			optionProtocol,
+			volFeed,
+			priceFeed,
+			proposedSeries,
+			amount,
+			false,
+			exchange,
+			optionRegistry,
+			usd,
+			pricer,
+			netDhvExposure
+		)
 		await usd.approve(exchange.address, quote)
 		await exchange.operate([
 			{
@@ -1713,7 +1755,20 @@ describe("Liquidity Pools", async () => {
 		const buyerUSDBalanceAfter = await usd.balanceOf(senderAddress)
 		const opynAmount = toOpyn(fromWei(amount))
 
-		compareQuotes(quoteResponse, liquidityPool, optionProtocol, volFeed, priceFeed, proposedSeries, amount, false, exchange, optionRegistry, usd, pricer)
+		compareQuotes(
+			quoteResponse,
+			liquidityPool,
+			optionProtocol,
+			volFeed,
+			priceFeed,
+			proposedSeries,
+			amount,
+			false,
+			exchange,
+			optionRegistry,
+			usd,
+			pricer
+		)
 		// ensure option buyer's OToken uyerUSDB is correct
 		expect(putBalance).to.eq(opynAmount)
 		// ensure correct amount of USD is taken from buyer's address

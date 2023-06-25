@@ -172,6 +172,7 @@ describe("Spread Pricer testing", async () => {
 			expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
 		})
 		it("sets spread values to non-zero", async () => {
+			await exchange.pause()
 			await pricer.setCollateralLendingRate(100000) // 10%
 			expect(await pricer.collateralLendingRate()).to.eq(100000)
 			await pricer.setDeltaBorrowRates({
@@ -181,13 +182,16 @@ describe("Spread Pricer testing", async () => {
 				buyShort: -100000
 			})
 			const newBorrowRates = await pricer.deltaBorrowRates()
+			await exchange.unpause()
 			expect(newBorrowRates.sellLong).to.eq(150000)
 			expect(newBorrowRates.sellShort).to.eq(-100000)
 			expect(newBorrowRates.buyLong).to.eq(150000)
 			expect(newBorrowRates.buyShort).to.eq(-100000)
 		})
 		it("sets slippage vars to zero", async () => {
+			await exchange.pause()
 			await pricer.setSlippageGradient(0)
+			await exchange.unpause()
 			expect(await pricer.slippageGradient()).to.eq(0)
 		})
 		it("Deposit to the liquidityPool", async () => {
@@ -377,6 +381,7 @@ describe("Spread Pricer testing", async () => {
 			expect((await pricer.getPutSpreadCollateralMultipliers(0))[7]).to.eq(toWei("3"))
 			expect((await pricer.getCallSpreadDeltaMultipliers(2))[0]).to.eq(toWei("1.4"))
 			expect((await pricer.getPutSpreadDeltaMultipliers(2))[9]).to.eq(toWei("1.4"))
+			await exchange.pause()
 			await pricer.setSpreadCollateralMultipliers(
 				0,
 				[
@@ -647,7 +652,7 @@ describe("Spread Pricer testing", async () => {
 					toWei("10")
 				]
 			)
-
+			await exchange.unpause()
 			expect((await pricer.getCallSpreadCollateralMultipliers(0))[0]).to.eq(toWei("10"))
 			expect((await pricer.getPutSpreadCollateralMultipliers(0))[7]).to.eq(toWei("6"))
 			expect((await pricer.getCallSpreadDeltaMultipliers(2))[0]).to.eq(toWei("2.8"))
@@ -808,6 +813,7 @@ describe("Spread Pricer testing", async () => {
 			expect((await pricer.getPutSpreadCollateralMultipliers(0))[7]).to.eq(toWei("6"))
 			expect((await pricer.getCallSpreadDeltaMultipliers(2))[0]).to.eq(toWei("2.8"))
 			expect((await pricer.getPutSpreadDeltaMultipliers(2))[9]).to.eq(toWei("2.8"))
+			await exchange.pause()
 			await pricer.setSpreadCollateralMultipliers(
 				0,
 				[
@@ -1078,7 +1084,7 @@ describe("Spread Pricer testing", async () => {
 					toWei("5")
 				]
 			)
-
+			await exchange.unpause()
 			expect((await pricer.getCallSpreadCollateralMultipliers(0))[0]).to.eq(toWei("5"))
 			expect((await pricer.getPutSpreadCollateralMultipliers(0))[7]).to.eq(toWei("3"))
 			expect((await pricer.getCallSpreadDeltaMultipliers(2))[0]).to.eq(toWei("1.4"))
@@ -1239,6 +1245,7 @@ describe("Spread Pricer testing", async () => {
 			expect((await pricer.getPutSpreadCollateralMultipliers(1))[7]).to.eq(toWei("2"))
 			expect((await pricer.getCallSpreadDeltaMultipliers(2))[4]).to.eq(toWei("1"))
 			expect((await pricer.getPutSpreadDeltaMultipliers(4))[0]).to.eq(toWei("5"))
+			await exchange.pause()
 			await pricer.setSpreadCollateralMultipliers(
 				0,
 				[
@@ -1509,7 +1516,7 @@ describe("Spread Pricer testing", async () => {
 					toWei("10")
 				]
 			)
-
+			await exchange.unpause()
 			expect((await pricer.getCallSpreadCollateralMultipliers(0))[3]).to.eq(toWei("4"))
 			expect((await pricer.getPutSpreadCollateralMultipliers(1))[7]).to.eq(toWei("4"))
 			expect((await pricer.getCallSpreadDeltaMultipliers(2))[4]).to.eq(toWei("2"))
@@ -2097,6 +2104,7 @@ describe("Spread Pricer testing", async () => {
 	})
 	describe("invalid spread params", async () => {
 		it("REVERTS: set collateral spread value below 1", async () => {
+			await exchange.pause()
 			await expect(
 				pricer.setSpreadCollateralMultipliers(
 					4,
@@ -2257,6 +2265,120 @@ describe("Spread Pricer testing", async () => {
 					]
 				)
 			).to.be.revertedWithCustomError(pricer, "InvalidMultipliersArrayLength")
+			await exchange.unpause()
+		})
+
+		it("REVERTS: set collateral spread when exchange not paused", async () => {
+			await expect(
+				pricer.setSpreadCollateralMultipliers(
+					4,
+					[
+						toWei("10"),
+						toWei("8"),
+						toWei("6"),
+						toWei("4"),
+						toWei("2"),
+						toWei("2"),
+						toWei("4"),
+						toWei("6"),
+						toWei("8"),
+						toWei("10")
+					],
+					[
+						toWei("10"),
+						toWei("8"),
+						toWei("6"),
+						toWei("4"),
+						toWei("0.2"),
+						toWei("2"),
+						toWei("4"),
+						toWei("6"),
+						toWei("8"),
+						toWei("10")
+					]
+				)
+			).to.be.revertedWithCustomError(pricer, "ExchangeNotPaused")
+		})
+		it("REVERTS: set delta spread value when exchange not paused", async () => {
+			await expect(
+				pricer.setSpreadDeltaMultipliers(
+					2,
+					[
+						toWei("10"),
+						toWei("8"),
+						toWei("6"),
+						toWei("4"),
+						toWei("2"),
+						toWei("2"),
+						toWei("4"),
+						toWei("6"),
+						toWei("8"),
+						toWei("10")
+					],
+					[
+						toWei("10"),
+						toWei("8"),
+						toWei("6"),
+						toWei("4"),
+						toWei("0.2"),
+						toWei("2"),
+						toWei("4"),
+						toWei("6"),
+						toWei("8"),
+						toWei("10")
+					]
+				)
+			).to.be.revertedWithCustomError(pricer, "ExchangeNotPaused")
+		})
+		it("REVERTS: set spread collateral when exchange not paused ", async () => {
+			await expect(
+				pricer.setSpreadCollateralMultipliers(
+					2,
+					[
+						toWei("3.8"),
+						toWei("3.6"),
+						toWei("3.4"),
+						toWei("3.2"),
+						toWei("3.0"),
+						toWei("2.8"),
+						toWei("2.6"),
+						toWei("2.4"),
+						toWei("2.2"),
+						toWei("2.0"),
+						toWei("2.0"),
+						toWei("2.2"),
+						toWei("2.4"),
+						toWei("2.6"),
+						toWei("2.8"),
+						toWei("3.0"),
+						toWei("3.2"),
+						toWei("3.4"),
+						toWei("3.6"),
+						toWei("3.8")
+					],
+					[
+						toWei("3.8"),
+						toWei("3.6"),
+						toWei("3.4"),
+						toWei("3.2"),
+						toWei("3.0"),
+						toWei("2.8"),
+						toWei("2.6"),
+						toWei("2.4"),
+						toWei("2.2"),
+						toWei("2.0"),
+						toWei("2.0"),
+						toWei("2.2"),
+						toWei("2.6"),
+						toWei("2.8"),
+						toWei("3.0"),
+						toWei("3.2"),
+						toWei("3.4"),
+						toWei("3.6"),
+						toWei("3.8")
+					]
+				)
+			).to.be.revertedWithCustomError(pricer, "ExchangeNotPaused")
 		})
 	})
 })

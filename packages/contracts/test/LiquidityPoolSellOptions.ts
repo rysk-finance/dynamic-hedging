@@ -2595,7 +2595,9 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			expect(after.netDhvExposure.add(amount)).to.equal(0)
 		})
 		it("SETUP: sets fee to 0", async () => {
+			await exchange.pause()
 			await pricer.setFeePerContract(0)
+			await exchange.unpause()
 			expect(await pricer.feePerContract()).to.equal(0)
 		})
 		it("LP writes another ETH/USD call that expires later with fee at 0", async () => {
@@ -2741,7 +2743,9 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			expect(before.netDhvExposure.sub(after.netDhvExposure)).to.equal(amount)
 		})
 		it("SETUP: sets fee back to 3e5", async () => {
+			await exchange.pause()
 			await pricer.setFeePerContract(toUSDC("0.3"))
+			await exchange.unpause()
 			expect(await pricer.feePerContract()).to.equal(toUSDC("0.3"))
 		})
 		it("SUCCEEDS: LP Sells a ETH/USD call with a mix of temp holdings and wallet holdings", async () => {
@@ -5748,6 +5752,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				expect(await exchange.minTradeSize()).to.equal(toWei("0.01"))
 			})
 			it("SUCCEEDS: init tenor values on pricer", async () => {
+				await exchange.pause()
 				await pricer.initializeTenorParams(toWei("20"), 2, 28800, [
 					{
 						callSlippageGradientMultipliers: [
@@ -5838,6 +5843,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 						]
 					}
 				])
+				await exchange.unpause()
 				expect(await pricer.deltaBandWidth()).to.equal(toWei("20"))
 			})
 			it("REVERTS: init tenor values on pricer when non governance calls", async () => {
@@ -5935,6 +5941,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				).to.be.revertedWithCustomError(pricer, "UNAUTHORIZED")
 			})
 			it("REVERTS: init tenor values with incorrect length slippage arrays", async () => {
+				await exchange.pause()
 				await expect(
 					pricer.initializeTenorParams(toWei("5"), 2, 28800, [
 						{
@@ -6421,6 +6428,8 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					expect(acSlippageGradientMultipliers[i]).to.equal(slippageGradientMultipliers[i])
 					expect(apSlippageGradientMultipliers[i]).to.equal(slippageGradientMultipliers[i])
 				}
+				await exchange.unpause()
+
 			})
 			it("REVERTS: set slippage gradients on pricer when non governance calls", async () => {
 				const tenorIndex = 2
@@ -6464,7 +6473,9 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				await expect(exchange.hedgeDelta(1)).to.be.reverted
 			})
 			it("SUCCEEDS: sets fee to 0", async () => {
+				await exchange.pause()
 				await handler.setFeePerContract(0)
+				await exchange.unpause()
 				expect(await handler.feePerContract()).to.equal(0)
 			})
 			it("REVERTS: sets fee to 0 but not governor", async () => {
@@ -6473,7 +6484,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					"UNAUTHORIZED"
 				)
 			})
-		})
+	})
 		describe("Unwinds a hedging reactor", async () => {
 			it("Succeed: Hedging reactor unwind", async () => {
 				await liquidityPool.removeHedgingReactorAddress(1, false)
