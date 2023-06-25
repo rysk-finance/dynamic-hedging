@@ -360,6 +360,7 @@ describe("Quote Option price", async () => {
 			expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
 		})
 		it("sets spread values to non-zero", async () => {
+			await exchange.pause()
 			await pricer.setCollateralLendingRate(100000) // 10%
 			expect(await pricer.collateralLendingRate()).to.eq(100000)
 			await pricer.setDeltaBorrowRates({
@@ -369,6 +370,7 @@ describe("Quote Option price", async () => {
 				buyShort: -100000
 			})
 			const newBorrowRates = await pricer.deltaBorrowRates()
+			await exchange.unpause()
 			expect(newBorrowRates.sellLong).to.eq(150000)
 			expect(newBorrowRates.sellShort).to.eq(-100000)
 			expect(newBorrowRates.buyLong).to.eq(150000)
@@ -414,7 +416,7 @@ describe("Quote Option price", async () => {
 				toWei("1.3"),
 				toWei("1.4")
 			]
-
+			await exchange.pause()
 			await pricer.setSpreadDeltaMultipliers(
 				3,
 				[
@@ -469,6 +471,7 @@ describe("Quote Option price", async () => {
 					toWei("1.4")
 				]
 			)
+			await exchange.unpause()
 		})
 	})
 	describe("Checks the bid on low delta options is set to flat IV set by pricer", async () => {
@@ -476,7 +479,9 @@ describe("Quote Option price", async () => {
 		let singleSellQuote: BigNumber
 		it("sets lowDeltaSellOptionFlatIV to 25%", async () => {
 			expect(await pricer.lowDeltaSellOptionFlatIV()).to.eq(utils.parseEther("0.35"))
+			await exchange.pause()
 			await pricer.setLowDeltaSellOptionFlatIV(utils.parseEther("0.25"))
+			await exchange.unpause()
 			expect(await pricer.lowDeltaSellOptionFlatIV()).to.eq(utils.parseEther("0.25"))
 		})
 		it("SUCCEEDS: get quote for 1 call when selling", async () => {
@@ -1838,12 +1843,16 @@ describe("Quote Option price", async () => {
 	describe("set flat IV params", async () => {
 		it("set low delta threshold to 0.1", async () => {
 			expect(await pricer.lowDeltaThreshold()).to.eq(toWei("0.05"))
+			await exchange.pause()
 			await pricer.setLowDeltaThreshold(toWei("0.1"))
+			await exchange.unpause()
 			expect(await pricer.lowDeltaThreshold()).to.eq(toWei("0.1"))
 		})
 		it("set risk free rate to 3%", async () => {
 			expect(await pricer.riskFreeRate()).to.eq(toWei("0"))
+			await exchange.pause()
 			await pricer.setRiskFreeRate(toWei("0.03"))
+			await exchange.unpause()
 			expect(await pricer.riskFreeRate()).to.eq(toWei("0.03"))
 		})
 	})

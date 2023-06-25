@@ -3,6 +3,7 @@ pragma solidity >=0.8.9;
 
 import "./Protocol.sol";
 import "./PriceFeed.sol";
+import "./OptionExchange.sol";
 import "./VolatilityFeed.sol";
 import "./tokens/ERC20.sol";
 import "./libraries/Types.sol";
@@ -165,48 +166,56 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 	function setLowDeltaSellOptionFlatIV(uint256 _lowDeltaSellOptionFlatIV) external {
 		_onlyManager();
+		_isExchangePaused();
 		emit LowDeltaSellOptionFlatIVChanged(_lowDeltaSellOptionFlatIV, lowDeltaSellOptionFlatIV);
 		lowDeltaSellOptionFlatIV = _lowDeltaSellOptionFlatIV;
 	}
 
 	function setLowDeltaThreshold(uint256 _lowDeltaThreshold) external {
 		_onlyManager();
+		_isExchangePaused();
 		emit LowDeltaThresholdChanged(_lowDeltaThreshold, lowDeltaThreshold);
 		lowDeltaThreshold = _lowDeltaThreshold;
 	}
 
 	function setRiskFreeRate(uint256 _riskFreeRate) external {
 		_onlyManager();
+		_isExchangePaused();
 		emit RiskFreeRateChanged(_riskFreeRate, riskFreeRate);
 		riskFreeRate = _riskFreeRate;
 	}
 
 	function setBidAskIVSpread(uint256 _bidAskIVSpread) external {
 		_onlyManager();
+		_isExchangePaused();
 		emit BidAskIVSpreadChanged(_bidAskIVSpread, bidAskIVSpread);
 		bidAskIVSpread = _bidAskIVSpread;
 	}
 
 	function setFeePerContract(uint256 _feePerContract) external {
 		_onlyGovernor();
+		_isExchangePaused();
 		emit FeePerContractChanged(_feePerContract, feePerContract);
 		feePerContract = _feePerContract;
 	}
 
 	function setSlippageGradient(uint256 _slippageGradient) external {
 		_onlyManager();
+		_isExchangePaused();
 		emit SlippageGradientChanged(_slippageGradient, slippageGradient);
 		slippageGradient = _slippageGradient;
 	}
 
 	function setCollateralLendingRate(uint256 _collateralLendingRate) external {
 		_onlyManager();
+		_isExchangePaused();
 		emit CollateralLendingRateChanged(_collateralLendingRate, collateralLendingRate);
 		collateralLendingRate = _collateralLendingRate;
 	}
 
 	function setDeltaBorrowRates(DeltaBorrowRates calldata _deltaBorrowRates) external {
 		_onlyManager();
+		_isExchangePaused();
 		emit DeltaBorrowRatesChanged(_deltaBorrowRates, deltaBorrowRates);
 		deltaBorrowRates = _deltaBorrowRates;
 	}
@@ -223,6 +232,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		DeltaBandMultipliers[] memory _tenorPricingParams
 	) external {
 		_onlyManager();
+		_isExchangePaused();
 		if (_tenorPricingParams.length != _numberOfTenors) {
 			revert InvalidTenorArrayLength();
 		}
@@ -269,6 +279,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		int80[] memory _putSlippageGradientMultipliers
 	) public {
 		_onlyManager();
+		_isExchangePaused();
 		if (
 			_callSlippageGradientMultipliers.length != ONE_DELTA / deltaBandWidth ||
 			_putSlippageGradientMultipliers.length != ONE_DELTA / deltaBandWidth
@@ -298,6 +309,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		int80[] memory _putSpreadCollateralMultipliers
 	) public {
 		_onlyManager();
+		_isExchangePaused();
 		if (
 			_callSpreadCollateralMultipliers.length != ONE_DELTA / deltaBandWidth ||
 			_putSpreadCollateralMultipliers.length != ONE_DELTA / deltaBandWidth
@@ -327,6 +339,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 		int80[] memory _putSpreadDeltaMultipliers
 	) public {
 		_onlyManager();
+		_isExchangePaused();
 		if (
 			_callSpreadDeltaMultipliers.length != ONE_DELTA / deltaBandWidth ||
 			_putSpreadDeltaMultipliers.length != ONE_DELTA / deltaBandWidth
@@ -762,5 +775,11 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 				18, // always have the value return in e18
 				_optionSeries.isPut
 			);
+	}
+
+	function _isExchangePaused() internal view {
+		if (!OptionExchange(protocol.optionExchange()).paused()) {
+			revert CustomErrors.ExchangeNotPaused();
+		}
 	}
 }
