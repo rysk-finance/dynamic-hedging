@@ -4,13 +4,35 @@ import utc from "dayjs/plugin/utc"
 import { BigNumber, Contract, Signer, utils } from "ethers"
 import { AbiCoder } from "ethers/lib/utils"
 import hre, { ethers, network } from "hardhat"
-import { AlphaOptionHandler, AlphaPortfolioValuesFeed, Authority, BeyondPricer, ClearingHouse, LiquidityPool, Manager, MintableERC20, MockChainlinkAggregator, NewController, OptionCatalogue, OptionExchange, OptionRegistry, Oracle, Otoken, PerpHedgingReactor, PriceFeed, Protocol, VolatilityFeed, WETH } from "../types"
+import {
+	AlphaOptionHandler,
+	AlphaPortfolioValuesFeed,
+	Authority,
+	BeyondPricer,
+	ClearingHouse,
+	LiquidityPool,
+	Manager,
+	MintableERC20,
+	MockChainlinkAggregator,
+	NewController,
+	OptionCatalogue,
+	OptionExchange,
+	OptionRegistry,
+	Oracle,
+	Otoken,
+	PerpHedgingReactor,
+	PriceFeed,
+	Protocol,
+	VolatilityFeed,
+	WETH
+} from "../types"
 
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
 import {
 	fromOpyn,
 	fromWei,
-	percentDiff, tFormatEth,
+	percentDiff,
+	tFormatEth,
 	tFormatUSDC,
 	toOpyn,
 	toUSDC,
@@ -28,7 +50,10 @@ import {
 	WETH_ADDRESS
 } from "./constants"
 import {
-	calculateOptionDeltaLocally, calculateOptionQuoteLocallyAlpha, increaseTo, setupTestOracle
+	calculateOptionDeltaLocally,
+	calculateOptionQuoteLocallyAlpha,
+	increaseTo,
+	setupTestOracle
 } from "./helpers"
 
 dayjs.extend(utc)
@@ -141,6 +166,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 			wethERC20,
 			optionRegistry,
 			portfolioValuesFeed,
+			volFeed,
 			authority.address
 		)
 		liquidityPool = lpParams.liquidityPool
@@ -281,15 +307,15 @@ describe("Liquidity Pool with alpha tests", async () => {
 			// check partitioned funds increased by pendingWithdrawals * price per share
 			expect(
 				parseFloat(fromWei(partitionedFundsDiffe18)) -
-				parseFloat(fromWei(pendingWithdrawBefore)) *
-				parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+					parseFloat(fromWei(pendingWithdrawBefore)) *
+						parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 			).to.be.within(-0.0001, 0.0001)
 			expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
 				totalSupplyBefore.eq(0)
 					? toWei("1")
 					: toWei("1")
-						.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
-						.div(totalSupplyBefore)
+							.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
+							.div(totalSupplyBefore)
 			)
 			expect(await liquidityPool.pendingDeposits()).to.equal(0)
 			expect(pendingDepositBefore).to.not.eq(0)
@@ -401,7 +427,9 @@ describe("Liquidity Pool with alpha tests", async () => {
 				putVolvol: 1_500000,
 				interestRate: utils.parseEther("-0.001")
 			}
+			await exchange.pause()
 			await volFeed.setSabrParameters(proposedSabrParams, expiration)
+			await exchange.unpause()
 			const volFeedSabrParams = await volFeed.sabrParams(expiration)
 			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -425,7 +453,9 @@ describe("Liquidity Pool with alpha tests", async () => {
 				putVolvol: 1_500000,
 				interestRate: utils.parseEther("-0.002")
 			}
+			await exchange.pause()
 			await volFeed.setSabrParameters(proposedSabrParams, expiration2)
+			await exchange.unpause()
 			const volFeedSabrParams = await volFeed.sabrParams(expiration2)
 			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -505,7 +535,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 			expect(order.optionSeries.isPut).to.eq(seriesInfo.isPut)
 			expect(order.optionSeries.strike).to.eq(seriesInfo.strike)
 			expect(await handler.orderIdCounter()).to.eq(1)
-			optionToken = await ethers.getContractAt("Otoken", order.seriesAddress) as Otoken
+			optionToken = (await ethers.getContractAt("Otoken", order.seriesAddress)) as Otoken
 			expect(collateralAllocatedBefore).to.eq(collateralAllocatedAfter)
 			expect(lpUSDBalanceBefore).to.eq(lpUSDBalanceAfter)
 		})
@@ -720,7 +750,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 			expect(lpOTokenBalAfter).to.eq(0)
 			expect(
 				tFormatUSDC(buyerUSDBalanceDiff) -
-				parseFloat(fromWei(orderDeets.amount)) * tFormatEth(orderDeets.price)
+					parseFloat(fromWei(orderDeets.amount)) * tFormatEth(orderDeets.price)
 			).to.be.within(-0.01, 0.01)
 			// check collateralAllocated is correct
 			expect(collateralAllocatedDiff).to.eq(tFormatUSDC(expectedCollateralAllocated))
@@ -733,8 +763,8 @@ describe("Liquidity Pool with alpha tests", async () => {
 			// check liquidity pool USD balance increases by agreed price minus collateral
 			expect(
 				tFormatUSDC(lpUSDBalanceDiff) -
-				(tFormatEth(orderDeets.amount) * tFormatEth(orderDeets.price) -
-					tFormatUSDC(expectedCollateralAllocated))
+					(tFormatEth(orderDeets.amount) * tFormatEth(orderDeets.price) -
+						tFormatUSDC(expectedCollateralAllocated))
 			).to.be.within(-0.015, 0.015)
 			// check delta changes by expected amount
 			expect(deltaAfter.toPrecision(3)).to.eq((deltaBefore + tFormatEth(localDelta)).toPrecision(3))
@@ -824,8 +854,8 @@ describe("Liquidity Pool with alpha tests", async () => {
 			stranglePutId = orderIds[0]
 			const callOrder = await handler.orderStores(strangleCallId)
 			const putOrder = await handler.orderStores(stranglePutId)
-			strangleCallToken = await ethers.getContractAt("Otoken", callOrder.seriesAddress) as Otoken
-			stranglePutToken = await ethers.getContractAt("Otoken", putOrder.seriesAddress) as Otoken
+			strangleCallToken = (await ethers.getContractAt("Otoken", callOrder.seriesAddress)) as Otoken
+			stranglePutToken = (await ethers.getContractAt("Otoken", putOrder.seriesAddress)) as Otoken
 			const orderIdAfter = await handler.orderIdCounter()
 			const lpUSDBalanceAfter = await usd.balanceOf(liquidityPool.address)
 
@@ -1022,17 +1052,17 @@ describe("Liquidity Pool with alpha tests", async () => {
 			).to.be.within(-1, 1)
 			expect(
 				tFormatUSDC(buyerUSDBalanceDiff) -
-				(parseFloat(fromWei(orderDeets1.amount)) * tFormatEth(orderDeets1.price) +
-					parseFloat(fromWei(orderDeets2.amount)) * tFormatEth(orderDeets2.price))
+					(parseFloat(fromWei(orderDeets1.amount)) * tFormatEth(orderDeets1.price) +
+						parseFloat(fromWei(orderDeets2.amount)) * tFormatEth(orderDeets2.price))
 			).to.be.within(-0.02, 0.02)
 			// check collateralAllocated is correct
 			expect(collateralAllocatedDiff).to.eq(tFormatUSDC(expectedCollateralAllocated))
 			// check liquidity pool USD balance increases by agreed price minus collateral
 			expect(
 				tFormatUSDC(lpUSDBalanceDiff) -
-				(tFormatEth(orderDeets1.amount) * tFormatEth(orderDeets1.price) +
-					tFormatEth(orderDeets2.amount) * tFormatEth(orderDeets2.price) -
-					tFormatUSDC(expectedCollateralAllocated))
+					(tFormatEth(orderDeets1.amount) * tFormatEth(orderDeets1.price) +
+						tFormatEth(orderDeets2.amount) * tFormatEth(orderDeets2.price) -
+						tFormatUSDC(expectedCollateralAllocated))
 			).to.be.within(-0.02, 0.02)
 			// check delta changes by expected amount
 			expect(deltaAfter.toPrecision(3)).to.eq((deltaBefore + tFormatEth(localDelta)).toPrecision(3))
@@ -1113,7 +1143,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 			expect(order.optionSeries.isPut).to.eq(seriesInfo.isPut)
 			expect(order.optionSeries.strike).to.eq(seriesInfo.strike)
 			expect(await handler.orderIdCounter()).to.eq(4)
-			optionToken = await ethers.getContractAt("Otoken", order.seriesAddress) as Otoken
+			optionToken = (await ethers.getContractAt("Otoken", order.seriesAddress)) as Otoken
 			expect(collateralAllocatedBefore).to.eq(collateralAllocatedAfter)
 			expect(lpUSDBalanceBefore).to.eq(lpUSDBalanceAfter)
 		})
@@ -1213,7 +1243,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 			expect(lpOTokenBalAfter).to.eq(0)
 			expect(
 				tFormatUSDC(buyerUSDBalanceDiff) -
-				parseFloat(fromWei(orderDeets.amount)) * tFormatEth(orderDeets.price)
+					parseFloat(fromWei(orderDeets.amount)) * tFormatEth(orderDeets.price)
 			).to.be.within(-0.01, 0.01)
 			// check collateralAllocated is correct
 			expect(collateralAllocatedDiff).to.eq(tFormatUSDC(expectedCollateralAllocated))
@@ -1226,8 +1256,8 @@ describe("Liquidity Pool with alpha tests", async () => {
 			// check liquidity pool USD balance increases by agreed price minus collateral
 			expect(
 				tFormatUSDC(lpUSDBalanceDiff) -
-				(tFormatEth(orderDeets.amount) * tFormatEth(orderDeets.price) -
-					tFormatUSDC(expectedCollateralAllocated))
+					(tFormatEth(orderDeets.amount) * tFormatEth(orderDeets.price) -
+						tFormatUSDC(expectedCollateralAllocated))
 			).to.be.within(-0.015, 0.015)
 			// check delta changes by expected amount
 			expect(deltaAfter.toPrecision(2)).to.eq((deltaBefore + tFormatEth(localDelta)).toPrecision(2))
@@ -1301,7 +1331,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 			expect(order.optionSeries.isPut).to.eq(seriesInfo.isPut)
 			expect(order.optionSeries.strike).to.eq(seriesInfo.strike)
 			expect(await handler.orderIdCounter()).to.eq(5)
-			optionToken = await ethers.getContractAt("Otoken", order.seriesAddress) as Otoken
+			optionToken = (await ethers.getContractAt("Otoken", order.seriesAddress)) as Otoken
 			expect(collateralAllocatedBefore).to.eq(collateralAllocatedAfter)
 			expect(lpUSDBalanceBefore).to.eq(lpUSDBalanceAfter)
 		})
@@ -1519,7 +1549,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 			expect(lpOTokenBalAfter).to.eq(0)
 			expect(
 				tFormatUSDC(buyerUSDBalanceDiff) -
-				parseFloat(fromWei(orderDeets.amount)) * tFormatEth(orderDeets.price)
+					parseFloat(fromWei(orderDeets.amount)) * tFormatEth(orderDeets.price)
 			).to.be.within(-0.01, 0.01)
 			// check collateralAllocated is correct
 			expect(collateralAllocatedDiff).to.eq(tFormatUSDC(expectedCollateralAllocated))
@@ -1532,8 +1562,8 @@ describe("Liquidity Pool with alpha tests", async () => {
 			// check liquidity pool USD balance decreases by agreed price plus collateral
 			expect(
 				tFormatUSDC(lpUSDBalanceDiff) -
-				(tFormatEth(orderDeets.amount) * tFormatEth(orderDeets.price) -
-					tFormatUSDC(expectedCollateralAllocated))
+					(tFormatEth(orderDeets.amount) * tFormatEth(orderDeets.price) -
+						tFormatUSDC(expectedCollateralAllocated))
 			).to.be.within(-0.015, 0.015)
 			// check delta changes by expected amount
 			expect((deltaAfter + tFormatEth(localDelta)).toPrecision(2)).to.eq(deltaBefore.toPrecision(2))
@@ -1607,7 +1637,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 			expect(order.optionSeries.isPut).to.eq(seriesInfo.isPut)
 			expect(order.optionSeries.strike).to.eq(seriesInfo.strike)
 			expect(await handler.orderIdCounter()).to.eq(6)
-			optionToken = await ethers.getContractAt("Otoken", order.seriesAddress) as Otoken
+			optionToken = (await ethers.getContractAt("Otoken", order.seriesAddress)) as Otoken
 			expect(collateralAllocatedBefore).to.eq(collateralAllocatedAfter)
 			expect(lpUSDBalanceBefore).to.eq(lpUSDBalanceAfter)
 		})
@@ -1725,7 +1755,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 			expect(order.lowerSpotMovementRange.add(toWei("1"))).to.equal(priceQuote)
 			expect(order.isBuyBack).to.be.false
 			expect(await handler.orderIdCounter()).to.eq(7)
-			optionToken = await ethers.getContractAt("Otoken", order.seriesAddress) as Otoken
+			optionToken = (await ethers.getContractAt("Otoken", order.seriesAddress)) as Otoken
 			expect(collateralAllocatedBefore).to.eq(collateralAllocatedAfter)
 			expect(lpUSDBalanceBefore).to.eq(lpUSDBalanceAfter)
 		})
@@ -1801,7 +1831,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 			expect(order.lowerSpotMovementRange.add(toWei("1"))).to.equal(priceQuote)
 			expect(order.isBuyBack).to.be.false
 			expect(await handler.orderIdCounter()).to.eq(8)
-			optionToken = await ethers.getContractAt("Otoken", order.seriesAddress) as Otoken
+			optionToken = (await ethers.getContractAt("Otoken", order.seriesAddress)) as Otoken
 			expect(collateralAllocatedBefore).to.eq(collateralAllocatedAfter)
 			expect(lpUSDBalanceBefore).to.eq(lpUSDBalanceAfter)
 		})
@@ -1836,7 +1866,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 			value = vaultDetails.shortAmounts[0].div(2)
 			const seriesAddy = await portfolioValuesFeed.addressAtIndexInSet(0)
 			const abiCode = new AbiCoder()
-			const optionToken = await ethers.getContractAt("Otoken", seriesAddy) as Otoken
+			const optionToken = (await ethers.getContractAt("Otoken", seriesAddy)) as Otoken
 			const liquidateArgs = [
 				{
 					actionType: 10,
@@ -1938,15 +1968,15 @@ describe("Liquidity Pool with alpha tests", async () => {
 			// check partitioned funds increased by pendingWithdrawals * price per share
 			expect(
 				parseFloat(fromWei(partitionedFundsDiffe18)) -
-				parseFloat(fromWei(pendingWithdrawBefore)) *
-				parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+					parseFloat(fromWei(pendingWithdrawBefore)) *
+						parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 			).to.be.within(-0.0001, 0.0001)
 			expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
 				totalSupplyBefore.eq(0)
 					? toWei("1")
 					: toWei("1")
-						.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
-						.div(totalSupplyBefore)
+							.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
+							.div(totalSupplyBefore)
 			)
 			expect(await liquidityPool.pendingDeposits()).to.equal(0)
 			expect(pendingDepositBefore).to.not.eq(0)

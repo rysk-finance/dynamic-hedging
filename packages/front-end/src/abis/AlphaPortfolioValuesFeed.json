@@ -10,10 +10,20 @@
 				"internalType": "uint256",
 				"name": "_maxNetDhvExposure",
 				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "_protocol",
+				"type": "address"
 			}
 		],
 		"stateMutability": "nonpayable",
 		"type": "constructor"
+	},
+	{
+		"inputs": [],
+		"name": "ExchangeNotPaused",
+		"type": "error"
 	},
 	{
 		"inputs": [],
@@ -171,6 +181,31 @@
 			}
 		],
 		"name": "MaxNetDhvExposureUpdated",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "bytes32",
+				"name": "optionHash",
+				"type": "bytes32"
+			},
+			{
+				"indexed": false,
+				"internalType": "int256",
+				"name": "oldNetDhvExposure",
+				"type": "int256"
+			},
+			{
+				"indexed": false,
+				"internalType": "int256",
+				"name": "newNetDhvExposure",
+				"type": "int256"
+			}
+		],
+		"name": "NetDhvExposureChanged",
 		"type": "event"
 	},
 	{
@@ -661,12 +696,17 @@
 	{
 		"inputs": [
 			{
-				"internalType": "address",
-				"name": "_protocol",
-				"type": "address"
+				"internalType": "bytes32[]",
+				"name": "_optionHashes",
+				"type": "bytes32[]"
+			},
+			{
+				"internalType": "int256[]",
+				"name": "_netDhvExposures",
+				"type": "int256[]"
 			}
 		],
-		"name": "setProtocol",
+		"name": "setNetDhvExposures",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"

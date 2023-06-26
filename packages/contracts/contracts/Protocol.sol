@@ -7,7 +7,6 @@ import "./libraries/AccessControl.sol";
  *  @title Contract used for storage of important contracts for the liquidity pool
  */
 contract Protocol is AccessControl {
-
 	/////////////////////////////////////
 	/// governance settable variables ///
 	/////////////////////////////////////
@@ -17,19 +16,9 @@ contract Protocol is AccessControl {
 	address public portfolioValuesFeed;
 	address public accounting;
 	address public priceFeed;
+	address public optionExchange;
 
-	constructor(
-		address _optionRegistry,
-		address _priceFeed,
-		address _volatilityFeed,
-		address _portfolioValuesFeed,
-		address _authority
-	) AccessControl(IAuthority(_authority)) {
-		optionRegistry = _optionRegistry;
-		priceFeed = _priceFeed;
-		volatilityFeed = _volatilityFeed;
-		portfolioValuesFeed = _portfolioValuesFeed;
-	}
+	constructor(address _authority) AccessControl(IAuthority(_authority)) {}
 
 	///////////////
 	/// setters ///
@@ -58,5 +47,10 @@ contract Protocol is AccessControl {
 	function changeOptionRegistry(address _optionRegistry) external {
 		_onlyGovernor();
 		optionRegistry = _optionRegistry;
+	}
+
+	function changeOptionExchange(address _optionExchange) external {
+		_onlyGovernor();
+		optionExchange = _optionExchange;
 	}
 }

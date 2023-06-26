@@ -2,7 +2,14 @@ import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
 import { BigNumber, Signer, utils } from "ethers"
 import hre, { ethers, network } from "hardhat"
-import { CALL_FLAVOR, fromUSDC, PUT_FLAVOR, toUSDC, toWei } from "../utils/conversion-helper"
+import {
+	CALL_FLAVOR,
+	fromUSDC,
+	fromWei,
+	PUT_FLAVOR,
+	toUSDC,
+	toWei
+} from "../utils/conversion-helper"
 //@ts-ignore
 import { expect } from "chai"
 import {
@@ -106,6 +113,7 @@ describe("Spread Pricer testing", async () => {
 			wethERC20,
 			optionRegistry,
 			portfolioValuesFeed,
+			volFeed,
 			authority
 		)
 		liquidityPool = lpParams.liquidityPool
@@ -128,6 +136,7 @@ describe("Spread Pricer testing", async () => {
 				putVolvol: 1_500000,
 				interestRate: utils.parseEther("-0.001")
 			}
+			await exchange.pause()
 			await volFeed.setSabrParameters(proposedSabrParams, expiration)
 			const volFeedSabrParams = await volFeed.sabrParams(expiration)
 			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
@@ -153,6 +162,7 @@ describe("Spread Pricer testing", async () => {
 				interestRate: utils.parseEther("-0.002")
 			}
 			await volFeed.setSabrParameters(proposedSabrParams, expiration2)
+			await exchange.unpause()
 			const volFeedSabrParams = await volFeed.sabrParams(expiration2)
 			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -165,6 +175,7 @@ describe("Spread Pricer testing", async () => {
 			expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
 		})
 		it("sets spread values to non-zero", async () => {
+			await exchange.pause()
 			await pricer.setCollateralLendingRate(100000) // 10%
 			expect(await pricer.collateralLendingRate()).to.eq(100000)
 			await pricer.setDeltaBorrowRates({
@@ -174,13 +185,16 @@ describe("Spread Pricer testing", async () => {
 				buyShort: -100000
 			})
 			const newBorrowRates = await pricer.deltaBorrowRates()
+			await exchange.unpause()
 			expect(newBorrowRates.sellLong).to.eq(150000)
 			expect(newBorrowRates.sellShort).to.eq(-100000)
 			expect(newBorrowRates.buyLong).to.eq(150000)
 			expect(newBorrowRates.buyShort).to.eq(-100000)
 		})
 		it("sets slippage vars to zero", async () => {
+			await exchange.pause()
 			await pricer.setSlippageGradient(0)
+			await exchange.unpause()
 			expect(await pricer.slippageGradient()).to.eq(0)
 		})
 		it("Deposit to the liquidityPool", async () => {
@@ -215,7 +229,12 @@ describe("Spread Pricer testing", async () => {
 		let proposedSeries: any
 		let singleBuyQuote: BigNumber
 		let singleSellQuote: BigNumber
+		let spreadQuote1: number
+		let spreadQuote2: number
+		let spreadQuote3: number
+		let spreadQuote4: number
 		it("SUCCEEDS: get quote for 1 option when buying", async () => {
+			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
 			proposedSeries = {
 				expiration: expiration,
 				strike: toWei("2500"),
@@ -253,6 +272,7 @@ describe("Spread Pricer testing", async () => {
 				pricer,
 				toWei("0")
 			)
+			spreadQuote1 = parseFloat(fromUSDC(quoteResponse[0])) - localQuoteNoSpread
 			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.gt(localQuoteNoSpread)
 		})
 		it("SUCCEEDS: get quote for 1 option when selling", async () => {
@@ -285,6 +305,9 @@ describe("Spread Pricer testing", async () => {
 				pricer,
 				toWei("0")
 			)
+			// selling calls has negative delta borrow rate on spread. spread should revert to zero
+			spreadQuote2 = parseFloat(fromUSDC(quoteResponse[0])) - localQuoteNoSpread
+			expect(spreadQuote2).to.be.within(-0.001, 0.001)
 			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.lt(localQuoteNoSpread)
 		})
 		it("SUCCEEDS: get quote for 1000 options when buying", async () => {
@@ -315,6 +338,440 @@ describe("Spread Pricer testing", async () => {
 				usd,
 				pricer,
 				toWei("0")
+			)
+			spreadQuote3 = parseFloat(fromUSDC(quoteResponse[0])) - localQuoteNoSpread
+			expect(singleBuyQuote.toNumber()).to.eq(quoteResponse[0].div(1000))
+			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.gt(localQuoteNoSpread)
+		})
+		it("SUCCEEDS: get quote for 1000 options when selling", async () => {
+			const amount = toWei("1000")
+			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				volFeed,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				amount,
+				pricer,
+				true
+			)
+			await compareQuotes(
+				quoteResponse,
+				liquidityPool,
+				optionProtocol,
+				volFeed,
+				priceFeed,
+				proposedSeries,
+				amount,
+				true,
+				exchange,
+				optionRegistry,
+				usd,
+				pricer,
+				toWei("0")
+			)
+			// selling calls has negative delta borrow rate on spread. spread should revert to zero
+			spreadQuote4 = parseFloat(fromUSDC(quoteResponse[0])) - localQuoteNoSpread
+			expect(spreadQuote4).to.be.within(-0.1, 0.1)
+			expect(singleSellQuote).to.eq(quoteResponse[0].div(1000))
+			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.lt(localQuoteNoSpread)
+		})
+
+		it("set spread multipliers to 2x their previous values", async () => {
+			expect((await pricer.getCallSpreadCollateralMultipliers(0))[0]).to.eq(toWei("5"))
+			expect((await pricer.getPutSpreadCollateralMultipliers(0))[7]).to.eq(toWei("3"))
+			expect((await pricer.getCallSpreadDeltaMultipliers(2))[0]).to.eq(toWei("1.4"))
+			expect((await pricer.getPutSpreadDeltaMultipliers(2))[9]).to.eq(toWei("1.4"))
+			await exchange.pause()
+			await pricer.setSpreadCollateralMultipliers(
+				0,
+				[
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
+				],
+				[
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
+				]
+			)
+			await pricer.setSpreadCollateralMultipliers(
+				1,
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				],
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				]
+			)
+			await pricer.setSpreadCollateralMultipliers(
+				2,
+				[
+					toWei("2.8"),
+					toWei("2.6"),
+					toWei("2.4"),
+					toWei("2.2"),
+					toWei("2"),
+					toWei("2"),
+					toWei("2.2"),
+					toWei("2.4"),
+					toWei("2.6"),
+					toWei("2.8")
+				],
+				[
+					toWei("2.8"),
+					toWei("2.6"),
+					toWei("2.4"),
+					toWei("2.2"),
+					toWei("2"),
+					toWei("2"),
+					toWei("2.2"),
+					toWei("2.4"),
+					toWei("2.6"),
+					toWei("2.8")
+				]
+			)
+			await pricer.setSpreadCollateralMultipliers(
+				3,
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				],
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				]
+			)
+			await pricer.setSpreadCollateralMultipliers(
+				4,
+				[
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
+				],
+				[
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				0,
+				[
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
+				],
+				[
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				1,
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				],
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				2,
+				[
+					toWei("2.8"),
+					toWei("2.6"),
+					toWei("2.4"),
+					toWei("2.2"),
+					toWei("2"),
+					toWei("2"),
+					toWei("2.2"),
+					toWei("2.4"),
+					toWei("2.6"),
+					toWei("2.8")
+				],
+				[
+					toWei("2.8"),
+					toWei("2.6"),
+					toWei("2.4"),
+					toWei("2.2"),
+					toWei("2"),
+					toWei("2"),
+					toWei("2.2"),
+					toWei("2.4"),
+					toWei("2.6"),
+					toWei("2.8")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				3,
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				],
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				4,
+				[
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
+				],
+				[
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
+				]
+			)
+			await exchange.unpause()
+			expect((await pricer.getCallSpreadCollateralMultipliers(0))[0]).to.eq(toWei("10"))
+			expect((await pricer.getPutSpreadCollateralMultipliers(0))[7]).to.eq(toWei("6"))
+			expect((await pricer.getCallSpreadDeltaMultipliers(2))[0]).to.eq(toWei("2.8"))
+			expect((await pricer.getPutSpreadDeltaMultipliers(2))[9]).to.eq(toWei("2.8"))
+		})
+		it("SUCCEEDS: get quote for 1 option when buying", async () => {
+			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+			proposedSeries = {
+				expiration: expiration,
+				strike: toWei("2500"),
+				isPut: CALL_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			const amount = toWei("1")
+			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				volFeed,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				amount,
+				pricer,
+				false
+			)
+			singleBuyQuote = quoteResponse[0]
+			await compareQuotes(
+				quoteResponse,
+				liquidityPool,
+				optionProtocol,
+				volFeed,
+				priceFeed,
+				proposedSeries,
+				amount,
+				false,
+				exchange,
+				optionRegistry,
+				usd,
+				pricer,
+				toWei("0")
+			)
+			expect(parseFloat(fromUSDC(quoteResponse[0])) - localQuoteNoSpread).to.be.within(
+				spreadQuote1 * 1.999,
+				spreadQuote1 * 2.001
+			)
+			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.gt(localQuoteNoSpread)
+		})
+		it("SUCCEEDS: get quote for 1 option when selling", async () => {
+			const amount = toWei("1")
+			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				volFeed,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				amount,
+				pricer,
+				true
+			)
+			singleSellQuote = quoteResponse[0]
+			await compareQuotes(
+				quoteResponse,
+				liquidityPool,
+				optionProtocol,
+				volFeed,
+				priceFeed,
+				proposedSeries,
+				amount,
+				true,
+				exchange,
+				optionRegistry,
+				usd,
+				pricer,
+				toWei("0")
+			)
+			// selling calls has negative delta borrow rate on spread. spread should revert to zero
+			expect(parseFloat(fromUSDC(quoteResponse[0])) - localQuoteNoSpread).to.be.within(-0.001, 0.001)
+			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.lt(localQuoteNoSpread)
+		})
+		it("SUCCEEDS: get quote for 1000 options when buying", async () => {
+			const amount = toWei("1000")
+			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				volFeed,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				amount,
+				pricer,
+				false
+			)
+			await compareQuotes(
+				quoteResponse,
+				liquidityPool,
+				optionProtocol,
+				volFeed,
+				priceFeed,
+				proposedSeries,
+				amount,
+				false,
+				exchange,
+				optionRegistry,
+				usd,
+				pricer,
+				toWei("0")
+			)
+			expect(parseFloat(fromUSDC(quoteResponse[0])) - localQuoteNoSpread).to.be.within(
+				spreadQuote3 * 1.999,
+				spreadQuote3 * 2.001
 			)
 			expect(singleBuyQuote.toNumber()).to.eq(quoteResponse[0].div(1000))
 			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.gt(localQuoteNoSpread)
@@ -348,6 +805,873 @@ describe("Spread Pricer testing", async () => {
 				pricer,
 				toWei("0")
 			)
+			expect(parseFloat(fromUSDC(quoteResponse[0])) - localQuoteNoSpread).to.be.within(-0.1, 0.1)
+			expect(singleSellQuote).to.eq(quoteResponse[0].div(1000))
+			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.lt(localQuoteNoSpread)
+		})
+	})
+	describe("Get quotes successfully for small and big puts", async () => {
+		it("set spread multipliers their original values", async () => {
+			expect((await pricer.getCallSpreadCollateralMultipliers(0))[0]).to.eq(toWei("10"))
+			expect((await pricer.getPutSpreadCollateralMultipliers(0))[7]).to.eq(toWei("6"))
+			expect((await pricer.getCallSpreadDeltaMultipliers(2))[0]).to.eq(toWei("2.8"))
+			expect((await pricer.getPutSpreadDeltaMultipliers(2))[9]).to.eq(toWei("2.8"))
+			await exchange.pause()
+			await pricer.setSpreadCollateralMultipliers(
+				0,
+				[
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("1"),
+					toWei("1"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5")
+				],
+				[
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("1"),
+					toWei("1"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5")
+				]
+			)
+			await pricer.setSpreadCollateralMultipliers(
+				1,
+				[
+					toWei("3"),
+					toWei("2.5"),
+					toWei("2"),
+					toWei("1.5"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.5"),
+					toWei("2"),
+					toWei("2.5"),
+					toWei("3")
+				],
+				[
+					toWei("3"),
+					toWei("2.5"),
+					toWei("2"),
+					toWei("1.5"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.5"),
+					toWei("2"),
+					toWei("2.5"),
+					toWei("3")
+				]
+			)
+			await pricer.setSpreadCollateralMultipliers(
+				2,
+				[
+					toWei("1.4"),
+					toWei("1.3"),
+					toWei("1.2"),
+					toWei("1.1"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.1"),
+					toWei("1.2"),
+					toWei("1.3"),
+					toWei("1.4")
+				],
+				[
+					toWei("1.4"),
+					toWei("1.3"),
+					toWei("1.2"),
+					toWei("1.1"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.1"),
+					toWei("1.2"),
+					toWei("1.3"),
+					toWei("1.4")
+				]
+			)
+			await pricer.setSpreadCollateralMultipliers(
+				3,
+				[
+					toWei("3"),
+					toWei("2.5"),
+					toWei("2"),
+					toWei("1.5"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.5"),
+					toWei("2"),
+					toWei("2.5"),
+					toWei("3")
+				],
+				[
+					toWei("3"),
+					toWei("2.5"),
+					toWei("2"),
+					toWei("1.5"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.5"),
+					toWei("2"),
+					toWei("2.5"),
+					toWei("3")
+				]
+			)
+			await pricer.setSpreadCollateralMultipliers(
+				4,
+				[
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("1"),
+					toWei("1"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5")
+				],
+				[
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("1"),
+					toWei("1"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				0,
+				[
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("1"),
+					toWei("1"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5")
+				],
+				[
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("1"),
+					toWei("1"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				1,
+				[
+					toWei("3"),
+					toWei("2.5"),
+					toWei("2"),
+					toWei("1.5"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.5"),
+					toWei("2"),
+					toWei("2.5"),
+					toWei("3")
+				],
+				[
+					toWei("3"),
+					toWei("2.5"),
+					toWei("2"),
+					toWei("1.5"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.5"),
+					toWei("2"),
+					toWei("2.5"),
+					toWei("3")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				2,
+				[
+					toWei("1.4"),
+					toWei("1.3"),
+					toWei("1.2"),
+					toWei("1.1"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.1"),
+					toWei("1.2"),
+					toWei("1.3"),
+					toWei("1.4")
+				],
+				[
+					toWei("1.4"),
+					toWei("1.3"),
+					toWei("1.2"),
+					toWei("1.1"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.1"),
+					toWei("1.2"),
+					toWei("1.3"),
+					toWei("1.4")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				3,
+				[
+					toWei("3"),
+					toWei("2.5"),
+					toWei("2"),
+					toWei("1.5"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.5"),
+					toWei("2"),
+					toWei("2.5"),
+					toWei("3")
+				],
+				[
+					toWei("3"),
+					toWei("2.5"),
+					toWei("2"),
+					toWei("1.5"),
+					toWei("1"),
+					toWei("1"),
+					toWei("1.5"),
+					toWei("2"),
+					toWei("2.5"),
+					toWei("3")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				4,
+				[
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("1"),
+					toWei("1"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5")
+				],
+				[
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("1"),
+					toWei("1"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5")
+				]
+			)
+			await exchange.unpause()
+			expect((await pricer.getCallSpreadCollateralMultipliers(0))[0]).to.eq(toWei("5"))
+			expect((await pricer.getPutSpreadCollateralMultipliers(0))[7]).to.eq(toWei("3"))
+			expect((await pricer.getCallSpreadDeltaMultipliers(2))[0]).to.eq(toWei("1.4"))
+			expect((await pricer.getPutSpreadDeltaMultipliers(2))[9]).to.eq(toWei("1.4"))
+		})
+		let proposedSeries: any
+		let singleBuyQuote: BigNumber
+		let singleSellQuote: BigNumber
+		let spreadQuote1: number
+		let spreadQuote2: number
+		let spreadQuote3: number
+		let spreadQuote4: number
+		it("SUCCEEDS: get quote for 1 option when buying", async () => {
+			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+			proposedSeries = {
+				expiration: expiration,
+				strike: toWei("2500"),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			const amount = toWei("1")
+			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				volFeed,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				amount,
+				pricer,
+				false
+			)
+			singleBuyQuote = quoteResponse[0]
+			await compareQuotes(
+				quoteResponse,
+				liquidityPool,
+				optionProtocol,
+				volFeed,
+				priceFeed,
+				proposedSeries,
+				amount,
+				false,
+				exchange,
+				optionRegistry,
+				usd,
+				pricer,
+				toWei("0")
+			)
+			// buying puts has negative delta borrow rate on spread but collateral lending is larger and positive
+			spreadQuote1 = parseFloat(fromUSDC(quoteResponse[0])) - localQuoteNoSpread
+			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.gt(localQuoteNoSpread)
+		})
+		it("SUCCEEDS: get quote for 1 option when selling", async () => {
+			const amount = toWei("1")
+			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				volFeed,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				amount,
+				pricer,
+				true
+			)
+			singleSellQuote = quoteResponse[0]
+			await compareQuotes(
+				quoteResponse,
+				liquidityPool,
+				optionProtocol,
+				volFeed,
+				priceFeed,
+				proposedSeries,
+				amount,
+				true,
+				exchange,
+				optionRegistry,
+				usd,
+				pricer,
+				toWei("0")
+			)
+			spreadQuote2 = parseFloat(fromUSDC(quoteResponse[0])) - localQuoteNoSpread
+			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.lt(localQuoteNoSpread)
+		})
+		it("SUCCEEDS: get quote for 1000 options when buying", async () => {
+			const amount = toWei("1000")
+			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				volFeed,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				amount,
+				pricer,
+				false
+			)
+			await compareQuotes(
+				quoteResponse,
+				liquidityPool,
+				optionProtocol,
+				volFeed,
+				priceFeed,
+				proposedSeries,
+				amount,
+				false,
+				exchange,
+				optionRegistry,
+				usd,
+				pricer,
+				toWei("0")
+			)
+			// buying puts has negative delta borrow rate on spread but collateral lending is larger and positive
+			spreadQuote3 = parseFloat(fromUSDC(quoteResponse[0])) - localQuoteNoSpread
+			expect(singleBuyQuote.toNumber()).to.eq(quoteResponse[0].div(1000))
+			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.gt(localQuoteNoSpread)
+		})
+		it("SUCCEEDS: get quote for 1000 options when selling", async () => {
+			const amount = toWei("1000")
+			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				volFeed,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				amount,
+				pricer,
+				true
+			)
+			await compareQuotes(
+				quoteResponse,
+				liquidityPool,
+				optionProtocol,
+				volFeed,
+				priceFeed,
+				proposedSeries,
+				amount,
+				true,
+				exchange,
+				optionRegistry,
+				usd,
+				pricer,
+				toWei("0")
+			)
+			spreadQuote4 = parseFloat(fromUSDC(quoteResponse[0])) - localQuoteNoSpread
+			expect(singleSellQuote).to.eq(quoteResponse[0].div(1000))
+			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.lt(localQuoteNoSpread)
+		})
+		it("set spread multipliers to 2x their previous values", async () => {
+			expect((await pricer.getCallSpreadCollateralMultipliers(0))[3]).to.eq(toWei("2"))
+			expect((await pricer.getPutSpreadCollateralMultipliers(1))[7]).to.eq(toWei("2"))
+			expect((await pricer.getCallSpreadDeltaMultipliers(2))[4]).to.eq(toWei("1"))
+			expect((await pricer.getPutSpreadDeltaMultipliers(4))[0]).to.eq(toWei("5"))
+			await exchange.pause()
+			await pricer.setSpreadCollateralMultipliers(
+				0,
+				[
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
+				],
+				[
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
+				]
+			)
+			await pricer.setSpreadCollateralMultipliers(
+				1,
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				],
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				]
+			)
+			await pricer.setSpreadCollateralMultipliers(
+				2,
+				[
+					toWei("2.8"),
+					toWei("2.6"),
+					toWei("2.4"),
+					toWei("2.2"),
+					toWei("2"),
+					toWei("2"),
+					toWei("2.2"),
+					toWei("2.4"),
+					toWei("2.6"),
+					toWei("2.8")
+				],
+				[
+					toWei("2.8"),
+					toWei("2.6"),
+					toWei("2.4"),
+					toWei("2.2"),
+					toWei("2"),
+					toWei("2"),
+					toWei("2.2"),
+					toWei("2.4"),
+					toWei("2.6"),
+					toWei("2.8")
+				]
+			)
+			await pricer.setSpreadCollateralMultipliers(
+				3,
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				],
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				]
+			)
+			await pricer.setSpreadCollateralMultipliers(
+				4,
+				[
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
+				],
+				[
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				0,
+				[
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
+				],
+				[
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				1,
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				],
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				2,
+				[
+					toWei("2.8"),
+					toWei("2.6"),
+					toWei("2.4"),
+					toWei("2.2"),
+					toWei("2"),
+					toWei("2"),
+					toWei("2.2"),
+					toWei("2.4"),
+					toWei("2.6"),
+					toWei("2.8")
+				],
+				[
+					toWei("2.8"),
+					toWei("2.6"),
+					toWei("2.4"),
+					toWei("2.2"),
+					toWei("2"),
+					toWei("2"),
+					toWei("2.2"),
+					toWei("2.4"),
+					toWei("2.6"),
+					toWei("2.8")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				3,
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				],
+				[
+					toWei("6"),
+					toWei("5"),
+					toWei("4"),
+					toWei("3"),
+					toWei("2"),
+					toWei("2"),
+					toWei("3"),
+					toWei("4"),
+					toWei("5"),
+					toWei("6")
+				]
+			)
+			await pricer.setSpreadDeltaMultipliers(
+				4,
+				[
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
+				],
+				[
+					toWei("10"),
+					toWei("8"),
+					toWei("6"),
+					toWei("4"),
+					toWei("2"),
+					toWei("2"),
+					toWei("4"),
+					toWei("6"),
+					toWei("8"),
+					toWei("10")
+				]
+			)
+			await exchange.unpause()
+			expect((await pricer.getCallSpreadCollateralMultipliers(0))[3]).to.eq(toWei("4"))
+			expect((await pricer.getPutSpreadCollateralMultipliers(1))[7]).to.eq(toWei("4"))
+			expect((await pricer.getCallSpreadDeltaMultipliers(2))[4]).to.eq(toWei("2"))
+			expect((await pricer.getPutSpreadDeltaMultipliers(4))[0]).to.eq(toWei("10"))
+		})
+		it("SUCCEEDS: get quote for 1 option when buying", async () => {
+			const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
+			proposedSeries = {
+				expiration: expiration,
+				strike: toWei("2500"),
+				isPut: PUT_FLAVOR,
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			}
+			const amount = toWei("1")
+			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				volFeed,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				amount,
+				pricer,
+				false
+			)
+			singleBuyQuote = quoteResponse[0]
+			await compareQuotes(
+				quoteResponse,
+				liquidityPool,
+				optionProtocol,
+				volFeed,
+				priceFeed,
+				proposedSeries,
+				amount,
+				false,
+				exchange,
+				optionRegistry,
+				usd,
+				pricer,
+				toWei("0")
+			)
+			expect(parseFloat(fromUSDC(quoteResponse[0])) - localQuoteNoSpread).to.be.within(
+				spreadQuote1 * 1.999,
+				spreadQuote1 * 2.001
+			)
+			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.gt(localQuoteNoSpread)
+		})
+		it("SUCCEEDS: get quote for 1 option when selling", async () => {
+			const amount = toWei("1")
+			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				volFeed,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				amount,
+				pricer,
+				true
+			)
+			singleSellQuote = quoteResponse[0]
+			await compareQuotes(
+				quoteResponse,
+				liquidityPool,
+				optionProtocol,
+				volFeed,
+				priceFeed,
+				proposedSeries,
+				amount,
+				true,
+				exchange,
+				optionRegistry,
+				usd,
+				pricer,
+				toWei("0")
+			)
+			// spread is larger than premium w/ slippage so quote should be zero
+			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.eq(0)
+			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.lt(localQuoteNoSpread)
+		})
+		it("SUCCEEDS: get quote for 1000 options when buying", async () => {
+			const amount = toWei("1000")
+			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				volFeed,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				amount,
+				pricer,
+				false
+			)
+			await compareQuotes(
+				quoteResponse,
+				liquidityPool,
+				optionProtocol,
+				volFeed,
+				priceFeed,
+				proposedSeries,
+				amount,
+				false,
+				exchange,
+				optionRegistry,
+				usd,
+				pricer,
+				toWei("0")
+			)
+			expect(parseFloat(fromUSDC(quoteResponse[0])) - localQuoteNoSpread).to.be.within(
+				spreadQuote3 * 1.999,
+				spreadQuote3 * 2.001
+			)
+			expect(singleBuyQuote.toNumber()).to.eq(quoteResponse[0].div(1000))
+			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.gt(localQuoteNoSpread)
+		})
+		it("SUCCEEDS: get quote for 1000 options when selling", async () => {
+			const amount = toWei("1000")
+			let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, true, 0)
+
+			const localQuoteNoSpread = await calculateOptionQuoteLocally(
+				liquidityPool,
+				volFeed,
+				optionRegistry,
+				usd,
+				priceFeed,
+				proposedSeries,
+				amount,
+				pricer,
+				true
+			)
+			await compareQuotes(
+				quoteResponse,
+				liquidityPool,
+				optionProtocol,
+				volFeed,
+				priceFeed,
+				proposedSeries,
+				amount,
+				true,
+				exchange,
+				optionRegistry,
+				usd,
+				pricer,
+				toWei("0")
+			)
+			// spread is larger than premium w/ slippage so quote should be zero
+			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.eq(0)
 			expect(singleSellQuote).to.eq(quoteResponse[0].div(1000))
 			expect(parseFloat(fromUSDC(quoteResponse[0]))).to.be.lt(localQuoteNoSpread)
 		})
@@ -779,6 +2103,285 @@ describe("Spread Pricer testing", async () => {
 			expect(buyQuoteLots).to.be.gt(allAtOnceQuoteHalfLongExposure)
 			expect(allAtOnceQuoteFullLongExposure).to.be.lt(allAtOnceQuoteHalfLongExposure)
 			expect(allAtOnceQuoteHalfLongExposure).to.be.lt(allAtOnceQuoteNoLongExposure)
+		})
+	})
+	describe("invalid spread params", async () => {
+		it("REVERTS: set collateral spread value below 1", async () => {
+			await exchange.pause()
+			await expect(
+				pricer.setSpreadCollateralMultipliers(
+					4,
+					[
+						toWei("10"),
+						toWei("8"),
+						toWei("6"),
+						toWei("4"),
+						toWei("2"),
+						toWei("2"),
+						toWei("4"),
+						toWei("6"),
+						toWei("8"),
+						toWei("10")
+					],
+					[
+						toWei("10"),
+						toWei("8"),
+						toWei("6"),
+						toWei("4"),
+						toWei("0.2"),
+						toWei("2"),
+						toWei("4"),
+						toWei("6"),
+						toWei("8"),
+						toWei("10")
+					]
+				)
+			).to.be.revertedWithCustomError(pricer, "InvalidMultiplierValue")
+		})
+		it("REVERTS: set delta spread value below 1", async () => {
+			await expect(
+				pricer.setSpreadDeltaMultipliers(
+					2,
+					[
+						toWei("10"),
+						toWei("8"),
+						toWei("6"),
+						toWei("4"),
+						toWei("2"),
+						toWei("2"),
+						toWei("4"),
+						toWei("6"),
+						toWei("8"),
+						toWei("10")
+					],
+					[
+						toWei("10"),
+						toWei("8"),
+						toWei("6"),
+						toWei("4"),
+						toWei("0.2"),
+						toWei("2"),
+						toWei("4"),
+						toWei("6"),
+						toWei("8"),
+						toWei("10")
+					]
+				)
+			).to.be.revertedWithCustomError(pricer, "InvalidMultiplierValue")
+		})
+		it("REVERTS: set spread collateral array length of 19 ", async () => {
+			await expect(
+				pricer.setSpreadCollateralMultipliers(
+					2,
+					[
+						toWei("3.8"),
+						toWei("3.6"),
+						toWei("3.4"),
+						toWei("3.2"),
+						toWei("3.0"),
+						toWei("2.8"),
+						toWei("2.6"),
+						toWei("2.4"),
+						toWei("2.2"),
+						toWei("2.0"),
+						toWei("2.0"),
+						toWei("2.2"),
+						toWei("2.4"),
+						toWei("2.6"),
+						toWei("2.8"),
+						toWei("3.0"),
+						toWei("3.2"),
+						toWei("3.4"),
+						toWei("3.6"),
+						toWei("3.8")
+					],
+					[
+						toWei("3.8"),
+						toWei("3.6"),
+						toWei("3.4"),
+						toWei("3.2"),
+						toWei("3.0"),
+						toWei("2.8"),
+						toWei("2.6"),
+						toWei("2.4"),
+						toWei("2.2"),
+						toWei("2.0"),
+						toWei("2.0"),
+						toWei("2.2"),
+						toWei("2.6"),
+						toWei("2.8"),
+						toWei("3.0"),
+						toWei("3.2"),
+						toWei("3.4"),
+						toWei("3.6"),
+						toWei("3.8")
+					]
+				)
+			).to.be.revertedWithCustomError(pricer, "InvalidMultipliersArrayLength")
+		})
+		it("REVERTS: set spread delta array length of 19 ", async () => {
+			await expect(
+				pricer.setSpreadDeltaMultipliers(
+					2,
+					[
+						toWei("3.8"),
+						toWei("3.6"),
+						toWei("3.4"),
+						toWei("3.2"),
+						toWei("3.0"),
+						toWei("2.8"),
+						toWei("2.6"),
+						toWei("2.4"),
+						toWei("2.2"),
+						toWei("2.0"),
+						toWei("2.0"),
+						toWei("2.2"),
+						toWei("2.4"),
+						toWei("2.6"),
+						toWei("2.8"),
+						toWei("3.0"),
+						toWei("3.2"),
+						toWei("3.4"),
+						toWei("3.6"),
+						toWei("3.8")
+					],
+					[
+						toWei("3.8"),
+						toWei("3.6"),
+						toWei("3.4"),
+						toWei("3.2"),
+						toWei("3.0"),
+						toWei("2.8"),
+						toWei("2.6"),
+						toWei("2.4"),
+						toWei("2.2"),
+						toWei("2.0"),
+						toWei("2.0"),
+						toWei("2.2"),
+						toWei("2.6"),
+						toWei("2.8"),
+						toWei("3.0"),
+						toWei("3.2"),
+						toWei("3.4"),
+						toWei("3.6"),
+						toWei("3.8")
+					]
+				)
+			).to.be.revertedWithCustomError(pricer, "InvalidMultipliersArrayLength")
+			await exchange.unpause()
+		})
+
+		it("REVERTS: set collateral spread when exchange not paused", async () => {
+			await expect(
+				pricer.setSpreadCollateralMultipliers(
+					4,
+					[
+						toWei("10"),
+						toWei("8"),
+						toWei("6"),
+						toWei("4"),
+						toWei("2"),
+						toWei("2"),
+						toWei("4"),
+						toWei("6"),
+						toWei("8"),
+						toWei("10")
+					],
+					[
+						toWei("10"),
+						toWei("8"),
+						toWei("6"),
+						toWei("4"),
+						toWei("0.2"),
+						toWei("2"),
+						toWei("4"),
+						toWei("6"),
+						toWei("8"),
+						toWei("10")
+					]
+				)
+			).to.be.revertedWithCustomError(pricer, "ExchangeNotPaused")
+		})
+		it("REVERTS: set delta spread value when exchange not paused", async () => {
+			await expect(
+				pricer.setSpreadDeltaMultipliers(
+					2,
+					[
+						toWei("10"),
+						toWei("8"),
+						toWei("6"),
+						toWei("4"),
+						toWei("2"),
+						toWei("2"),
+						toWei("4"),
+						toWei("6"),
+						toWei("8"),
+						toWei("10")
+					],
+					[
+						toWei("10"),
+						toWei("8"),
+						toWei("6"),
+						toWei("4"),
+						toWei("0.2"),
+						toWei("2"),
+						toWei("4"),
+						toWei("6"),
+						toWei("8"),
+						toWei("10")
+					]
+				)
+			).to.be.revertedWithCustomError(pricer, "ExchangeNotPaused")
+		})
+		it("REVERTS: set spread collateral when exchange not paused ", async () => {
+			await expect(
+				pricer.setSpreadCollateralMultipliers(
+					2,
+					[
+						toWei("3.8"),
+						toWei("3.6"),
+						toWei("3.4"),
+						toWei("3.2"),
+						toWei("3.0"),
+						toWei("2.8"),
+						toWei("2.6"),
+						toWei("2.4"),
+						toWei("2.2"),
+						toWei("2.0"),
+						toWei("2.0"),
+						toWei("2.2"),
+						toWei("2.4"),
+						toWei("2.6"),
+						toWei("2.8"),
+						toWei("3.0"),
+						toWei("3.2"),
+						toWei("3.4"),
+						toWei("3.6"),
+						toWei("3.8")
+					],
+					[
+						toWei("3.8"),
+						toWei("3.6"),
+						toWei("3.4"),
+						toWei("3.2"),
+						toWei("3.0"),
+						toWei("2.8"),
+						toWei("2.6"),
+						toWei("2.4"),
+						toWei("2.2"),
+						toWei("2.0"),
+						toWei("2.0"),
+						toWei("2.2"),
+						toWei("2.6"),
+						toWei("2.8"),
+						toWei("3.0"),
+						toWei("3.2"),
+						toWei("3.4"),
+						toWei("3.6"),
+						toWei("3.8")
+					]
+				)
+			).to.be.revertedWithCustomError(pricer, "ExchangeNotPaused")
 		})
 	})
 })

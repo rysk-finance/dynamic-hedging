@@ -179,6 +179,7 @@ describe("Liquidity Pools", async () => {
 			wethERC20,
 			optionRegistry,
 			portfolioValuesFeed,
+			volFeed,
 			authority
 		)
 		liquidityPool = lpParams.liquidityPool
@@ -195,8 +196,8 @@ describe("Liquidity Pools", async () => {
 		})
 		const usdcWhale = await ethers.getSigner(USDC_WHALE)
 		const usdWhaleConnect = await usd.connect(usdcWhale)
-		await usdWhaleConnect.transfer(senderAddress, toUSDC("1000000"))
-		await usdWhaleConnect.transfer(receiverAddress, toUSDC("1000000"))
+		await usdWhaleConnect.transfer(senderAddress, toUSDC("10000000"))
+		await usdWhaleConnect.transfer(receiverAddress, toUSDC("10000000"))
 	})
 	it("SETUP: set sabrParams", async () => {
 		const proposedSabrParams = {
@@ -210,7 +211,9 @@ describe("Liquidity Pools", async () => {
 			putVolvol: 1_500000,
 			interestRate: utils.parseEther("-0.001")
 		}
+		await exchange.pause()
 		await volFeed.setSabrParameters(proposedSabrParams, expiration)
+		await exchange.unpause()
 		const volFeedSabrParams = await volFeed.sabrParams(expiration)
 		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -223,7 +226,9 @@ describe("Liquidity Pools", async () => {
 		expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
 	})
 	it("sets slippage gradient in pricer contract", async () => {
+		await exchange.pause()
 		await pricer.setSlippageGradient(slippageGradient)
+		await exchange.unpause()
 
 		expect(await pricer.slippageGradient()).to.eq(slippageGradient)
 	})
@@ -572,41 +577,21 @@ describe("Liquidity Pools", async () => {
 			collateral: usd.address
 		}
 
-		const localQuote = await calculateOptionQuoteLocally(
+		let quoteResponse = await pricer.quoteOptionPrice(optionSeries, amount, true, 0)
+		compareQuotes(
+			quoteResponse,
 			liquidityPool,
+			optionProtocol,
 			volFeed,
+			priceFeed,
+			optionSeries,
+			amount,
+			true,
+			exchange,
 			optionRegistry,
 			usd,
-			priceFeed,
-			optionSeries,
-			amount,
-			pricer,
-			true
+			pricer
 		)
-		const localDelta = await calculateOptionDeltaLocally(
-			liquidityPool,
-			priceFeed,
-			optionSeries,
-			amount,
-			true
-		)
-		const slippageFactor = await applySlippageLocally(
-			pricer,
-			catalogue,
-			portfolioValuesFeed,
-			optionSeries,
-			amount,
-			localDelta.div(parseFloat(fromWei(amount))),
-			true
-		)
-		let quoteResponse = await pricer.quoteOptionPrice(optionSeries, amount, true, 0)
-		let localQuoteWithSlippage = localQuote * slippageFactor
-		expect(localQuoteWithSlippage).to.be.lt(localQuote)
-		let buyQuote = quoteResponse[0].add(quoteResponse[2])
-		const truncQuote = truncate(localQuoteWithSlippage)
-		const chainQuote = tFormatUSDC(buyQuote.toString())
-		const diff = percentDiff(truncQuote, chainQuote)
-		expect(diff).to.be.within(0, 0.1)
 	})
 	it("SETUP: approve series", async () => {
 		const priceQuote = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -634,6 +619,7 @@ describe("Liquidity Pools", async () => {
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
 		const senderUSDBalanceBefore = await usd.balanceOf(senderAddress)
+		await exchange.pause()
 		await volFeed.setSabrParameters(
 			{
 				callAlpha: 250000,
@@ -648,6 +634,7 @@ describe("Liquidity Pools", async () => {
 			},
 			invalidExpirationLong
 		)
+		await exchange.unpause()
 		await portfolioValuesFeed.fulfill(weth.address, usd.address)
 		// series with expiry too long
 		const proposedSeries1 = {
@@ -691,6 +678,7 @@ describe("Liquidity Pools", async () => {
 				}
 			])
 		).to.be.revertedWithCustomError(exchange, "OptionExpiryInvalid")
+		await exchange.pause()
 		await volFeed.setSabrParameters(
 			{
 				callAlpha: 250000,
@@ -705,6 +693,7 @@ describe("Liquidity Pools", async () => {
 			},
 			invalidExpirationShort
 		)
+		await exchange.unpause()
 		// series with expiry too short
 		const proposedSeries2 = {
 			expiration: invalidExpirationShort,
@@ -893,6 +882,7 @@ describe("Liquidity Pools", async () => {
 		const strikePrice = priceQuote.add(toWei(strike))
 		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
 		const senderUSDBalanceBefore = await usd.balanceOf(senderAddress)
+		await exchange.pause()
 		await volFeed.setSabrParameters(
 			{
 				callAlpha: 250000,
@@ -907,6 +897,7 @@ describe("Liquidity Pools", async () => {
 			},
 			invalidExpirationLong
 		)
+		await exchange.unpause()
 		// series with expiry too long
 		const proposedSeries1 = {
 			expiration: invalidExpirationLong,
@@ -948,6 +939,7 @@ describe("Liquidity Pools", async () => {
 				}
 			])
 		).to.be.revertedWithCustomError(exchange, "OptionExpiryInvalid")
+		await exchange.pause()
 		await volFeed.setSabrParameters(
 			{
 				callAlpha: 250000,
@@ -962,6 +954,7 @@ describe("Liquidity Pools", async () => {
 			},
 			invalidExpirationShort
 		)
+		await exchange.unpause()
 		// series with expiry too short
 		const proposedSeries2 = {
 			expiration: invalidExpirationShort,
@@ -1141,7 +1134,9 @@ describe("Liquidity Pools", async () => {
 			putVolvol: 1_500000,
 			interestRate: utils.parseEther("-0.001")
 		}
+		await exchange.pause()
 		await volFeed.setSabrParameters(proposedSabrParams, expiration)
+		await exchange.unpause()
 		const volFeedSabrParams = await volFeed.sabrParams(expiration)
 		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -1224,43 +1219,22 @@ describe("Liquidity Pools", async () => {
 			underlying: weth.address,
 			collateral: usd.address
 		}
-
-		const localQuote = await calculateOptionQuoteLocally(
+		let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+		let quote = quoteResponse[0].add(quoteResponse[2])
+		compareQuotes(
+			quoteResponse,
 			liquidityPool,
+			optionProtocol,
 			volFeed,
+			priceFeed,
+			proposedSeries,
+			amount,
+			false,
+			exchange,
 			optionRegistry,
 			usd,
-			priceFeed,
-			proposedSeries,
-			amount,
-			pricer,
-			false
+			pricer
 		)
-		const localDelta = await calculateOptionDeltaLocally(
-			liquidityPool,
-			priceFeed,
-			proposedSeries,
-			amount,
-			false
-		)
-		const slippageFactor = await applySlippageLocally(
-			pricer,
-			catalogue,
-			portfolioValuesFeed,
-			proposedSeries,
-			amount,
-			localDelta.div(parseFloat(fromWei(amount))),
-			false
-		)
-		let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
-		let localQuoteWithSlippage = localQuote * slippageFactor
-		expect(localQuoteWithSlippage).to.be.gt(localQuote)
-		let quote = quoteResponse[0].add(quoteResponse[2])
-		let delta = quoteResponse[1]
-		const truncQuote = truncate(localQuoteWithSlippage)
-		const chainQuote = tFormatUSDC(quote.toString())
-		const diff = percentDiff(truncQuote, chainQuote)
-		expect(diff).to.be.within(0, 0.1)
 
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const senderUSDBalanceBefore = await usd.balanceOf(senderAddress)
@@ -1331,7 +1305,7 @@ describe("Liquidity Pools", async () => {
 			tFormatUSDC(collateralAllocatedDiff) - tFormatUSDC(expectedCollateralAllocated)
 		).to.be.within(-0.001, 0.001)
 		// check ephemeral values update correctly
-		expect(tFormatEth(await liquidityPool.ephemeralDelta())).to.equal(-tFormatEth(delta))
+		expect(tFormatEth(await liquidityPool.ephemeralDelta())).to.equal(-tFormatEth(quoteResponse[1]))
 		expect(
 			tFormatEth(await liquidityPool.ephemeralLiabilities()) - tFormatUSDC(quote.sub(quoteResponse[2]))
 		).to.be.within(-0.01, 0.01)
@@ -1511,7 +1485,9 @@ describe("Liquidity Pools", async () => {
 			putVolvol: 1_500000,
 			interestRate: utils.parseEther("-0.001")
 		}
+		await exchange.pause()
 		await volFeed.setSabrParameters(proposedSabrParams, expiration)
+		await exchange.unpause()
 		const volFeedSabrParams = await volFeed.sabrParams(expiration)
 		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -1573,34 +1549,6 @@ describe("Liquidity Pools", async () => {
 			underlying: seriesInfo.underlying,
 			collateral: seriesInfo.collateral
 		}
-
-		const localQuote = await calculateOptionQuoteLocally(
-			liquidityPool,
-			volFeed,
-			optionRegistry,
-			usd,
-			priceFeed,
-			seriesInfoDecimalCorrected,
-			amount,
-			pricer,
-			false
-		)
-		const localDelta = await calculateOptionDeltaLocally(
-			liquidityPool,
-			priceFeed,
-			seriesInfoDecimalCorrected,
-			amount,
-			false
-		)
-		const slippageFactor = await applySlippageLocally(
-			pricer,
-			catalogue,
-			portfolioValuesFeed,
-			seriesInfoDecimalCorrected,
-			amount,
-			localDelta.div(parseFloat(fromWei(amount))),
-			false
-		)
 		let quoteResponse = await pricer.quoteOptionPrice(
 			seriesInfoDecimalCorrected,
 			amount,
@@ -1609,14 +1557,21 @@ describe("Liquidity Pools", async () => {
 		)
 		let quote = quoteResponse[0].add(quoteResponse[2])
 		const delta = quoteResponse[1]
-		let localQuoteWithSlippage = localQuote * slippageFactor
-		// slippage should make option more expensive as existing dhv exposure is short and this tx makes it more short
-		expect(localQuoteWithSlippage).to.be.gt(localQuote)
-
-		const truncQuote = truncate(localQuoteWithSlippage)
-		const chainQuote = tFormatUSDC(quote.toString())
-		const diff = percentDiff(truncQuote, chainQuote)
-		expect(diff).to.be.within(0, 0.1)
+		compareQuotes(
+			quoteResponse,
+			liquidityPool,
+			optionProtocol,
+			volFeed,
+			priceFeed,
+			proposedSeries,
+			amount,
+			false,
+			exchange,
+			optionRegistry,
+			usd,
+			pricer,
+			netDhvExposure
+		)
 		await usd.approve(exchange.address, quote)
 		await exchange.operate([
 			{
@@ -1707,7 +1662,9 @@ describe("Liquidity Pools", async () => {
 			putVolvol: 1_500000,
 			interestRate: utils.parseEther("-0.001")
 		}
+		await exchange.pause()
 		await volFeed.setSabrParameters(proposedSabrParams, expiration2)
+		await exchange.unpause()
 		const volFeedSabrParams = await volFeed.sabrParams(expiration2)
 		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -1770,38 +1727,9 @@ describe("Liquidity Pools", async () => {
 			},
 			amount
 		)
-		const localQuote = await calculateOptionQuoteLocally(
-			liquidityPool,
-			volFeed,
-			optionRegistry,
-			usd,
-			priceFeed,
-			proposedSeries,
-			amount,
-			pricer,
-			false
-		)
-		const localDelta = await calculateOptionDeltaLocally(
-			liquidityPool,
-			priceFeed,
-			proposedSeries,
-			amount,
-			false
-		)
-		const slippageFactor = await applySlippageLocally(
-			pricer,
-			catalogue,
-			portfolioValuesFeed,
-			proposedSeries,
-			amount,
-			localDelta.div(parseFloat(fromWei(amount))),
-			false
-		)
 		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
 		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
 		let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
-		let localQuoteWithSlippage = localQuote * slippageFactor
-		expect(localQuoteWithSlippage).to.be.gt(localQuote)
 		let quote = quoteResponse[0].add(quoteResponse[2])
 		let delta = quoteResponse[1]
 		await usd.approve(exchange.address, quote)
@@ -1844,12 +1772,20 @@ describe("Liquidity Pools", async () => {
 		const buyerUSDBalanceAfter = await usd.balanceOf(senderAddress)
 		const opynAmount = toOpyn(fromWei(amount))
 
-		// ensure quote is accurate
-		const truncQuote = truncate(localQuoteWithSlippage)
-		const chainQuote = tFormatUSDC(quote.toString())
-		const diff = percentDiff(truncQuote, chainQuote)
-		expect(diff).to.be.within(0, 0.1)
-
+		compareQuotes(
+			quoteResponse,
+			liquidityPool,
+			optionProtocol,
+			volFeed,
+			priceFeed,
+			proposedSeries,
+			amount,
+			false,
+			exchange,
+			optionRegistry,
+			usd,
+			pricer
+		)
 		// ensure option buyer's OToken uyerUSDB is correct
 		expect(putBalance).to.eq(opynAmount)
 		// ensure correct amount of USD is taken from buyer's address

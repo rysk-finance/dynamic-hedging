@@ -228,7 +228,7 @@ contract OptionRegistry is AccessControl {
 		}
 		// assumes strike is passed in e18, converts to e8
 		uint128 formattedStrike = uint128(
-			OptionsCompute.formatStrikePrice(optionSeries.strike, optionSeries.collateral)
+			OptionsCompute.formatStrikePrice(optionSeries.strike, collateralAsset)
 		);
 		// create option storage hash
 		bytes32 issuanceHash = getIssuanceHash(
@@ -249,6 +249,9 @@ contract OptionRegistry is AccessControl {
 			optionSeries.expiration,
 			optionSeries.isPut
 		);
+		if (seriesAddress[issuanceHash] != address(0)) {
+			return series;
+		}
 		// store the option data as a hash
 		seriesInfo[series] = Types.OptionSeries(
 			optionSeries.expiration,
@@ -609,7 +612,7 @@ contract OptionRegistry is AccessControl {
 			collateral,
 			underlying,
 			strikeAsset,
-			OptionsCompute.formatStrikePrice(strike, collateral),
+			OptionsCompute.formatStrikePrice(strike, collateralAsset),
 			expiration,
 			isPut
 		);

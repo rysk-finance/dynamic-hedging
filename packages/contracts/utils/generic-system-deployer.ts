@@ -50,6 +50,135 @@ const miniExpiry = 86400 * 7
 // 365 days in seconds
 const maxiExpiry = 86400 * 50
 
+let callMultipliers1 = [
+	toWei("5"),
+	toWei("4"),
+	toWei("3"),
+	toWei("2"),
+	toWei("1"),
+	toWei("1"),
+	toWei("2"),
+	toWei("3"),
+	toWei("4"),
+	toWei("5")
+]
+
+let putMultipliers1 = [
+	toWei("5"),
+	toWei("4"),
+	toWei("3"),
+	toWei("2"),
+	toWei("1"),
+	toWei("1"),
+	toWei("2"),
+	toWei("3"),
+	toWei("4"),
+	toWei("5")
+]
+let callMultipliers2 = [
+	toWei("3"),
+	toWei("2.5"),
+	toWei("2"),
+	toWei("1.5"),
+	toWei("1"),
+	toWei("1"),
+	toWei("1.5"),
+	toWei("2"),
+	toWei("2.5"),
+	toWei("3")
+]
+
+let putMultipliers2 = [
+	toWei("3"),
+	toWei("2.5"),
+	toWei("2"),
+	toWei("1.5"),
+	toWei("1"),
+	toWei("1"),
+	toWei("1.5"),
+	toWei("2"),
+	toWei("2.5"),
+	toWei("3")
+]
+
+let callMultipliers3 = [
+	toWei("1.4"),
+	toWei("1.3"),
+	toWei("1.2"),
+	toWei("1.1"),
+	toWei("1"),
+	toWei("1"),
+	toWei("1.1"),
+	toWei("1.2"),
+	toWei("1.3"),
+	toWei("1.4")
+]
+
+let putMultipliers3 = [
+	toWei("1.4"),
+	toWei("1.3"),
+	toWei("1.2"),
+	toWei("1.1"),
+	toWei("1"),
+	toWei("1"),
+	toWei("1.1"),
+	toWei("1.2"),
+	toWei("1.3"),
+	toWei("1.4")
+]
+
+let callMultipliers4 = [
+	toWei("3"),
+	toWei("2.5"),
+	toWei("2"),
+	toWei("1.5"),
+	toWei("1"),
+	toWei("1"),
+	toWei("1.5"),
+	toWei("2"),
+	toWei("2.5"),
+	toWei("3")
+]
+
+let putMultipliers4 = [
+	toWei("3"),
+	toWei("2.5"),
+	toWei("2"),
+	toWei("1.5"),
+	toWei("1"),
+	toWei("1"),
+	toWei("1.5"),
+	toWei("2"),
+	toWei("2.5"),
+	toWei("3")
+]
+
+let callMultipliers5 = [
+	toWei("5"),
+	toWei("4"),
+	toWei("3"),
+	toWei("2"),
+	toWei("1"),
+	toWei("1"),
+	toWei("2"),
+	toWei("3"),
+	toWei("4"),
+	toWei("5")
+]
+
+let putMultipliers5 = [
+	toWei("5"),
+	toWei("4"),
+	toWei("3"),
+	toWei("2"),
+	toWei("1"),
+	toWei("1"),
+	toWei("2"),
+	toWei("3"),
+	toWei("4"),
+	toWei("5")
+]
+
 export async function deploySystem(
 	signers: Signer[],
 	oracle: Oracle,
@@ -57,6 +186,7 @@ export async function deploySystem(
 ) {
 	const sender = signers[0]
 	const senderAddress = await sender.getAddress()
+
 	// deploy libraries
 	const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
 	const interactions = await interactionsFactory.deploy()
@@ -71,6 +201,9 @@ export async function deploySystem(
 	})
 	const authorityFactory = await hre.ethers.getContractFactory("Authority")
 	const authority = await authorityFactory.deploy(senderAddress, senderAddress, senderAddress)
+	const protocolFactory = await ethers.getContractFactory("contracts/Protocol.sol:Protocol")
+	const optionProtocol = (await protocolFactory.deploy(authority.address)) as Protocol
+
 	// get and transfer weth
 	const weth = (await ethers.getContractAt(
 		"contracts/interfaces/WETH.sol:WETH",
@@ -98,6 +231,7 @@ export async function deploySystem(
 		authority.address
 	)) as OptionRegistry
 	const optionRegistry = _optionRegistry
+	await optionProtocol.changeOptionRegistry(optionRegistry.address)
 
 	const sequencerUptimeFeedFactory = await ethers.getContractFactory("MockChainlinkSequencerFeed")
 	const sequencerUptimeFeed = await sequencerUptimeFeedFactory.deploy()
@@ -108,26 +242,18 @@ export async function deploySystem(
 	)) as PriceFeed
 	const priceFeed = _priceFeed
 	await priceFeed.addPriceFeed(weth.address, usd.address, opynAggregator.address)
+	await optionProtocol.changePriceFeed(priceFeed.address)
+
 	// oracle returns price denominated in 1e8
 	const oraclePrice = await oracle.getPrice(weth.address)
 	// pricefeed returns price denominated in 1e18
 	const priceFeedPrice = await priceFeed.getNormalizedRate(weth.address, usd.address)
 	const volFeedFactory = await ethers.getContractFactory("VolatilityFeed")
-	const volFeed = (await volFeedFactory.deploy(authority.address)) as VolatilityFeed
-	const expiryDate: string = "2022-04-05"
-	let expiration = dayjs.utc(expiryDate).add(30, "days").add(8, "hours").unix()
-	const proposedSabrParams = {
-		callAlpha: 250000,
-		callBeta: 1_000000,
-		callRho: -300000,
-		callVolvol: 1_500000,
-		putAlpha: 250000,
-		putBeta: 1_000000,
-		putRho: -300000,
-		putVolvol: 1_500000,
-		interestRate: utils.parseEther("-0.001")
-	}
-	await volFeed.setSabrParameters(proposedSabrParams, expiration)
+	const volFeed = (await volFeedFactory.deploy(
+		authority.address,
+		optionProtocol.address
+	)) as VolatilityFeed
+	await optionProtocol.changeVolatilityFeed(volFeed.address)
 	const normDistFactory = await ethers.getContractFactory(
 		"contracts/libraries/NormalDist.sol:NormalDist",
 		{
@@ -151,19 +277,12 @@ export async function deploySystem(
 	})
 	const portfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
 		authority.address,
-		toWei("50000")
+		toWei("50000"),
+		optionProtocol.address
 	)) as AlphaPortfolioValuesFeed
+	await optionProtocol.changePortfolioValuesFeed(portfolioValuesFeed.address)
 
-	const protocolFactory = await ethers.getContractFactory("contracts/Protocol.sol:Protocol")
-	const optionProtocol = (await protocolFactory.deploy(
-		optionRegistry.address,
-		priceFeed.address,
-		volFeed.address,
-		portfolioValuesFeed.address,
-		authority.address
-	)) as Protocol
 	expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
-
 	return {
 		weth: weth,
 		wethERC20: wethERC20,
@@ -184,6 +303,7 @@ export async function deployLiquidityPool(
 	weth: MintableERC20,
 	optionRegistry: OptionRegistry,
 	pvFeed: AlphaPortfolioValuesFeed,
+	volFeed: VolatilityFeed,
 	authority: string,
 	rfr: string = interestRate,
 	minCallStrikePrice: any = miniCallStrikePrice,
@@ -246,7 +366,6 @@ export async function deployLiquidityPool(
 	await liquidityPool.setMaxTimeDeviationThreshold(600)
 	await liquidityPool.setMaxPriceDeviationThreshold(toWei("0.03"))
 	await pvFeed.setLiquidityPool(liquidityPool.address)
-	await pvFeed.setProtocol(optionProtocol.address)
 	await pvFeed.fulfill(weth.address, usd.address)
 	const AccountingFactory = await ethers.getContractFactory("Accounting")
 	const Accounting = (await AccountingFactory.deploy(liquidityPool.address)) as Accounting
@@ -262,56 +381,10 @@ export async function deployLiquidityPool(
 		liquidityPool.address,
 		ADDRESS_BOOK[chainId],
 		0,
-		toWei("5"),
-		[
-			toWei("1"),
-			toWei("1.1"),
-			toWei("1.2"),
-			toWei("1.3"),
-			toWei("1.4"),
-			toWei("1.5"),
-			toWei("1.6"),
-			toWei("1.7"),
-			toWei("1.8"),
-			toWei("1.9"),
-			toWei("2"),
-			toWei("2.1"),
-			toWei("2.2"),
-			toWei("2.3"),
-			toWei("2.4"),
-			toWei("2.5"),
-			toWei("2.6"),
-			toWei("2.7"),
-			toWei("2.8"),
-			toWei("2.9")
-		],
-		[
-			toWei("1"),
-			toWei("1.1"),
-			toWei("1.2"),
-			toWei("1.3"),
-			toWei("1.4"),
-			toWei("1.5"),
-			toWei("1.6"),
-			toWei("1.7"),
-			toWei("1.8"),
-			toWei("1.9"),
-			toWei("2"),
-			toWei("2.1"),
-			toWei("2.2"),
-			toWei("2.3"),
-			toWei("2.4"),
-			toWei("2.5"),
-			toWei("2.6"),
-			toWei("2.7"),
-			toWei("2.8"),
-			toWei("2.9")
-		],
 		0,
-		{ sellLong: 0, sellShort: 0, buyLong: 0, buyShort: 0 }
+		{ sellLong: 15000, sellShort: 19500, buyLong: 15000, buyShort: 19500 }
 	)) as BeyondPricer
-	await pricer.setSlippageGradient(toWei("0.0001"))
-	await pricer.setBidAskIVSpread(toWei("0.01"))
+
 	// deploy libraries
 	const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
 	const interactions = await interactionsFactory.deploy()
@@ -343,9 +416,74 @@ export async function deployLiquidityPool(
 	await exchange.changeApprovedCollateral(usd.address, false, true)
 	await exchange.changeApprovedCollateral(weth.address, true, true)
 	await exchange.changeApprovedCollateral(weth.address, false, true)
+	await optionProtocol.changeOptionExchange(exchange.address)
+	const expiryDate: string = "2022-04-05"
+	let expiration = dayjs.utc(expiryDate).add(30, "days").add(8, "hours").unix()
+	const proposedSabrParams = {
+		callAlpha: 250000,
+		callBeta: 1_000000,
+		callRho: -300000,
+		callVolvol: 1_500000,
+		putAlpha: 250000,
+		putBeta: 1_000000,
+		putRho: -300000,
+		putVolvol: 1_500000,
+		interestRate: utils.parseEther("-0.001")
+	}
+	await exchange.pause()
+	await volFeed.setSabrParameters(proposedSabrParams, expiration)
+	await pricer.setSlippageGradient(toWei("0.0001"))
+	await pricer.setBidAskIVSpread(toWei("0.01"))
+	await pricer.initializeTenorParams(toWei("10"), 5, 2800, [
+		{
+			callSlippageGradientMultipliers: callMultipliers1,
+			putSlippageGradientMultipliers: putMultipliers1,
+			callSpreadCollateralMultipliers: callMultipliers1,
+			putSpreadCollateralMultipliers: putMultipliers1,
+			callSpreadDeltaMultipliers: callMultipliers1,
+			putSpreadDeltaMultipliers: putMultipliers1
+		},
+		{
+			callSlippageGradientMultipliers: callMultipliers2,
+			putSlippageGradientMultipliers: putMultipliers2,
+			callSpreadCollateralMultipliers: callMultipliers2,
+			putSpreadCollateralMultipliers: putMultipliers2,
+			callSpreadDeltaMultipliers: callMultipliers2,
+			putSpreadDeltaMultipliers: putMultipliers2
+		},
+		{
+			callSlippageGradientMultipliers: callMultipliers3,
+			putSlippageGradientMultipliers: putMultipliers3,
+			callSpreadCollateralMultipliers: callMultipliers3,
+			putSpreadCollateralMultipliers: putMultipliers3,
+			callSpreadDeltaMultipliers: callMultipliers3,
+			putSpreadDeltaMultipliers: putMultipliers3
+		},
+		{
+			callSlippageGradientMultipliers: callMultipliers4,
+			putSlippageGradientMultipliers: putMultipliers4,
+			callSpreadCollateralMultipliers: callMultipliers4,
+			putSpreadCollateralMultipliers: putMultipliers4,
+			callSpreadDeltaMultipliers: callMultipliers4,
+			putSpreadDeltaMultipliers: putMultipliers4
+		},
+		{
+			callSlippageGradientMultipliers: callMultipliers5,
+			putSlippageGradientMultipliers: putMultipliers5,
+			callSpreadCollateralMultipliers: callMultipliers5,
+			putSpreadCollateralMultipliers: putMultipliers5,
+			callSpreadDeltaMultipliers: callMultipliers5,
+			putSpreadDeltaMultipliers: putMultipliers5
+		}
+	])
+	await exchange.unpause()
 
 	await liquidityPool.changeHandler(exchange.address, true)
-	const handlerFactory = await ethers.getContractFactory("AlphaOptionHandler")
+	const handlerFactory = await ethers.getContractFactory("AlphaOptionHandler", {
+		libraries: {
+			OptionsCompute: compute.address
+		}
+	})
 	const handler = (await handlerFactory.deploy(
 		authority,
 		optionProtocol.address,

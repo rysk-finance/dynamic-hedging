@@ -313,11 +313,11 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	}
 
 	/**
-	 * @notice migrate otokens held by this address to a new option exchange
-	 * @param newOptionExchange the option exchange to migrate to
+	 * @notice transfer otokens held by this address to a new option exchange or to the option handler
+	 * @param newOptionExchange the option exchange to migrate to or handler
 	 * @param otokens the otoken addresses to transfer
 	 */
-	function migrateOtokens(address newOptionExchange, address[] memory otokens) external {
+	function transferOtokens(address newOptionExchange, address[] memory otokens) external {
 		_onlyGovernor();
 		uint256 len = otokens.length;
 		for (uint256 i = 0; i < len; i++) {
@@ -343,7 +343,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		// deploy an oToken contract address
 		// assumes strike is passed in e18, converts to e8
 		uint128 formattedStrike = uint128(
-			OptionsCompute.formatStrikePrice(optionSeries.strike, optionSeries.collateral)
+			OptionsCompute.formatStrikePrice(optionSeries.strike, collateralAsset)
 		);
 		// check for an opyn oToken if it doesn't exist deploy it
 		series = OpynInteractions.getOrDeployOtoken(
@@ -680,13 +680,10 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 		}
 		// this accounts for premium sent from buyback as well as any rounding errors from the dhv buyback
 		if (sellParams.premium > sellParams.premiumSent) {
-			// we need to make sure we arent eating into the withdraw partition with this trade
-			if (
-				ILiquidityPool(liquidityPool).getBalance(collateralAsset) <
-				(sellParams.premium - sellParams.premiumSent)
-			) {
-				revert CustomErrors.WithdrawExceedsLiquidity();
-			}
+			// we need to make sure we arent eating into the withdraw partition or the liquidity buffer with this trade
+			if (ILiquidityPool(liquidityPool).checkBuffer() < int256((sellParams.premium - sellParams.premiumSent))) {
+				revert CustomErrors.MaxLiquidityBufferReached();
+		}
 			// take the funds from the liquidity pool and pay them here
 			SafeTransferLib.safeTransferFrom(
 				collateralAsset,

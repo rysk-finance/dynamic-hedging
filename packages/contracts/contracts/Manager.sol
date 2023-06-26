@@ -262,6 +262,26 @@ contract Manager is AccessControl {
 	/// Beyond Pricer ///
 	/////////////////////
 
+	function setLowDeltaSellOptionFlatIV(uint256 _lowDeltaSellOptionFlatIV) external {
+		_isProxyManager();
+		beyondPricer.setLowDeltaSellOptionFlatIV(_lowDeltaSellOptionFlatIV);
+	}
+
+	function setLowDeltaThreshold(uint256 _lowDeltaThreshold) external {
+		_isProxyManager();
+		beyondPricer.setLowDeltaThreshold(_lowDeltaThreshold);
+	}
+
+	function setRiskFreeRate(uint256 _riskFreeRate) external {
+		_isProxyManager();
+		beyondPricer.setRiskFreeRate(_riskFreeRate);
+	}
+
+	function setBidAskIVSpread(uint256 _bidAskIVSpread) external {
+		_isProxyManager();
+		beyondPricer.setBidAskIVSpread(_bidAskIVSpread);
+	}
+
 	function setSlippageGradient(uint256 _slippageGradient) external {
 		_isProxyManager();
 		beyondPricer.setSlippageGradient(_slippageGradient);
@@ -277,28 +297,57 @@ contract Manager is AccessControl {
 		beyondPricer.setDeltaBorrowRates(_deltaBorrowRates);
 	}
 
-	/// @dev must also update delta band arrays to fit the new delta band width
-	function setDeltaBandWidth(
+	function initializeTenorParams(
 		uint256 _deltaBandWidth,
-		uint256[] memory _callSlippageGradientMultipliers,
-		uint256[] memory _putSlippageGradientMultipliers
+		uint16 _numberOfTenors,
+		uint16 _maxTenorValue,
+		BeyondPricer.DeltaBandMultipliers[] memory _tenorPricingParams
 	) external {
 		_isProxyManager();
-		beyondPricer.setDeltaBandWidth(
+		beyondPricer.initializeTenorParams(
 			_deltaBandWidth,
+			_numberOfTenors,
+			_maxTenorValue,
+			_tenorPricingParams
+		);
+	}
+
+	function setSlippageGradientMultipliers(
+		uint16 _tenorIndex,
+		int80[] memory _callSlippageGradientMultipliers,
+		int80[] memory _putSlippageGradientMultipliers
+	) public {
+		_isProxyManager();
+		beyondPricer.setSlippageGradientMultipliers(
+			_tenorIndex,
 			_callSlippageGradientMultipliers,
 			_putSlippageGradientMultipliers
 		);
 	}
 
-	function setSlippageGradientMultipliers(
-		uint256[] memory _callSlippageGradientMultipliers,
-		uint256[] memory _putSlippageGradientMultipliers
+	function setSpreadCollateralMultipliers(
+		uint16 _tenorIndex,
+		int80[] memory _callSpreadCollateralMultipliers,
+		int80[] memory _putSpreadCollateralMultipliers
 	) public {
 		_isProxyManager();
-		beyondPricer.setSlippageGradientMultipliers(
-			_callSlippageGradientMultipliers,
-			_putSlippageGradientMultipliers
+		beyondPricer.setSpreadCollateralMultipliers(
+			_tenorIndex,
+			_callSpreadCollateralMultipliers,
+			_putSpreadCollateralMultipliers
+		);
+	}
+
+	function setSpreadDeltaMultipliers(
+		uint16 _tenorIndex,
+		int80[] memory _callSpreadDeltaMultipliers,
+		int80[] memory _putSpreadDeltaMultipliers
+	) public {
+		_isProxyManager();
+		beyondPricer.setSpreadDeltaMultipliers(
+			_tenorIndex,
+			_callSpreadDeltaMultipliers,
+			_putSpreadDeltaMultipliers
 		);
 	}
 

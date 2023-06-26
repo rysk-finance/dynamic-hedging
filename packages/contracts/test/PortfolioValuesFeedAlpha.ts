@@ -3,8 +3,21 @@ import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
 import { BigNumber, Signer, utils } from "ethers"
 import hre, { ethers, network } from "hardhat"
-import { AlphaOptionHandler, AlphaPortfolioValuesFeed, LiquidityPool, MintableERC20, MockChainlinkAggregator, OptionRegistry, Oracle, PriceFeed, Protocol, VolatilityFeed, WETH } from "../types"
-import { deployLiquidityPool, deploySystem } from "../utils/alpha-system-deployer"
+import {
+	AlphaOptionHandler,
+	AlphaPortfolioValuesFeed,
+	LiquidityPool,
+	MintableERC20,
+	MockChainlinkAggregator,
+	OptionExchange,
+	OptionRegistry,
+	Oracle,
+	PriceFeed,
+	Protocol,
+	VolatilityFeed,
+	WETH
+} from "../types"
+import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
 import { CALL_FLAVOR, PUT_FLAVOR, tFormatEth, toUSDC, toWei } from "../utils/conversion-helper"
 import { deployOpyn } from "../utils/opyn-deployer"
 import { CHAINLINK_WETH_PRICER, CONTROLLER_OWNER } from "./constants"
@@ -14,6 +27,7 @@ import {
 	increaseTo,
 	setupTestOracle
 } from "./helpers"
+import { protocol } from "@ragetrade/sdk/dist/typechain/core/contracts"
 
 dayjs.extend(utc)
 
@@ -22,6 +36,7 @@ let weth: WETH
 let wethERC20: MintableERC20
 let optionRegistry: OptionRegistry
 let optionProtocol: Protocol
+let exchange: OptionExchange
 let signers: Signer[]
 let senderAddress: string
 let receiverAddress: string
@@ -115,9 +130,11 @@ describe("APVF gas tests", async () => {
 			wethERC20,
 			optionRegistry,
 			portfolioValuesFeed,
+			volFeed,
 			authority
 		)
 		liquidityPool = lpParams.liquidityPool
+		exchange = lpParams.exchange
 		handler = lpParams.handler
 		signers = await hre.ethers.getSigners()
 		senderAddress = await signers[0].getAddress()
@@ -145,6 +162,7 @@ describe("APVF gas tests", async () => {
 			for (let i = 0; i < noOfExpiries; i++) {
 				// get a new expiry
 				expiration += 3 * 24 * 60 * 60
+				await exchange.pause()
 				await volFeed.setSabrParameters(
 					{
 						callAlpha: 250000,
@@ -159,6 +177,7 @@ describe("APVF gas tests", async () => {
 					},
 					expiration
 				)
+				await exchange.unpause()
 				// set the option type
 				const flavour = i & 1 ? true : false
 				let strike = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -212,21 +231,18 @@ describe("APVF gas tests", async () => {
 					expect(await portfolioValuesFeed.addressAtIndexInSet(n)).to.equal(order.seriesAddress)
 					expect(await portfolioValuesFeed.isAddressInSet(order.seriesAddress)).to.be.true
 					predictedDelta = predictedDelta.add(
-						await calculateOptionDeltaLocally(liquidityPool, priceFeed, convertedSeries, amount, true, true)
+						await calculateOptionDeltaLocally(
+							liquidityPool,
+							priceFeed,
+							convertedSeries,
+							amount,
+							true,
+							true
+						)
 					)
 					predictedQuote = predictedQuote.add(
 						toWei(
-							(
-								await getBlackScholesQuote(
-									liquidityPool,
-									optionRegistry,
-									usd,
-									priceFeed,
-									convertedSeries,
-									amount,
-									false
-								)
-							).toString()
+							(await getBlackScholesQuote(liquidityPool, priceFeed, convertedSeries, amount)).toString()
 						)
 					)
 					n += 1
@@ -266,11 +282,11 @@ describe("APVF gas tests", async () => {
 			})
 			migratePortfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
 				authority,
-				toWei("50000")
+				toWei("50000"),
+				optionProtocol.address
 			)) as AlphaPortfolioValuesFeed
 			await migratePortfolioValuesFeed.setHandler(portfolioValuesFeed.address, true)
 			await migratePortfolioValuesFeed.setLiquidityPool(liquidityPool.address)
-			await migratePortfolioValuesFeed.setProtocol(optionProtocol.address)
 		})
 		it("SUCCEEDS: Tries to migrate to a new portfolio values feed", async () => {
 			const originalLength = await portfolioValuesFeed.addressSetLength()
@@ -329,6 +345,7 @@ describe("APVF gas tests", async () => {
 			const amount = toWei("2")
 			const orderExpiry = 10
 			let expiration = dayjs.utc(expiryDate).add(8, "hours").unix() + 6 * 60 * 60 * 24
+			await exchange.pause()
 			await volFeed.setSabrParameters(
 				{
 					callAlpha: 250000,
@@ -343,6 +360,7 @@ describe("APVF gas tests", async () => {
 				},
 				expiration
 			)
+			await exchange.unpause()
 			// set the option type
 			const flavour = CALL_FLAVOR
 			let strike = await priceFeed.getNormalizedRate(weth.address, usd.address)
@@ -519,15 +537,7 @@ describe("APVF gas tests", async () => {
 				predictedQuote = predictedQuote.add(
 					toWei(
 						(
-							await getBlackScholesQuote(
-								liquidityPool,
-								optionRegistry,
-								usd,
-								priceFeed,
-								proposedSeries,
-								stores.shortExposure,
-								false
-							)
+							await getBlackScholesQuote(liquidityPool, priceFeed, proposedSeries, stores.shortExposure)
 						).toString()
 					)
 				)
@@ -564,15 +574,7 @@ describe("APVF gas tests", async () => {
 			)
 			const expectedValueDiff = toWei(
 				(
-					await getBlackScholesQuote(
-						liquidityPool,
-						optionRegistry,
-						usd,
-						priceFeed,
-						proposedSeries,
-						shortExposureChange,
-						false
-					)
+					await getBlackScholesQuote(liquidityPool, priceFeed, proposedSeries, shortExposureChange)
 				).toString()
 			)
 			await portfolioValuesFeed.updateStores(storesBefore.optionSeries, shortExposureChange, 0, addy)
@@ -615,15 +617,7 @@ describe("APVF gas tests", async () => {
 			)
 			const expectedValueDiff = toWei(
 				(
-					await getBlackScholesQuote(
-						liquidityPool,
-						optionRegistry,
-						usd,
-						priceFeed,
-						proposedSeries,
-						longExposureChange,
-						false
-					)
+					await getBlackScholesQuote(liquidityPool, priceFeed, proposedSeries, longExposureChange)
 				).toString()
 			)
 			await portfolioValuesFeed.updateStores(storesBefore.optionSeries, 0, longExposureChange, addy)
@@ -666,15 +660,7 @@ describe("APVF gas tests", async () => {
 			)
 			const expectedValueDiff = toWei(
 				(
-					await getBlackScholesQuote(
-						liquidityPool,
-						optionRegistry,
-						usd,
-						priceFeed,
-						proposedSeries,
-						shortExposureChange,
-						false
-					)
+					await getBlackScholesQuote(liquidityPool, priceFeed, proposedSeries, shortExposureChange)
 				).toString()
 			)
 			await portfolioValuesFeed.updateStores(
@@ -710,6 +696,73 @@ describe("APVF gas tests", async () => {
 			)
 		})
 	})
+	describe("Change net dhv exposure", async () => {
+		it("SUCCEEDS: set net dhv exposures", async () => {
+			const exposures = [toWei("130"), toWei("110")]
+			const hashes = [
+				ethers.utils.solidityKeccak256(
+					["uint64", "uint128", "bool"],
+					[expiration2, toWei("2500"), false]
+				),
+				ethers.utils.solidityKeccak256(
+					["uint64", "uint128", "bool"],
+					[expiration2, toWei("2200"), true]
+				)
+			]
+			await exchange.pause()
+			await portfolioValuesFeed.setNetDhvExposures(hashes, exposures)
+			await exchange.unpause()
+			for (let i = 0; i < hashes.length; i++) {
+				expect(await portfolioValuesFeed.netDhvExposure(hashes[i])).to.equal(exposures[i])
+			}
+		})
+		it("FAILS: set net dhv exposure fails when not the manager", async () => {
+			const exposures = [toWei("130"), toWei("110")]
+			const hashes = [
+				ethers.utils.solidityKeccak256(
+					["uint64", "uint128", "bool"],
+					[expiration2, toWei("2500"), false]
+				),
+				ethers.utils.solidityKeccak256(
+					["uint64", "uint128", "bool"],
+					[expiration2, toWei("2200"), true]
+				)
+			]
+			await expect(
+				portfolioValuesFeed.connect(signers[1]).setNetDhvExposures(hashes, exposures)
+			).to.be.revertedWithCustomError(portfolioValuesFeed, "UNAUTHORIZED")
+		})
+		it("FAILS: set net dhv exposure fails when value exceeds max net dhv exposure", async () => {
+			const exposures = [toWei("1300"), toWei("11000000")]
+			const hashes = [
+				ethers.utils.solidityKeccak256(
+					["uint64", "uint128", "bool"],
+					[expiration2, toWei("2500"), false]
+				),
+				ethers.utils.solidityKeccak256(
+					["uint64", "uint128", "bool"],
+					[expiration2, toWei("2200"), true]
+				)
+			]
+			await exchange.pause()
+			await expect(
+				portfolioValuesFeed.setNetDhvExposures(hashes, exposures)
+			).to.be.revertedWithCustomError(portfolioValuesFeed, "MaxNetDhvExposureExceeded")
+			await exchange.unpause()
+		})
+		it("FAILS: set net dhv exposure fails when arrays are different length", async () => {
+			const exposures = [toWei("1300"), toWei("11000000")]
+			const hashes = [
+				ethers.utils.solidityKeccak256(
+					["uint64", "uint128", "bool"],
+					[expiration2, toWei("2500"), false]
+				)
+			]
+			await exchange.pause()
+			await expect(portfolioValuesFeed.setNetDhvExposures(hashes, exposures)).to.be.reverted
+			await exchange.unpause()
+		})
+	})
 	describe("Access Control checks", async () => {
 		it("SUCCEEDS: set liquidity pool", async () => {
 			await portfolioValuesFeed.setLiquidityPool(optionRegistry.address)
@@ -718,15 +771,6 @@ describe("APVF gas tests", async () => {
 		it("FAILS: set liquidity pool when not approved", async () => {
 			await expect(
 				portfolioValuesFeed.connect(signers[1]).setLiquidityPool(optionRegistry.address)
-			).to.be.revertedWithCustomError(portfolioValuesFeed, "UNAUTHORIZED")
-		})
-		it("SUCCEEDS: set protocol", async () => {
-			await portfolioValuesFeed.setProtocol(optionRegistry.address)
-			expect(await portfolioValuesFeed.protocol()).to.equal(optionRegistry.address)
-		})
-		it("FAILS: set protocol when not approved", async () => {
-			await expect(
-				portfolioValuesFeed.connect(signers[1]).setProtocol(optionRegistry.address)
 			).to.be.revertedWithCustomError(portfolioValuesFeed, "UNAUTHORIZED")
 		})
 		it("SUCCEEDS: set rfr", async () => {

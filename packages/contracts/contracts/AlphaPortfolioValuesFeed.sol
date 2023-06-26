@@ -2,6 +2,8 @@
 pragma solidity ^0.8.9;
 
 import "./PriceFeed.sol";
+import "./Protocol.sol";
+import "./OptionExchange.sol";
 import "./VolatilityFeed.sol";
 
 import "./libraries/Types.sol";
@@ -11,7 +13,6 @@ import "./libraries/AccessControl.sol";
 import "./libraries/EnumerableSet.sol";
 import "./libraries/OptionsCompute.sol";
 
-import "./Protocol.sol";
 import "./interfaces/GammaInterface.sol";
 import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IOptionRegistry.sol";
@@ -42,6 +43,7 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 
 	uint256 constant oTokenDecimals = 8;
 	int256 private constant SCALE = 1e18;
+	Protocol public immutable protocol;
 
 	/////////////////////////
 	/// dynamic variables ///
@@ -59,7 +61,6 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	/// govern settable variables ///
 	/////////////////////////////////
 
-	Protocol public protocol;
 	ILiquidityPool public liquidityPool;
 	// handlers that can push to this contract
 	mapping(address => bool) public handler;
@@ -91,6 +92,11 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 		Types.OptionSeries optionSeries
 	);
 	event MaxNetDhvExposureUpdated(uint256 maxNetDhvExposure);
+	event NetDhvExposureChanged(
+		bytes32 indexed optionHash,
+		int256 oldNetDhvExposure,
+		int256 newNetDhvExposure
+	);
 
 	error OptionHasExpiredInStores(uint256 index, address seriesAddress);
 	error MaxNetDhvExposureExceeded();
@@ -103,8 +109,13 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	 * @notice Executes once when a contract is created to initialize state variables
 	 *		   Make sure the protocol is configured after deployment
 	 */
-	constructor(address _authority, uint256 _maxNetDhvExposure) AccessControl(IAuthority(_authority)) {
+	constructor(
+		address _authority,
+		uint256 _maxNetDhvExposure,
+		address _protocol
+	) AccessControl(IAuthority(_authority)) {
 		maxNetDhvExposure = _maxNetDhvExposure;
+		protocol = Protocol(_protocol);
 	}
 
 	///////////////
@@ -114,11 +125,6 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 	function setLiquidityPool(address _liquidityPool) external {
 		_onlyGovernor();
 		liquidityPool = ILiquidityPool(_liquidityPool);
-	}
-
-	function setProtocol(address _protocol) external {
-		_onlyGovernor();
-		protocol = Protocol(_protocol);
 	}
 
 	function setRFR(uint256 _rfr) external {
@@ -149,6 +155,31 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 		_onlyGovernor();
 		maxNetDhvExposure = _maxNetDhvExposure;
 		emit MaxNetDhvExposureUpdated(_maxNetDhvExposure);
+	}
+
+	/**
+	 * @notice change the net dhv exposures for a specific option hash arrays, this is to manage risk in case of
+	 *         mispricing scenarios
+	 * @param  _optionHashes - list of optionhashes in bytes32 that defines the index of the net dhv exposure to be changed
+	 * @param  _netDhvExposures - list of net dhv exposures that correspond to the option hashes above
+	 */
+	function setNetDhvExposures(
+		bytes32[] memory _optionHashes,
+		int256[] memory _netDhvExposures
+	) external {
+		_onlyGovernor();
+		_isExchangePaused();
+		uint256 arrayLength = _optionHashes.length;
+		require(arrayLength == _netDhvExposures.length);
+		for (uint i; i < arrayLength; i++) {
+			if (uint256(_netDhvExposures[i].abs()) > maxNetDhvExposure) revert MaxNetDhvExposureExceeded();
+			emit NetDhvExposureChanged(
+				_optionHashes[i],
+				netDhvExposure[_optionHashes[i]],
+				_netDhvExposures[i]
+			);
+			netDhvExposure[_optionHashes[i]] = _netDhvExposures[i];
+		}
 	}
 
 	/**
@@ -458,5 +489,11 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 		address _strikeAsset
 	) internal view returns (uint256) {
 		return PriceFeed(protocol.priceFeed()).getNormalizedRate(underlying, _strikeAsset);
+	}
+
+	function _isExchangePaused() internal view {
+		if (!OptionExchange(protocol.optionExchange()).paused()) {
+			revert CustomErrors.ExchangeNotPaused();
+		}
 	}
 }

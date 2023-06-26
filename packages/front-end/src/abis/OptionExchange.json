@@ -67,6 +67,11 @@
 	},
 	{
 		"inputs": [],
+		"name": "MaxLiquidityBufferReached",
+		"type": "error"
+	},
+	{
+		"inputs": [],
 		"name": "NonExistentOtoken",
 		"type": "error"
 	},
@@ -212,11 +217,6 @@
 	{
 		"inputs": [],
 		"name": "UnderlyingAssetInvalid",
-		"type": "error"
-	},
-	{
-		"inputs": [],
-		"name": "WithdrawExceedsLiquidity",
 		"type": "error"
 	},
 	{
@@ -844,24 +844,6 @@
 		"type": "function"
 	},
 	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "newOptionExchange",
-				"type": "address"
-			},
-			{
-				"internalType": "address[]",
-				"name": "otokens",
-				"type": "address[]"
-			}
-		],
-		"name": "migrateOtokens",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
 		"inputs": [],
 		"name": "minTradeSize",
 		"outputs": [
@@ -1173,6 +1155,24 @@
 			}
 		],
 		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "newOptionExchange",
+				"type": "address"
+			},
+			{
+				"internalType": "address[]",
+				"name": "otokens",
+				"type": "address[]"
+			}
+		],
+		"name": "transferOtokens",
+		"outputs": [],
+		"stateMutability": "nonpayable",
 		"type": "function"
 	},
 	{

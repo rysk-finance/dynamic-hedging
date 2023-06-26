@@ -67,6 +67,11 @@ export const OptionExchangeABI = [
 	},
 	{
 		"inputs": [],
+		"name": "MaxLiquidityBufferReached",
+		"type": "error"
+	},
+	{
+		"inputs": [],
 		"name": "NonExistentOtoken",
 		"type": "error"
 	},
@@ -212,11 +217,6 @@ export const OptionExchangeABI = [
 	{
 		"inputs": [],
 		"name": "UnderlyingAssetInvalid",
-		"type": "error"
-	},
-	{
-		"inputs": [],
-		"name": "WithdrawExceedsLiquidity",
 		"type": "error"
 	},
 	{
@@ -844,24 +844,6 @@ export const OptionExchangeABI = [
 		"type": "function"
 	},
 	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "newOptionExchange",
-				"type": "address"
-			},
-			{
-				"internalType": "address[]",
-				"name": "otokens",
-				"type": "address[]"
-			}
-		],
-		"name": "migrateOtokens",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
 		"inputs": [],
 		"name": "minTradeSize",
 		"outputs": [
@@ -1173,6 +1155,24 @@ export const OptionExchangeABI = [
 			}
 		],
 		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "newOptionExchange",
+				"type": "address"
+			},
+			{
+				"internalType": "address[]",
+				"name": "otokens",
+				"type": "address[]"
+			}
+		],
+		"name": "transferOtokens",
+		"outputs": [],
+		"stateMutability": "nonpayable",
 		"type": "function"
 	},
 	{

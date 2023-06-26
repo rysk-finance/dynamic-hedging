@@ -30,7 +30,7 @@ contract UniswapConversionsTest {
         return encodePriceSqrt(token0Token1, token0Decimals);
     }
 
-    function testPriceToUse(
+    function mockPriceToUse(
         uint256 price0,
         uint256 price1,
         bool inversed,
@@ -43,7 +43,7 @@ contract UniswapConversionsTest {
         return getPriceToUse(price0, price1, inversed, direction);
     }
 
-    function testTickToTokenPrice(
+    function mockTickToTokenPrice(
         int24 tick,
         uint8 token0Decimals,
         bool inversed

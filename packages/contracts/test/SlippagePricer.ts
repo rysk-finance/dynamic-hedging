@@ -106,6 +106,7 @@ describe("Slippage Pricer testing", async () => {
 			wethERC20,
 			optionRegistry,
 			portfolioValuesFeed,
+			volFeed,
 			authority
 		)
 		liquidityPool = lpParams.liquidityPool
@@ -128,6 +129,7 @@ describe("Slippage Pricer testing", async () => {
 				putVolvol: 1_500000,
 				interestRate: utils.parseEther("-0.001")
 			}
+			await exchange.pause()
 			await volFeed.setSabrParameters(proposedSabrParams, expiration)
 			const volFeedSabrParams = await volFeed.sabrParams(expiration)
 			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
@@ -153,6 +155,7 @@ describe("Slippage Pricer testing", async () => {
 				interestRate: utils.parseEther("-0.002")
 			}
 			await volFeed.setSabrParameters(proposedSabrParams, expiration2)
+			await exchange.unpause()
 			const volFeedSabrParams = await volFeed.sabrParams(expiration2)
 			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -293,7 +296,7 @@ describe("Slippage Pricer testing", async () => {
 		it("SUCCEEDS: get quote for 1 option when buying", async () => {
 			proposedSeries = {
 				expiration: expiration,
-				strike: toWei("2000"),
+				strike: toWei("2400"),
 				isPut: PUT_FLAVOR,
 				strikeAsset: usd.address,
 				underlying: weth.address,
@@ -491,7 +494,9 @@ describe("Slippage Pricer testing", async () => {
 	describe("Get quotes with no slippage if slippage gradient is zero", async () => {
 		let proposedSeries: any
 		it("SETUP: sets slippage to zero", async () => {
+			await exchange.pause()
 			await pricer.setSlippageGradient(0)
+			await exchange.unpause()
 			expect(await pricer.slippageGradient()).to.equal(0)
 		})
 		it("SUCCEEDS: get quote for 1 option when buying", async () => {
@@ -521,6 +526,51 @@ describe("Slippage Pricer testing", async () => {
 				pricer,
 				toWei("0")
 			)
+		})
+	})
+	describe("Sets slippage parameters when exchange is not paused", async () => {
+		it("REVERTS: sets slippage gradient", async () => {
+			await expect(pricer.setSlippageGradient(0)).to.be.revertedWithCustomError(
+				pricer,
+				"ExchangeNotPaused"
+			)
+		})
+		it("REVERTS: sets slippage gradient", async () => {
+			await expect(pricer.setSlippageGradient(0)).to.be.revertedWithCustomError(
+				pricer,
+				"ExchangeNotPaused"
+			)
+		})
+		it("REVERTS: set slippage multipliers", async () => {
+			await expect(
+				pricer.setSlippageGradientMultipliers(
+					4,
+					[
+						toWei("10"),
+						toWei("8"),
+						toWei("6"),
+						toWei("4"),
+						toWei("2"),
+						toWei("2"),
+						toWei("4"),
+						toWei("6"),
+						toWei("8"),
+						toWei("10")
+					],
+					[
+						toWei("10"),
+						toWei("8"),
+						toWei("6"),
+						toWei("4"),
+						toWei("0.2"),
+						toWei("2"),
+						toWei("4"),
+						toWei("6"),
+						toWei("8"),
+						toWei("10")
+					]
+				)
+			).to.be.revertedWithCustomError(pricer, "ExchangeNotPaused")
 		})
 	})
 })

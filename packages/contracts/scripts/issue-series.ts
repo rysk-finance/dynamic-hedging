@@ -14,84 +14,56 @@ export const ADDRESSES = {
         usdc: ""
     },
     [CHAINID.ARBITRUM_GOERLI]: {
-        manager: "0x45451c486e70c4d17609F441aE4ec1A577925E56",
-        catalogue: "0x5F7350aEA196825C3AAc335D97535e9b4EfCDb45", // on goerli there is no manager
-        exchange: "0x63cE41cA4E30e75Caf9B561E0250c25056B6e2C0",
-        usdc: "0x6775842ae82bf2f0f987b10526768ad89d79536e",
-        weth: "0x53320bE2A35649E9B2a0f244f9E9474929d3B699",
+        manager: "0xB8Cb70cf67EF7d7dFb1C70bc7A169DFCcCF0753c",
+        catalogue: "0xde458dD32651F27A8895D4a92B7798Cdc4EbF2f0", // on goerli there is no manager
+        exchange: "0xb672fE86693bF6f3b034730f5d2C77C8844d6b45",
+        usdc: "0x408c5755b5c7a0a28D851558eA3636CfC5b5b19d",
+        weth: "0x3b3a1dE07439eeb04492Fa64A889eE25A130CDd3",
     },
 }
-
+const expiry = 1686297600
 const seriesToIssue = [
     {
-        expiration: 1685088000,
+        expiration: expiry,
         isPut: CALL_FLAVOR,
-        strike: toWei("1700"),
-        isSellable: true,
-        isBuyable: true
+        strike: toWei("2050"),
+        isSellable: false,
+        isBuyable: false
     },
     {
-        expiration: 1685088000,
-        isPut: CALL_FLAVOR,
-        strike: toWei("1800"),
-        isSellable: true,
-        isBuyable: true
-    },
-    {
-        expiration: 1685088000,
-        isPut: CALL_FLAVOR,
-        strike: toWei("1900"),
-        isSellable: true,
-        isBuyable: true
-    },
-    {
-        expiration: 1685088000,
+        expiration: expiry,
         isPut: PUT_FLAVOR,
-        strike: toWei("1700"),
-        isSellable: true,
-        isBuyable: true
+        strike: toWei("2050"),
+        isSellable: false,
+        isBuyable: false
     },
     {
-        expiration: 1685088000,
-        isPut: PUT_FLAVOR,
-        strike: toWei("1800"),
-        isSellable: true,
-        isBuyable: true
-    },
-    {
-        expiration: 1685088000,
-        isPut: PUT_FLAVOR,
-        strike: toWei("1900"),
-        isSellable: true,
-        isBuyable: true
-    },
-    {
-        expiration: 1685088000,
-        isPut: PUT_FLAVOR,
-        strike: toWei("2000"),
-        isSellable: true,
-        isBuyable: true
-    },
-    {
-        expiration: 1685088000,
-        isPut: PUT_FLAVOR,
-        strike: toWei("2100"),
-        isSellable: true,
-        isBuyable: true
-    },
-    {
-        expiration: 1685088000,
-        isPut: CALL_FLAVOR,
-        strike: toWei("2000"),
-        isSellable: true,
-        isBuyable: true
-    },
-    {
-        expiration: 1685088000,
+        expiration: expiry,
         isPut: CALL_FLAVOR,
         strike: toWei("2100"),
-        isSellable: true,
-        isBuyable: true
+        isSellable: false,
+        isBuyable: false
+    },
+    {
+        expiration: expiry,
+        isPut: PUT_FLAVOR,
+        strike: toWei("2100"),
+        isSellable: false,
+        isBuyable: false
+    },
+    {
+        expiration: expiry,
+        isPut: CALL_FLAVOR,
+        strike: toWei("2200"),
+        isSellable: false,
+        isBuyable: false
+    },
+    {
+        expiration: expiry,
+        isPut: PUT_FLAVOR,
+        strike: toWei("2200"),
+        isSellable: false,
+        isBuyable: false
     },
 ]
 // specific for Arbitrum Goerli as mainnet will likely need to be on safe board

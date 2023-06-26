@@ -133,7 +133,11 @@ export async function compareQuotes(
 		localDelta.div(amount.div(toWei("1"))),
 		netDhvExposureOverride
 	)
-	expect(tFormatUSDC(quoteResponse[0]) - localQuote).to.be.within(-0.11, 0.11)
+	// use a mix of percentage for large values and absolute for small values where rounding errors have large effect
+	expect(tFormatUSDC(quoteResponse[0]) - localQuote).to.be.within(
+		Math.min(-localQuote * 0.002, -0.11),
+		Math.max(localQuote * 0.002, 0.11)
+	)
 	expect(parseFloat(fromWei(quoteResponse.totalDelta.abs().sub(localDelta.abs())))).to.be.within(
 		-0.005,
 		0.005
@@ -168,10 +172,6 @@ export async function getExchangeParams(
 ) {
 	const poolUSDBalance = await usd.balanceOf(liquidityPool.address)
 	const senderUSDBalance = await usd.balanceOf(senderAddress)
-	//
-	// const exchangeTempUSD = await ethers.provider.getStorageAt(exchange.address, keccak256())
-	// console.log({ exchangeTempUSD })
-
 	const exchangeTempUSD = await exchange.heldTokens(senderAddress, usd.address)
 	const senderWethBalance = await weth.balanceOf(senderAddress)
 	const pfList = await portfolioValuesFeed.getAddressSet()
@@ -626,7 +626,6 @@ export async function calculateOptionQuoteLocally(
 		optionSeries.strike,
 		optionSeries.expiration
 	)
-
 	const bidAskSpread = await pricer.bidAskIVSpread()
 	const rfr = await pricer.riskFreeRate()
 	const localBS =
@@ -734,7 +733,21 @@ export async function localQuoteOptionPrice(
 	if (spread < 0) {
 		spread = 0
 	}
-	return isSell ? bsQ * slip - spread : bsQ * slip + spread
+	const totalPremium = isSell ? Math.max(bsQ * slip - spread, 0) : bsQ * slip + spread
+	if (
+		isSell &&
+		Math.abs(parseFloat(fromWei(optionDelta))) < parseFloat(fromWei(await pricer.lowDeltaThreshold()))
+	) {
+		const overrideQuote = await getBlackScholesQuote(
+			liquidityPool,
+			priceFeed,
+			optionSeries,
+			amount,
+			await pricer.lowDeltaSellOptionFlatIV()
+		)
+		return overrideQuote > totalPremium ? totalPremium : overrideQuote
+	}
+	return totalPremium
 }
 
 export async function applySlippageLocally(
@@ -767,14 +780,32 @@ export async function applySlippageLocally(
 		(parseFloat(fromWei(optionDelta.abs())) * 100) /
 			parseFloat(fromWei(await beyondPricer.deltaBandWidth()))
 	)
+	const tenorIndexAndRemainder = await getTenorIndexAndRemainder(
+		optionSeries.expiration,
+		beyondPricer
+	)
 	if (parseFloat(fromWei(optionDelta)) < 0) {
 		modifiedSlippageGradient =
 			parseFloat(fromWei(slippageGradient)) *
-			parseFloat(fromWei(await beyondPricer.putSlippageGradientMultipliers(deltaBandIndex)))
+			(await applyLinearInterpolation(
+				tenorIndexAndRemainder[0],
+				tenorIndexAndRemainder[1],
+				optionSeries.isPut,
+				deltaBandIndex,
+				beyondPricer,
+				Mode.Slippage
+			))
 	} else {
 		modifiedSlippageGradient =
 			parseFloat(fromWei(slippageGradient)) *
-			parseFloat(fromWei(await beyondPricer.callSlippageGradientMultipliers(deltaBandIndex)))
+			(await applyLinearInterpolation(
+				tenorIndexAndRemainder[0],
+				tenorIndexAndRemainder[1],
+				optionSeries.isPut,
+				deltaBandIndex,
+				beyondPricer,
+				Mode.Slippage
+			))
 	}
 	if (slippageGradient.eq(BigNumber.from(0))) {
 		return 1
@@ -809,6 +840,15 @@ export async function applySpreadLocally(
 		WETH_ADDRESS[chainId],
 		USDC_ADDRESS[chainId]
 	)
+	const deltaBandIndex = Math.floor(
+		(parseFloat(fromWei(optionDelta.abs())) * 100) /
+			parseFloat(fromWei(await beyondPricer.deltaBandWidth()))
+	)
+	let realOptionDelta = optionDelta
+	// option delta is flipped in case of sale, so flip back
+	if (isSell) {
+		realOptionDelta = -optionDelta
+	}
 	if (!isSell) {
 		let netShortContracts
 		if (netDhvExposure < toWei("0")) {
@@ -840,6 +880,33 @@ export async function applySpreadLocally(
 		const collateralLendingRate = await beyondPricer.collateralLendingRate()
 		collateralLendingPremium =
 			(1 + collateralLendingRate / SIX_DPS) ** timeToExpiry * collateralToLend - collateralToLend
+		const tenorIndexAndRemainder = await getTenorIndexAndRemainder(
+			optionSeries.expiration,
+			beyondPricer
+		)
+		if (realOptionDelta < toWei("0")) {
+			collateralLendingPremium =
+				collateralLendingPremium *
+				(await applyLinearInterpolation(
+					tenorIndexAndRemainder[0],
+					tenorIndexAndRemainder[1],
+					optionSeries.isPut,
+					deltaBandIndex,
+					beyondPricer,
+					Mode.CollatSpread
+				))
+		} else {
+			collateralLendingPremium =
+				collateralLendingPremium *
+				(await applyLinearInterpolation(
+					tenorIndexAndRemainder[0],
+					tenorIndexAndRemainder[1],
+					optionSeries.isPut,
+					deltaBandIndex,
+					beyondPricer,
+					Mode.CollatSpread
+				))
+		}
 	}
 
 	const dollarDelta =
@@ -851,12 +918,7 @@ export async function applySpreadLocally(
 	const sellShortDeltaBorrowRate = (await beyondPricer.deltaBorrowRates()).sellShort
 	const buyLongDeltaBorrowRate = (await beyondPricer.deltaBorrowRates()).buyLong
 	const buyShortDeltaBorrowRate = (await beyondPricer.deltaBorrowRates()).buyShort
-	let realOptionDelta = optionDelta
-	if (isSell) {
-		realOptionDelta = -optionDelta
-	}
 
-	// option delta is flipped in case of sale, so flip back
 	if (realOptionDelta < toWei("0")) {
 		deltaBorrowPremium =
 			dollarDelta *
@@ -867,6 +929,33 @@ export async function applySpreadLocally(
 			dollarDelta *
 				(1 + (isSell ? sellShortDeltaBorrowRate : buyLongDeltaBorrowRate) / SIX_DPS) ** timeToExpiry -
 			dollarDelta
+	}
+	const tenorIndexAndRemainder = await getTenorIndexAndRemainder(
+		optionSeries.expiration,
+		beyondPricer
+	)
+	if (realOptionDelta < toWei("0")) {
+		deltaBorrowPremium =
+			deltaBorrowPremium *
+			(await applyLinearInterpolation(
+				tenorIndexAndRemainder[0],
+				tenorIndexAndRemainder[1],
+				optionSeries.isPut,
+				deltaBandIndex,
+				beyondPricer,
+				Mode.DeltaSpread
+			))
+	} else {
+		deltaBorrowPremium =
+			deltaBorrowPremium *
+			(await applyLinearInterpolation(
+				tenorIndexAndRemainder[0],
+				tenorIndexAndRemainder[1],
+				optionSeries.isPut,
+				deltaBandIndex,
+				beyondPricer,
+				Mode.DeltaSpread
+			))
 	}
 
 	return collateralLendingPremium + deltaBorrowPremium
@@ -923,8 +1012,6 @@ export async function calculateOptionDeltaLocally(
 
 export async function getBlackScholesQuote(
 	liquidityPool: LiquidityPool,
-	optionRegistry: OptionRegistry,
-	collateralAsset: MintableERC20,
 	priceFeed: PriceFeed,
 	optionSeries: {
 		expiration: number
@@ -935,7 +1022,7 @@ export async function getBlackScholesQuote(
 		collateral: string
 	},
 	amount: BigNumber,
-	isSell: boolean = false
+	overrideIV: BigNumber = toWei("0")
 ) {
 	const underlyingPrice = await priceFeed.getNormalizedRate(
 		WETH_ADDRESS[chainId],
@@ -945,7 +1032,7 @@ export async function getBlackScholesQuote(
 		"VolatilityFeed",
 		await liquidityPool.getVolatilityFeed()
 	)) as VolatilityFeed
-	const iv = await volFeed.getImpliedVolatilityWithForward(
+	let iv = await volFeed.getImpliedVolatilityWithForward(
 		optionSeries.isPut,
 		underlyingPrice,
 		optionSeries.strike,
@@ -962,7 +1049,7 @@ export async function getBlackScholesQuote(
 			priceNorm,
 			fromWei(optionSeries.strike),
 			timeToExpiration,
-			Number(fromWei(iv[0])),
+			Number(overrideIV.gt(0) ? fromWei(overrideIV) : fromWei(iv[0])),
 			rfr,
 			optionSeries.isPut ? "put" : "call"
 		) *
@@ -971,4 +1058,81 @@ export async function getBlackScholesQuote(
 		parseFloat(fromWei(amount))
 
 	return localBS
+}
+
+enum Mode {
+	Slippage,
+	DeltaSpread,
+	CollatSpread
+}
+
+export async function applyLinearInterpolation(
+	tenorIndex: any,
+	remainder: any,
+	isPut: any,
+	deltaBandIndex: any,
+	beyondPricer: BeyondPricer,
+	mode: Mode
+) {
+	let y1
+	let y2
+	if (mode == Mode.Slippage) {
+		if (isPut) {
+			y1 = (await beyondPricer.getPutSlippageGradientMultipliers(tenorIndex))[deltaBandIndex]
+			if (remainder == 0) {
+				return parseFloat(fromWei(y1))
+			}
+			y2 = (await beyondPricer.getPutSlippageGradientMultipliers(tenorIndex + 1))[deltaBandIndex]
+		} else {
+			y1 = (await beyondPricer.getCallSlippageGradientMultipliers(tenorIndex))[deltaBandIndex]
+			if (remainder == 0) {
+				return parseFloat(fromWei(y1))
+			}
+			y2 = (await beyondPricer.getCallSlippageGradientMultipliers(tenorIndex + 1))[deltaBandIndex]
+		}
+	} else if (mode == Mode.CollatSpread) {
+		if (isPut) {
+			y1 = (await beyondPricer.getPutSpreadCollateralMultipliers(tenorIndex))[deltaBandIndex]
+			if (remainder == 0) {
+				return parseFloat(fromWei(y1))
+			}
+			y2 = (await beyondPricer.getPutSpreadCollateralMultipliers(tenorIndex + 1))[deltaBandIndex]
+		} else {
+			y1 = (await beyondPricer.getCallSpreadCollateralMultipliers(tenorIndex))[deltaBandIndex]
+			if (remainder == 0) {
+				return parseFloat(fromWei(y1))
+			}
+			y2 = (await beyondPricer.getCallSpreadCollateralMultipliers(tenorIndex + 1))[deltaBandIndex]
+		}
+	} else if (mode == Mode.DeltaSpread) {
+		if (isPut) {
+			y1 = (await beyondPricer.getPutSpreadDeltaMultipliers(tenorIndex))[deltaBandIndex]
+			if (remainder == 0) {
+				return parseFloat(fromWei(y1))
+			}
+			y2 = (await beyondPricer.getPutSpreadDeltaMultipliers(tenorIndex + 1))[deltaBandIndex]
+		} else {
+			y1 = (await beyondPricer.getCallSpreadDeltaMultipliers(tenorIndex))[deltaBandIndex]
+			if (remainder == 0) {
+				return parseFloat(fromWei(y1))
+			}
+			y2 = (await beyondPricer.getCallSpreadDeltaMultipliers(tenorIndex + 1))[deltaBandIndex]
+		}
+	} else {
+		throw new Error("Invalid Mode for Pricing param")
+	}
+	return parseFloat(fromWei(y1)) + remainder * (parseFloat(fromWei(y2)) - parseFloat(fromWei(y1)))
+}
+
+export async function getTenorIndexAndRemainder(expiration: any, beyondPricer: BeyondPricer) {
+	const maxTenorValue = await beyondPricer.maxTenorValue()
+	const numberOfTenors = await beyondPricer.numberOfTenors()
+	const blockNum = await ethers.provider.getBlockNumber()
+	const block = await ethers.provider.getBlock(blockNum)
+	const { timestamp } = block
+	const unroundedTenorIndex =
+		(Math.sqrt(expiration - timestamp) / maxTenorValue) * (numberOfTenors - 1)
+	const tenorIndex = Math.floor(unroundedTenorIndex)
+	const remainder = unroundedTenorIndex - tenorIndex
+	return [tenorIndex, remainder]
 }

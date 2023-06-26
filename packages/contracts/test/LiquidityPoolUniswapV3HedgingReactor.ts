@@ -5,9 +5,27 @@ import { BigNumber, Contract, Signer, utils } from "ethers"
 import hre, { ethers, network } from "hardhat"
 
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
-import { AlphaPortfolioValuesFeed, BeyondPricer, LiquidityPool, MintableERC20, MockChainlinkAggregator, OptionCatalogue, OptionExchange, OptionRegistry, Oracle, Otoken as IOToken, PriceFeed, Protocol, UniswapV3HedgingReactor, VolatilityFeed, WETH } from "../types"
 import {
-	CALL_FLAVOR, fromWei, tFormatUSDC,
+	AlphaPortfolioValuesFeed,
+	BeyondPricer,
+	LiquidityPool,
+	MintableERC20,
+	MockChainlinkAggregator,
+	OptionCatalogue,
+	OptionExchange,
+	OptionRegistry,
+	Oracle,
+	Otoken as IOToken,
+	PriceFeed,
+	Protocol,
+	UniswapV3HedgingReactor,
+	VolatilityFeed,
+	WETH
+} from "../types"
+import {
+	CALL_FLAVOR,
+	fromWei,
+	tFormatUSDC,
 	toOpyn,
 	toUSDC,
 	toWei,
@@ -21,7 +39,14 @@ import {
 	USDC_ADDRESS,
 	WETH_ADDRESS
 } from "./constants"
-import { calculateOptionDeltaLocally, getSeriesWithe18Strike, makeIssueAndBuy, setOpynOracleExpiryPrice, setupOracle, setupTestOracle } from "./helpers"
+import {
+	calculateOptionDeltaLocally,
+	getSeriesWithe18Strike,
+	makeIssueAndBuy,
+	setOpynOracleExpiryPrice,
+	setupOracle,
+	setupTestOracle
+} from "./helpers"
 
 dayjs.extend(utc)
 
@@ -113,6 +138,7 @@ describe("Liquidity Pools hedging reactor: univ3", async () => {
 			wethERC20,
 			optionRegistry,
 			portfolioValuesFeed,
+			volFeed,
 			authority
 		)
 		liquidityPool = lpParams.liquidityPool
@@ -135,6 +161,7 @@ describe("Liquidity Pools hedging reactor: univ3", async () => {
 			putVolvol: 1_500000,
 			interestRate: utils.parseEther("-0.001")
 		}
+		await exchange.pause()
 		await volFeed.setSabrParameters(proposedSabrParams, expiration)
 		const volFeedSabrParams = await volFeed.sabrParams(expiration)
 		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
@@ -160,6 +187,7 @@ describe("Liquidity Pools hedging reactor: univ3", async () => {
 			interestRate: utils.parseEther("-0.002")
 		}
 		await volFeed.setSabrParameters(proposedSabrParams, expiration2)
+		await exchange.unpause()
 		const volFeedSabrParams = await volFeed.sabrParams(expiration2)
 		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)

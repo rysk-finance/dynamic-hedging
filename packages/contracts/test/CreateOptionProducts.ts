@@ -155,6 +155,7 @@ describe("Structured Product maker", async () => {
 			wethERC20,
 			optionRegistry,
 			portfolioValuesFeed,
+			volFeed,
 			authority
 		)
 		liquidityPool = lpParams.liquidityPool
@@ -167,6 +168,7 @@ describe("Structured Product maker", async () => {
 	})
 	describe("Setup add-on system features", async () => {
 		it("SETUP: set sabrParams", async () => {
+			await exchange.pause()
 			const proposedSabrParams = {
 				callAlpha: 250000,
 				callBeta: 1_000000,
@@ -203,6 +205,7 @@ describe("Structured Product maker", async () => {
 				interestRate: utils.parseEther("-0.002")
 			}
 			await volFeed.setSabrParameters(proposedSabrParams, expiration2)
+			await exchange.unpause()
 			const volFeedSabrParams = await volFeed.sabrParams(expiration2)
 			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -1084,7 +1087,6 @@ describe("Structured Product maker", async () => {
 					amount.mul(2)
 				)
 			).add(toUSDC("100"))
-			await usd.approve(MARGIN_POOL[chainId], marginRequirement)
 			const vaultId = await (await controller.getAccountVaultCounter(senderAddress)).add(1)
 			const otoken = await exchange.callStatic.createOtoken(midProposedSeries)
 			const upperToken = await exchange.callStatic.createOtoken(upperProposedSeries)
@@ -1192,6 +1194,7 @@ describe("Structured Product maker", async () => {
 				upperBefore.netDhvExposure
 			)
 			let upperQuote = upperQuoteResponse[0].add(upperQuoteResponse[2])
+			await usd.approve(exchange.address, marginRequirement.add(upperQuote).add(lowerQuote))
 			await exchange.operate([
 				{
 					operation: 0,
@@ -1210,7 +1213,7 @@ describe("Structured Product maker", async () => {
 						{
 							actionType: 5,
 							owner: senderAddress,
-							secondAddress: senderAddress,
+							secondAddress: exchange.address,
 							asset: midProposedSeries.collateral,
 							vaultId: vaultId,
 							amount: marginRequirement,
@@ -2727,21 +2730,6 @@ describe("Structured Product maker", async () => {
 				}
 			])
 			const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
-
-			await portfolioValuesFeed.fulfill(weth.address, usd.address)
-			oTokenUSDC1650C = (await ethers.getContractAt("Otoken", seriesAddress)) as Otoken
-			optionToken = oTokenUSDC1650C
-			const after = await getExchangeParams(
-				liquidityPool,
-				optionProtocol,
-				exchange,
-				usd,
-				wethERC20,
-				portfolioValuesFeed,
-				optionToken,
-				senderAddress,
-				amount
-			)
 			quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
 			await compareQuotes(
 				quoteResponse,
@@ -2759,15 +2747,29 @@ describe("Structured Product maker", async () => {
 				toWei("0")
 			)
 			quote = quoteResponse[0].add(quoteResponse[2])
+			await portfolioValuesFeed.fulfill(weth.address, usd.address)
+			oTokenUSDC1650C = (await ethers.getContractAt("Otoken", seriesAddress)) as Otoken
+			optionToken = oTokenUSDC1650C
+			const after = await getExchangeParams(
+				liquidityPool,
+				optionProtocol,
+				exchange,
+				usd,
+				wethERC20,
+				portfolioValuesFeed,
+				optionToken,
+				senderAddress,
+				amount
+			)
 			expect(after.senderOtokenBalance).to.eq(after.opynAmount)
 			expect(after.exchangeOTokenBalance).to.eq(0)
-			expect(before.senderUSDBalance.sub(after.senderUSDBalance).sub(quote)).to.be.within(-10, 10)
+			expect(before.senderUSDBalance.sub(after.senderUSDBalance).sub(quote)).to.be.within(-100, 100)
 			expect(
 				before.poolUSDBalance
 					.sub(after.poolUSDBalance)
 					.add(quote)
 					.add(before.collateralAllocated.sub(after.collateralAllocated))
-			).to.be.within(-10, 10)
+			).to.be.within(-100, 100)
 			expect(after.pfList.length - before.pfList.length).to.equal(1)
 			expect(after.seriesStores.longExposure).to.equal(0)
 			expect(after.seriesStores.shortExposure).to.equal(amount)

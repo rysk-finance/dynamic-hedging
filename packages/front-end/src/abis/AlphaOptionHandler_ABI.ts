@@ -22,6 +22,11 @@ export const AlphaOptionHandlerABI = [
 	},
 	{
 		"inputs": [],
+		"name": "CollateralAssetInvalid",
+		"type": "error"
+	},
+	{
+		"inputs": [],
 		"name": "InvalidBuyer",
 		"type": "error"
 	},
@@ -33,6 +38,11 @@ export const AlphaOptionHandlerABI = [
 	{
 		"inputs": [],
 		"name": "InvalidPrice",
+		"type": "error"
+	},
+	{
+		"inputs": [],
+		"name": "NonWhitelistedOtoken",
 		"type": "error"
 	},
 	{
@@ -695,6 +705,24 @@ export const AlphaOptionHandlerABI = [
 			}
 		],
 		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "optionExchange",
+				"type": "address"
+			},
+			{
+				"internalType": "address[]",
+				"name": "otokens",
+				"type": "address[]"
+			}
+		],
+		"name": "transferOtokens",
+		"outputs": [],
+		"stateMutability": "nonpayable",
 		"type": "function"
 	},
 	{

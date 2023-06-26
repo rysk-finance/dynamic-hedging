@@ -14,7 +14,8 @@ import "./libraries/SafeTransferLib.sol";
 
 import "./interfaces/ILiquidityPool.sol";
 import "./interfaces/IOptionRegistry.sol";
-import "./interfaces/IPortfolioValuesFeed.sol";
+import "./interfaces/OtokenInterface.sol";
+import "./interfaces/IAlphaPortfolioValuesFeed.sol";
 
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
@@ -140,13 +141,30 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		if (_orderExpiry > maxOrderExpiry) {
 			revert CustomErrors.OrderExpiryTooLong();
 		}
-		IOptionRegistry optionRegistry = getOptionRegistry();
 		// issue the option type, all checks of the option validity should happen in _issue
-		address series = liquidityPool.handlerIssue(_optionSeries);
+		address series = getOptionRegistry().getOtoken(
+				_optionSeries.underlying,
+				_optionSeries.strikeAsset,
+				_optionSeries.expiration,
+				_optionSeries.isPut,
+				_optionSeries.strike,
+				_optionSeries.collateral
+		);
+		if (series == address(0) || ERC20(series).balanceOf(address(this)) < OptionsCompute.convertToDecimals(_amount, OPYN_DECIMALS)) {
+			series = liquidityPool.handlerIssue(_optionSeries);
+		}
 		uint256 spotPrice = _getUnderlyingPrice(underlyingAsset, strikeAsset);
+		_optionSeries = Types.OptionSeries(
+				_optionSeries.expiration,
+				uint128(OptionsCompute.formatStrikePrice(_optionSeries.strike, collateralAsset)),
+				_optionSeries.isPut,
+				_optionSeries.underlying,
+				_optionSeries.strikeAsset,
+				_optionSeries.collateral
+		);
 		// create the order struct, setting the series, amount, price, order expiry and buyer address
 		Types.Order memory order = Types.Order(
-			optionRegistry.getSeriesInfo(series), // strike in e8
+			_optionSeries, // strike in e8
 			_amount, // amount in e18
 			_price, // in e18
 			block.timestamp + _orderExpiry,
@@ -213,6 +231,23 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		return (putOrderId, callOrderId);
 	}
 
+	/**
+	 * @notice transfer otokens held by this address to an option exchange
+	 * @param optionExchange the option exchange to send otokens to
+	 * @param otokens the otoken addresses to transfer
+	 */
+	function transferOtokens(address optionExchange, address[] memory otokens) external {
+		_onlyGovernor();
+		uint256 len = otokens.length;
+		for (uint256 i = 0; i < len; i++) {
+			if (OtokenInterface(otokens[i]).underlyingAsset() != underlyingAsset) {
+				revert CustomErrors.NonWhitelistedOtoken();
+			}
+			uint256 balance = ERC20(otokens[i]).balanceOf(address(this));
+			SafeTransferLib.safeTransfer(ERC20(otokens[i]), optionExchange, balance);
+		}
+	}
+
 	/////////////////////////////////////////////
 	/// external state changing functionality ///
 	/////////////////////////////////////////////
@@ -246,7 +281,10 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		}
 		// calculate the total premium
 		uint256 premium = order.amount.mul(order.price);
-
+		uint256 convertedAmount = OptionsCompute.convertToDecimals(
+			order.amount,
+			ERC20(order.seriesAddress).decimals()
+		);
 		uint256 convertedPrem = OptionsCompute.convertToDecimals(
 			premium,
 			ERC20(collateralAsset).decimals()
@@ -264,16 +302,6 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			address(liquidityPool),
 			convertedPrem
 		);
-		// write the option contract, includes sending the premium from the user to the pool, option series should be in e8
-		liquidityPool.handlerWriteOption(
-			order.optionSeries,
-			order.seriesAddress,
-			order.amount,
-			getOptionRegistry(),
-			convertedPrem,
-			0, // delta is not used in the liquidityPool unless the oracle implementation is used, so can be set to 0
-			msg.sender
-		);
 		// convert the strike to e18 decimals for storage
 		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
 			order.optionSeries.expiration,
@@ -281,14 +309,46 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			order.optionSeries.isPut,
 			underlyingAsset,
 			strikeAsset,
-			collateralAsset
+			order.optionSeries.collateral
 		);
-		getPortfolioValuesFeed().updateStores(
-			seriesToStore,
-			int256(order.amount),
-			0,
-			order.seriesAddress
-		);
+		if (ERC20(order.seriesAddress).balanceOf(address(this)) >= convertedAmount) {
+			// transfer otoken
+			SafeTransferLib.safeTransfer(ERC20(order.seriesAddress), msg.sender, convertedAmount);
+			// update stores
+			getPortfolioValuesFeed().updateStores(
+				seriesToStore,
+				0,
+				-int256(order.amount),
+				order.seriesAddress
+			);
+			// adjust variables
+			liquidityPool.adjustVariables(
+				0,
+				convertedPrem,
+				0,
+				true
+			);
+		} else {
+			if (order.optionSeries.collateral != collateralAsset) {
+				revert CustomErrors.CollateralAssetInvalid();
+			}
+			// write the option contract, includes sending the premium from the user to the pool, option series should be in e8
+			liquidityPool.handlerWriteOption(
+				order.optionSeries,
+				order.seriesAddress,
+				order.amount,
+				getOptionRegistry(),
+				convertedPrem,
+				0, // delta is not used in the liquidityPool unless the oracle implementation is used, so can be set to 0
+				msg.sender
+			);
+			getPortfolioValuesFeed().updateStores(
+				seriesToStore,
+				int256(order.amount),
+				0,
+				order.seriesAddress
+			);
+		}
 		emit OptionsBought(order.seriesAddress, msg.sender, order.amount, convertedPrem, expectedFee);
 		emit OrderExecuted(_orderId);
 		// invalidate the order
@@ -317,6 +377,9 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		if (!order.isBuyBack) {
 			revert CustomErrors.InvalidOrder();
 		}
+		if (order.optionSeries.collateral != collateralAsset) {
+			revert CustomErrors.CollateralAssetInvalid();
+		}
 		uint256 spotPrice = _getUnderlyingPrice(underlyingAsset, strikeAsset);
 		// If spot price has deviated too much we want to void the order
 		if (order.lowerSpotMovementRange > spotPrice || order.upperSpotMovementRange < spotPrice) {
@@ -328,6 +391,15 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 		uint256 convertedPrem = OptionsCompute.convertToDecimals(
 			premium,
 			ERC20(collateralAsset).decimals()
+		);
+		// convert the strike to e18 decimals for storage
+		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
+			order.optionSeries.expiration,
+			uint128(OptionsCompute.convertFromDecimals(order.optionSeries.strike, OPYN_DECIMALS)),
+			order.optionSeries.isPut,
+			underlyingAsset,
+			strikeAsset,
+			collateralAsset
 		);
 		// transfer the oToken to the liquidityPool
 		SafeTransferLib.safeTransferFrom(
@@ -345,15 +417,6 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 			convertedPrem,
 			0, // delta is not used in the liquidityPool unless the oracle implementation is used, so can be set to 0
 			msg.sender
-		);
-		// convert the strike to e18 decimals for storage
-		Types.OptionSeries memory seriesToStore = Types.OptionSeries(
-			order.optionSeries.expiration,
-			uint128(OptionsCompute.convertFromDecimals(order.optionSeries.strike, OPYN_DECIMALS)),
-			order.optionSeries.isPut,
-			underlyingAsset,
-			strikeAsset,
-			collateralAsset
 		);
 		getPortfolioValuesFeed().updateStores(
 			seriesToStore,
@@ -392,8 +455,8 @@ contract AlphaOptionHandler is AccessControl, ReentrancyGuard {
 	 * @notice get the portfolio values feed used by the liquidity pool
 	 * @return the portfolio values feed contract
 	 */
-	function getPortfolioValuesFeed() internal view returns (IPortfolioValuesFeed) {
-		return IPortfolioValuesFeed(protocol.portfolioValuesFeed());
+	function getPortfolioValuesFeed() internal view returns (IAlphaPortfolioValuesFeed) {
+		return IAlphaPortfolioValuesFeed(protocol.portfolioValuesFeed());
 	}
 
 	/**
