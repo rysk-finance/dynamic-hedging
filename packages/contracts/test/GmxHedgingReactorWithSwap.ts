@@ -94,8 +94,8 @@ const checkPositionExecutedEvent = async delta => {
 	expect(eventOutput).to.eq(utils.parseEther(delta.toString()))
 }
 
-describe("GMX Hedging Reactor With Swap", () => {
-	before(async function () {
+describe("GMX Hedging Reactor With Swap", async () => {
+	before(async () => {
 		await network.provider.request({
 			method: "hardhat_reset",
 			params: [
@@ -272,7 +272,7 @@ describe("GMX Hedging Reactor With Swap", () => {
 		const funder = await ethers.getSigner(funderAddress)
 		await funder.sendTransaction({ to: gmxReactor.address, value: utils.parseEther("1") })
 
-		await gmxReactor.connect(deployer).setKeeper(signers[0].getAddress(), true)
+		await gmxReactor.connect(deployer).setKeeper(await signers[0].getAddress(), true)
 
 		expect(await gmxReactor.parentLiquidityPool()).to.eq(liquidityPoolAddress)
 		expect(await gmxReactor.getDelta()).to.eq(0)
@@ -1865,6 +1865,130 @@ describe("price moves between submitting and executing orders", async () => {
 		expect(usdcNativeBalanceDiff).to.within(-5, 0)
 		expect(await usdcNative.balanceOf(gmxReactor.address)).to.eq(0)
 		expect(await gmxReactor.internalDelta()).to.eq(0)
+	})
+})
+describe("griefing attack", async () => {
+	it("opens long and requests close", async () => {
+		const delta = -10
+		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta}`), 0)
+		await executeIncreasePosition()
+
+		// check internalDelta var is correct
+		const deltaAfter = await gmxReactor.internalDelta()
+		expect(deltaAfter).to.eq(utils.parseEther("10"))
+
+		await checkPositionExecutedEvent(-delta)
+
+		// check multi-leg variables
+		expect(await gmxReactor.longAndShortOpen()).to.be.false
+		expect(await gmxReactor.openLongDelta()).to.eq(toWei("10"))
+		expect(await gmxReactor.openShortDelta()).to.eq(0)
+
+		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${-delta}`), 0)
+		expect(await gmxReactor.pendingDecreaseCallback()).to.eq(1)
+		expect(await gmxReactor.internalDelta()).to.eq(utils.parseEther("10"))
+	})
+	it("third party opens long and requests decrease", async () => {
+		let positionKey
+		const gmxRouter = await ethers.getContractAt(
+			"contracts/interfaces/IRouter.sol:IRouter",
+			gmxRouterAddress
+		)
+		await gmxRouter.connect(deployer).approvePlugin(gmxPositionRouterAddress)
+		await usdcBridged.connect(deployer).approve(gmxRouterAddress, utils.parseUnits("10000", 6))
+		positionKey = await gmxPositionRouter
+			.connect(deployer)
+			.callStatic.createIncreasePosition(
+				[usdcBridged.address, wethAddress],
+				wethAddress,
+				utils.parseUnits("100", 6),
+				0,
+				utils.parseUnits("200", 30),
+				true,
+				utils.parseUnits("1800", 30),
+				await gmxPositionRouter.minExecutionFee(),
+				utils.formatBytes32String("leverageisfun"),
+				gmxReactor.address,
+				{ value: gmxPositionRouter.minExecutionFee() }
+			)
+		await gmxPositionRouter
+			.connect(deployer)
+			.createIncreasePosition(
+				[usdcBridged.address, wethAddress],
+				wethAddress,
+				utils.parseUnits("100", 6),
+				0,
+				utils.parseUnits("200", 30),
+				true,
+				utils.parseUnits("1800", 30),
+				await gmxPositionRouter.minExecutionFee(),
+				utils.formatBytes32String("leverageisfun"),
+				gmxReactor.address,
+				{ value: gmxPositionRouter.minExecutionFee() }
+			)
+
+		await ethers.provider.send("evm_increaseTime", [180])
+		await ethers.provider.send("evm_mine")
+
+		await gmxPositionRouter.connect(deployer).executeIncreasePosition(positionKey, deployerAddress)
+
+		expect(await gmxReactor.pendingDecreaseCallback()).to.eq(1)
+		expect(await gmxReactor.internalDelta()).to.eq(utils.parseEther("10"))
+
+		positionKey = await gmxPositionRouter
+			.connect(deployer)
+			.callStatic.createDecreasePosition(
+				[wethAddress, usdcBridged.address],
+				wethAddress,
+				utils.parseUnits("50", 6),
+				utils.parseUnits("100", 30),
+				true,
+				deployerAddress,
+				utils.parseUnits("1800", 30),
+				0,
+				await gmxPositionRouter.minExecutionFee(),
+				false,
+				gmxReactor.address,
+				{ value: gmxPositionRouter.minExecutionFee() }
+			)
+
+		await gmxPositionRouter
+			.connect(deployer)
+			.createDecreasePosition(
+				[wethAddress, usdcBridged.address],
+				wethAddress,
+				utils.parseUnits("50", 6),
+				utils.parseUnits("100", 30),
+				true,
+				deployerAddress,
+				utils.parseUnits("1800", 30),
+				0,
+				await gmxPositionRouter.minExecutionFee(),
+				false,
+				gmxReactor.address,
+				{ value: gmxPositionRouter.minExecutionFee() }
+			)
+		await ethers.provider.send("evm_increaseTime", [180])
+		await ethers.provider.send("evm_mine")
+		await gmxPositionRouter.connect(deployer).executeDecreasePosition(positionKey, deployerAddress)
+
+		expect(await gmxReactor.pendingDecreaseCallback()).to.eq(1)
+		expect(await gmxReactor.internalDelta()).to.eq(utils.parseEther("10"))
+	})
+	it("closes reactor position", async () => {
+		await executeDecreasePosition()
+
+		// check internalDelta var is correct
+		const deltaAfter = await gmxReactor.internalDelta()
+		expect(deltaAfter).to.eq(utils.parseEther("0"))
+
+		// check multi-leg variables
+		expect(await gmxReactor.longAndShortOpen()).to.be.false
+		expect(await gmxReactor.openLongDelta()).to.eq(0)
+		expect(await gmxReactor.openShortDelta()).to.eq(0)
+
+		expect(await gmxReactor.pendingDecreaseCallback()).to.eq(0)
+		expect(await gmxReactor.internalDelta()).to.eq(utils.parseEther("0"))
 	})
 })
 describe("multi leg hedges fail resulting in simultaneous long and short", async () => {
