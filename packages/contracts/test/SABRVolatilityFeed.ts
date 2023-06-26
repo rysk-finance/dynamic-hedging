@@ -3,54 +3,130 @@ import { expect } from "chai"
 import dayjs from "dayjs"
 import utc from "dayjs/plugin/utc"
 import { BigNumber, Signer, utils } from "ethers"
-import hre, { ethers } from "hardhat"
-
+import hre, { ethers, network } from "hardhat"
+import { CHAINLINK_WETH_PRICER, ADDRESS_BOOK } from "./constants"
+import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
+import { deployOpyn } from "../utils/opyn-deployer"
 import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
-import { MintableERC20, PriceFeed, VolatilityFeed, WETH } from "../types"
+import {
+	AlphaPortfolioValuesFeed,
+	BeyondPricer,
+	LiquidityPool,
+	MintableERC20,
+	MockChainlinkAggregator,
+	OptionCatalogue,
+	OptionExchange,
+	OptionRegistry,
+	Oracle,
+	PriceFeed,
+	Protocol,
+	VolatilityFeed,
+	ERC20,
+	WETH
+} from "../types"
 import { tFormatEth, toWei } from "../utils/conversion-helper"
-import { increaseTo } from "./helpers"
+import { increaseTo, setupTestOracle } from "./helpers"
 
 dayjs.extend(utc)
 
 let usd: MintableERC20
-let weth: MintableERC20
+let weth: WETH
 let signers: Signer[]
 let volFeed: VolatilityFeed
 let priceFeed: PriceFeed
 let ethUSDAggregator: MockContract
 
+let optionRegistry: OptionRegistry
+let optionProtocol: Protocol
+let senderAddress: string
+let receiverAddress: string
+let liquidityPool: LiquidityPool
+let portfolioValuesFeed: AlphaPortfolioValuesFeed
+let oracle: Oracle
+let opynAggregator: MockChainlinkAggregator
+let exchange: OptionExchange
+let pricer: BeyondPricer
+let catalogue: OptionCatalogue
+let authority: string
 
 // get the expiration to use
 let start = dayjs.utc().add(8, "hours").unix()
 let expiration = dayjs.utc().add(30, "days").add(8, "hours").unix()
+// edit depending on the chain id to be tested on
+const chainId = 1
 
 describe("Volatility Feed", async () => {
 	before(async function () {
+		await hre.network.provider.request({
+			method: "hardhat_reset",
+			params: [
+				{
+					forking: {
+						chainId: 1,
+						jsonRpcUrl: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY}`,
+						blockNumber: 14290000
+					}
+				}
+			]
+		})
+
+		await network.provider.request({
+			method: "hardhat_impersonateAccount",
+			params: [CHAINLINK_WETH_PRICER[chainId]]
+		})
 		signers = await ethers.getSigners()
-		const erc20Factory = await ethers.getContractFactory("contracts/tokens/MintableERC20.sol:MintableERC20")
-		weth = await erc20Factory.deploy("WETH", "WETH", 18) as MintableERC20
-		usd = await erc20Factory.deploy("USDC", "USDC", 6) as MintableERC20
+		let opynParams = await deployOpyn(signers)
+		oracle = opynParams.oracle
+		const [sender] = signers
+
+		// get the oracle
+		const res = await setupTestOracle(await sender.getAddress())
+		oracle = res[0] as Oracle
+		opynAggregator = res[1] as MockChainlinkAggregator
+		let deployParams = await deploySystem(signers, oracle, opynAggregator)
+		weth = deployParams.weth
+		usd = deployParams.usd
+		optionRegistry = deployParams.optionRegistry
+		priceFeed = deployParams.priceFeed
+		volFeed = deployParams.volFeed
+		portfolioValuesFeed = deployParams.portfolioValuesFeed
+		optionProtocol = deployParams.optionProtocol
+		authority = deployParams.authority.address
+		let lpParams = await deployLiquidityPool(
+			signers,
+			optionProtocol,
+			usd,
+			weth,
+			optionRegistry,
+			portfolioValuesFeed,
+			volFeed,
+			authority
+		)
+		liquidityPool = lpParams.liquidityPool
+		exchange = lpParams.exchange
+		pricer = lpParams.pricer
+		catalogue = lpParams.catalogue
+
+		signers = await hre.ethers.getSigners()
+		senderAddress = await signers[0].getAddress()
+		receiverAddress = await signers[1].getAddress()
+	})
+	before(async function () {
+		signers = await ethers.getSigners()
+		const erc20Factory = await ethers.getContractFactory(
+			"contracts/tokens/MintableERC20.sol:MintableERC20"
+		)
+
 		ethUSDAggregator = await deployMockContract(signers[0], AggregatorV3Interface.abi)
 		const authorityFactory = await hre.ethers.getContractFactory("Authority")
+
 		const senderAddress = await signers[0].getAddress()
 		const authority = await authorityFactory.deploy(senderAddress, senderAddress, senderAddress)
-		// deploy price feed
-		const sequencerUptimeFeedFactory = await ethers.getContractFactory("MockChainlinkSequencerFeed")
-		const sequencerUptimeFeed = await sequencerUptimeFeedFactory.deploy()
-		const priceFeedFactory = await ethers.getContractFactory("contracts/PriceFeed.sol:PriceFeed")
-		priceFeed = (await priceFeedFactory.deploy(
-			authority.address,
-			sequencerUptimeFeed.address
-		)) as PriceFeed
+
 		await priceFeed.addPriceFeed(weth.address, usd.address, ethUSDAggregator.address)
 		const feedAddress = await priceFeed.priceFeeds(weth.address, usd.address)
 		expect(feedAddress).to.eq(ethUSDAggregator.address)
-		// deploy vol feed
-		// deploy libraries
-		const sabrFactory = await hre.ethers.getContractFactory("SABR")
-		const sabr = await sabrFactory.deploy()
-		const volFeedFactory = await ethers.getContractFactory("VolatilityFeed")
-		volFeed = (await volFeedFactory.deploy(authority.address)) as VolatilityFeed
+
 		await increaseTo(start)
 	})
 	describe("VolatilityFeed: setup", async () => {
@@ -78,7 +154,9 @@ describe("Volatility Feed", async () => {
 				putVolvol: 1_500000,
 				interestRate: utils.parseEther("-0.001")
 			}
+			await exchange.pause()
 			await volFeed.setSabrParameters(proposedSabrParams, expiration)
+			await exchange.unpause()
 			const volFeedSabrParams = await volFeed.sabrParams(expiration)
 			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -90,7 +168,7 @@ describe("Volatility Feed", async () => {
 			expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
 			expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
 			const expiries = await volFeed.getExpiries()
-			expect(expiries.length).to.equal(1)
+			expect(expiries.length).to.equal(2)
 		})
 		it("SETUP: set sabrParams", async () => {
 			const proposedSabrParams = {
@@ -104,7 +182,9 @@ describe("Volatility Feed", async () => {
 				putVolvol: 1_500000,
 				interestRate: utils.parseEther("-0.001")
 			}
+			await exchange.pause()
 			await volFeed.setSabrParameters(proposedSabrParams, expiration)
+			await exchange.unpause()
 			const volFeedSabrParams = await volFeed.sabrParams(expiration)
 			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -116,7 +196,7 @@ describe("Volatility Feed", async () => {
 			expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
 			expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
 			const expiries = await volFeed.getExpiries()
-			expect(expiries.length).to.equal(1)
+			expect(expiries.length).to.equal(2)
 		})
 		it("SETUP: set sabrParams", async () => {
 			const proposedSabrParams = {
@@ -131,7 +211,9 @@ describe("Volatility Feed", async () => {
 				interestRate: utils.parseEther("-0.001")
 			}
 			const expiry = expiration + 10
+			await exchange.pause()
 			await volFeed.setSabrParameters(proposedSabrParams, expiry)
+			await exchange.unpause()
 			const volFeedSabrParams = await volFeed.sabrParams(expiry)
 			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -143,7 +225,7 @@ describe("Volatility Feed", async () => {
 			expect(proposedSabrParams.putVolvol).to.equal(volFeedSabrParams.putVolvol)
 			expect(proposedSabrParams.interestRate).to.equal(volFeedSabrParams.interestRate)
 			const expiries = await volFeed.getExpiries()
-			expect(expiries.length).to.equal(2)
+			expect(expiries.length).to.equal(3)
 		})
 	})
 	describe("VolatilityFeed: get implied volatility", async () => {
@@ -189,6 +271,7 @@ describe("Volatility Feed", async () => {
 			).to.be.revertedWithCustomError(volFeed, "UNAUTHORIZED")
 		})
 		it("SUCCEEDS: set sabrParams", async () => {
+			await exchange.pause()
 			await volFeed.connect(signers[1]).setSabrParameters(
 				{
 					callAlpha: 1,
@@ -203,10 +286,12 @@ describe("Volatility Feed", async () => {
 				},
 				10
 			)
+			await exchange.unpause()
 			expect((await volFeed.sabrParams(10)).callAlpha).to.equal(1)
 			expect((await volFeed.sabrParams(10)).callAlpha).to.equal(1)
 		})
 		it("REVERTS: cannot set invalid sabrParams", async () => {
+			await exchange.pause()
 			await expect(
 				volFeed.setSabrParameters(
 					{
@@ -411,6 +496,7 @@ describe("Volatility Feed", async () => {
 				interestRate: utils.parseEther("-0.001")
 			}
 			await volFeed.setSabrParameters(proposedSabrParams, expiration)
+			await exchange.unpause()
 			const volFeedSabrParams = await volFeed.sabrParams(expiration)
 			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)

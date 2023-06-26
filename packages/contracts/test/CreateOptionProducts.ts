@@ -155,6 +155,7 @@ describe("Structured Product maker", async () => {
 			wethERC20,
 			optionRegistry,
 			portfolioValuesFeed,
+			volFeed,
 			authority
 		)
 		liquidityPool = lpParams.liquidityPool
@@ -167,6 +168,7 @@ describe("Structured Product maker", async () => {
 	})
 	describe("Setup add-on system features", async () => {
 		it("SETUP: set sabrParams", async () => {
+			await exchange.pause()
 			const proposedSabrParams = {
 				callAlpha: 250000,
 				callBeta: 1_000000,
@@ -203,6 +205,7 @@ describe("Structured Product maker", async () => {
 				interestRate: utils.parseEther("-0.002")
 			}
 			await volFeed.setSabrParameters(proposedSabrParams, expiration2)
+			await exchange.unpause()
 			const volFeedSabrParams = await volFeed.sabrParams(expiration2)
 			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)

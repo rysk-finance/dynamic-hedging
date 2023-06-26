@@ -5,9 +5,28 @@ import { BigNumber, Contract, Signer, utils } from "ethers"
 import hre, { ethers, network } from "hardhat"
 
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
-import { AlphaPortfolioValuesFeed, BeyondPricer, ClearingHouse, LiquidityPool, MintableERC20, MockChainlinkAggregator, OptionCatalogue, OptionExchange, OptionRegistry, Oracle, Otoken as IOToken, PerpHedgingReactor, PriceFeed, Protocol, VolatilityFeed, WETH } from "../types"
 import {
-	fromWei, PUT_FLAVOR, tFormatUSDC,
+	AlphaPortfolioValuesFeed,
+	BeyondPricer,
+	ClearingHouse,
+	LiquidityPool,
+	MintableERC20,
+	MockChainlinkAggregator,
+	OptionCatalogue,
+	OptionExchange,
+	OptionRegistry,
+	Oracle,
+	Otoken as IOToken,
+	PerpHedgingReactor,
+	PriceFeed,
+	Protocol,
+	VolatilityFeed,
+	WETH
+} from "../types"
+import {
+	fromWei,
+	PUT_FLAVOR,
+	tFormatUSDC,
 	toOpyn,
 	toUSDC,
 	toWei,
@@ -18,7 +37,12 @@ import { deployOpyn } from "../utils/opyn-deployer"
 import { deployRage, deployRangeOrder } from "../utils/rage-deployer"
 import { CHAINLINK_WETH_PRICER, USDC_ADDRESS, WETH_ADDRESS } from "./constants"
 import {
-	calculateOptionDeltaLocally, getSeriesWithe18Strike, makeIssueAndBuy, setOpynOracleExpiryPrice, setupOracle, setupTestOracle
+	calculateOptionDeltaLocally,
+	getSeriesWithe18Strike,
+	makeIssueAndBuy,
+	setOpynOracleExpiryPrice,
+	setupOracle,
+	setupTestOracle
 } from "./helpers"
 
 dayjs.extend(utc)
@@ -57,7 +81,6 @@ let catalogue: OptionCatalogue
 // First mined block will be timestamped 2022-02-27 19:05 UTC
 const expiryDate: string = "2022-04-05"
 
-
 // edit depending on the chain id to be tested on
 const chainId = 1
 const oTokenDecimalShift18 = 10000000000
@@ -71,7 +94,6 @@ const liquidityPoolWethDeposit = "1"
 
 const expiration = dayjs.utc(expiryDate).add(8, "hours").unix()
 const expiration2 = dayjs.utc(expiryDate).add(1, "weeks").add(8, "hours").unix() // have another batch of options expire 1 week after the first
-
 
 describe("Liquidity Pools hedging reactor: perps", async () => {
 	before(async function () {
@@ -118,6 +140,7 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 			wethERC20,
 			optionRegistry,
 			portfolioValuesFeed,
+			volFeed,
 			authority
 		)
 		liquidityPool = lpParams.liquidityPool
@@ -140,6 +163,7 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 			putVolvol: 1_500000,
 			interestRate: utils.parseEther("-0.001")
 		}
+		await exchange.pause()
 		await volFeed.setSabrParameters(proposedSabrParams, expiration)
 		const volFeedSabrParams = await volFeed.sabrParams(expiration)
 		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
@@ -165,6 +189,7 @@ describe("Liquidity Pools hedging reactor: perps", async () => {
 			interestRate: utils.parseEther("-0.002")
 		}
 		await volFeed.setSabrParameters(proposedSabrParams, expiration2)
+		await exchange.unpause()
 		const volFeedSabrParams = await volFeed.sabrParams(expiration2)
 		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)

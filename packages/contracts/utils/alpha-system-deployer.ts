@@ -13,7 +13,22 @@ import {
 	USDC_OWNER_ADDRESS,
 	WETH_ADDRESS
 } from "../test/constants"
-import { Accounting, AlphaOptionHandler, AlphaPortfolioValuesFeed, LiquidityPool, MintableERC20, MockChainlinkAggregator, OptionCatalogue, OptionRegistry, Oracle, PriceFeed, Protocol, Volatility, VolatilityFeed, WETH } from "../types"
+import {
+	Accounting,
+	AlphaOptionHandler,
+	AlphaPortfolioValuesFeed,
+	LiquidityPool,
+	MintableERC20,
+	MockChainlinkAggregator,
+	OptionCatalogue,
+	OptionRegistry,
+	Oracle,
+	PriceFeed,
+	Protocol,
+	Volatility,
+	VolatilityFeed,
+	WETH
+} from "../types"
 import { toWei, ZERO_ADDRESS } from "./conversion-helper"
 
 dayjs.extend(utc)
@@ -40,6 +55,7 @@ export async function deploySystem(
 ) {
 	const sender = signers[0]
 	const senderAddress = await sender.getAddress()
+
 	// deploy libraries
 	const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
 	const interactions = await interactionsFactory.deploy()
@@ -54,6 +70,12 @@ export async function deploySystem(
 	})
 	const authorityFactory = await hre.ethers.getContractFactory("Authority")
 	const authority = await authorityFactory.deploy(senderAddress, senderAddress, senderAddress)
+
+	const protocolFactory = await ethers.getContractFactory("contracts/Protocol.sol:Protocol")
+	const optionProtocol = (await protocolFactory.deploy(
+		portfolioValuesFeed.address,
+		authority.address
+	)) as Protocol
 	// get and transfer weth
 	const weth = (await ethers.getContractAt(
 		"contracts/interfaces/WETH.sol:WETH",
@@ -81,6 +103,7 @@ export async function deploySystem(
 		authority.address
 	)) as OptionRegistry
 	const optionRegistry = _optionRegistry
+	await optionProtocol.changeOptionRegistry(optionRegistry.address)
 
 	const sequencerUptimeFeedFactory = await ethers.getContractFactory("MockChainlinkSequencerFeed")
 	const sequencerUptimeFeed = await sequencerUptimeFeedFactory.deploy()
@@ -90,6 +113,8 @@ export async function deploySystem(
 		sequencerUptimeFeed.address
 	)) as PriceFeed
 	const priceFeed = _priceFeed
+	await optionProtocol.changePriceFeed(priceFeed.address)
+
 	await priceFeed.addPriceFeed(ZERO_ADDRESS, usd.address, opynAggregator.address)
 	await priceFeed.addPriceFeed(weth.address, usd.address, opynAggregator.address)
 	// oracle returns price denominated in 1e8
@@ -98,6 +123,8 @@ export async function deploySystem(
 	const priceFeedPrice = await priceFeed.getNormalizedRate(weth.address, usd.address)
 	const volFeedFactory = await ethers.getContractFactory("VolatilityFeed")
 	const volFeed = (await volFeedFactory.deploy(authority.address)) as VolatilityFeed
+	await optionProtocol.changeVolatilityFeed(volFeed.address)
+
 	const expiryDate: string = "2022-04-05"
 	let expiration = dayjs.utc(expiryDate).add(30, "days").add(8, "hours").unix()
 	const proposedSabrParams = {
@@ -137,15 +164,10 @@ export async function deploySystem(
 		authority.address,
 		toWei("50000")
 	)) as AlphaPortfolioValuesFeed
+	await optionProtocol.changePortfolioValuesFeed(portfolioValuesFeed.address)
 
-	const protocolFactory = await ethers.getContractFactory("contracts/Protocol.sol:Protocol")
-	const optionProtocol = (await protocolFactory.deploy(
-		optionRegistry.address,
-		priceFeed.address,
-		volFeed.address,
-		portfolioValuesFeed.address,
-		authority.address
-	)) as Protocol
+	expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
+	expect(await optionProtocol.priceFeed()).to.equal(priceFeed.address)
 	expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
 
 	return {
@@ -175,7 +197,7 @@ export async function deployLiquidityPool(
 	maxCallStrikePrice: any = maxiCallStrikePrice,
 	maxPutStrikePrice: any = maxiPutStrikePrice,
 	minExpiry: any = miniExpiry,
-	maxExpiry: any = maxiExpiry,
+	maxExpiry: any = maxiExpiry
 ) {
 	const normDistFactory = await ethers.getContractFactory(
 		"contracts/libraries/NormalDist.sol:NormalDist",
@@ -243,14 +265,12 @@ export async function deployLiquidityPool(
 			OptionsCompute: compute.address
 		}
 	})
-	const catalogue = (await catalogueFactory.deploy(
-		authority,
-		usd.address
-	)) as OptionCatalogue
-	const handlerFactory = await ethers.getContractFactory("AlphaOptionHandler", {		
+	const catalogue = (await catalogueFactory.deploy(authority, usd.address)) as OptionCatalogue
+	const handlerFactory = await ethers.getContractFactory("AlphaOptionHandler", {
 		libraries: {
 			OptionsCompute: compute.address
-	}})
+		}
+	})
 	const handler = (await handlerFactory.deploy(
 		authority,
 		optionProtocol.address,
