@@ -15,9 +15,7 @@ contract SABRTest is Test {
 	function setUp() public {
 		Authority auth = new Authority(address(this), msg.sender, msg.sender);
 		PausedContract pausedContract = new PausedContract();
-		console.log("X");
 		volFeed = new VolatilityFeed(address(auth), address(pausedContract));
-		console.log("Y");
 		VolatilityFeed.SABRParams memory _sabrParams = VolatilityFeed.SABRParams(
 			250000,
 			1000000,
