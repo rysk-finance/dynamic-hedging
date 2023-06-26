@@ -38,6 +38,6 @@
         "eslint-plugin-react": "^7.32.2",
         "husky": "^8.0.3",
         "prettier": "^2.8.8",
-        "typescript": "^5.0.4"
+        "typescript": "~5.0.4"
     }
 }
