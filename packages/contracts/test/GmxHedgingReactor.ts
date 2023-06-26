@@ -85,7 +85,7 @@ const checkPositionExecutedEvent = async delta => {
 	expect(eventOutput).to.eq(utils.parseEther(delta.toString()))
 }
 
-describe("GMX Hedging Reactor", () => {
+describe("GMX Hedging Reactor", async () => {
 	before(async function () {
 		await network.provider.request({
 			method: "hardhat_reset",
@@ -1804,6 +1804,21 @@ describe("griefing attack", async () => {
 		await usdc.connect(deployer).approve(gmxRouterAddress, utils.parseUnits("10000", 6))
 		positionKey = await gmxPositionRouter
 			.connect(deployer)
+			.callStatic.createIncreasePosition(
+				[usdcAddress, wethAddress],
+				wethAddress,
+				utils.parseUnits("100", 6),
+				0,
+				utils.parseUnits("200", 30),
+				true,
+				utils.parseUnits("1800", 30),
+				await gmxPositionRouter.minExecutionFee(),
+				utils.formatBytes32String("leverageisfun"),
+				gmxReactor.address,
+				{ value: gmxPositionRouter.minExecutionFee() }
+			)
+		await gmxPositionRouter
+			.connect(deployer)
 			.createIncreasePosition(
 				[usdcAddress, wethAddress],
 				wethAddress,
@@ -1812,7 +1827,7 @@ describe("griefing attack", async () => {
 				utils.parseUnits("200", 30),
 				true,
 				utils.parseUnits("1800", 30),
-				gmxPositionRouter.minExecutionFee(),
+				await gmxPositionRouter.minExecutionFee(),
 				utils.formatBytes32String("leverageisfun"),
 				gmxReactor.address,
 				{ value: gmxPositionRouter.minExecutionFee() }
@@ -1821,14 +1836,28 @@ describe("griefing attack", async () => {
 		await ethers.provider.send("evm_increaseTime", [180])
 		await ethers.provider.send("evm_mine")
 
-		await gmxPositionRouter
-			.connect(deployer)
-			.executeIncreasePosition(utils.formatBytes32String(positionKey), deployerAddress)
+		await gmxPositionRouter.connect(deployer).executeIncreasePosition(positionKey, deployerAddress)
 
 		expect(await gmxReactor.pendingDecreaseCallback()).to.eq(1)
 		expect(await gmxReactor.internalDelta()).to.eq(utils.parseEther("10"))
-
 		positionKey = await gmxPositionRouter
+			.connect(deployer)
+			.callStatic.createDecreasePosition(
+				[wethAddress, usdcAddress],
+				wethAddress,
+				utils.parseUnits("50", 6),
+				utils.parseUnits("100", 30),
+				true,
+				deployerAddress,
+				utils.parseUnits("1800", 30),
+				0,
+				await gmxPositionRouter.minExecutionFee(),
+				false,
+				gmxReactor.address,
+				{ value: gmxPositionRouter.minExecutionFee() }
+			)
+
+		await gmxPositionRouter
 			.connect(deployer)
 			.createDecreasePosition(
 				[wethAddress, usdcAddress],
@@ -1839,7 +1868,7 @@ describe("griefing attack", async () => {
 				deployerAddress,
 				utils.parseUnits("1800", 30),
 				0,
-				gmxPositionRouter.minExecutionFee(),
+				await gmxPositionRouter.minExecutionFee(),
 				false,
 				gmxReactor.address,
 				{ value: gmxPositionRouter.minExecutionFee() }
@@ -1847,10 +1876,9 @@ describe("griefing attack", async () => {
 		await ethers.provider.send("evm_increaseTime", [180])
 		await ethers.provider.send("evm_mine")
 
-		await gmxPositionRouter
-			.connect(deployer)
-			.executeDecreasePosition(utils.formatBytes32String(positionKey), deployerAddress)
+		await gmxPositionRouter.connect(deployer).executeDecreasePosition(positionKey, deployerAddress)
 
+		console.log({ positionKey })
 		expect(await gmxReactor.pendingDecreaseCallback()).to.eq(1)
 		expect(await gmxReactor.internalDelta()).to.eq(utils.parseEther("10"))
 	})
