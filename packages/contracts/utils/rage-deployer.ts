@@ -13,13 +13,15 @@ import { ClearingHouse } from "../types/ClearingHouse"
 import { ClearingHouseLens } from "../types/ClearingHouseLens"
 import { OracleMock } from "../types/OracleMock"
 import { priceToSqrtPriceX96 } from '../utils/price-tick'
-const chainId = 1
+
+
 export async function initializePool(
     rageTradeFactory: RageTradeFactory,
     initialMarginRatioBps: BigNumberish,
     maintainanceMarginRatioBps: BigNumberish,
     twapDuration: BigNumberish,
     initialPrice: BigNumberish,
+    chainId = 1
   ) {
     const realToken = await hre.ethers.getContractAt('MintableERC20', WETH_ADDRESS[chainId]);
 
@@ -112,7 +114,7 @@ export async function updateRangeOrder(
   }
 
 
-    export async function deployRage() {
+    export async function deployRage(chainId = 1) {
 		let accountLib = (await (await hre.ethers.getContractFactory('Account')).deploy());
 		const clearingHouseLogic = await (
 		  await hre.ethers.getContractFactory('ClearingHouse', {

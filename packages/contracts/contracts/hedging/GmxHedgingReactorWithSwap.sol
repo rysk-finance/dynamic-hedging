@@ -3,6 +3,7 @@ pragma solidity >=0.8.9;
 
 import "prb-math/contracts/PRBMathUD60x18.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
+import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 
 import "../PriceFeed.sol";
 
@@ -24,7 +25,7 @@ import "@openzeppelin/contracts/utils/math/Math.sol";
  *       interacts with GMX via _increasePosition and _decreasePosition
  */
 
-contract GmxHedgingReactor is IHedgingReactor, AccessControl {
+contract GmxHedgingReactorWithSwap is IHedgingReactor, AccessControl {
 	using PRBMathSD59x18 for int256;
 	using PRBMathUD60x18 for uint256;
 	/////////////////////////////////
@@ -33,12 +34,16 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 
 	/// @notice address of the parent liquidity pool contract
 	address public immutable parentLiquidityPool;
-	/// @notice collateralAsset used for collateralising the pool
+	/// @notice collateralAsset in the main Rysk protocol (native USDC)
 	address public immutable collateralAsset;
+	/// @notice address of the bridged version of USDC
+	address public immutable bridgedCollateralAsset = 0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8;
 	/// @notice address of the wETH contract
 	address public immutable wETH;
 	/// @notice the gmx vault contract address
 	IGmxVault public immutable vault;
+	/// @notice instance of the uniswap V3 router interface
+	ISwapRouter public immutable swapRouter;
 
 	/////////////////////////
 	/// dynamic variables ///
@@ -119,7 +124,8 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		address _wethAddress,
 		address _parentLiquidityPool,
 		address _priceFeed,
-		address _authority
+		address _authority,
+		address _swapRouter
 	) AccessControl(IAuthority(_authority)) {
 		router = IRouter(_gmxRouter);
 		reader = IReader(_gmxReader);
@@ -130,6 +136,9 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		wETH = _wethAddress;
 		collateralAsset = _collateralAsset;
 		priceFeed = _priceFeed;
+		swapRouter = ISwapRouter(_swapRouter);
+		SafeTransferLib.safeApprove(ERC20(_collateralAsset), address(swapRouter), MAX_UINT);
+		SafeTransferLib.safeApprove(ERC20(bridgedCollateralAsset), address(swapRouter), MAX_UINT);
 	}
 
 	receive() external payable {}
@@ -236,16 +245,16 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		}
 		// check the holdings if enough just lying around then transfer it
 		// assume amount is passed in as collateral decimals
-		uint256 balance = ERC20(collateralAsset).balanceOf(address(this));
+		uint256 balance = ERC20(bridgedCollateralAsset).balanceOf(address(this));
 		if (balance == 0) {
 			return 0;
 		}
 		if (_amount <= balance) {
-			SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, _amount);
+			_transferOut(_amount);
 			// return in collateral format
 			return _amount;
 		} else {
-			SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, balance);
+			_transferOut(balance);
 			// return in collateral format
 			return balance;
 		}
@@ -271,6 +280,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 
 	/// @inheritdoc IHedgingReactor
 	function update() external returns (uint256) {
+
 		_isKeeper();
 		int _internalDelta = sync();
 		if (_internalDelta == 0 && openLongDelta == 0 && openShortDelta == 0) {
@@ -402,7 +412,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			value = (position[1] - position[8]) / GMX_DECIMAL_CONVERT;
 		}
 		value += OptionsCompute.convertFromDecimals(
-			ERC20(collateralAsset).balanceOf(address(this)),
+			ERC20(bridgedCollateralAsset).balanceOf(address(this)),
 			COLLATERAL_ASSET_DECIMALS
 		);
 		if (pendingIncreaseCallback != 0) {
@@ -535,6 +545,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				uint256(_amount),
 				true
 			);
+
 			(positionKey, deltaChange) = _increasePosition(uint256(_amount), collateralToAdd, true);
 			// update deltaChange for callback function
 			increaseOrderDeltaChange[positionKey] += deltaChange;
@@ -587,23 +598,16 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		uint256 _collateralSize,
 		bool _isLong
 	) internal returns (bytes32 positionKey, int256 deltaChange) {
-		// check if funds are available in Liquidity pool
-		if (ILiquidityPool(parentLiquidityPool).getBalance(collateralAsset) < _collateralSize) {
-			revert CustomErrors.WithdrawExceedsLiquidity();
-		}
 		if (pendingIncreaseCallback != 0) {
 			revert CustomErrors.GmxCallbackPending();
 		}
-		uint256 currentPrice = getUnderlyingPrice(wETH, collateralAsset);
+		uint256 currentPrice = getUnderlyingPrice(wETH, bridgedCollateralAsset);
 
 		// take that amount of collateral from the Liquidity Pool and approve to GMX
-		SafeTransferLib.safeTransferFrom(
-			collateralAsset,
-			parentLiquidityPool,
-			address(this),
-			_collateralSize
-		);
-		SafeTransferLib.safeApprove(ERC20(collateralAsset), address(router), _collateralSize);
+		if (_collateralSize > 0) {
+			_transferIn(_collateralSize);
+			SafeTransferLib.safeApprove(ERC20(bridgedCollateralAsset), address(router), _collateralSize);
+		}
 
 		positionKey = gmxPositionRouter.createIncreasePosition{
 			value: gmxPositionRouter.minExecutionFee()
@@ -629,6 +633,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		pendingIncreaseCallback++;
 		pendingIncreaseCollateralValue = _collateralSize;
 		pendingIncreaseOrders[positionKey] = true;
+
 		return (positionKey, _isLong ? int256(_size) : -int256(_size));
 	}
 
@@ -646,7 +651,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		bool _isLong
 	) internal returns (bytes32 positionKey, int256 deltaChange) {
 		uint256[] memory position = _getPosition(_isLong);
-		uint256 currentPrice = getUnderlyingPrice(wETH, collateralAsset);
+		uint256 currentPrice = getUnderlyingPrice(wETH, bridgedCollateralAsset);
 
 		// calculate change in dollar value of position
 		// equal to (_size / abs(internalDelta)) * positionSize
@@ -660,7 +665,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			_collateralSize * GMX_TO_COLLATERAL_DECIMALS,
 			positionSizeDeltaUsd,
 			_isLong,
-			parentLiquidityPool,
+			address(this),
 			_isLong
 				? currentPrice.mul(1e18 - positionPriceTolerance) * GMX_DECIMAL_CONVERT
 				: currentPrice.mul(1e18 + positionPriceTolerance) * GMX_DECIMAL_CONVERT, // mul by 0.995 e12 for slippage
@@ -688,7 +693,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		bool[] memory isLong = new bool[](1);
 		if (!_isLong) {
 			// get short pos
-			collateralToken[0] = collateralAsset;
+			collateralToken[0] = bridgedCollateralAsset;
 			isLong[0] = false;
 		} else {
 			// get long pos
@@ -728,12 +733,12 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	function _createPathIncreasePosition(bool _isLong) internal view returns (address[] memory) {
 		if (_isLong) {
 			address[] memory path = new address[](2);
-			path[0] = collateralAsset;
+			path[0] = bridgedCollateralAsset;
 			path[1] = wETH;
 			return path;
 		} else {
 			address[] memory path = new address[](1);
-			path[0] = collateralAsset;
+			path[0] = bridgedCollateralAsset;
 			return path;
 		}
 	}
@@ -746,11 +751,11 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		if (_isLong) {
 			address[] memory path = new address[](2);
 			path[0] = wETH;
-			path[1] = collateralAsset;
+			path[1] = bridgedCollateralAsset;
 			return path;
 		} else {
 			address[] memory path = new address[](1);
-			path[0] = collateralAsset;
+			path[0] = bridgedCollateralAsset;
 			return path;
 		}
 	}
@@ -775,14 +780,14 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				// this is a new position so no pnl to account for
 				return
 					OptionsCompute.convertToDecimals(
-						(_amount.mul(getUnderlyingPrice(wETH, collateralAsset)) * healthFactor) / MAX_BIPS,
+						(_amount.mul(getUnderlyingPrice(wETH, bridgedCollateralAsset)) * healthFactor) / MAX_BIPS,
 						COLLATERAL_ASSET_DECIMALS
 					);
 			}
 			(, bool isAboveMax, , uint256 collatToTransfer, , ) = checkVaultHealth();
 			// this is the collateral needed to increase position with no health factor rebalancing
 			uint256 extraPositionCollateral = OptionsCompute.convertToDecimals(
-				(_amount.mul(getUnderlyingPrice(wETH, collateralAsset)) * healthFactor) / MAX_BIPS,
+				(_amount.mul(getUnderlyingPrice(wETH, bridgedCollateralAsset)) * healthFactor) / MAX_BIPS,
 				COLLATERAL_ASSET_DECIMALS
 			);
 			uint256 totalCollateralToAdd;
@@ -805,8 +810,11 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			// where positionSize / collateral is >= maxLeverage()
 			// maxLeverage is multiplied by 10000 in contract. divide by 11000 to allow for 10% buffer.
 			uint256 minAllowedCollateral = OptionsCompute.convertToDecimals(
-				((position[0] / GMX_DECIMAL_CONVERT + _amount.mul(getUnderlyingPrice(wETH, collateralAsset)))) /
-					(vault.maxLeverage() / BUFFER),
+				(
+					(position[0] /
+						GMX_DECIMAL_CONVERT +
+						_amount.mul(getUnderlyingPrice(wETH, bridgedCollateralAsset)))
+				) / (vault.maxLeverage() / BUFFER),
 				COLLATERAL_ASSET_DECIMALS
 			);
 			if (
@@ -934,6 +942,7 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			revert CustomErrors.InvalidGmxCallback();
 		}
 		if (isExecuted) {
+
 			if (isIncrease && pendingIncreaseOrders[positionKey]) {
 				int deltaChange = increaseOrderDeltaChange[positionKey];
 				internalDelta += deltaChange;
@@ -979,12 +988,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				emit PositionExecuted(deltaChange);
 			}
 		} else {
-			// in the case of a failure there might be some collateral left over, we need to
-			// send anything left over back to the liquidity pool
-			uint256 balance = ERC20(collateralAsset).balanceOf(address(this));
-			if (balance > 0) {
-				SafeTransferLib.safeTransfer(ERC20(collateralAsset), parentLiquidityPool, balance);
-			}
 			// if there was a failure record the failure by emitting an event
 			if (isIncrease && pendingIncreaseOrders[positionKey]) {
 				emit RebalancePortfolioDeltaFailed(increaseOrderDeltaChange[positionKey]);
@@ -999,6 +1002,11 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				delete pendingDecreaseOrders[positionKey];
 			}
 		}
+		// send any collateral back to the liquidity pool
+		uint256 balance = ERC20(bridgedCollateralAsset).balanceOf(address(this));
+		if (balance > 0) {
+			_transferOut(balance);
+		}
 	}
 
 	/**
@@ -1012,6 +1020,55 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		address _strikeAsset
 	) internal view returns (uint256) {
 		return PriceFeed(priceFeed).getNormalizedRate(underlying, _strikeAsset);
+	}
+
+	function _transferIn(uint256 _amount) internal {
+		uint256 _amountInMaximum = (_amount * 10050) / 10000;
+		if (ILiquidityPool(parentLiquidityPool).getBalance(collateralAsset) < _amountInMaximum) {
+			revert CustomErrors.WithdrawExceedsLiquidity();
+		}
+		// transfer funds from the liquidity pool here
+		SafeTransferLib.safeTransferFrom(
+			collateralAsset,
+			parentLiquidityPool,
+			address(this),
+			_amountInMaximum
+		);
+		// convert from the native usdc to bridged usdc
+		ISwapRouter.ExactOutputSingleParams memory params = ISwapRouter.ExactOutputSingleParams({
+			tokenIn: collateralAsset,
+			tokenOut: bridgedCollateralAsset,
+			fee: 100,
+			recipient: address(this),
+			deadline: block.timestamp,
+			amountOut: _amount,
+			amountInMaximum: _amountInMaximum,
+			sqrtPriceLimitX96: 0
+		});
+		// Executes the swap
+		swapRouter.exactOutputSingle(params);
+		// transfer any remainder funds back to the liquidity pool
+		SafeTransferLib.safeTransfer(
+			ERC20(collateralAsset),
+			parentLiquidityPool,
+			ERC20(collateralAsset).balanceOf(address(this))
+		);
+	}
+
+	function _transferOut(uint256 _amount) internal {
+		uint256 _amountOutMinimum = (_amount * 9950) / 10000;
+		ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
+			tokenIn: bridgedCollateralAsset,
+			tokenOut: collateralAsset,
+			fee: 100,
+			recipient: parentLiquidityPool,
+			deadline: block.timestamp,
+			amountIn: _amount,
+			amountOutMinimum: _amountOutMinimum,
+			sqrtPriceLimitX96: 0
+		});
+		// Executes the swap
+		swapRouter.exactInputSingle(params);
 	}
 
 	/// @dev keepers, managers or governors can access
