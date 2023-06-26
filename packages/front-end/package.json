@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@apollo/client": "^3.7.10",
-    "@rainbow-me/rainbowkit": "^0.12.1",
+    "@rainbow-me/rainbowkit": "0.12.14",
     "@ramonak/react-progress-bar": "^5.0.3",
     "@sentry/cli": "^2.17.5",
     "@sentry/react": "^7.43.0",
@@ -48,6 +48,7 @@
     "web-vitals": "^3.3.0"
   },
   "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@types/react": "^18.0.28",
     "@types/react-datepicker": "^4.10.0",
     "@types/react-dom": "^18.0.11",
