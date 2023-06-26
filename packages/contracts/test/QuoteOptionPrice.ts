@@ -227,6 +227,7 @@ describe("Quote Option price", async () => {
 			wethERC20,
 			optionRegistry,
 			portfolioValuesFeed,
+			volFeed,
 			authority
 		)
 		liquidityPool = lpParams.liquidityPool
@@ -251,6 +252,7 @@ describe("Quote Option price", async () => {
 				putVolvol: 1_500000,
 				interestRate: utils.parseEther("-0.001")
 			}
+			await exchange.pause()
 			await volFeed.setSabrParameters(proposedSabrParams, expiration)
 			const volFeedSabrParams = await volFeed.sabrParams(expiration)
 			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
@@ -348,6 +350,7 @@ describe("Quote Option price", async () => {
 				interestRate: utils.parseEther("-0.005")
 			}
 			await volFeed.setSabrParameters(proposedSabrParams, expiration5)
+			await exchange.unpause()
 			const volFeedSabrParams = await volFeed.sabrParams(expiration5)
 			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -1257,7 +1260,9 @@ describe("Quote Option price", async () => {
 				putVolvol: 1_500000,
 				interestRate: utils.parseEther("-0.004")
 			}
+			await exchange.pause()
 			await volFeed.setSabrParameters(proposedSabrParams, timestamp + 4 + 2800 ** 2)
+			await exchange.unpause()
 
 			proposedSeries1 = {
 				expiration: expiration,

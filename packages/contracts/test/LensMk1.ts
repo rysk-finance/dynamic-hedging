@@ -158,6 +158,7 @@ describe("Lens", async () => {
 			wethERC20,
 			optionRegistry,
 			portfolioValuesFeed,
+			volFeed,
 			authority
 		)
 		liquidityPool = lpParams.liquidityPool
@@ -181,6 +182,7 @@ describe("Lens", async () => {
 				putVolvol: 1_500000,
 				interestRate: utils.parseEther("-0.001")
 			}
+			await exchange.pause()
 			await volFeed.setSabrParameters(proposedSabrParams, expiration)
 			const volFeedSabrParams = await volFeed.sabrParams(expiration)
 			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
@@ -220,6 +222,7 @@ describe("Lens", async () => {
 				interestRate: utils.parseEther("-0.002")
 			}
 			await volFeed.setSabrParameters(proposedSabrParams, expiration2)
+			await exchange.unpause()
 			const volFeedSabrParams = await volFeed.sabrParams(expiration2)
 			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -276,9 +279,7 @@ describe("Lens", async () => {
 
 		it("SETUP: deploy user lens contract", async () => {
 			const lensFactory = await ethers.getContractFactory("UserPositionLensMK1")
-			userLens = (await lensFactory.deploy(
-				addressBook.address,
-			)) as UserPositionLensMK1
+			userLens = (await lensFactory.deploy(addressBook.address)) as UserPositionLensMK1
 		})
 	})
 	describe("Purchase a bunch of random options", async () => {
@@ -670,7 +671,7 @@ describe("Lens", async () => {
 		describe("Hit the user Lens", async () => {
 			it("ping the lens contract", async () => {
 				const lensVals = await userLens.getVaultsForUser(senderAddress)
-				console.log({lensVals})
+				console.log({ lensVals })
 			})
 		})
 		describe("Hit the Lens", async () => {
@@ -716,15 +717,14 @@ describe("Lens", async () => {
 		describe("Hit the user Lens", async () => {
 			it("ping the lens contract", async () => {
 				const lensVals = await userLens.getVaultsForUser(senderAddress)
-				console.log({lensVals})
+				console.log({ lensVals })
 			})
 			it("ping the lens contract other func", async () => {
 				const lensValsI = await userLens.getVaultsForUser(senderAddress)
 				const lensVals = await userLens.getVaultsForUserAndOtoken(senderAddress, lensValsI[1].otoken)
-				console.log({lensVals})
+				console.log({ lensVals })
 				console.log(await userLens.getVaultsForUserAndOtoken(senderAddress, senderAddress))
 			})
 		})
-
 	})
 })

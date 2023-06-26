@@ -33,7 +33,6 @@ import {
 	VolatilityFeed,
 	WETH
 } from "../types"
-import { protocol } from "@ragetrade/sdk/dist/typechain/core/contracts"
 
 dayjs.extend(utc)
 
@@ -187,6 +186,7 @@ export async function deploySystem(
 ) {
 	const sender = signers[0]
 	const senderAddress = await sender.getAddress()
+
 	// deploy libraries
 	const interactionsFactory = await hre.ethers.getContractFactory("OpynInteractions")
 	const interactions = await interactionsFactory.deploy()
@@ -201,6 +201,9 @@ export async function deploySystem(
 	})
 	const authorityFactory = await hre.ethers.getContractFactory("Authority")
 	const authority = await authorityFactory.deploy(senderAddress, senderAddress, senderAddress)
+	const protocolFactory = await ethers.getContractFactory("contracts/Protocol.sol:Protocol")
+	const optionProtocol = (await protocolFactory.deploy(authority.address)) as Protocol
+
 	// get and transfer weth
 	const weth = (await ethers.getContractAt(
 		"contracts/interfaces/WETH.sol:WETH",
@@ -228,6 +231,7 @@ export async function deploySystem(
 		authority.address
 	)) as OptionRegistry
 	const optionRegistry = _optionRegistry
+	await optionProtocol.changeOptionRegistry(optionRegistry.address)
 
 	const sequencerUptimeFeedFactory = await ethers.getContractFactory("MockChainlinkSequencerFeed")
 	const sequencerUptimeFeed = await sequencerUptimeFeedFactory.deploy()
@@ -238,26 +242,18 @@ export async function deploySystem(
 	)) as PriceFeed
 	const priceFeed = _priceFeed
 	await priceFeed.addPriceFeed(weth.address, usd.address, opynAggregator.address)
+	await optionProtocol.changePriceFeed(priceFeed.address)
+
 	// oracle returns price denominated in 1e8
 	const oraclePrice = await oracle.getPrice(weth.address)
 	// pricefeed returns price denominated in 1e18
 	const priceFeedPrice = await priceFeed.getNormalizedRate(weth.address, usd.address)
 	const volFeedFactory = await ethers.getContractFactory("VolatilityFeed")
-	const volFeed = (await volFeedFactory.deploy(authority.address)) as VolatilityFeed
-	const expiryDate: string = "2022-04-05"
-	let expiration = dayjs.utc(expiryDate).add(30, "days").add(8, "hours").unix()
-	const proposedSabrParams = {
-		callAlpha: 250000,
-		callBeta: 1_000000,
-		callRho: -300000,
-		callVolvol: 1_500000,
-		putAlpha: 250000,
-		putBeta: 1_000000,
-		putRho: -300000,
-		putVolvol: 1_500000,
-		interestRate: utils.parseEther("-0.001")
-	}
-	await volFeed.setSabrParameters(proposedSabrParams, expiration)
+	const volFeed = (await volFeedFactory.deploy(
+		authority.address,
+		optionProtocol.address
+	)) as VolatilityFeed
+	await optionProtocol.changeVolatilityFeed(volFeed.address)
 	const normDistFactory = await ethers.getContractFactory(
 		"contracts/libraries/NormalDist.sol:NormalDist",
 		{
@@ -281,19 +277,12 @@ export async function deploySystem(
 	})
 	const portfolioValuesFeed = (await portfolioValuesFeedFactory.deploy(
 		authority.address,
-		toWei("50000")
+		toWei("50000"),
+		optionProtocol.address
 	)) as AlphaPortfolioValuesFeed
+	await optionProtocol.changePortfolioValuesFeed(portfolioValuesFeed.address)
 
-	const protocolFactory = await ethers.getContractFactory("contracts/Protocol.sol:Protocol")
-	const optionProtocol = (await protocolFactory.deploy(
-		optionRegistry.address,
-		priceFeed.address,
-		volFeed.address,
-		portfolioValuesFeed.address,
-		authority.address
-	)) as Protocol
 	expect(await optionProtocol.optionRegistry()).to.equal(optionRegistry.address)
-
 	return {
 		weth: weth,
 		wethERC20: wethERC20,
@@ -314,6 +303,7 @@ export async function deployLiquidityPool(
 	weth: MintableERC20,
 	optionRegistry: OptionRegistry,
 	pvFeed: AlphaPortfolioValuesFeed,
+	volFeed: VolatilityFeed,
 	authority: string,
 	rfr: string = interestRate,
 	minCallStrikePrice: any = miniCallStrikePrice,
@@ -376,7 +366,6 @@ export async function deployLiquidityPool(
 	await liquidityPool.setMaxTimeDeviationThreshold(600)
 	await liquidityPool.setMaxPriceDeviationThreshold(toWei("0.03"))
 	await pvFeed.setLiquidityPool(liquidityPool.address)
-	await pvFeed.setProtocol(optionProtocol.address)
 	await pvFeed.fulfill(weth.address, usd.address)
 	const AccountingFactory = await ethers.getContractFactory("Accounting")
 	const Accounting = (await AccountingFactory.deploy(liquidityPool.address)) as Accounting
@@ -428,7 +417,21 @@ export async function deployLiquidityPool(
 	await exchange.changeApprovedCollateral(weth.address, true, true)
 	await exchange.changeApprovedCollateral(weth.address, false, true)
 	await optionProtocol.changeOptionExchange(exchange.address)
+	const expiryDate: string = "2022-04-05"
+	let expiration = dayjs.utc(expiryDate).add(30, "days").add(8, "hours").unix()
+	const proposedSabrParams = {
+		callAlpha: 250000,
+		callBeta: 1_000000,
+		callRho: -300000,
+		callVolvol: 1_500000,
+		putAlpha: 250000,
+		putBeta: 1_000000,
+		putRho: -300000,
+		putVolvol: 1_500000,
+		interestRate: utils.parseEther("-0.001")
+	}
 	await exchange.pause()
+	await volFeed.setSabrParameters(proposedSabrParams, expiration)
 	await pricer.setSlippageGradient(toWei("0.0001"))
 	await pricer.setBidAskIVSpread(toWei("0.01"))
 	await pricer.initializeTenorParams(toWei("10"), 5, 2800, [

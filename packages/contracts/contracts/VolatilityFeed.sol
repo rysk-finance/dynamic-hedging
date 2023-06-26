@@ -4,7 +4,8 @@ pragma solidity >=0.8.9;
 import "./libraries/AccessControl.sol";
 import "./libraries/CustomErrors.sol";
 import "./libraries/SABR.sol";
-
+import "./Protocol.sol";
+import "./OptionExchange.sol";
 import "prb-math/contracts/PRBMathSD59x18.sol";
 import "prb-math/contracts/PRBMathUD60x18.sol";
 
@@ -38,6 +39,11 @@ contract VolatilityFeed is AccessControl {
 	int256 private constant maxInterestRate = 200e18;
 	int256 private constant minInterestRate = -200e18;
 
+	///////////////////////////
+	/// immutable variables ///
+	///////////////////////////
+	Protocol public immutable protocol;
+
 	struct SABRParams {
 		int32 callAlpha; // not bigger or less than an int32 and above 0
 		int32 callBeta; // greater than 0 and less than or equal to 1
@@ -50,7 +56,9 @@ contract VolatilityFeed is AccessControl {
 		int256 interestRate; // interest rate in e18
 	}
 
-	constructor(address _authority) AccessControl(IAuthority(_authority)) {}
+	constructor(address _authority, address _protocol) AccessControl(IAuthority(_authority)) {
+		protocol = Protocol(_protocol);
+	}
 
 	///////////////
 	/// setters ///
@@ -84,6 +92,7 @@ contract VolatilityFeed is AccessControl {
 	 */
 	function setSabrParameters(SABRParams memory _sabrParams, uint256 _expiry) external {
 		_isKeeper();
+		_isExchangePaused();
 		if (_sabrParams.callAlpha <= 0 || _sabrParams.putAlpha <= 0) {
 			revert AlphaError();
 		}
@@ -242,6 +251,12 @@ contract VolatilityFeed is AccessControl {
 			!keeper[msg.sender] && msg.sender != authority.governor() && msg.sender != authority.manager()
 		) {
 			revert CustomErrors.NotKeeper();
+		}
+	}
+
+	function _isExchangePaused() internal view {
+		if (!OptionExchange(protocol.optionExchange()).paused()) {
+			revert CustomErrors.ExchangeNotPaused();
 		}
 	}
 }

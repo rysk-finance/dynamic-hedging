@@ -179,6 +179,7 @@ describe("Liquidity Pools", async () => {
 			wethERC20,
 			optionRegistry,
 			portfolioValuesFeed,
+			volFeed,
 			authority
 		)
 		liquidityPool = lpParams.liquidityPool
@@ -210,7 +211,9 @@ describe("Liquidity Pools", async () => {
 			putVolvol: 1_500000,
 			interestRate: utils.parseEther("-0.001")
 		}
+		await exchange.pause()
 		await volFeed.setSabrParameters(proposedSabrParams, expiration)
+		await exchange.unpause()
 		const volFeedSabrParams = await volFeed.sabrParams(expiration)
 		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -616,6 +619,7 @@ describe("Liquidity Pools", async () => {
 		const strikePrice = priceQuote.sub(toWei(strike))
 		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
 		const senderUSDBalanceBefore = await usd.balanceOf(senderAddress)
+		await exchange.pause()
 		await volFeed.setSabrParameters(
 			{
 				callAlpha: 250000,
@@ -630,6 +634,7 @@ describe("Liquidity Pools", async () => {
 			},
 			invalidExpirationLong
 		)
+		await exchange.unpause()
 		await portfolioValuesFeed.fulfill(weth.address, usd.address)
 		// series with expiry too long
 		const proposedSeries1 = {
@@ -673,6 +678,7 @@ describe("Liquidity Pools", async () => {
 				}
 			])
 		).to.be.revertedWithCustomError(exchange, "OptionExpiryInvalid")
+		await exchange.pause()
 		await volFeed.setSabrParameters(
 			{
 				callAlpha: 250000,
@@ -687,6 +693,7 @@ describe("Liquidity Pools", async () => {
 			},
 			invalidExpirationShort
 		)
+		await exchange.unpause()
 		// series with expiry too short
 		const proposedSeries2 = {
 			expiration: invalidExpirationShort,
@@ -875,6 +882,7 @@ describe("Liquidity Pools", async () => {
 		const strikePrice = priceQuote.add(toWei(strike))
 		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
 		const senderUSDBalanceBefore = await usd.balanceOf(senderAddress)
+		await exchange.pause()
 		await volFeed.setSabrParameters(
 			{
 				callAlpha: 250000,
@@ -889,6 +897,7 @@ describe("Liquidity Pools", async () => {
 			},
 			invalidExpirationLong
 		)
+		await exchange.unpause()
 		// series with expiry too long
 		const proposedSeries1 = {
 			expiration: invalidExpirationLong,
@@ -930,6 +939,7 @@ describe("Liquidity Pools", async () => {
 				}
 			])
 		).to.be.revertedWithCustomError(exchange, "OptionExpiryInvalid")
+		await exchange.pause()
 		await volFeed.setSabrParameters(
 			{
 				callAlpha: 250000,
@@ -944,6 +954,7 @@ describe("Liquidity Pools", async () => {
 			},
 			invalidExpirationShort
 		)
+		await exchange.unpause()
 		// series with expiry too short
 		const proposedSeries2 = {
 			expiration: invalidExpirationShort,
@@ -1123,7 +1134,9 @@ describe("Liquidity Pools", async () => {
 			putVolvol: 1_500000,
 			interestRate: utils.parseEther("-0.001")
 		}
+		await exchange.pause()
 		await volFeed.setSabrParameters(proposedSabrParams, expiration)
+		await exchange.unpause()
 		const volFeedSabrParams = await volFeed.sabrParams(expiration)
 		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -1472,7 +1485,9 @@ describe("Liquidity Pools", async () => {
 			putVolvol: 1_500000,
 			interestRate: utils.parseEther("-0.001")
 		}
+		await exchange.pause()
 		await volFeed.setSabrParameters(proposedSabrParams, expiration)
+		await exchange.unpause()
 		const volFeedSabrParams = await volFeed.sabrParams(expiration)
 		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -1647,7 +1662,9 @@ describe("Liquidity Pools", async () => {
 			putVolvol: 1_500000,
 			interestRate: utils.parseEther("-0.001")
 		}
+		await exchange.pause()
 		await volFeed.setSabrParameters(proposedSabrParams, expiration2)
+		await exchange.unpause()
 		const volFeedSabrParams = await volFeed.sabrParams(expiration2)
 		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)

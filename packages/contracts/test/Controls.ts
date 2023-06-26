@@ -16,7 +16,8 @@ import {
 	OptionExchange,
 	AlphaOptionHandler,
 	BeyondPricer,
-	WETH
+	WETH,
+	VolatilityFeed
 } from "../types"
 
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
@@ -36,6 +37,7 @@ let signers: Signer[]
 let senderAddress: string
 let receiverAddress: string
 let portfolioValuesFeed: AlphaPortfolioValuesFeed
+let volFeed: VolatilityFeed
 let oracle: Oracle
 let opynAggregator: MockChainlinkAggregator
 let authority: Authority
@@ -101,6 +103,7 @@ describe("Authority tests", async () => {
 		weth = deployParams.weth
 		optionRegistry = deployParams.optionRegistry
 		portfolioValuesFeed = deployParams.portfolioValuesFeed
+		volFeed = deployParams.volFeed
 		optionProtocol = deployParams.optionProtocol
 		authority = deployParams.authority as Authority
 		let lpParams = await deployLiquidityPool(
@@ -110,6 +113,7 @@ describe("Authority tests", async () => {
 			wethERC20,
 			optionRegistry,
 			portfolioValuesFeed,
+			volFeed,
 			authority.address
 		)
 		liquidityPool = lpParams.liquidityPool

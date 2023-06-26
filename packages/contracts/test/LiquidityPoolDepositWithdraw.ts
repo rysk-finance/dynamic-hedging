@@ -4,11 +4,45 @@ import utc from "dayjs/plugin/utc"
 import { BigNumber, Contract, Signer, utils } from "ethers"
 import hre, { ethers } from "hardhat"
 import Otoken from "../artifacts/contracts/packages/opyn/core/Otoken.sol/Otoken.json"
-import { Accounting, AlphaPortfolioValuesFeed, BeyondPricer, LiquidityPool, MintableERC20, MockChainlinkAggregator, OptionCatalogue, OptionExchange, OptionRegistry, Oracle, Otoken as IOToken, PriceFeed, Protocol, VolatilityFeed, WETH } from "../types"
-import { CALL_FLAVOR, emptySeries, fromUSDC, fromWei, PUT_FLAVOR, tFormatUSDC, toOpyn, toUSDC, toWei, toWeiFromUSDC, ZERO_ADDRESS } from "../utils/conversion-helper"
+import {
+	Accounting,
+	AlphaPortfolioValuesFeed,
+	BeyondPricer,
+	LiquidityPool,
+	MintableERC20,
+	MockChainlinkAggregator,
+	OptionCatalogue,
+	OptionExchange,
+	OptionRegistry,
+	Oracle,
+	Otoken as IOToken,
+	PriceFeed,
+	Protocol,
+	VolatilityFeed,
+	WETH
+} from "../types"
+import {
+	CALL_FLAVOR,
+	emptySeries,
+	fromUSDC,
+	fromWei,
+	PUT_FLAVOR,
+	tFormatUSDC,
+	toOpyn,
+	toUSDC,
+	toWei,
+	toWeiFromUSDC,
+	ZERO_ADDRESS
+} from "../utils/conversion-helper"
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
 import { deployOpyn } from "../utils/opyn-deployer"
-import { calculateOptionDeltaLocally, getSeriesWithe18Strike, makeBuy, makeIssueAndBuy, setupTestOracle } from "./helpers"
+import {
+	calculateOptionDeltaLocally,
+	getSeriesWithe18Strike,
+	makeBuy,
+	makeIssueAndBuy,
+	setupTestOracle
+} from "./helpers"
 
 dayjs.extend(utc)
 
@@ -90,6 +124,7 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			wethERC20,
 			optionRegistry,
 			portfolioValuesFeed,
+			volFeed,
 			authority
 		)
 		liquidityPool = lpParams.liquidityPool
@@ -123,7 +158,9 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			putVolvol: 1_500000,
 			interestRate: utils.parseEther("-0.001")
 		}
+		await exchange.pause()
 		await volFeed.setSabrParameters(proposedSabrParams, expiration)
+		await exchange.unpause()
 		const volFeedSabrParams = await volFeed.sabrParams(expiration)
 		expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 		expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -334,15 +371,15 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		// check partitioned funds increased by pendingWithdrawals * price per share
 		expect(
 			parseFloat(fromWei(partitionedFundsDiffe18)) -
-			parseFloat(fromWei(pendingWithdrawBefore)) *
-			parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+				parseFloat(fromWei(pendingWithdrawBefore)) *
+					parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 		).to.be.within(-0.0001, 0.0001)
 		expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
 			totalSupplyBefore.eq(0)
 				? toWei("1")
 				: toWei("1")
-					.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
-					.div(totalSupplyBefore)
+						.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
+						.div(totalSupplyBefore)
 		)
 		expect(await liquidityPool.pendingDeposits()).to.equal(0)
 		expect(pendingDepositBefore).to.not.eq(0)
@@ -638,15 +675,15 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		// check partitioned funds increased by pendingWithdrawals * price per share
 		expect(
 			parseFloat(fromWei(partitionedFundsDiffe18)) -
-			parseFloat(fromWei(pendingWithdrawBefore)) *
-			parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+				parseFloat(fromWei(pendingWithdrawBefore)) *
+					parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 		).to.be.within(-0.0001, 0.0001)
 		expect(await liquidityPool.depositEpochPricePerShare(depositEpochBefore)).to.equal(
 			totalSupplyBefore.eq(0)
 				? toWei("1")
 				: toWei("1")
-					.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
-					.div(totalSupplyBefore)
+						.mul((await liquidityPool.getNAV()).add(partitionedFundsDiffe18).sub(pendingDepositBefore))
+						.div(totalSupplyBefore)
 		)
 		expect(await liquidityPool.pendingDeposits()).to.equal(0)
 		expect(pendingDepositBefore).to.not.eq(0)
@@ -972,8 +1009,8 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 			totalSupplyBefore.eq(0)
 				? toWei("1")
 				: toWei("1")
-					.mul((await liquidityPool.getNAV()).sub(pendingDepositBefore))
-					.div(totalSupplyBefore)
+						.mul((await liquidityPool.getNAV()).sub(pendingDepositBefore))
+						.div(totalSupplyBefore)
 		)
 
 		expect(await liquidityPool.pendingDeposits()).to.equal(0)
@@ -1055,8 +1092,8 @@ describe("Liquidity Pools Deposit Withdraw", async () => {
 		// check partitioned funds increased by pendingWithdrawals * price per share
 		expect(
 			parseFloat(fromWei(partitionedFundsDiffe18)) -
-			parseFloat(fromWei(pendingWithdrawBefore)) *
-			parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
+				parseFloat(fromWei(pendingWithdrawBefore)) *
+					parseFloat(fromWei(await liquidityPool.withdrawalEpochPricePerShare(withdrawalEpochBefore)))
 		).to.be.within(-0.0001, 0.0001)
 		expect(pendingWithdrawAfter).to.eq(0)
 		// check depositEpochPricePerShare is correct
