@@ -2730,7 +2730,23 @@ describe("Structured Product maker", async () => {
 				}
 			])
 			const seriesAddress = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
-
+			quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+			await compareQuotes(
+				quoteResponse,
+				liquidityPool,
+				optionProtocol,
+				volFeed,
+				priceFeed,
+				proposedSeries,
+				amount,
+				false,
+				exchange,
+				optionRegistry,
+				usd,
+				pricer,
+				toWei("0")
+			)
+			quote = quoteResponse[0].add(quoteResponse[2])
 			await portfolioValuesFeed.fulfill(weth.address, usd.address)
 			oTokenUSDC1650C = (await ethers.getContractAt("Otoken", seriesAddress)) as Otoken
 			optionToken = oTokenUSDC1650C

@@ -64,6 +64,11 @@ export const BeyondPricerABI = [
 	},
 	{
 		"inputs": [],
+		"name": "ExchangeNotPaused",
+		"type": "error"
+	},
+	{
+		"inputs": [],
 		"name": "IVNotFound",
 		"type": "error"
 	},
