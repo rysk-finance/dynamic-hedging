@@ -205,7 +205,7 @@ def interpolate_delta(tenor_index: float, remainder: float, is_put: bool, delta_
 
 def get_tenor_index(expiration: float, timestamp: float):
     unrounded_index = (math.sqrt(expiration - timestamp)  * (number_of_tenors - 1)) / max_tenor_value
-    tenor_index = round(unrounded_index)
+    tenor_index = math.floor(unrounded_index)
     remainder = unrounded_index - tenor_index
     return tenor_index, remainder
 
