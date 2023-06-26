@@ -104,7 +104,6 @@ export interface AlphaPortfolioValuesFeedInterface extends utils.Interface {
     "setLiquidityPool(address)": FunctionFragment;
     "setMaxNetDhvExposure(uint256)": FunctionFragment;
     "setNetDhvExposures(bytes32[],int256[])": FunctionFragment;
-    "setProtocol(address)": FunctionFragment;
     "setRFR(uint256)": FunctionFragment;
     "storesForAddress(address)": FunctionFragment;
     "syncLooper()": FunctionFragment;
@@ -189,7 +188,6 @@ export interface AlphaPortfolioValuesFeedInterface extends utils.Interface {
     functionFragment: "setNetDhvExposures",
     values: [BytesLike[], BigNumberish[]]
   ): string;
-  encodeFunctionData(functionFragment: "setProtocol", values: [string]): string;
   encodeFunctionData(
     functionFragment: "setRFR",
     values: [BigNumberish]
@@ -274,10 +272,6 @@ export interface AlphaPortfolioValuesFeedInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "setNetDhvExposures",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "setProtocol",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "setRFR", data: BytesLike): Result;
@@ -491,11 +485,6 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    setProtocol(
-      _protocol: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
     setRFR(
       _rfr: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -621,11 +610,6 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  setProtocol(
-    _protocol: string,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
   setRFR(
     _rfr: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
@@ -747,8 +731,6 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
       _netDhvExposures: BigNumberish[],
       overrides?: CallOverrides
     ): Promise<void>;
-
-    setProtocol(_protocol: string, overrides?: CallOverrides): Promise<void>;
 
     setRFR(_rfr: BigNumberish, overrides?: CallOverrides): Promise<void>;
 
@@ -935,11 +917,6 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    setProtocol(
-      _protocol: string,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
     setRFR(
       _rfr: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -1066,11 +1043,6 @@ export interface AlphaPortfolioValuesFeed extends BaseContract {
     setNetDhvExposures(
       _optionHashes: BytesLike[],
       _netDhvExposures: BigNumberish[],
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    setProtocol(
-      _protocol: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 

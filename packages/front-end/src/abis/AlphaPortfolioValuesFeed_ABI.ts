@@ -10,10 +10,20 @@ export const AlphaPortfolioValuesFeedABI = [
 				"internalType": "uint256",
 				"name": "_maxNetDhvExposure",
 				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "_protocol",
+				"type": "address"
 			}
 		],
 		"stateMutability": "nonpayable",
 		"type": "constructor"
+	},
+	{
+		"inputs": [],
+		"name": "ExchangeNotPaused",
+		"type": "error"
 	},
 	{
 		"inputs": [],
@@ -697,19 +707,6 @@ export const AlphaPortfolioValuesFeedABI = [
 			}
 		],
 		"name": "setNetDhvExposures",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "_protocol",
-				"type": "address"
-			}
-		],
-		"name": "setProtocol",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
