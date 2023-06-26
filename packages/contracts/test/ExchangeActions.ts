@@ -3,16 +3,34 @@ import utc from "dayjs/plugin/utc"
 import { Signer, utils } from "ethers"
 import { AbiCoder } from "ethers/lib/utils"
 import hre, { ethers, network } from "hardhat"
-import { CALL_FLAVOR, emptySeries, toOpyn, toUSDC, toWei, ZERO_ADDRESS } from "../utils/conversion-helper"
+import {
+	CALL_FLAVOR,
+	emptySeries,
+	toOpyn,
+	toUSDC,
+	toWei,
+	ZERO_ADDRESS
+} from "../utils/conversion-helper"
 //@ts-ignore
 import { expect } from "chai"
-import { AlphaPortfolioValuesFeed, LiquidityPool, MintableERC20, MockChainlinkAggregator, NewController, OptionExchange, OptionRegistry, Oracle, Otoken, Protocol, VolatilityFeed, WETH } from "../types"
+import {
+	AlphaPortfolioValuesFeed,
+	LiquidityPool,
+	MintableERC20,
+	MockChainlinkAggregator,
+	NewController,
+	OptionExchange,
+	OptionRegistry,
+	Oracle,
+	Otoken,
+	Protocol,
+	VolatilityFeed,
+	WETH
+} from "../types"
 import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deployer"
 import { deployOpyn } from "../utils/opyn-deployer"
 import { CHAINLINK_WETH_PRICER, MARGIN_POOL, USDC_ADDRESS, WETH_ADDRESS } from "./constants"
-import {
-	setupTestOracle
-} from "./helpers"
+import { setupTestOracle } from "./helpers"
 
 dayjs.extend(utc)
 
@@ -106,6 +124,7 @@ describe("Actions tests", async () => {
 			wethERC20,
 			optionRegistry,
 			portfolioValuesFeed,
+			volFeed,
 			authority
 		)
 		liquidityPool = lpParams.liquidityPool
@@ -127,6 +146,7 @@ describe("Actions tests", async () => {
 				putVolvol: 1_500000,
 				interestRate: utils.parseEther("-0.001")
 			}
+			await exchange.pause()
 			await volFeed.setSabrParameters(proposedSabrParams, expiration)
 			const volFeedSabrParams = await volFeed.sabrParams(expiration)
 			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
@@ -152,6 +172,7 @@ describe("Actions tests", async () => {
 				interestRate: utils.parseEther("-0.002")
 			}
 			await volFeed.setSabrParameters(proposedSabrParams, expiration2)
+			await exchange.unpause()
 			const volFeedSabrParams = await volFeed.sabrParams(expiration2)
 			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -181,35 +202,36 @@ describe("Actions tests", async () => {
 		})
 		it("pauses trading and executes epoch", async () => {
 			await liquidityPool.pauseTradingAndRequest()
-			await portfolioValuesFeed.fulfill(
-				weth.address,
-				usd.address,
-			)
+			await portfolioValuesFeed.fulfill(weth.address, usd.address)
 			await liquidityPool.executeEpochCalculation()
 			await liquidityPool.redeem(toWei("10000000"))
 		})
 	})
 	describe("Action checks without operator approved", async () => {
 		it("REVERTS: OPYN open vault without operator approved", async () => {
-			await expect(exchange.operate([
-				{
-					operation: 0,
-					operationQueue: [{
-						actionType: 0,
-						owner: senderAddress,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: vaultIdCounter,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					}]
-				}])).to.be.revertedWithCustomError(exchange, "OperatorNotApproved")
+			await expect(
+				exchange.operate([
+					{
+						operation: 0,
+						operationQueue: [
+							{
+								actionType: 0,
+								owner: senderAddress,
+								secondAddress: ZERO_ADDRESS,
+								asset: ZERO_ADDRESS,
+								vaultId: vaultIdCounter,
+								amount: 0,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWithCustomError(exchange, "OperatorNotApproved")
 		})
 	})
 	describe("Opyn Open Vault Action checks", async () => {
-
 		it("SUCCEED: set operator", async () => {
 			await controller.setOperator(exchange.address, true)
 			expect(await controller.isOperator(senderAddress, exchange.address))
@@ -218,18 +240,21 @@ describe("Actions tests", async () => {
 			await exchange.operate([
 				{
 					operation: 0,
-					operationQueue: [{
-						actionType: 0,
-						owner: senderAddress,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: vaultIdCounter,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					}]
-				}])
+					operationQueue: [
+						{
+							actionType: 0,
+							owner: senderAddress,
+							secondAddress: ZERO_ADDRESS,
+							asset: ZERO_ADDRESS,
+							vaultId: vaultIdCounter,
+							amount: 0,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: "0x"
+						}
+					]
+				}
+			])
 			expect(await controller.getAccountVaultCounter(senderAddress)).to.equal(vaultIdCounter)
 			expect((await controller.getVaultWithDetails(senderAddress, 1))[1]).to.equal(0)
 			vaultIdCounter++
@@ -238,106 +263,134 @@ describe("Actions tests", async () => {
 			await exchange.operate([
 				{
 					operation: 0,
-					operationQueue: [{
-						actionType: 0,
-						owner: senderAddress,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: vaultIdCounter,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: abiCode.encode(["uint256"], ["1"])
-					}]
-				}])
+					operationQueue: [
+						{
+							actionType: 0,
+							owner: senderAddress,
+							secondAddress: ZERO_ADDRESS,
+							asset: ZERO_ADDRESS,
+							vaultId: vaultIdCounter,
+							amount: 0,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: abiCode.encode(["uint256"], ["1"])
+						}
+					]
+				}
+			])
 			expect(await controller.getAccountVaultCounter(senderAddress)).to.equal(vaultIdCounter)
 			expect((await controller.getVaultWithDetails(senderAddress, 2))[1]).to.equal(1)
 			vaultIdCounter++
 		})
 		it("REVERTS: OPYN open vault fails on already made vault", async () => {
-			await expect(exchange.operate([
-				{
-					operation: 0,
-					operationQueue: [{
-						actionType: 0,
-						owner: senderAddress,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: vaultIdCounter - 1,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: abiCode.encode(["uint256"], ["1"])
-					}]
-				}])).to.be.revertedWith("C15")
+			await expect(
+				exchange.operate([
+					{
+						operation: 0,
+						operationQueue: [
+							{
+								actionType: 0,
+								owner: senderAddress,
+								secondAddress: ZERO_ADDRESS,
+								asset: ZERO_ADDRESS,
+								vaultId: vaultIdCounter - 1,
+								amount: 0,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: abiCode.encode(["uint256"], ["1"])
+							}
+						]
+					}
+				])
+			).to.be.revertedWith("C15")
 		})
 		it("REVERTS: OPYN open vault with invalid procedure number", async () => {
-			await expect(exchange.operate([
-				{
-					operation: 2,
-					operationQueue: [{
-						actionType: 0,
-						owner: senderAddress,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: 2,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: abiCode.encode(["uint256"], ["1"])
-					}]
-				}])).to.be.reverted
+			await expect(
+				exchange.operate([
+					{
+						operation: 2,
+						operationQueue: [
+							{
+								actionType: 0,
+								owner: senderAddress,
+								secondAddress: ZERO_ADDRESS,
+								asset: ZERO_ADDRESS,
+								vaultId: 2,
+								amount: 0,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: abiCode.encode(["uint256"], ["1"])
+							}
+						]
+					}
+				])
+			).to.be.reverted
 		})
 		it("REVERTS: OPYN open vault fails on invalid vault type", async () => {
-			await expect(exchange.operate([
-				{
-					operation: 0,
-					operationQueue: [{
-						actionType: 0,
-						owner: senderAddress,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: vaultIdCounter,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: abiCode.encode(["uint256"], ["2"])
-					}]
-				}])).to.be.revertedWith("A3")
+			await expect(
+				exchange.operate([
+					{
+						operation: 0,
+						operationQueue: [
+							{
+								actionType: 0,
+								owner: senderAddress,
+								secondAddress: ZERO_ADDRESS,
+								asset: ZERO_ADDRESS,
+								vaultId: vaultIdCounter,
+								amount: 0,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: abiCode.encode(["uint256"], ["2"])
+							}
+						]
+					}
+				])
+			).to.be.revertedWith("A3")
 		})
 		it("REVERTS: OPYN open vault fails on invalid vault id", async () => {
-			await expect(exchange.operate([
-				{
-					operation: 0,
-					operationQueue: [{
-						actionType: 0,
-						owner: senderAddress,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: 1000,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					}]
-				}])).to.be.revertedWith("C15")
+			await expect(
+				exchange.operate([
+					{
+						operation: 0,
+						operationQueue: [
+							{
+								actionType: 0,
+								owner: senderAddress,
+								secondAddress: ZERO_ADDRESS,
+								asset: ZERO_ADDRESS,
+								vaultId: 1000,
+								amount: 0,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWith("C15")
 		})
 		it("REVERTS: OPYN open vault fails with invalid owner", async () => {
-			await expect(exchange.operate([
-				{
-					operation: 0,
-					operationQueue: [{
-						actionType: 0,
-						owner: exchange.address,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: 2,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					}]
-				}])).to.be.revertedWithCustomError(exchange, "UnauthorisedSender")
+			await expect(
+				exchange.operate([
+					{
+						operation: 0,
+						operationQueue: [
+							{
+								actionType: 0,
+								owner: exchange.address,
+								secondAddress: ZERO_ADDRESS,
+								asset: ZERO_ADDRESS,
+								vaultId: 2,
+								amount: 0,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWithCustomError(exchange, "UnauthorisedSender")
 		})
 	})
 	describe("Opyn Deposit Collateral Action checks", async () => {
@@ -347,33 +400,36 @@ describe("Actions tests", async () => {
 			await exchange.operate([
 				{
 					operation: 0,
-					operationQueue: [{
-						actionType: 0,
-						owner: senderAddress,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: vaultIdCounter,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					},
-					{
-						actionType: 5,
-						owner: senderAddress,
-						secondAddress: senderAddress,
-						asset: usd.address,
-						vaultId: vaultIdCounter,
-						amount: margin,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					}]
-				}])
+					operationQueue: [
+						{
+							actionType: 0,
+							owner: senderAddress,
+							secondAddress: ZERO_ADDRESS,
+							asset: ZERO_ADDRESS,
+							vaultId: vaultIdCounter,
+							amount: 0,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: "0x"
+						},
+						{
+							actionType: 5,
+							owner: senderAddress,
+							secondAddress: senderAddress,
+							asset: usd.address,
+							vaultId: vaultIdCounter,
+							amount: margin,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: "0x"
+						}
+					]
+				}
+			])
 			const vaultId = await controller.getAccountVaultCounter(senderAddress)
 			const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
 			expect(vaultId).to.equal(vaultIdCounter)
-			expect((vaultDetails)[1]).to.equal(0)
+			expect(vaultDetails[1]).to.equal(0)
 			expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
 			vaultIdCounter++
 		})
@@ -383,33 +439,36 @@ describe("Actions tests", async () => {
 			await exchange.operate([
 				{
 					operation: 0,
-					operationQueue: [{
-						actionType: 0,
-						owner: senderAddress,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: vaultIdCounter,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					},
-					{
-						actionType: 5,
-						owner: senderAddress,
-						secondAddress: exchange.address,
-						asset: usd.address,
-						vaultId: vaultIdCounter,
-						amount: margin,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					}]
-				}])
+					operationQueue: [
+						{
+							actionType: 0,
+							owner: senderAddress,
+							secondAddress: ZERO_ADDRESS,
+							asset: ZERO_ADDRESS,
+							vaultId: vaultIdCounter,
+							amount: 0,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: "0x"
+						},
+						{
+							actionType: 5,
+							owner: senderAddress,
+							secondAddress: exchange.address,
+							asset: usd.address,
+							vaultId: vaultIdCounter,
+							amount: margin,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: "0x"
+						}
+					]
+				}
+			])
 			const vaultId = await controller.getAccountVaultCounter(senderAddress)
 			const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
 			expect(vaultId).to.equal(vaultIdCounter)
-			expect((vaultDetails)[1]).to.equal(0)
+			expect(vaultDetails[1]).to.equal(0)
 			expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
 			vaultIdCounter++
 		})
@@ -419,33 +478,36 @@ describe("Actions tests", async () => {
 			await exchange.operate([
 				{
 					operation: 0,
-					operationQueue: [{
-						actionType: 0,
-						owner: senderAddress,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: vaultIdCounter,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					},
-					{
-						actionType: 5,
-						owner: senderAddress,
-						secondAddress: senderAddress,
-						asset: weth.address,
-						vaultId: vaultIdCounter,
-						amount: margin,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					}]
-				}])
+					operationQueue: [
+						{
+							actionType: 0,
+							owner: senderAddress,
+							secondAddress: ZERO_ADDRESS,
+							asset: ZERO_ADDRESS,
+							vaultId: vaultIdCounter,
+							amount: 0,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: "0x"
+						},
+						{
+							actionType: 5,
+							owner: senderAddress,
+							secondAddress: senderAddress,
+							asset: weth.address,
+							vaultId: vaultIdCounter,
+							amount: margin,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: "0x"
+						}
+					]
+				}
+			])
 			const vaultId = await controller.getAccountVaultCounter(senderAddress)
 			const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
 			expect(vaultId).to.equal(vaultIdCounter)
-			expect((vaultDetails)[1]).to.equal(0)
+			expect(vaultDetails[1]).to.equal(0)
 			expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
 			vaultIdCounter++
 		})
@@ -455,93 +517,106 @@ describe("Actions tests", async () => {
 			await exchange.operate([
 				{
 					operation: 0,
-					operationQueue: [{
-						actionType: 0,
-						owner: senderAddress,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: vaultIdCounter,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					},
-					{
-						actionType: 5,
-						owner: senderAddress,
-						secondAddress: exchange.address,
-						asset: weth.address,
-						vaultId: vaultIdCounter,
-						amount: margin,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					}]
-				}])
+					operationQueue: [
+						{
+							actionType: 0,
+							owner: senderAddress,
+							secondAddress: ZERO_ADDRESS,
+							asset: ZERO_ADDRESS,
+							vaultId: vaultIdCounter,
+							amount: 0,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: "0x"
+						},
+						{
+							actionType: 5,
+							owner: senderAddress,
+							secondAddress: exchange.address,
+							asset: weth.address,
+							vaultId: vaultIdCounter,
+							amount: margin,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: "0x"
+						}
+					]
+				}
+			])
 			const vaultId = await controller.getAccountVaultCounter(senderAddress)
 			const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
 			expect(vaultId).to.equal(vaultIdCounter)
-			expect((vaultDetails)[1]).to.equal(0)
+			expect(vaultDetails[1]).to.equal(0)
 			expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
 			vaultIdCounter++
 		})
 		it("REVERTS: OPYN deposit collateral fails when sending to an invalid address", async () => {
 			const margin = toUSDC("1000")
-			await expect(exchange.operate([
-				{
-					operation: 0,
-					operationQueue: [{
-						actionType: 0,
-						owner: senderAddress,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: 4,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					},
+			await expect(
+				exchange.operate([
 					{
-						actionType: 5,
-						owner: senderAddress,
-						secondAddress: liquidityPool.address,
-						asset: usd.address,
-						vaultId: 4,
-						amount: margin,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					}]
-				}])).to.be.revertedWithCustomError(exchange, "UnauthorisedSender")
+						operation: 0,
+						operationQueue: [
+							{
+								actionType: 0,
+								owner: senderAddress,
+								secondAddress: ZERO_ADDRESS,
+								asset: ZERO_ADDRESS,
+								vaultId: 4,
+								amount: 0,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: "0x"
+							},
+							{
+								actionType: 5,
+								owner: senderAddress,
+								secondAddress: liquidityPool.address,
+								asset: usd.address,
+								vaultId: 4,
+								amount: margin,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWithCustomError(exchange, "UnauthorisedSender")
 		})
 		it("REVERTS: OPYN deposit collateral fails with invalid owner", async () => {
 			const margin = toUSDC("1000")
-			await expect(exchange.operate([
-				{
-					operation: 0,
-					operationQueue: [{
-						actionType: 0,
-						owner: senderAddress,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: 4,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					},
+			await expect(
+				exchange.operate([
 					{
-						actionType: 5,
-						owner: exchange.address,
-						secondAddress: exchange.address,
-						asset: usd.address,
-						vaultId: 4,
-						amount: margin,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					}]
-				}])).to.be.revertedWithCustomError(exchange, "UnauthorisedSender")
+						operation: 0,
+						operationQueue: [
+							{
+								actionType: 0,
+								owner: senderAddress,
+								secondAddress: ZERO_ADDRESS,
+								asset: ZERO_ADDRESS,
+								vaultId: 4,
+								amount: 0,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: "0x"
+							},
+							{
+								actionType: 5,
+								owner: exchange.address,
+								secondAddress: exchange.address,
+								asset: usd.address,
+								vaultId: 4,
+								amount: margin,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWithCustomError(exchange, "UnauthorisedSender")
 		})
 	})
 	describe("Opyn Mint/Burn/Deposit/Withdraw Short Option Action checks", async () => {
@@ -553,45 +628,47 @@ describe("Actions tests", async () => {
 			await exchange.operate([
 				{
 					operation: 0,
-					operationQueue: [{
-						actionType: 0,
-						owner: senderAddress,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: vaultIdCounter,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: abiCode.encode(["uint256"], [1])
-					},
-					{
-						actionType: 5,
-						owner: senderAddress,
-						secondAddress: senderAddress,
-						asset: usd.address,
-						vaultId: vaultIdCounter,
-						amount: margin,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					},
-					{
-						actionType: 1,
-						owner: senderAddress,
-						secondAddress: senderAddress,
-						asset: otoken,
-						vaultId: vaultIdCounter,
-						amount: tinyAmount,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					},
+					operationQueue: [
+						{
+							actionType: 0,
+							owner: senderAddress,
+							secondAddress: ZERO_ADDRESS,
+							asset: ZERO_ADDRESS,
+							vaultId: vaultIdCounter,
+							amount: 0,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: abiCode.encode(["uint256"], [1])
+						},
+						{
+							actionType: 5,
+							owner: senderAddress,
+							secondAddress: senderAddress,
+							asset: usd.address,
+							vaultId: vaultIdCounter,
+							amount: margin,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: "0x"
+						},
+						{
+							actionType: 1,
+							owner: senderAddress,
+							secondAddress: senderAddress,
+							asset: otoken,
+							vaultId: vaultIdCounter,
+							amount: tinyAmount,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: "0x"
+						}
 					]
-				}])
+				}
+			])
 			const vaultId = await controller.getAccountVaultCounter(senderAddress)
 			const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
 			expect(vaultId).to.equal(vaultIdCounter)
-			expect((vaultDetails)[1]).to.equal(1)
+			expect(vaultDetails[1]).to.equal(1)
 			expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
 			expect(vaultDetails[0].shortAmounts[0]).to.equal(tinyAmount)
 			expect(vaultDetails[0].shortOtokens[0]).to.equal(otoken)
@@ -605,45 +682,47 @@ describe("Actions tests", async () => {
 			await exchange.operate([
 				{
 					operation: 0,
-					operationQueue: [{
-						actionType: 0,
-						owner: senderAddress,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: vaultIdCounter,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: abiCode.encode(["uint256"], [1])
-					},
-					{
-						actionType: 5,
-						owner: senderAddress,
-						secondAddress: exchange.address,
-						asset: usd.address,
-						vaultId: vaultIdCounter,
-						amount: margin,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					},
-					{
-						actionType: 1,
-						owner: senderAddress,
-						secondAddress: senderAddress,
-						asset: otoken,
-						vaultId: vaultIdCounter,
-						amount: tinyAmount,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					},
+					operationQueue: [
+						{
+							actionType: 0,
+							owner: senderAddress,
+							secondAddress: ZERO_ADDRESS,
+							asset: ZERO_ADDRESS,
+							vaultId: vaultIdCounter,
+							amount: 0,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: abiCode.encode(["uint256"], [1])
+						},
+						{
+							actionType: 5,
+							owner: senderAddress,
+							secondAddress: exchange.address,
+							asset: usd.address,
+							vaultId: vaultIdCounter,
+							amount: margin,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: "0x"
+						},
+						{
+							actionType: 1,
+							owner: senderAddress,
+							secondAddress: senderAddress,
+							asset: otoken,
+							vaultId: vaultIdCounter,
+							amount: tinyAmount,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: "0x"
+						}
 					]
-				}])
+				}
+			])
 			const vaultId = await controller.getAccountVaultCounter(senderAddress)
 			const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
 			expect(vaultId).to.equal(vaultIdCounter)
-			expect((vaultDetails)[1]).to.equal(1)
+			expect(vaultDetails[1]).to.equal(1)
 			expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
 			expect(vaultDetails[0].shortAmounts[0]).to.equal(tinyAmount)
 			expect(vaultDetails[0].shortOtokens[0]).to.equal(otoken)
@@ -654,44 +733,48 @@ describe("Actions tests", async () => {
 			const otoken = await exchange.callStatic.createOtoken(proposedSeries)
 			await exchange.createOtoken(proposedSeries)
 			usd.approve(exchange.address, margin)
-			await expect(exchange.operate([
-				{
-					operation: 0,
-					operationQueue: [{
-						actionType: 0,
-						owner: senderAddress,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: vaultIdCounter,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: abiCode.encode(["uint256"], [1])
-					},
+			await expect(
+				exchange.operate([
 					{
-						actionType: 5,
-						owner: senderAddress,
-						secondAddress: exchange.address,
-						asset: usd.address,
-						vaultId: vaultIdCounter,
-						amount: margin,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					},
-					{
-						actionType: 1,
-						owner: senderAddress,
-						secondAddress: exchange.address,
-						asset: otoken,
-						vaultId: vaultIdCounter,
-						amount: tinyAmount,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					},
-					]
-				}])).to.be.revertedWithCustomError(exchange, "TokenImbalance")
+						operation: 0,
+						operationQueue: [
+							{
+								actionType: 0,
+								owner: senderAddress,
+								secondAddress: ZERO_ADDRESS,
+								asset: ZERO_ADDRESS,
+								vaultId: vaultIdCounter,
+								amount: 0,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: abiCode.encode(["uint256"], [1])
+							},
+							{
+								actionType: 5,
+								owner: senderAddress,
+								secondAddress: exchange.address,
+								asset: usd.address,
+								vaultId: vaultIdCounter,
+								amount: margin,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: "0x"
+							},
+							{
+								actionType: 1,
+								owner: senderAddress,
+								secondAddress: exchange.address,
+								asset: otoken,
+								vaultId: vaultIdCounter,
+								amount: tinyAmount,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWithCustomError(exchange, "TokenImbalance")
 			await usd.approve(exchange.address, 0)
 		})
 		it("SUCCEED: OPYN mint short option with collateral deposited via exchange then burn the option", async () => {
@@ -702,57 +785,58 @@ describe("Actions tests", async () => {
 			await exchange.operate([
 				{
 					operation: 0,
-					operationQueue: [{
-						actionType: 0,
-						owner: senderAddress,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: vaultIdCounter,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: abiCode.encode(["uint256"], [1])
-					},
-					{
-						actionType: 5,
-						owner: senderAddress,
-						secondAddress: exchange.address,
-						asset: usd.address,
-						vaultId: vaultIdCounter,
-						amount: margin,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					},
-					{
-						actionType: 1,
-						owner: senderAddress,
-						secondAddress: senderAddress,
-						asset: otoken,
-						vaultId: vaultIdCounter,
-						amount: tinyAmount,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					},
-					{
-						actionType: 2,
-						owner: senderAddress,
-						secondAddress: senderAddress,
-						asset: otoken,
-						vaultId: vaultIdCounter,
-						amount: tinyAmount,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					},
-
+					operationQueue: [
+						{
+							actionType: 0,
+							owner: senderAddress,
+							secondAddress: ZERO_ADDRESS,
+							asset: ZERO_ADDRESS,
+							vaultId: vaultIdCounter,
+							amount: 0,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: abiCode.encode(["uint256"], [1])
+						},
+						{
+							actionType: 5,
+							owner: senderAddress,
+							secondAddress: exchange.address,
+							asset: usd.address,
+							vaultId: vaultIdCounter,
+							amount: margin,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: "0x"
+						},
+						{
+							actionType: 1,
+							owner: senderAddress,
+							secondAddress: senderAddress,
+							asset: otoken,
+							vaultId: vaultIdCounter,
+							amount: tinyAmount,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: "0x"
+						},
+						{
+							actionType: 2,
+							owner: senderAddress,
+							secondAddress: senderAddress,
+							asset: otoken,
+							vaultId: vaultIdCounter,
+							amount: tinyAmount,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: "0x"
+						}
 					]
-				}])
+				}
+			])
 			const vaultId = await controller.getAccountVaultCounter(senderAddress)
 			const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
 			expect(vaultId).to.equal(vaultIdCounter)
-			expect((vaultDetails)[1]).to.equal(1)
+			expect(vaultDetails[1]).to.equal(1)
 			expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
 			expect(vaultDetails[0].shortAmounts[0]).to.equal(0)
 			expect(vaultDetails[0].shortOtokens[0]).to.equal(ZERO_ADDRESS)
@@ -763,55 +847,59 @@ describe("Actions tests", async () => {
 			const otoken = await exchange.callStatic.createOtoken(proposedSeries)
 			await exchange.createOtoken(proposedSeries)
 			usd.approve(exchange.address, margin)
-			await expect(exchange.operate([
-				{
-					operation: 0,
-					operationQueue: [{
-						actionType: 0,
-						owner: senderAddress,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: vaultIdCounter,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: abiCode.encode(["uint256"], [1])
-					},
+			await expect(
+				exchange.operate([
 					{
-						actionType: 5,
-						owner: senderAddress,
-						secondAddress: exchange.address,
-						asset: usd.address,
-						vaultId: vaultIdCounter,
-						amount: margin,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					},
-					{
-						actionType: 1,
-						owner: senderAddress,
-						secondAddress: senderAddress,
-						asset: otoken,
-						vaultId: vaultIdCounter,
-						amount: tinyAmount,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					},
-					{
-						actionType: 2,
-						owner: senderAddress,
-						secondAddress: exchange.address,
-						asset: otoken,
-						vaultId: vaultIdCounter,
-						amount: tinyAmount,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					},
-					]
-				}])).to.be.revertedWithCustomError(exchange, "UnauthorisedSender")
+						operation: 0,
+						operationQueue: [
+							{
+								actionType: 0,
+								owner: senderAddress,
+								secondAddress: ZERO_ADDRESS,
+								asset: ZERO_ADDRESS,
+								vaultId: vaultIdCounter,
+								amount: 0,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: abiCode.encode(["uint256"], [1])
+							},
+							{
+								actionType: 5,
+								owner: senderAddress,
+								secondAddress: exchange.address,
+								asset: usd.address,
+								vaultId: vaultIdCounter,
+								amount: margin,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: "0x"
+							},
+							{
+								actionType: 1,
+								owner: senderAddress,
+								secondAddress: senderAddress,
+								asset: otoken,
+								vaultId: vaultIdCounter,
+								amount: tinyAmount,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: "0x"
+							},
+							{
+								actionType: 2,
+								owner: senderAddress,
+								secondAddress: exchange.address,
+								asset: otoken,
+								vaultId: vaultIdCounter,
+								amount: tinyAmount,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWithCustomError(exchange, "UnauthorisedSender")
 			await usd.approve(exchange.address, 0)
 		})
 		it("SUCCEED: OPYN mint short option with collateral deposited via exchange then deposits the long option from sender in vault 1", async () => {
@@ -824,39 +912,41 @@ describe("Actions tests", async () => {
 			await exchange.operate([
 				{
 					operation: 0,
-					operationQueue: [{
-						actionType: 0,
-						owner: senderAddress,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: vaultIdCounter,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: abiCode.encode(["uint256"], [1])
-					},
-					{
-						actionType: 5,
-						owner: senderAddress,
-						secondAddress: exchange.address,
-						asset: usd.address,
-						vaultId: vaultIdCounter,
-						amount: margin,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					},
-					{
-						actionType: 1,
-						owner: senderAddress,
-						secondAddress: senderAddress,
-						asset: otoken,
-						vaultId: vaultIdCounter,
-						amount: tinyAmount,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					}]
+					operationQueue: [
+						{
+							actionType: 0,
+							owner: senderAddress,
+							secondAddress: ZERO_ADDRESS,
+							asset: ZERO_ADDRESS,
+							vaultId: vaultIdCounter,
+							amount: 0,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: abiCode.encode(["uint256"], [1])
+						},
+						{
+							actionType: 5,
+							owner: senderAddress,
+							secondAddress: exchange.address,
+							asset: usd.address,
+							vaultId: vaultIdCounter,
+							amount: margin,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: "0x"
+						},
+						{
+							actionType: 1,
+							owner: senderAddress,
+							secondAddress: senderAddress,
+							asset: otoken,
+							vaultId: vaultIdCounter,
+							amount: tinyAmount,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: "0x"
+						}
+					]
 				},
 				{
 					operation: 0,
@@ -871,13 +961,14 @@ describe("Actions tests", async () => {
 							optionSeries: emptySeries,
 							indexOrAcceptablePremium: 0,
 							data: "0x"
-						}]
-				},
+						}
+					]
+				}
 			])
 			const vaultId = await controller.getAccountVaultCounter(senderAddress)
 			const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
 			expect(vaultId).to.equal(vaultIdCounter)
-			expect((vaultDetails)[1]).to.equal(1)
+			expect(vaultDetails[1]).to.equal(1)
 			expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
 			expect(vaultDetails[0].shortAmounts[0]).to.equal(tinyAmount)
 			expect(vaultDetails[0].shortOtokens[0]).to.equal(otoken)
@@ -893,59 +984,64 @@ describe("Actions tests", async () => {
 			await otokenERC.approve(MARGIN_POOL[chainId], tinyAmount)
 			await exchange.createOtoken(proposedSeries)
 			usd.approve(exchange.address, margin)
-			await expect(exchange.operate([
-				{
-					operation: 0,
-					operationQueue: [{
-						actionType: 0,
-						owner: senderAddress,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: vaultIdCounter,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: abiCode.encode(["uint256"], [1])
+			await expect(
+				exchange.operate([
+					{
+						operation: 0,
+						operationQueue: [
+							{
+								actionType: 0,
+								owner: senderAddress,
+								secondAddress: ZERO_ADDRESS,
+								asset: ZERO_ADDRESS,
+								vaultId: vaultIdCounter,
+								amount: 0,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: abiCode.encode(["uint256"], [1])
+							},
+							{
+								actionType: 5,
+								owner: senderAddress,
+								secondAddress: exchange.address,
+								asset: usd.address,
+								vaultId: vaultIdCounter,
+								amount: margin,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: "0x"
+							},
+							{
+								actionType: 1,
+								owner: senderAddress,
+								secondAddress: senderAddress,
+								asset: otoken,
+								vaultId: vaultIdCounter,
+								amount: tinyAmount,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: "0x"
+							}
+						]
 					},
 					{
-						actionType: 5,
-						owner: senderAddress,
-						secondAddress: exchange.address,
-						asset: usd.address,
-						vaultId: vaultIdCounter,
-						amount: margin,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					},
-					{
-						actionType: 1,
-						owner: senderAddress,
-						secondAddress: senderAddress,
-						asset: otoken,
-						vaultId: vaultIdCounter,
-						amount: tinyAmount,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					}]
-				},
-				{
-					operation: 0,
-					operationQueue: [
-						{
-							actionType: 3,
-							owner: senderAddress,
-							secondAddress: exchange.address,
-							asset: otoken,
-							vaultId: 1,
-							amount: tinyAmount,
-							optionSeries: emptySeries,
-							indexOrAcceptablePremium: 0,
-							data: "0x"
-						}]
-				},
-			])).to.be.revertedWithCustomError(exchange, "UnauthorisedSender")
+						operation: 0,
+						operationQueue: [
+							{
+								actionType: 3,
+								owner: senderAddress,
+								secondAddress: exchange.address,
+								asset: otoken,
+								vaultId: 1,
+								amount: tinyAmount,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWithCustomError(exchange, "UnauthorisedSender")
 			await usd.approve(exchange.address, 0)
 			await otokenERC.approve(MARGIN_POOL[chainId], 0)
 		})
@@ -959,39 +1055,41 @@ describe("Actions tests", async () => {
 			await exchange.operate([
 				{
 					operation: 0,
-					operationQueue: [{
-						actionType: 0,
-						owner: senderAddress,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: vaultIdCounter,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: abiCode.encode(["uint256"], [1])
-					},
-					{
-						actionType: 5,
-						owner: senderAddress,
-						secondAddress: exchange.address,
-						asset: usd.address,
-						vaultId: vaultIdCounter,
-						amount: margin,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					},
-					{
-						actionType: 1,
-						owner: senderAddress,
-						secondAddress: senderAddress,
-						asset: otoken,
-						vaultId: vaultIdCounter,
-						amount: tinyAmount,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					}]
+					operationQueue: [
+						{
+							actionType: 0,
+							owner: senderAddress,
+							secondAddress: ZERO_ADDRESS,
+							asset: ZERO_ADDRESS,
+							vaultId: vaultIdCounter,
+							amount: 0,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: abiCode.encode(["uint256"], [1])
+						},
+						{
+							actionType: 5,
+							owner: senderAddress,
+							secondAddress: exchange.address,
+							asset: usd.address,
+							vaultId: vaultIdCounter,
+							amount: margin,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: "0x"
+						},
+						{
+							actionType: 1,
+							owner: senderAddress,
+							secondAddress: senderAddress,
+							asset: otoken,
+							vaultId: vaultIdCounter,
+							amount: tinyAmount,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: "0x"
+						}
+					]
 				},
 				{
 					operation: 0,
@@ -1006,13 +1104,14 @@ describe("Actions tests", async () => {
 							optionSeries: emptySeries,
 							indexOrAcceptablePremium: 0,
 							data: "0x"
-						}]
-				},
+						}
+					]
+				}
 			])
 			const vaultId = await controller.getAccountVaultCounter(senderAddress)
 			const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
 			expect(vaultId).to.equal(vaultIdCounter)
-			expect((vaultDetails)[1]).to.equal(1)
+			expect(vaultDetails[1]).to.equal(1)
 			expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
 			expect(vaultDetails[0].shortAmounts[0]).to.equal(tinyAmount)
 			expect(vaultDetails[0].shortOtokens[0]).to.equal(otoken)
@@ -1028,125 +1127,145 @@ describe("Actions tests", async () => {
 			await otokenERC.approve(MARGIN_POOL[chainId], tinyAmount)
 			await exchange.createOtoken(proposedSeries)
 			usd.approve(exchange.address, margin)
-			await expect(exchange.operate([
-				{
-					operation: 0,
-					operationQueue: [{
-						actionType: 0,
-						owner: senderAddress,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: vaultIdCounter,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: abiCode.encode(["uint256"], [1])
+			await expect(
+				exchange.operate([
+					{
+						operation: 0,
+						operationQueue: [
+							{
+								actionType: 0,
+								owner: senderAddress,
+								secondAddress: ZERO_ADDRESS,
+								asset: ZERO_ADDRESS,
+								vaultId: vaultIdCounter,
+								amount: 0,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: abiCode.encode(["uint256"], [1])
+							},
+							{
+								actionType: 5,
+								owner: senderAddress,
+								secondAddress: exchange.address,
+								asset: usd.address,
+								vaultId: vaultIdCounter,
+								amount: margin,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: "0x"
+							},
+							{
+								actionType: 1,
+								owner: senderAddress,
+								secondAddress: senderAddress,
+								asset: otoken,
+								vaultId: vaultIdCounter,
+								amount: tinyAmount,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: "0x"
+							}
+						]
 					},
 					{
-						actionType: 5,
-						owner: senderAddress,
-						secondAddress: exchange.address,
-						asset: usd.address,
-						vaultId: vaultIdCounter,
-						amount: margin,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					},
-					{
-						actionType: 1,
-						owner: senderAddress,
-						secondAddress: senderAddress,
-						asset: otoken,
-						vaultId: vaultIdCounter,
-						amount: tinyAmount,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					}]
-				},
-				{
-					operation: 0,
-					operationQueue: [
-						{
-							actionType: 3,
-							owner: senderAddress,
-							secondAddress: senderAddress,
-							asset: otoken,
-							vaultId: 1,
-							amount: tinyAmount,
-							optionSeries: emptySeries,
-							indexOrAcceptablePremium: 0,
-							data: "0x"
-						},
-						{
-							actionType: 4,
-							owner: senderAddress,
-							secondAddress: exchange.address,
-							asset: otoken,
-							vaultId: 1,
-							amount: tinyAmount,
-							optionSeries: emptySeries,
-							indexOrAcceptablePremium: 0,
-							data: "0x"
-						}]
-				},
-			])).to.be.revertedWithCustomError(exchange, "TokenImbalance")
+						operation: 0,
+						operationQueue: [
+							{
+								actionType: 3,
+								owner: senderAddress,
+								secondAddress: senderAddress,
+								asset: otoken,
+								vaultId: 1,
+								amount: tinyAmount,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: "0x"
+							},
+							{
+								actionType: 4,
+								owner: senderAddress,
+								secondAddress: exchange.address,
+								asset: otoken,
+								vaultId: 1,
+								amount: tinyAmount,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWithCustomError(exchange, "TokenImbalance")
 			await usd.approve(exchange.address, 0)
 			await otokenERC.approve(MARGIN_POOL[chainId], 0)
 		})
 	})
 	describe("Opyn Forbidden Actions", async () => {
 		it("REVERTS: OPYN liquidate", async () => {
-			await expect(exchange.operate([
-				{
-					operation: 0,
-					operationQueue: [{
-						actionType: 10,
-						owner: senderAddress,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: 1,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					}]
-				}])).to.be.revertedWithCustomError(exchange, "ForbiddenAction")
+			await expect(
+				exchange.operate([
+					{
+						operation: 0,
+						operationQueue: [
+							{
+								actionType: 10,
+								owner: senderAddress,
+								secondAddress: ZERO_ADDRESS,
+								asset: ZERO_ADDRESS,
+								vaultId: 1,
+								amount: 0,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWithCustomError(exchange, "ForbiddenAction")
 		})
 		it("REVERTS: OPYN call", async () => {
-			await expect(exchange.operate([
-				{
-					operation: 0,
-					operationQueue: [{
-						actionType: 9,
-						owner: senderAddress,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: 1,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					}]
-				}])).to.be.revertedWithCustomError(exchange, "ForbiddenAction")
+			await expect(
+				exchange.operate([
+					{
+						operation: 0,
+						operationQueue: [
+							{
+								actionType: 9,
+								owner: senderAddress,
+								secondAddress: ZERO_ADDRESS,
+								asset: ZERO_ADDRESS,
+								vaultId: 1,
+								amount: 0,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWithCustomError(exchange, "ForbiddenAction")
 		})
 		it("REVERTS: OPYN redeem", async () => {
-			await expect(exchange.operate([
-				{
-					operation: 0,
-					operationQueue: [{
-						actionType: 8,
-						owner: senderAddress,
-						secondAddress: ZERO_ADDRESS,
-						asset: ZERO_ADDRESS,
-						vaultId: 1,
-						amount: 0,
-						optionSeries: emptySeries,
-						indexOrAcceptablePremium: 0,
-						data: "0x"
-					}]
-				}])).to.be.revertedWithCustomError(exchange, "ForbiddenAction")
+			await expect(
+				exchange.operate([
+					{
+						operation: 0,
+						operationQueue: [
+							{
+								actionType: 8,
+								owner: senderAddress,
+								secondAddress: ZERO_ADDRESS,
+								asset: ZERO_ADDRESS,
+								vaultId: 1,
+								amount: 0,
+								optionSeries: emptySeries,
+								indexOrAcceptablePremium: 0,
+								data: "0x"
+							}
+						]
+					}
+				])
+			).to.be.revertedWithCustomError(exchange, "ForbiddenAction")
 		})
 	})
 })

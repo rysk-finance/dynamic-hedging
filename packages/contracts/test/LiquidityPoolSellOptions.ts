@@ -190,6 +190,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 			wethERC20,
 			optionRegistry,
 			portfolioValuesFeed,
+			volFeed,
 			authority
 		)
 		liquidityPool = lpParams.liquidityPool
@@ -215,6 +216,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				putVolvol: 1_500000,
 				interestRate: utils.parseEther("-0.001")
 			}
+			await exchange.pause()
 			await volFeed.setSabrParameters(proposedSabrParams, expiration)
 			const volFeedSabrParams = await volFeed.sabrParams(expiration)
 			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
@@ -240,6 +242,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 				interestRate: utils.parseEther("-0.002")
 			}
 			await volFeed.setSabrParameters(proposedSabrParams, expiration2)
+			await exchange.unpause()
 			const volFeedSabrParams = await volFeed.sabrParams(expiration2)
 			expect(proposedSabrParams.callAlpha).to.equal(volFeedSabrParams.callAlpha)
 			expect(proposedSabrParams.callBeta).to.equal(volFeedSabrParams.callBeta)
@@ -6429,7 +6432,6 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					expect(apSlippageGradientMultipliers[i]).to.equal(slippageGradientMultipliers[i])
 				}
 				await exchange.unpause()
-
 			})
 			it("REVERTS: set slippage gradients on pricer when non governance calls", async () => {
 				const tenorIndex = 2
@@ -6484,7 +6486,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 					"UNAUTHORIZED"
 				)
 			})
-	})
+		})
 		describe("Unwinds a hedging reactor", async () => {
 			it("Succeed: Hedging reactor unwind", async () => {
 				await liquidityPool.removeHedgingReactorAddress(1, false)

@@ -18,18 +18,7 @@ contract Protocol is AccessControl {
 	address public priceFeed;
 	address public optionExchange;
 
-	constructor(
-		address _optionRegistry,
-		address _priceFeed,
-		address _volatilityFeed,
-		address _portfolioValuesFeed,
-		address _authority
-	) AccessControl(IAuthority(_authority)) {
-		optionRegistry = _optionRegistry;
-		priceFeed = _priceFeed;
-		volatilityFeed = _volatilityFeed;
-		portfolioValuesFeed = _portfolioValuesFeed;
-	}
+	constructor(address _authority) AccessControl(IAuthority(_authority)) {}
 
 	///////////////
 	/// setters ///
