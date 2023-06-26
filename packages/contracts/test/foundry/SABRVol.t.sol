@@ -5,7 +5,7 @@ import "../../contracts/VolatilityFeed.sol";
 import "../../contracts/Authority.sol";
 import "forge-std/console.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
-
+import "../../contracts/utils/PausedContract.sol";
 contract SABRTest is Test {
     using Strings for uint256;
     using Strings for int256;
@@ -14,7 +14,8 @@ contract SABRTest is Test {
 
 	function setUp() public {
 		Authority auth = new Authority(address(this), msg.sender, msg.sender);
-		volFeed = new VolatilityFeed(address(auth));
+		PausedContract pausedContract = new PausedContract();
+		volFeed = new VolatilityFeed(address(auth), address(pausedContract));
 		VolatilityFeed.SABRParams memory _sabrParams = VolatilityFeed.SABRParams(
 			250000,
 			1000000,
