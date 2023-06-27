@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from "framer-motion";
 
 import FadeInUpDelayed from "src/animation/FadeInUpDelayed";
+import { RyskCountUp } from "src/components/shared/RyskCountUp";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { useUserStats } from "./hooks/useUserStats";
 import { Card } from "./components/Card";
+import { useUserStats } from "./hooks/useUserStats";
 
 export const UserStats = () => {
   const {
@@ -25,36 +26,46 @@ export const UserStats = () => {
         >
           <Card
             explainer="Total P/L for all unexpired positions."
-            symbol="$"
+            hasData={Boolean(activePnL)}
             title="P/L (active)"
-            value={activePnL}
-          />
+          >
+            {`$ `}
+            <RyskCountUp value={activePnL} />
+          </Card>
           <Card
             explainer="Total P/L for all open and closed positions."
-            symbol="$"
+            hasData={Boolean(historicalPnL)}
             title="P/L (historical)"
-            value={historicalPnL}
-          />
+          >
+            {`$ `}
+            <RyskCountUp value={historicalPnL} />
+          </Card>
           <Card
             explainer="Total delta for all open positions."
-            symbol="Δ"
+            hasData={Boolean(delta)}
             title="Delta"
-            value={delta}
-          />
+          >
+            {`Δ `}
+            <RyskCountUp value={delta} />
+          </Card>
           <Card
             disabled
             explainer="Total gamma for all open positions."
-            symbol="Γ"
+            hasData={false}
             title="Gamma"
-            value={0}
-          />
+          >
+            {`Γ `}
+            <RyskCountUp value={0} />
+          </Card>
           <Card
             disabled
             explainer="Total theta for all open positions."
-            symbol="θ"
+            hasData={false}
             title="Theta"
-            value={0}
-          />
+          >
+            {`θ `}
+            <RyskCountUp value={0} />
+          </Card>
         </motion.section>
       ) : null}
     </AnimatePresence>
