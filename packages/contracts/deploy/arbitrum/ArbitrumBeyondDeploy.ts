@@ -31,48 +31,27 @@ import {
 
 const addressPath = path.join(__dirname, "..", "..", "..", "contracts.json")
 
-// //	Arbitrum mainnet specific contract addresses. Change for other networks
-// const multisig = "0xFBdE2e477Ed031f54ed5Ad52f35eE43CD82cF2A6"
-// const usdcNativeAddress = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831"
-// const usdcBridgedAddress = "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8"
-// const wethAddress = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1"
-// const chainlinkOracleAddress = "0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612"
-// const gammaOracleAddress = "0xBA1880CFFE38DD13771CB03De896460baf7dA1E7"
-// const opynControllerProxyAddress = "0x594bD4eC29F7900AE29549c140Ac53b5240d4019"
-// const opynAddressBookAddress = "0xCa19F26c52b11186B4b1e76a662a14DA5149EA5a"
-// const opynNewCalculatorAddress = "0x749a3624ad2a001F935E3319743f53Ecc7466358"
-// const sequencerUptimeAddress = "0xFdB631F5EE196F0ed6FAa767959853A9F217697D"
+//	Arbitrum mainnet specific contract addresses. Change for other networks
+const multisig = "0xFBdE2e477Ed031f54ed5Ad52f35eE43CD82cF2A6"
+const usdcNativeAddress = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831"
+const usdcBridgedAddress = "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8"
+const wethAddress = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1"
+const chainlinkOracleAddress = "0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612"
+const gammaOracleAddress = "0xBA1880CFFE38DD13771CB03De896460baf7dA1E7"
+const opynControllerProxyAddress = "0x594bD4eC29F7900AE29549c140Ac53b5240d4019"
+const opynAddressBookAddress = "0xCa19F26c52b11186B4b1e76a662a14DA5149EA5a"
+const opynNewCalculatorAddress = "0x749a3624ad2a001F935E3319743f53Ecc7466358"
+const sequencerUptimeAddress = "0xFdB631F5EE196F0ed6FAa767959853A9F217697D"
 
-// // rage trade addresses for Arbitrum Mainnet
-// const clearingHouseAddress = "0x4521916972A76D5BFA65Fb539Cf7a0C2592050Ac"
-// const vETHAddress = "0x7ab08069a6ee445703116E4E09049E88a237af5E"
+// rage trade addresses for Arbitrum Mainnet
+const clearingHouseAddress = "0x4521916972A76D5BFA65Fb539Cf7a0C2592050Ac"
+const vETHAddress = "0x7ab08069a6ee445703116E4E09049E88a237af5E"
 
-// // gmx contracts on arbitrum mainnet
-// const positionRouterAddress = "0xb87a436B93fFE9D75c5cFA7bAcFff96430b09868"
-// const routerAddress = "0xaBBc5F99639c9B6bCb58544ddf04EFA6802F4064"
-// const readerAddress = "0x22199a49A999c351eF7927602CFB187ec3cae489"
-// const vaultAddress = "0x489ee077994B6658eAfA855C308275EAd8097C4A"
-
-// // uniswap v3 addresses (SAME FOR ALL CHAINS)
-// const uniswapV3SwapRouter = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
-
-//	Arbitrum Goerli specific contract addresses. Change for other networks
-const usdcNativeAddress = "0x6775842ae82bf2f0f987b10526768ad89d79536e"
-const usdcBridgedAddress = "0x6775842ae82bf2f0f987b10526768ad89d79536e"
-
-const wethAddress = "0x53320bE2A35649E9B2a0f244f9E9474929d3B699"
-const chainlinkOracleAddress = "0x62CAe0FA2da220f43a51F86Db2EDb36DcA9A5A08"
-const gammaOracleAddress = "0x35578F5A49E1f1Cf34ed780B46A0BdABA23D4C0b"
-const opynControllerProxyAddress = "0x11a602a5F5D823c103bb8b7184e22391Aae5F4C2"
-const opynAddressBookAddress = "0xd6e67bF0b1Cdb34C37f31A2652812CB30746a94A"
-const opynNewCalculatorAddress = "0xcD270e755C2653e806e16dD3f78E16C89B7a1c9e"
-const oTokenFactoryAddress = "0x7595F9c5B93f1478dC0836BdFCb87fF3A8970B10"
-const marginPoolAddress = "0x0E0Ad3eA82EFAeAFb4476f5E8225b4746B88FD9f"
-const sequencerUptimeAddress = "0x4da69F028a5790fCCAfe81a75C0D24f46ceCDd69"
-
-// rage trade addresses for Arbitrum Goerli
-const clearingHouseAddress = "0x7047343e3eF25505263116212EE74430A2A12257"
-const vETHAddress = "0xC85c06FCF9355876DF51a90C2c0290ECa913A04f"
+// gmx contracts on arbitrum mainnet
+const positionRouterAddress = "0xb87a436B93fFE9D75c5cFA7bAcFff96430b09868"
+const routerAddress = "0xaBBc5F99639c9B6bCb58544ddf04EFA6802F4064"
+const readerAddress = "0x22199a49A999c351eF7927602CFB187ec3cae489"
+const vaultAddress = "0x489ee077994B6658eAfA855C308275EAd8097C4A"
 
 // uniswap v3 addresses (SAME FOR ALL CHAINS)
 const uniswapV3SwapRouter = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
