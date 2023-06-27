@@ -585,7 +585,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount,
 								optionSeries: emptySeries,
-								indexOrAcceptablePremium: quote.sub(2e6),
+								indexOrAcceptablePremium: quote.sub(5e6),
 								data: "0x"
 							}
 						]

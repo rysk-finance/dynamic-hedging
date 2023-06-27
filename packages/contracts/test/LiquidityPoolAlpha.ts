@@ -1679,7 +1679,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
-			customOrderPrice = toWei("0.81")
+			customOrderPrice = toWei("3.81")
 			const createOrder = await handler.createOrder(
 				proposedSeries,
 				amount,
@@ -1787,6 +1787,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 				receiverBalBefore.sub(receiverBalAfter).sub(toUSDC(fromWei(customOrderPrice.mul(10))))
 			).to.be.within(-1, 1)
 			// check liquidity pool USD balance increases by agreed price minus collateral
+			const totalFee: number = (await handler.feePerContract()) * tFormatEth(orderDeets.amount)
 			expect(
 				tFormatUSDC(lpUSDBalanceDiff) -
 					(tFormatEth(orderDeets.amount) * tFormatEth(orderDeets.price) -
@@ -1795,7 +1796,7 @@ describe("Liquidity Pool with alpha tests", async () => {
 			).to.be.within(-0.015, 0.015)
 			// check delta changes by expected amount
 			expect(await portfolioValuesFeed.addressSetLength()).to.equal(5)
-			expect((await usd.balanceOf(senderAddress)).sub(senderBalBefore)).to.equal(toUSDC("1"))
+			expect((await usd.balanceOf(senderAddress)).sub(senderBalBefore)).to.equal(totalFee)
 		})
 		it("SETUP: Creates a buy order", async () => {
 			let customOrderPriceMultiplier = 1
