@@ -31,7 +31,7 @@ export const Card = ({
         <h3 className="text-white py-2 font-dm-mono mr-9">{title}</h3>
       </span>
       <span className="block h-full border-black border-2 rounded-r-lg rounded-bl-lg drop-shadow-lg p-3">
-        <p className="text-2xl mb-3">{children}</p>
+        {children}
 
         <em className="block not-italic text-xs border-black border-t pt-3">
           {disabled ? "Coming soon..." : explainer}
