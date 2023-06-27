@@ -179,11 +179,7 @@ let putMultipliers5 = [
 	toWei("5")
 ]
 
-export async function deploySystem(
-	signers: Signer[],
-	oracle: Oracle,
-	opynAggregator: MockChainlinkAggregator
-) {
+export async function deploySystem(signers: Signer[], opynAggregator: MockChainlinkAggregator) {
 	const sender = signers[0]
 	const senderAddress = await sender.getAddress()
 
@@ -244,10 +240,6 @@ export async function deploySystem(
 	await priceFeed.addPriceFeed(weth.address, usd.address, opynAggregator.address)
 	await optionProtocol.changePriceFeed(priceFeed.address)
 
-	// oracle returns price denominated in 1e8
-	const oraclePrice = await oracle.getPrice(weth.address)
-	// pricefeed returns price denominated in 1e18
-	const priceFeedPrice = await priceFeed.getNormalizedRate(weth.address, usd.address)
 	const volFeedFactory = await ethers.getContractFactory("VolatilityFeed")
 	const volFeed = (await volFeedFactory.deploy(
 		authority.address,
