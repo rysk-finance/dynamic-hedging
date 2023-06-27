@@ -10,6 +10,7 @@ export const RyskCountUp = ({
   value = 0,
   fallback = "-",
   format = "USD",
+  prefix = "",
 }: RyskCountUpProps) => {
   const [end, setEnd] = useState(0);
   const [key, setKey] = useState(v4());
@@ -31,16 +32,20 @@ export const RyskCountUp = ({
   }
 
   return (
-    <CountUp
-      decimalPlaces={RyskCountUpDecimals[format]}
-      decimalSeparator={"."}
-      duration={0.3}
-      easing="easeOutCubic"
-      end={end}
-      isCounting={Boolean(value)}
-      key={key}
-      start={start}
-      thousandsSeparator={","}
-    />
+    <>
+      {`${prefix} `}
+      <CountUp
+      
+        decimalPlaces={RyskCountUpDecimals[format]}
+        decimalSeparator={"."}
+        duration={0.3}
+        easing="easeOutCubic"
+        end={end}
+        isCounting={Boolean(value)}
+        key={key}
+        start={start}
+        thousandsSeparator={","}
+      />
+    </>
   );
 };
