@@ -29,21 +29,27 @@ export const UserStats = () => {
             hasData={Boolean(activePnL)}
             title="P/L (active)"
           >
-            <RyskCountUp prefix="$" value={activePnL} />
+            <p className="text-2xl mb-3">
+              {<RyskCountUp prefix="$" value={activePnL} />}
+            </p>
           </Card>
           <Card
             explainer="Total P/L for all open and closed positions."
             hasData={Boolean(historicalPnL)}
             title="P/L (historical)"
           >
-            <RyskCountUp prefix="$" value={historicalPnL} />
+            <p className="text-2xl mb-3">
+              <RyskCountUp prefix="$" value={historicalPnL} />
+            </p>
           </Card>
           <Card
             explainer="Total delta for all open positions."
             hasData={Boolean(delta)}
             title="Delta"
           >
-            <RyskCountUp prefix="Δ" value={delta} />
+            <p className="text-2xl mb-3">
+              <RyskCountUp prefix="Δ" value={delta} />
+            </p>
           </Card>
           <Card
             disabled
@@ -51,7 +57,9 @@ export const UserStats = () => {
             hasData={false}
             title="Gamma"
           >
-            <RyskCountUp prefix="Γ" value={0} />
+            <p className="text-2xl mb-3">
+              <RyskCountUp prefix="Γ" value={0} />
+            </p>
           </Card>
           <Card
             disabled
@@ -59,7 +67,9 @@ export const UserStats = () => {
             hasData={false}
             title="Theta"
           >
-            <RyskCountUp prefix="θ" value={0} />
+            <p className="text-2xl mb-3">
+              <RyskCountUp prefix="θ" value={0} />
+            </p>
           </Card>
         </motion.section>
       ) : null}
