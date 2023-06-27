@@ -66,7 +66,7 @@ const minExpiry = 86400
 // 90 days in seconds
 const maxExpiry = 7776000
 const bidAskSpread = toWei("0")
-const maxNetDhvExposure = toWei("5000")
+const maxNetDhvExposure = toWei("1000")
 
 const slippageGradient = toWei("0.0001")
 const deltaBandWidth = toWei("5")
@@ -778,7 +778,8 @@ export async function deployLiquidityPool(
 		truncate(vETHAddress),
 		truncate(usdcBridged.address),
 		priceFeed.address,
-		authority
+		authority,
+		uniswapV3SwapRouter
 	)) as PerpHedgingReactor
 
 	console.log("perp hedging reactor deployed")
@@ -795,7 +796,8 @@ export async function deployLiquidityPool(
 				truncate(vETHAddress),
 				truncate(usdcBridged.address),
 				priceFeed.address,
-				authority
+				authority,
+				uniswapV3SwapRouter
 			]
 		})
 		console.log("perp hedging reactor verified")
@@ -910,6 +912,8 @@ export async function deployLiquidityPool(
 		console.log(err)
 		console.log("lens contract already verified")
 	}
+
+	await exchange.pause()
 
 	return {
 		liquidityPool: liquidityPool,
