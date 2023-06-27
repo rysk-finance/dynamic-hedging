@@ -389,6 +389,7 @@ export async function deploySystem(deployer: Signer, chainlinkOracleAddress: str
 		console.log(err)
 	}
 	await priceFeed.addPriceFeed(weth.address, usdcNative.address, chainlinkOracleAddress)
+	await priceFeed.addPriceFeed(weth.address, usdcBridged.address, chainlinkOracleAddress)
 
 	const volFeedFactory = await ethers.getContractFactory("VolatilityFeed")
 	const volFeed = (await volFeedFactory.deploy(
@@ -768,7 +769,7 @@ export async function deployLiquidityPool(
 
 	// deploy rage trade perpetual hedging reactor
 
-	const perpHedgingReactorFactory = await ethers.getContractFactory("PerpHedgingReactor")
+	const perpHedgingReactorFactory = await ethers.getContractFactory("PerpHedgingReactorWithSwap")
 	const perpHedgingReactor = (await perpHedgingReactorFactory.deploy(
 		clearingHouseAddress,
 		usdcBridged.address,
@@ -839,7 +840,7 @@ export async function deployLiquidityPool(
 	}
 
 	// deploy GMX hedging reactor
-	const gmxHedgingReactorFactory = await ethers.getContractFactory("GmxHedgingReactor")
+	const gmxHedgingReactorFactory = await ethers.getContractFactory("GmxHedgingReactorWithSwap")
 	const gmxHedgingReactor = (await gmxHedgingReactorFactory.deploy(
 		positionRouterAddress,
 		routerAddress,
@@ -849,7 +850,8 @@ export async function deployLiquidityPool(
 		wethAddress,
 		liquidityPool.address,
 		priceFeed.address,
-		authority
+		authority,
+		uniswapV3SwapRouter
 	)) as GmxHedgingReactor
 
 	console.log("gmx hedging reactor deployed")
@@ -866,7 +868,8 @@ export async function deployLiquidityPool(
 				wethAddress,
 				liquidityPool.address,
 				priceFeed.address,
-				authority
+				authority,
+				uniswapV3SwapRouter
 			]
 		})
 		console.log("gmx hedging reactor verified")
