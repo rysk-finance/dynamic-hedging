@@ -1,8 +1,9 @@
-export interface CardProps {
-  explainer: string;
+import type { PropsWithChildren } from "react";
+
+export interface CardProps extends PropsWithChildren {
   disabled?: boolean;
+  explainer: string;
+  hasData: boolean;
   span?: `col-span-${number}`;
-  symbol: string;
   title: string;
-  value: number;
 }

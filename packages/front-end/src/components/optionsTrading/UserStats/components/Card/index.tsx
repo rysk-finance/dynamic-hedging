@@ -2,20 +2,18 @@ import type { CardProps } from "../../types";
 
 import { useAccount } from "wagmi";
 
-import { RyskCountUp } from "src/components/shared/RyskCountUp";
-
 export const Card = ({
+  children,
   disabled,
   explainer,
+  hasData,
   span = "col-span-1",
-  symbol,
   title,
-  value,
 }: CardProps) => {
   const { isConnected } = useAccount();
 
   const tabColor =
-    value && !disabled && isConnected
+    hasData && !disabled && isConnected
       ? "bg-green-500"
       : !disabled && isConnected
       ? "bg-yellow-600"
@@ -33,10 +31,7 @@ export const Card = ({
         <h3 className="text-white py-2 font-dm-mono mr-9">{title}</h3>
       </span>
       <span className="block h-full border-black border-2 rounded-r-lg rounded-bl-lg drop-shadow-lg p-3">
-        <p className="text-2xl mb-3">
-          {`${symbol} `}
-          <RyskCountUp value={value} />
-        </p>
+        <p className="text-2xl mb-3">{children}</p>
 
         <em className="block not-italic text-xs border-black border-t pt-3">
           {disabled ? "Coming soon..." : explainer}
