@@ -1,5 +1,6 @@
 import type { QuoteData } from "src/components/shared/utils/getQuote/types";
 import type {
+  ActivePositions,
   ChainData,
   SpotShock,
   TimesToExpiry,
@@ -35,16 +36,17 @@ const formatCollateralAmount = (
 };
 
 /**
- * TBD
+ * Calculate table data for all active user positions.
  *
- * @param chainData
- * @param positions
- * @param quotes
- * @param ethPrice
- * @param spotShock
- * @param timesToExpiry
- * @param wethOracleHashMap
- * @returns
+ * @param chainData - Option chain data from global state.
+ * @param positions - List of active user positions.
+ * @param quotes - List of quote data for active positions.
+ * @param ethPrice - Ether price from global state.
+ * @param spotShock - A dict of values for all collateral types & flavors.
+ * @param timesToExpiry - A dict of values for all collateral types & flavors.
+ * @param wethOracleHashMap - Oracle Ether price HashMap from global state.
+ *
+ * @returns Promise<ActivePositions[]>
  */
 export const buildActivePositions = async (
   chainData: ChainData,
@@ -54,7 +56,7 @@ export const buildActivePositions = async (
   spotShock: SpotShock,
   timesToExpiry: TimesToExpiry,
   wethOracleHashMap: WethOracleHashMap
-) => {
+): Promise<ActivePositions[]> => {
   if (positions.length === 0 || !ethPrice) return [];
 
   const nowToUnix = dayjs().unix();
