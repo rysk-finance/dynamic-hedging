@@ -22,7 +22,7 @@ import {
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
-import { getLiquidationPrice } from "../../Shared/utils/getLiquidationPrice";
+import { getLiquidationPrices } from "../../../../shared/utils/getLiquidationPrice";
 
 export const useSellOption = (amountToSell: string) => {
   // Global state.
@@ -162,17 +162,21 @@ export const useSellOption = (amountToSell: string) => {
             USDCCollateral ? toUSDC(requiredApproval) : toRysk(requiredApproval)
           ).lte(allowance.amount);
 
-          const liquidationPrice = collateralPreferences.full
-            ? 0
-            : await getLiquidationPrice(
-                amount,
-                selectedOption.callOrPut,
-                collateral,
-                collateralAddress,
+          const [liquidationPrice] = collateralPreferences.full
+            ? [0]
+            : await getLiquidationPrices(
+                [
+                  {
+                    amount,
+                    callOrPut: selectedOption.callOrPut,
+                    collateral,
+                    collateralAddress,
+                    expiry: Number(activeExpiry),
+                    strikePrice: selectedOption.strikeOptions.strike,
+                  },
+                ],
                 ethPrice,
-                Number(activeExpiry),
                 spotShock,
-                selectedOption.strikeOptions.strike,
                 timesToExpiry
               );
 
