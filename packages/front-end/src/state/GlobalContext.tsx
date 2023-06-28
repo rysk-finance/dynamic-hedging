@@ -11,6 +11,7 @@ import {
 } from "react";
 import { LOCAL_STORAGE_SETTINGS_KEY } from "../components/dashboard/Settings";
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import { EMPTY_POSITION } from "./constants";
 import { globalReducer } from "./reducer";
 import { ActionType, AppSettings, GlobalContext, GlobalState } from "./types";
 
@@ -125,6 +126,7 @@ export const defaultGlobalState: GlobalState = {
   // User stats
   userStats: {
     activePnL: 0,
+    activePositions: [EMPTY_POSITION],
     delta: 0,
     historicalPnL: 0,
   },
