@@ -1,3 +1,5 @@
+import type { CollateralType } from "./types";
+
 const alphaDepositors: HexString[] = [
   "0xae563b92ea55a5f54caa5aa659290655a8adb0a5",
   "0xad4b9b6fe5d4a44395c19cdeb4ff0ba6d9025fd7",
@@ -3596,3 +3598,21 @@ export const LP_WHITELIST: HexString[] = [
   ...degenscoreDepositors,
   ...testAddresses,
 ];
+
+export const EMPTY_POSITION = {
+  action: "-",
+  amount: 0,
+  breakEven: 0,
+  collateral: {
+    amount: 0,
+    asset: "USDC" as CollateralType,
+    liquidationPrice: 0,
+  },
+  disabled: true,
+  delta: 0,
+  id: "0x0" as HexString,
+  isOpen: false,
+  isShort: false,
+  profitLoss: 0,
+  series: "-",
+};

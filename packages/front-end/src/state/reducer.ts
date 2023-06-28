@@ -189,6 +189,8 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
         ...state,
         userStats: {
           activePnL: action.activePnL ?? state.userStats.activePnL,
+          activePositions:
+            action.activePositions || state.userStats.activePositions,
           delta: action.delta ?? state.userStats.delta,
           historicalPnL: action.historicalPnL ?? state.userStats.historicalPnL,
         },

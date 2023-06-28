@@ -19,6 +19,7 @@ export type Expiries = string[];
 
 export interface UserPositionToken extends PositionOToken {
   active: boolean;
+  id: HexString;
   netAmount: BigNumberish;
   totalPremium: number;
   liquidateActions?: LiquidateActions[];
@@ -141,8 +142,27 @@ export interface WethOracleHashMap {
   [expiry: string]: number;
 }
 
+interface ActivePositions {
+  action: string;
+  amount: number;
+  breakEven: number;
+  collateral: {
+    amount: number;
+    asset?: CollateralType;
+    liquidationPrice: number;
+  };
+  disabled: boolean;
+  delta: number;
+  id: HexString;
+  isOpen: boolean;
+  isShort: boolean;
+  profitLoss: number;
+  series: string;
+}
+
 export interface UserStats {
   activePnL: number;
+  activePositions: ActivePositions[];
   delta: number;
   historicalPnL: number;
 }
@@ -372,6 +392,7 @@ export type GlobalAction =
   | {
       type: ActionType.SET_USER_STATS;
       activePnL?: number;
+      activePositions?: ActivePositions[];
       delta?: number;
       historicalPnL?: number;
     };
