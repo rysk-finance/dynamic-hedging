@@ -413,7 +413,7 @@ export const VaultDeposit = () => {
             />
           </div>
 
-          {!isWhitelisted && (
+          {isConnected && !isWhitelisted && (
             <small className="flex border-b-2 border-black p-2 text-red-900">
               {`Depositing is currently only available for early access to whitelisted addresses. Please come back soon to deposit into the ${DHV_NAME}.`}
             </small>
