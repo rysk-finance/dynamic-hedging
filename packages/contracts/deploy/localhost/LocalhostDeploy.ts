@@ -64,7 +64,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 	const opynAggregator = res[1] as MockChainlinkAggregator
 
 	// deploy system
-	let deployParams = await deploySystem(signers, oracle, opynAggregator)
+	let deployParams = await deploySystem(signers, opynAggregator)
 	const wethERC20 = deployParams.wethERC20
 	const usd = deployParams.usd
 	const optionRegistry = deployParams.optionRegistry
