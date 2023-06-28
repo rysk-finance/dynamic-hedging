@@ -4,6 +4,7 @@ import type { Chain } from "wagmi";
 import {
   connectorsForWallets,
   RainbowKitProvider,
+  getDefaultWallets,
 } from "@rainbow-me/rainbowkit";
 import {
   coinbaseWallet,
@@ -31,6 +32,7 @@ const defaultChains: [Chain] =
   process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
     ? [arbitrum]
     : [arbitrumGoerli];
+const projectId = process.env.REACT_APP_WALLET_CONNECT_KEY || "";
 
 const alchemy = process.env.REACT_APP_ALCHEMY_KEY
   ? [alchemyProvider({ apiKey: process.env.REACT_APP_ALCHEMY_KEY })]
@@ -51,21 +53,19 @@ const { chains, provider } = configureChains(defaultChains, providers, {
   pollingInterval: 60000,
 });
 
+const { wallets } = getDefaultWallets({
+  appName: "Rysk Finance",
+  projectId: projectId,
+  chains,
+});
+
 const connectors = connectorsForWallets([
-  {
-    groupName: "Recommended",
-    wallets: [
-      injectedWallet({ chains }),
-      metaMaskWallet({ chains }),
-      walletConnectWallet({ chains }),
-    ],
-  },
+  ...wallets,
   {
     groupName: "Available",
     wallets: [
-      coinbaseWallet({ appName: "Rysk", chains }),
-      ledgerWallet({ chains }),
-      trustWallet({ chains }),
+      ledgerWallet({ chains, projectId }),
+      trustWallet({ chains, projectId }),
     ],
   },
 ]);
