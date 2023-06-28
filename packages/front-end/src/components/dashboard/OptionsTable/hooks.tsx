@@ -33,7 +33,7 @@ import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { BIG_NUMBER_DECIMALS, ZERO_ADDRESS } from "../../../config/constants";
 import { useExpiryPriceData } from "../../../hooks/useExpiryPriceData";
-import { getLiquidationPrice } from "../../optionsTrading/Modals/Shared/utils/getLiquidationPrice";
+import { getLiquidationPrices } from "../../shared/utils/getLiquidationPrice";
 import { getQuotes } from "../../shared/utils/getQuote";
 
 /**
@@ -208,7 +208,7 @@ const usePositions = () => {
           } = oToken;
 
           const humanisedStrikePrice = Number(fromOpyn(strikePrice));
-          const putOrCall = isPut ? "put" : "call";
+          const callOrPut = isPut ? "put" : "call";
 
           const vault = (rest as ShortPosition)?.vault || { vaultId: "" };
           const settleActions = (rest as ShortPosition)?.settleActions || [];
@@ -220,7 +220,7 @@ const usePositions = () => {
 
           // Check state to see if the series is disabled.
           const seriesData =
-            chainData[expiryTimestamp]?.[humanisedStrikePrice][putOrCall];
+            chainData[expiryTimestamp]?.[humanisedStrikePrice][callOrPut];
           const buyDisabled = seriesData
             ? seriesData.buy.disabled || !seriesData.buy.quote.quote
             : true;
@@ -353,19 +353,25 @@ const usePositions = () => {
 
           const getVaultLiquidationPrice = async () => {
             if (ethPrice) {
-              const liquidationPrice = await getLiquidationPrice(
-                humanisedAmount,
-                putOrCall,
-                Number(
-                  vault.collateralAsset?.name === "USDC"
-                    ? fromUSDC(collateralAllVaults)
-                    : fromWei(collateralAllVaults)
-                ),
-                getContractAddress(collateralAssetSymbol) as HexString,
+              const [liquidationPrice] = await getLiquidationPrices(
+                [
+                  {
+                    amount: humanisedAmount,
+                    callOrPut,
+                    collateral: Number(
+                      vault.collateralAsset?.name === "USDC"
+                        ? fromUSDC(collateralAllVaults)
+                        : fromWei(collateralAllVaults)
+                    ),
+                    collateralAddress: getContractAddress(
+                      collateralAssetSymbol
+                    ),
+                    expiry: Number(expiryTimestamp),
+                    strikePrice: humanisedStrikePrice,
+                  },
+                ],
                 ethPrice,
-                Number(expiryTimestamp),
                 spotShock,
-                humanisedStrikePrice,
                 timesToExpiry
               );
               return liquidationPrice;

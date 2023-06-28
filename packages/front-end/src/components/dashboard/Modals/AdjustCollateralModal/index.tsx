@@ -27,7 +27,7 @@ import { AddressesRequired } from "src/components/optionsTrading/Modals/Shared/t
 import { Disclaimer } from "src/components/optionsTrading/Modals/Shared/components/Disclaimer";
 import { Modal } from "src/components/optionsTrading/Modals/Shared/components/Modal";
 import { useAllowance } from "src/components/optionsTrading/Modals/Shared/hooks/useAllowance";
-import { getLiquidationPrice } from "src/components/optionsTrading/Modals/Shared/utils/getLiquidationPrice";
+import { getLiquidationPrices } from "src/components/shared/utils/getLiquidationPrice";
 import { useDebouncedCallback } from "use-debounce";
 import { toast } from "react-toastify";
 
@@ -183,21 +183,24 @@ const AdjustCollateralModal = () => {
 
     setNewCollateralAmount(rounded);
 
-    const liquidationPrice = await getLiquidationPrice(
-      Number(fromOpyn(oTokenAmount)),
-      isPut ? "put" : "call",
-      calculateNewCollateralAmount(
-        collateralAssetSymbol,
-        collateralAmount,
-        rounded,
-        isWithdrawCollateral
-      ),
-
-      getContractAddress(collateralAssetSymbol) as HexString,
+    const [liquidationPrice] = await getLiquidationPrices(
+      [
+        {
+          amount: Number(fromOpyn(oTokenAmount)),
+          callOrPut: isPut ? "put" : "call",
+          collateral: calculateNewCollateralAmount(
+            collateralAssetSymbol,
+            collateralAmount,
+            rounded,
+            isWithdrawCollateral
+          ),
+          collateralAddress: getContractAddress(collateralAssetSymbol),
+          expiry: Number(expiryTimestamp),
+          strikePrice: Number(fromOpyn(strikePrice)),
+        },
+      ],
       ethPrice || 0,
-      Number(expiryTimestamp),
       spotShock,
-      Number(fromOpyn(strikePrice)),
       timesToExpiry
     );
 
