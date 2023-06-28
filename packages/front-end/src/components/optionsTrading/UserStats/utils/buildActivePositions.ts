@@ -1,0 +1,171 @@
+import type { QuoteData } from "src/components/shared/utils/getQuote/types";
+import type {
+  ChainData,
+  SpotShock,
+  TimesToExpiry,
+  UserPositionToken,
+  WethOracleHashMap,
+} from "src/state/types";
+
+import dayjs from "dayjs";
+
+import { ZERO_ADDRESS } from "src/config/constants";
+import { Vault } from "src/hooks/useInitialData/types";
+import {
+  fromOpynToNumber,
+  fromWeiToInt,
+  tFormatUSDC,
+} from "src/utils/conversion-helper";
+import { getLiquidationPrices } from "../../../shared/utils/getLiquidationPrice";
+
+const formatCollateralAmount = (
+  fallback: number,
+  collateralAsset?: UserPositionToken["collateralAsset"],
+  vault?: Vault
+) => {
+  if (vault && collateralAsset) {
+    if (collateralAsset.symbol === "WETH") {
+      return fromWeiToInt(vault.collateralAmount);
+    } else {
+      return tFormatUSDC(vault.collateralAmount);
+    }
+  } else {
+    return fallback;
+  }
+};
+
+/**
+ * TBD
+ *
+ * @param chainData
+ * @param positions
+ * @param quotes
+ * @param ethPrice
+ * @param spotShock
+ * @param timesToExpiry
+ * @param wethOracleHashMap
+ * @returns
+ */
+export const buildActivePositions = async (
+  chainData: ChainData,
+  positions: UserPositionToken[] = [],
+  quotes: QuoteData[],
+  ethPrice: number | null,
+  spotShock: SpotShock,
+  timesToExpiry: TimesToExpiry,
+  wethOracleHashMap: WethOracleHashMap
+) => {
+  if (positions.length === 0 || !ethPrice) return [];
+
+  const nowToUnix = dayjs().unix();
+
+  const liquidationPrices = await getLiquidationPrices(
+    positions.map(
+      ({
+        collateralAsset,
+        expiryTimestamp,
+        isPut,
+        netAmount,
+        strikePrice,
+        vault,
+      }) => {
+        return {
+          amount: Math.abs(fromWeiToInt(netAmount)),
+          callOrPut: isPut ? "put" : "call",
+          collateral: formatCollateralAmount(0, collateralAsset, vault),
+          collateralAddress:
+            (vault?.collateralAsset.id as HexString) || ZERO_ADDRESS,
+          expiry: parseInt(expiryTimestamp),
+          strikePrice: fromOpynToNumber(strikePrice),
+        };
+      }
+    ),
+    ethPrice,
+    spotShock,
+    timesToExpiry
+  );
+
+  return positions.map(
+    (
+      {
+        collateralAsset,
+        netAmount,
+        id,
+        isPut,
+        strikePrice,
+        expiryTimestamp,
+        realizedPnl,
+        symbol,
+        vault,
+      },
+      index
+    ) => {
+      const [, ...series] = symbol.split("-");
+      const amount = fromWeiToInt(netAmount);
+      const absAmount = Math.abs(amount);
+      const side = isPut ? "put" : "call";
+      const strike = fromOpynToNumber(strikePrice);
+      const { delta, buy, sell } = chainData[expiryTimestamp][strike][side];
+
+      // Determine action.
+      const isShort = Boolean(collateralAsset && "symbol" in collateralAsset);
+      const isOpen = parseInt(expiryTimestamp) > nowToUnix;
+      const disabled = isShort
+        ? buy.disabled || !buy.quote.quote
+        : sell.disabled || !sell.quote.quote;
+      const _action = () => {
+        if (!isOpen) {
+          if (isShort) {
+            return "Settle Position";
+          } else {
+            return "Redeem Position";
+          }
+        }
+
+        if (disabled) {
+          return "Currently Untradeable";
+        } else {
+          return "Close Position";
+        }
+      };
+
+      // P/L calcs.
+      const formattedPnl = tFormatUSDC(realizedPnl);
+      const { quote } = quotes[index];
+      const priceAtExpiry = wethOracleHashMap[expiryTimestamp];
+      const _profitLoss = () => {
+        if (isOpen) {
+          if (isShort) {
+            return formattedPnl - quote;
+          } else {
+            return formattedPnl + quote;
+          }
+        }
+
+        if (isPut) {
+          return Math.max(strike - priceAtExpiry, 0);
+        } else {
+          return Math.max(priceAtExpiry - strike, 0);
+        }
+      };
+
+      return {
+        action: _action(),
+        amount: absAmount,
+        breakEven: strike + formattedPnl / absAmount,
+        collateral: {
+          amount: formatCollateralAmount(0, collateralAsset, vault),
+          asset: collateralAsset?.symbol,
+          liquidationPrice: liquidationPrices[index],
+        },
+        disabled,
+        delta: amount * delta,
+        id,
+        isOpen,
+        isShort,
+        profitLoss: _profitLoss(),
+        series: series.join("-"),
+      };
+    }
+  );
+};
