@@ -5,6 +5,7 @@ import dayjs from "dayjs";
 
 import {
   fromOpynToNumber,
+  fromWeiToInt,
   tFormatEth,
   tFormatUSDC,
 } from "src/utils/conversion-helper";
@@ -45,11 +46,14 @@ export const calculatePnL = async (
         id,
         isPut,
         liquidateActions,
+        netAmount,
         realizedPnl,
         strikePrice,
       },
       index
     ) => {
+      const positionSize = fromWeiToInt(netAmount);
+
       if (index < longPositions.length) {
         // Longs
         const expiriesAt = parseInt(expiryTimestamp);
@@ -75,7 +79,10 @@ export const calculatePnL = async (
             ? Math.max(strike - priceAtExpiry, 0)
             : Math.max(priceAtExpiry - strike, 0);
 
-          return [historicalPnL + realizedPnL + valueAtExpiry, activePnL];
+          return [
+            historicalPnL + realizedPnL + valueAtExpiry * positionSize,
+            activePnL,
+          ];
         }
       } else {
         // Shorts
@@ -119,7 +126,10 @@ export const calculatePnL = async (
             ? Math.max(strike - priceAtExpiry, 0)
             : Math.max(priceAtExpiry - strike, 0);
 
-          return [historicalPnL + realizedPnL - valueAtExpiry, activePnL];
+          return [
+            historicalPnL + realizedPnL + valueAtExpiry * positionSize,
+            activePnL,
+          ];
         }
       }
     },

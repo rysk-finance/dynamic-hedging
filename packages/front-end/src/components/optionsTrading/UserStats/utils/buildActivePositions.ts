@@ -101,15 +101,21 @@ export const buildActivePositions = async (
       index
     ) => {
       const [, ...series] = symbol.split("-");
+      const isOpen = parseInt(expiryTimestamp) > nowToUnix;
       const amount = fromWeiToInt(netAmount);
       const absAmount = Math.abs(amount);
       const side = isPut ? "put" : "call";
       const strike = fromOpynToNumber(strikePrice);
-      const { delta, buy, sell } = chainData[expiryTimestamp][strike][side];
+      const { delta, buy, sell } = isOpen
+        ? chainData[expiryTimestamp][strike][side]
+        : {
+            delta: 0,
+            buy: { quote: { quote: 0 } },
+            sell: { quote: { quote: 0 } },
+          };
 
       // Determine action.
       const isShort = Boolean(collateralAsset && "symbol" in collateralAsset);
-      const isOpen = parseInt(expiryTimestamp) > nowToUnix;
       const disabled = isShort
         ? buy.disabled || !buy.quote.quote
         : sell.disabled || !sell.quote.quote;
@@ -142,11 +148,11 @@ export const buildActivePositions = async (
           }
         }
 
-        if (isPut) {
-          return Math.max(strike - priceAtExpiry, 0);
-        } else {
-          return Math.max(priceAtExpiry - strike, 0);
-        }
+        const valueAtExpiry = isPut
+          ? Math.max(strike - priceAtExpiry, 0)
+          : Math.max(priceAtExpiry - strike, 0);
+
+        return formattedPnl + valueAtExpiry * amount;
       };
 
       return {
