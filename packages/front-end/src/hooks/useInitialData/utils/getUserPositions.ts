@@ -1,13 +1,9 @@
 import type { UserPositions } from "src/state/types";
 import type { OptionsTransaction, Position } from "../types";
 
-import dayjs from "dayjs";
-
 import { tFormatUSDC } from "src/utils/conversion-helper";
 
 export const getUserPositions = (positions: Position[]): UserPositions => {
-  const now = dayjs().unix();
-
   return positions.reduce(
     (
       positions,
@@ -56,7 +52,6 @@ export const getUserPositions = (positions: Position[]): UserPositions => {
         vault,
       };
 
-      const isActive = active && parseInt(expiryTimestamp) >= now;
       const hasCollateral = Boolean(token.collateralAsset);
       const key = positions[expiryTimestamp];
 
@@ -65,7 +60,7 @@ export const getUserPositions = (positions: Position[]): UserPositions => {
           netAmount,
           isLong,
           isShort,
-          activeTokens: isActive ? [token] : [],
+          activeTokens: active ? [token] : [],
           longTokens: hasCollateral ? [] : [token],
           shortTokens: hasCollateral ? [token] : [],
         };
@@ -74,7 +69,7 @@ export const getUserPositions = (positions: Position[]): UserPositions => {
           ...key,
           isLong: key.isLong || isLong,
           isShort: key.isShort || isShort,
-          activeTokens: isActive
+          activeTokens: active
             ? [...key.activeTokens, token]
             : key.activeTokens,
           longTokens: hasCollateral
