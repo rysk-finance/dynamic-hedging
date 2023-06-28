@@ -7,7 +7,6 @@
     "eject": "react-app-rewired eject",
     "sourcemaps:inject": "sentry-cli sourcemaps inject ./build/static/js",
     "sourcemaps:upload": "node ./upload-sourcemaps.js",
-    "start": "env-cmd -f .env -f .env.local react-app-rewired start",
     "start:arbitrum": "env-cmd -f .env -f .env.arbitrum react-app-rewired start",
     "start:testnet": "env-cmd -f .env -f .env.testnet react-app-rewired start",
     "test": "react-app-rewired test"
