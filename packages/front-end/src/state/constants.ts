@@ -260,7 +260,13 @@ const alphaDepositors: HexString[] = [
 const degenscoreDepositors: HexString[] = [];
 
 const testAddresses: HexString[] = [
-  "0xad5b468f6fb897461e388396877fd5e3c5114539",
+  "0xc051b37c2b4f103d397074eee54573765df83a72",
+  "0x900603f9376a0f19ac3212a1950d82412e01854f",
+  "0x17a80e497cc1bac48df98828eeeacbf3a3824b6d",
+  "0xc921ff4f9254d592c1b87fd569774b8de0a809af",
+  "0xb69dc34f83b0a1a37ae105b76db62b74f68749e8",
+  "0x953b18a294332c0837ff8c5b08e54b1555871e4b",
+  "0x99eff2f8c7ebd3e05ffc09c6aaa4eddec7831065",
 ];
 
 export const LP_WHITELIST: HexString[] = [
