@@ -1,15 +1,12 @@
+import type { QuoteData } from "src/components/shared/utils/getQuote/types";
 import type { UserPositionToken, WethOracleHashMap } from "src/state/types";
 
 import dayjs from "dayjs";
 
-import { getQuotes } from "src/components/shared/utils/getQuote";
 import {
-  fromOpyn,
   fromOpynToNumber,
-  fromWeiToInt,
   tFormatEth,
   tFormatUSDC,
-  toRysk,
 } from "src/utils/conversion-helper";
 
 /**
@@ -18,38 +15,25 @@ import {
  * Index 1 - Active P/L.
  *
  * @param ethPrice - Ether price from global state.
- * @param longs - List of historical user long positions.
- * @param shorts - List of historical user short positions.
+ * @param activePositions - List of active user positions.
+ * @param longPositions - List of historical user long positions.
+ * @param shortPositions - List of historical user short positions.
+ * @param quotes - List of quote data for active positions.
  * @param wethOracleHashMap - Oracle Ether price HashMap from global state.
  *
  * @returns Promise<[number, number]>
  */
 export const calculatePnL = async (
-  ethPrice: number,
-  longs: UserPositionToken[] = [],
-  shorts: UserPositionToken[] = [],
+  ethPrice: number | null,
+  activePositions: UserPositionToken[] = [],
+  longPositions: UserPositionToken[] = [],
+  shortPositions: UserPositionToken[] = [],
+  quotes: QuoteData[],
   wethOracleHashMap: WethOracleHashMap
 ): Promise<[number, number]> => {
-  const allPositions = [...longs, ...shorts];
+  const allPositions = [...longPositions, ...shortPositions];
 
-  if (!allPositions.length) return [0, 0];
-
-  const quotes = await getQuotes(
-    allPositions.map(
-      ({ collateralAsset, expiryTimestamp, isPut, netAmount, strikePrice }) => {
-        const isShort = collateralAsset && "symbol" in collateralAsset;
-
-        return {
-          expiry: parseInt(expiryTimestamp),
-          strike: toRysk(fromOpyn(strikePrice)),
-          isPut: isPut,
-          orderSize: Math.abs(fromWeiToInt(netAmount)),
-          isSell: !isShort,
-          collateral: isShort ? collateralAsset.symbol : "USDC",
-        };
-      }
-    )
-  );
+  if (!allPositions.length || !ethPrice) return [0, 0];
 
   return allPositions.reduce(
     (
@@ -58,6 +42,7 @@ export const calculatePnL = async (
         active,
         collateralAsset,
         expiryTimestamp,
+        id,
         isPut,
         liquidateActions,
         realizedPnl,
@@ -65,7 +50,7 @@ export const calculatePnL = async (
       },
       index
     ) => {
-      if (index < longs.length) {
+      if (index < longPositions.length) {
         // Longs
         const expiriesAt = parseInt(expiryTimestamp);
         const nowToUnix = dayjs().unix();
@@ -76,7 +61,8 @@ export const calculatePnL = async (
           return [historicalPnL + realizedPnL, activePnL];
         } else if (expiriesAt > nowToUnix) {
           // Open positions.
-          const { quote } = quotes[index];
+          const { quote } =
+            quotes[activePositions.findIndex((pos) => pos.id === id)];
           const value = realizedPnL + quote;
 
           return [historicalPnL + value, activePnL + value];
@@ -119,7 +105,8 @@ export const calculatePnL = async (
           return [historicalPnL + realizedPnL - collateralLost, activePnL];
         } else if (expiriesAt > nowToUnix) {
           // Open positions.
-          const { quote } = quotes[index];
+          const { quote } =
+            quotes[activePositions.findIndex((pos) => pos.id === id)];
           const value = realizedPnL - quote;
 
           return [historicalPnL + value, activePnL + value];

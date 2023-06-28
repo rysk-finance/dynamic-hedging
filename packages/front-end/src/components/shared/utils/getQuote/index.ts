@@ -1,4 +1,4 @@
-import type { QuoteProps } from "./types";
+import type { QuoteData, QuoteProps } from "./types";
 
 import { readContracts } from "@wagmi/core";
 import { BigNumber } from "ethers";
@@ -8,7 +8,9 @@ import { BeyondPricerABI } from "src/abis/BeyondPricer_ABI";
 import { fromWeiToInt, tFormatUSDC, toWei } from "src/utils/conversion-helper";
 import { getContractAddress, getOptionHash } from "src/utils/helpers";
 
-export const getQuotes = async (quoteProps: QuoteProps[]) => {
+export const getQuotes = async (
+  quoteProps: QuoteProps[]
+): Promise<QuoteData[]> => {
   const exposures = await readContracts({
     contracts: quoteProps.map(
       ({ expiry, strike, isPut }) =>
