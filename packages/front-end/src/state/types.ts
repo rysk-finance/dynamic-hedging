@@ -142,7 +142,7 @@ export interface WethOracleHashMap {
   [expiry: string]: number;
 }
 
-interface ActivePositions {
+export interface ActivePositions {
   action: string;
   amount: number;
   breakEven: number;
