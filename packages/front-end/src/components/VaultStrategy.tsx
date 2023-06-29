@@ -9,7 +9,7 @@ const STRATEGY_STEPS = [
     src: "/images/1_deposit.png",
     description: [
       `Depositors deposit USDC into ${DHV_NAME} vault to earn uncorrelated returns.`,
-      `The USDC deposited are used to fund ETH options trades and the ${DHV_NAME} acts as an automated market maker (AMM) for the option market.`
+      `The deposited USDC are used to fund ETH options trades and the ${DHV_NAME} acts as an automated market maker (AMM) for the option market.`
     ],
   },
   {
@@ -20,7 +20,7 @@ const STRATEGY_STEPS = [
       `The ${DHV_NAME} uses its own pricing mechanism to price ETH options.`,
       `The ${DHV_NAME} quotes:`,
       `- a price to SELL the option to a trader;`,
-      `- a price to BUY the option from trader.`,
+      `- a price to BUY the option from a trader.`,
       `The difference (spread) between the sell and buy price forms the uncorrelated returns generated to the depositors.`,
       `The vault Revenue Potential for the Depositors comes from Spread * Volume.`
     ],
