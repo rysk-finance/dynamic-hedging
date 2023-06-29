@@ -4,26 +4,51 @@ import { Button } from "./shared/Button";
 
 const STRATEGY_STEPS = [
   {
-    name: "Trade",
-    title: "1. Trade Options",
-    src: "/images/strangles.png",
+    name: "Deposit",
+    title: "1. Deposit",
+    src: "/images/1_deposit.png",
     description: [
-      `The ${DHV_NAME} trades ETH options to target a delta of zero.`,
-      "A zero delta is exposure neutral to ETH market movements.",
+      `Depositors deposit USDC into ${DHV_NAME} vault to earn uncorrelated returns.`,
+      `The USDC deposited are used to fund ETH options trades and the ${DHV_NAME} acts as an automated market maker (AMM) for the option market.`
+    ],
+  },
+  {
+    name: "Price",
+    title: "2. Price",
+    src: "/images/2_price.png",
+    description: [
+      `The ${DHV_NAME} uses its own pricing mechanism to price ETH options.`,
+      `The ${DHV_NAME} quotes:`,
+      `- a price to SELL the option to a trader;`,
+      `- a price to BUY the option from trader.`,
+      `The difference (spread) between the sell and buy price forms the uncorrelated returns generated to the depositors.`,
+      `The vault Revenue Potential for the Depositors comes from Spread * Volume.`
+    ],
+  },
+  {
+    name: "Trade",
+    title: "3. Trade",
+    src: "/images/3_trade.png",
+    description: [
+      `The ${DHV_NAME} acts as a counterparty to options traders:`,
+      `- when an option is minted and SOLD, the vault locks collateral and COLLECTS premium`,
+      `- when an option is BOUGHT, the vault PAYS OUT a premium`,
+      `The ${DHV_NAME} is targeting to turn over option inventory as much as possible since that will decrease risk and increase revenue (assuming the same spread) increasing profitability for depositors.`
     ],
   },
   {
     name: "Hedge",
-    title: "2. Dynamically Hedge",
-    src: "/images/hedge.png",
+    title: "4. Dynamic Hedging",
+    src: "/images/4_hedge.png",
     description: [
-      `The ${DHV_NAME} dynamically hedges its positions as market conditions cause its delta exposure to move away from the target`,
+      `At all times ${DHV_NAME} will be aware of its own position and will price its options in such a way as to incentivize the sale/purchase of options that bring its exposures closer to 0.`,
+      `During periods of sustained stronger demand in one direction and where the rebalancing incentivisation alone isn't enough, ${DHV_NAME} can immediately hedge delta, in either direction by trading spot or other derivatives (such as perpetuals) to minimize the market exposure and reduce directionality.`
     ],
   },
 ];
 
 export const VaultStrategy = () => {
-  const [strategy, setStrategy] = useState<string>("Trade");
+  const [strategy, setStrategy] = useState<string>("Deposit");
 
   return (
     <div className="pb-8 py-12 px-8">
@@ -52,10 +77,8 @@ export const VaultStrategy = () => {
             </a>{" "}
             close to zero.
             <br />
-            DHV will price its options in such a way as to incentivize the sale/purchase of options that bring the exposure closer to 0.
             If the {DHV_NAME} delta moves too far from zero, the position will
-            be dynamically hedged by trading spot, other derivatives (such as
-            perpetuals) to minimize the market exposure and
+            be dynamically hedged to minimize the market exposure and
             reduce directionality.
           </p>
         </div>
@@ -94,7 +117,7 @@ export const VaultStrategy = () => {
                     STRATEGY_STEPS.filter((item) => item.name === strategy)[0]
                       .src
                   }
-                  className="mr-8 h-[150px]"
+                  className="mr-8 h-[200px]"
                 />
                 <div>
                   {STRATEGY_STEPS.filter(
