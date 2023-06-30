@@ -19,7 +19,6 @@ export interface QuoteProps extends BaseProps {
 export interface DeltaProps extends BaseProps {}
 
 export interface PositionProps extends BaseProps {
-  clickFn: VoidFunction;
   disabled: boolean;
 }
 
