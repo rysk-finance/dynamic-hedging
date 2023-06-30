@@ -110,6 +110,7 @@ export const buildActivePositions = async (
       ) => {
         const [, ...series] = symbol.split("-");
         const isOpen = parseInt(expiryTimestamp) > nowToUnix;
+        const isShort = Boolean(collateralAsset && "symbol" in collateralAsset);
         const amount = fromWeiToInt(netAmount);
         const absAmount = Math.abs(amount);
         const side = isPut ? "put" : "call";
@@ -121,27 +122,6 @@ export const buildActivePositions = async (
               buy: { quote: { quote: 0 } },
               sell: { quote: { quote: 0 } },
             };
-
-        // Determine action.
-        const isShort = Boolean(collateralAsset && "symbol" in collateralAsset);
-        const disabled = isShort
-          ? buy.disabled || !buy.quote.quote
-          : sell.disabled || !sell.quote.quote;
-        const _action = () => {
-          if (!isOpen) {
-            if (isShort) {
-              return POSITION_ACTION.SETTLE;
-            } else {
-              return POSITION_ACTION.REDEEM;
-            }
-          }
-
-          if (disabled) {
-            return POSITION_ACTION.UNTRADEABLE;
-          } else {
-            return POSITION_ACTION.CLOSE;
-          }
-        };
 
         // P/L calcs.
         const formattedPnl = tFormatUSDC(realizedPnl);
@@ -162,6 +142,31 @@ export const buildActivePositions = async (
 
           return formattedPnl + valueAtExpiry * amount;
         };
+        const profitLoss = _profitLoss();
+
+        // Determine action.
+        const disabled = isShort
+          ? buy.disabled || !buy.quote.quote
+          : sell.disabled || !sell.quote.quote;
+        const _action = () => {
+          if (!isOpen && isShort) {
+            return POSITION_ACTION.SETTLE;
+          }
+
+          if (!isOpen) {
+            if (profitLoss > 0) {
+              return POSITION_ACTION.REDEEM;
+            } else {
+              return POSITION_ACTION.BURN;
+            }
+          }
+
+          if (disabled) {
+            return POSITION_ACTION.UNTRADEABLE;
+          } else {
+            return POSITION_ACTION.CLOSE;
+          }
+        };
 
         return {
           action: _action(),
@@ -180,7 +185,7 @@ export const buildActivePositions = async (
           isOpen,
           isPut,
           isShort,
-          profitLoss: _profitLoss(),
+          profitLoss,
           series: series.join("-"),
           strike: fromOpyn(strikePrice),
         };
