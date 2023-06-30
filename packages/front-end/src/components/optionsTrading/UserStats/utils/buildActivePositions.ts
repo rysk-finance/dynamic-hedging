@@ -87,93 +87,97 @@ export const buildActivePositions = async (
     timesToExpiry
   );
 
-  return positions.map(
-    (
-      {
-        collateralAsset,
-        netAmount,
-        id,
-        isPut,
-        strikePrice,
-        expiryTimestamp,
-        realizedPnl,
-        symbol,
-        vault,
-      },
-      index
-    ) => {
-      const [, ...series] = symbol.split("-");
-      const isOpen = parseInt(expiryTimestamp) > nowToUnix;
-      const amount = fromWeiToInt(netAmount);
-      const absAmount = Math.abs(amount);
-      const side = isPut ? "put" : "call";
-      const strike = fromOpynToNumber(strikePrice);
-      const { delta, buy, sell } = isOpen
-        ? chainData[expiryTimestamp][strike][side]
-        : {
-            delta: 0,
-            buy: { quote: { quote: 0 } },
-            sell: { quote: { quote: 0 } },
-          };
-
-      // Determine action.
-      const isShort = Boolean(collateralAsset && "symbol" in collateralAsset);
-      const disabled = isShort
-        ? buy.disabled || !buy.quote.quote
-        : sell.disabled || !sell.quote.quote;
-      const _action = () => {
-        if (!isOpen) {
-          if (isShort) {
-            return "Settle Position";
-          } else {
-            return "Redeem Position";
-          }
-        }
-
-        if (disabled) {
-          return "Currently Untradeable";
-        } else {
-          return "Close Position";
-        }
-      };
-
-      // P/L calcs.
-      const formattedPnl = tFormatUSDC(realizedPnl);
-      const { quote } = quotes[index];
-      const priceAtExpiry = wethOracleHashMap[expiryTimestamp];
-      const _profitLoss = () => {
-        if (isOpen) {
-          if (isShort) {
-            return formattedPnl - quote;
-          } else {
-            return formattedPnl + quote;
-          }
-        }
-
-        const valueAtExpiry = isPut
-          ? Math.max(strike - priceAtExpiry, 0)
-          : Math.max(priceAtExpiry - strike, 0);
-
-        return formattedPnl + valueAtExpiry * amount;
-      };
-
-      return {
-        action: _action(),
-        amount: absAmount,
-        breakEven: strike + formattedPnl / absAmount,
-        collateral: {
-          amount: formatCollateralAmount(0, collateralAsset, vault),
-          asset: collateralAsset?.symbol,
-          liquidationPrice: liquidationPrices[index],
+  return positions
+    .sort((first, second) =>
+      first.expiryTimestamp.localeCompare(second.expiryTimestamp)
+    )
+    .map(
+      (
+        {
+          collateralAsset,
+          netAmount,
+          id,
+          isPut,
+          strikePrice,
+          expiryTimestamp,
+          realizedPnl,
+          symbol,
+          vault,
         },
-        disabled,
-        delta: amount * delta,
-        id,
-        isOpen,
-        isShort,
-        profitLoss: _profitLoss(),
-        series: series.join("-"),
-      };
-    }
-  );
+        index
+      ) => {
+        const [, ...series] = symbol.split("-");
+        const isOpen = parseInt(expiryTimestamp) > nowToUnix;
+        const amount = fromWeiToInt(netAmount);
+        const absAmount = Math.abs(amount);
+        const side = isPut ? "put" : "call";
+        const strike = fromOpynToNumber(strikePrice);
+        const { delta, buy, sell } = isOpen
+          ? chainData[expiryTimestamp][strike][side]
+          : {
+              delta: 0,
+              buy: { quote: { quote: 0 } },
+              sell: { quote: { quote: 0 } },
+            };
+
+        // Determine action.
+        const isShort = Boolean(collateralAsset && "symbol" in collateralAsset);
+        const disabled = isShort
+          ? buy.disabled || !buy.quote.quote
+          : sell.disabled || !sell.quote.quote;
+        const _action = () => {
+          if (!isOpen) {
+            if (isShort) {
+              return "Settle Position";
+            } else {
+              return "Redeem Position";
+            }
+          }
+
+          if (disabled) {
+            return "Currently Untradeable";
+          } else {
+            return "Close Position";
+          }
+        };
+
+        // P/L calcs.
+        const formattedPnl = tFormatUSDC(realizedPnl);
+        const { quote } = quotes[index];
+        const priceAtExpiry = wethOracleHashMap[expiryTimestamp];
+        const _profitLoss = () => {
+          if (isOpen) {
+            if (isShort) {
+              return formattedPnl - quote;
+            } else {
+              return formattedPnl + quote;
+            }
+          }
+
+          const valueAtExpiry = isPut
+            ? Math.max(strike - priceAtExpiry, 0)
+            : Math.max(priceAtExpiry - strike, 0);
+
+          return formattedPnl + valueAtExpiry * amount;
+        };
+
+        return {
+          action: _action(),
+          amount: absAmount,
+          breakEven: strike + formattedPnl / absAmount,
+          collateral: {
+            amount: formatCollateralAmount(0, collateralAsset, vault),
+            asset: collateralAsset?.symbol,
+            liquidationPrice: liquidationPrices[index],
+          },
+          disabled,
+          delta: amount * delta,
+          id,
+          isOpen,
+          isShort,
+          profitLoss: _profitLoss(),
+          series: series.join("-"),
+        };
+      }
+    );
 };
