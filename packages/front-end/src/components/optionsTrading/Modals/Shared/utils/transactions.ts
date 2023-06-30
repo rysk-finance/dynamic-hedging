@@ -8,14 +8,14 @@ import {
   getContract,
   getProvider,
   prepareWriteContract,
-  waitForTransaction,
   writeContract,
 } from "@wagmi/core";
-import { BigNumber, utils, ethers } from "ethers";
+import { BigNumber, ethers, utils } from "ethers";
 
-import { erc20ABI } from "src/abis/erc20_ABI";
 import { NewControllerABI } from "src/abis/NewController_ABI";
 import { OptionExchangeABI } from "src/abis/OptionExchange_ABI";
+import { erc20ABI } from "src/abis/erc20_ABI";
+import { waitForTransactionOrTimer } from "src/components/shared/utils/waitForTransaction";
 import {
   EMPTY_SERIES,
   GAS_MULTIPLIER,
@@ -29,17 +29,6 @@ import {
 import RyskActionType from "src/enums/RyskActionType";
 import { fromWeiToOpyn } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
-
-const waitForTransactionOrTimer = async (
-  hash: HexString,
-  confirmations: number = 2,
-  timerMs: number = 15000
-) => {
-  return Promise.race([
-    waitForTransaction({ hash, confirmations }),
-    new Promise((resolve) => setTimeout(resolve, timerMs)),
-  ]);
-};
 
 export const approveAllowance = async (
   addresses: AddressesRequired,
