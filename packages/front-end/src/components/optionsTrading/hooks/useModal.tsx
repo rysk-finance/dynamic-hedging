@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { BigNumber } from "ethers";
 
 import { useGlobalContext } from "src/state/GlobalContext";
 
@@ -27,9 +26,10 @@ export const useModal = () => {
 
   const {
     state: {
-      options: { activeExpiry, isOperator, userPositions },
+      closingOption,
       dashboardModalOpen,
       optionChainModalOpen,
+      options: { activeExpiry, isOperator, userPositions },
       selectedOption,
     },
     dispatch,
@@ -57,22 +57,12 @@ export const useModal = () => {
   // Dispatcher for opening modals.
   useEffect(() => {
     if (activeExpiry) {
-      const hasSellRef = searchParams.get("ref") === "close";
-      const hasVaultCloseRef = searchParams.get("ref") === "vault-close";
-      const hasUserPosition = userPositions[activeExpiry]?.activeTokens.find(
-        ({ id, netAmount }) =>
-          id === searchParams.get("token") &&
-          (hasVaultCloseRef
-            ? BigNumber.from(netAmount).lt(0)
-            : BigNumber.from(netAmount).gt(0))
-      );
-
-      if (hasSellRef && hasUserPosition) {
+      if (closingOption && !closingOption.isShort) {
         dispatch({
           type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
           visible: OptionChainModalActions.CLOSE,
         });
-      } else if (hasVaultCloseRef && hasUserPosition) {
+      } else if (closingOption && closingOption.isShort) {
         dispatch({
           type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
           visible: OptionChainModalActions.CLOSE_SHORT,
@@ -102,7 +92,7 @@ export const useModal = () => {
         visible: DashboardModalActions.ADJUST_COLLATERAL,
       });
     }
-  }, [activeExpiry, isOperator, searchParams, selectedOption]);
+  }, [activeExpiry, closingOption, isOperator, searchParams, selectedOption]);
 
   return [optionChainModalOpen, dashboardModalOpen] as const;
 };

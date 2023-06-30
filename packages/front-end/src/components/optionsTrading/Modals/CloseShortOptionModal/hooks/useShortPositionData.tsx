@@ -3,43 +3,32 @@ import type { PositionDataState } from "../types";
 
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { useAccount } from "wagmi";
 
 import { BigNumber } from "ethers";
 import { getQuotes } from "src/components/shared/utils/getQuote";
 import { BIG_NUMBER_DECIMALS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { optionSymbolFromOToken } from "src/utils";
-import {
-  fromOpyn,
-  fromWeiToInt,
-  renameOtoken,
-  tFormatEth,
-  tFormatUSDC,
-  toRysk,
-} from "src/utils/conversion-helper";
+import { tFormatEth, tFormatUSDC, toRysk } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
 
 export const useShortPositionData = (amountToClose: string) => {
-  // URL query params.
-  const [searchParams] = useSearchParams();
-
   // Context state.
   const {
     state: {
       balances,
+      closingOption,
       ethPrice,
-      options: { activeExpiry, userPositions },
+      options: { activeExpiry },
     },
   } = useGlobalContext();
 
   // Addresses.
   const { address } = useAccount();
   const USDCAddress = getContractAddress("USDC");
-  const tokenAddress = (searchParams.get("token") as HexString) || undefined;
+  const tokenAddress = closingOption?.address || undefined;
   const exchangeAddress = getContractAddress("optionExchange");
 
   const [loading, setLoading] = useState(false);
@@ -64,15 +53,7 @@ export const useShortPositionData = (amountToClose: string) => {
     requiredApproval: "",
   });
 
-  const userPosition =
-    activeExpiry && userPositions
-      ? userPositions[activeExpiry]?.activeTokens.find(
-          ({ id, netAmount }) =>
-            id === searchParams.get("token") && BigNumber.from(netAmount).lt(0)
-        )
-      : undefined;
-
-  const vault = userPosition?.vault;
+  const vault = closingOption?.vault;
   const vaultId = vault?.vaultId;
 
   // At the moment this is either going to be USDC or WETH.
@@ -92,27 +73,19 @@ export const useShortPositionData = (amountToClose: string) => {
       setLoading(true);
 
       try {
-        if (activeExpiry && tokenAddress && userPosition) {
+        if (activeExpiry && tokenAddress && closingOption) {
           const now = dayjs().format("MMM DD, YYYY HH:mm A");
 
-          const totalSize = fromWeiToInt(userPosition?.netAmount || 0);
-          const title = `${
-            userPosition?.symbol
-              ? renameOtoken(userPosition?.symbol || "")
-              : optionSymbolFromOToken(
-                  userPosition?.isPut || false,
-                  userPosition?.expiryTimestamp || "0",
-                  userPosition?.strikePrice.toString() || "0"
-                )
-          } (${totalSize})`.toUpperCase();
+          const totalSize = closingOption.amount;
+          const title = closingOption.series;
 
-          if (amount > 0 && userPosition) {
+          if (amount > 0) {
             const [{ acceptablePremium, fee, premium, quote, slippage }] =
               await getQuotes([
                 {
                   expiry: Number(activeExpiry),
-                  strike: toRysk(fromOpyn(userPosition.strikePrice)),
-                  isPut: userPosition.isPut,
+                  strike: toRysk(closingOption.strike),
+                  isPut: closingOption.isPut,
                   orderSize: amount,
                   isSell: false,
                   collateral: collateralType,
@@ -215,7 +188,7 @@ export const useShortPositionData = (amountToClose: string) => {
     };
 
     setPriceData(Number(amountToClose));
-  }, [activeExpiry, amountToClose, ethPrice, tokenAddress, userPositions]);
+  }, [activeExpiry, amountToClose, closingOption, ethPrice, tokenAddress]);
 
   const addresses: Addresses = {
     exchange: exchangeAddress,

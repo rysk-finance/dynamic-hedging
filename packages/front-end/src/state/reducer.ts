@@ -128,7 +128,17 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
         dashboardModalOpen: action.visible,
       };
     case ActionType.SET_SELECTED_OPTION:
-      return { ...state, selectedOption: action.option };
+      return {
+        ...state,
+
+        selectedOption: action.option,
+      };
+    case ActionType.SET_CLOSING_OPTION:
+      return {
+        ...state,
+        closingOption: action.option,
+        options: { ...state.options, activeExpiry: action.expiry },
+      };
     case ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE:
       return {
         ...state,
@@ -152,6 +162,7 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
     case ActionType.RESET_OPTIONS_CHAIN_STATE:
       return {
         ...state,
+        closingOption: defaultGlobalState.closingOption,
         selectedOption: defaultGlobalState.selectedOption,
         optionChainModalOpen: defaultGlobalState.optionChainModalOpen,
         chainTutorialIndex: defaultGlobalState.chainTutorialIndex,

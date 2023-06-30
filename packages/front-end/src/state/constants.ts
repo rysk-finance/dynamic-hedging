@@ -3610,9 +3610,12 @@ export const EMPTY_POSITION = {
   },
   disabled: true,
   delta: 0,
+  expiryTimestamp: "",
   id: "0x0" as HexString,
   isOpen: false,
+  isPut: false,
   isShort: false,
   profitLoss: 0,
   series: "-",
+  strike: ",",
 };
