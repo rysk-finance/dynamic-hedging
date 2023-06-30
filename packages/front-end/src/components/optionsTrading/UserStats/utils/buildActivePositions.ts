@@ -16,8 +16,10 @@ import {
   fromOpynToNumber,
   fromWeiToInt,
   tFormatUSDC,
+  fromOpyn,
 } from "src/utils/conversion-helper";
 import { getLiquidationPrices } from "../../../shared/utils/getLiquidationPrice";
+import { POSITION_ACTION } from "../enums";
 
 const formatCollateralAmount = (
   fallback: number,
@@ -128,16 +130,16 @@ export const buildActivePositions = async (
         const _action = () => {
           if (!isOpen) {
             if (isShort) {
-              return "Settle Position";
+              return POSITION_ACTION.SETTLE;
             } else {
-              return "Redeem Position";
+              return POSITION_ACTION.REDEEM;
             }
           }
 
           if (disabled) {
-            return "Currently Untradeable";
+            return POSITION_ACTION.UNTRADEABLE;
           } else {
-            return "Close Position";
+            return POSITION_ACTION.CLOSE;
           }
         };
 
@@ -163,20 +165,24 @@ export const buildActivePositions = async (
 
         return {
           action: _action(),
-          amount: absAmount,
+          amount,
           breakEven: strike + formattedPnl / absAmount,
           collateral: {
             amount: formatCollateralAmount(0, collateralAsset, vault),
             asset: collateralAsset?.symbol,
             liquidationPrice: liquidationPrices[index],
+            vault,
           },
-          disabled,
+          disabled: isOpen && disabled,
           delta: amount * delta,
+          expiryTimestamp,
           id,
           isOpen,
+          isPut,
           isShort,
           profitLoss: _profitLoss(),
           series: series.join("-"),
+          strike: fromOpyn(strikePrice),
         };
       }
     );

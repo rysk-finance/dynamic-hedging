@@ -1,5 +1,6 @@
 import type { ApolloError } from "@apollo/client";
 import type { BigNumber, BigNumberish } from "ethers";
+import type { ReactNode } from "react";
 
 import type {
   LiquidateActions,
@@ -7,7 +8,7 @@ import type {
   Vault,
 } from "src/hooks/useInitialData/types";
 
-import { Dispatch, ReactNode } from "react";
+import { Dispatch } from "react";
 
 export type AppSettings = {
   vaultDepositUnlimitedApproval: boolean;
@@ -150,14 +151,18 @@ export interface ActivePositions {
     amount: number;
     asset?: CollateralType;
     liquidationPrice: number;
+    vault?: Vault;
   };
   disabled: boolean;
   delta: number;
+  expiryTimestamp: string;
   id: HexString;
   isOpen: boolean;
+  isPut: boolean;
   isShort: boolean;
   profitLoss: number;
   series: string;
+  strike: string;
 }
 
 export interface UserStats {
@@ -216,6 +221,7 @@ export type GlobalState = {
 
   // Options chain state.
   collateralPreferences: CollateralPreferences;
+  closingOption?: ClosingOption;
   selectedOption?: SelectedOption;
   optionChainModalOpen?: OptionChainModal;
   buyTutorialIndex?: number;
@@ -255,6 +261,7 @@ export enum ActionType {
   SET_COLLATERAL_PREFERENCES,
   SET_DASHBOARD_MODAL_VISIBLE,
   SET_SELECTED_OPTION,
+  SET_CLOSING_OPTION,
   SET_OPTION_CHAIN_MODAL_VISIBLE,
   SET_BUY_TUTORIAL_INDEX,
   SET_CHAIN_TUTORIAL_INDEX,
@@ -350,6 +357,11 @@ export type GlobalAction =
   | {
       type: ActionType.SET_SELECTED_OPTION;
       option?: SelectedOption;
+    }
+  | {
+      type: ActionType.SET_CLOSING_OPTION;
+      expiry?: string;
+      option?: ClosingOption;
     }
   | {
       type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE;
@@ -455,6 +467,16 @@ export interface SelectedOption {
   buyOrSell: "sell" | "buy";
   callOrPut: CallOrPut;
   strikeOptions: StrikeOptions;
+}
+
+export interface ClosingOption {
+  address: HexString;
+  amount: number;
+  isPut: boolean;
+  isShort: boolean;
+  series: string;
+  strike: string;
+  vault?: Vault;
 }
 
 export interface Quote {
