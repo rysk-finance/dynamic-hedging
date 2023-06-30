@@ -8,6 +8,7 @@ import {
   getContract,
   getProvider,
   prepareWriteContract,
+  readContract,
   waitForTransaction,
   writeContract,
 } from "@wagmi/core";
@@ -16,6 +17,7 @@ import { BigNumber, utils, ethers } from "ethers";
 import { erc20ABI } from "src/abis/erc20_ABI";
 import { NewControllerABI } from "src/abis/NewController_ABI";
 import { OptionExchangeABI } from "src/abis/OptionExchange_ABI";
+import { OptionRegistryABI } from "src/abis/OptionRegistry_ABI";
 import {
   EMPTY_SERIES,
   GAS_MULTIPLIER,
@@ -73,7 +75,18 @@ export const buy = async (
 ) => {
   const operations = [];
 
-  if (optionSeries.collateral !== getContractAddress("WETH"))
+  // check optionSeries has not already been issued
+  const seriesAddress = await readContract({
+    address: getContractAddress("OpynOptionRegistry"),
+    abi: OptionRegistryABI,
+    functionName: "getSeries",
+    args: [optionSeries],
+  });
+
+  if (
+    optionSeries.collateral !== getContractAddress("WETH") &&
+    seriesAddress == ZERO_ADDRESS
+  )
     operations.push({
       actionType: BigNumber.from(RyskActionType.Issue),
       owner: ZERO_ADDRESS,
