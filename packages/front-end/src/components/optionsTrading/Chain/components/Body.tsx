@@ -2,7 +2,6 @@ import type { SelectedOption, StrikeOptions } from "src/state/types";
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
 
 import { Loading } from "src/Icons";
 import FadeInOut from "src/animation/FadeInOut";
@@ -19,8 +18,6 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
     },
     dispatch,
   } = useGlobalContext();
-
-  const [, setSearchParams] = useSearchParams();
 
   const [colSize, , showCol] = useShowColumn();
 
@@ -162,14 +159,6 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                   disabled={callSellDisabled && callBuyDisabled}
                 >
                   <Position
-                    clickFn={() => {
-                      if (option.call && option.call?.pos > 0) {
-                        setSearchParams({
-                          ref: "close",
-                          token: option.call?.tokenID || "",
-                        });
-                      }
-                    }}
                     disabled={callPosDisabled}
                     value={option.call?.pos || 0}
                   />
@@ -253,14 +242,6 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                   disabled={putSellDisabled && putBuyDisabled}
                 >
                   <Position
-                    clickFn={() => {
-                      if (option.put && option.put?.pos > 0) {
-                        setSearchParams({
-                          ref: "close",
-                          token: option.put?.tokenID || "",
-                        });
-                      }
-                    }}
                     disabled={putPosDisabled}
                     value={option.put?.pos || 0}
                   />
