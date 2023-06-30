@@ -8,7 +8,7 @@ const STRATEGY_STEPS = [
     title: "1. Deposit",
     src: "/images/1_deposit.png",
     description: [
-      `Depositors deposit USDC into ${DHV_NAME} vault to earn uncorrelated returns.`,
+      `Liquidity providers deposit USDC into the ${DHV_NAME} vault to earn uncorrelated returns.`,
       `The deposited USDC are used to fund ETH options trades and the ${DHV_NAME} acts as an automated market maker (AMM) for the option market.`
     ],
   },
@@ -17,12 +17,12 @@ const STRATEGY_STEPS = [
     title: "2. Price",
     src: "/images/2_price.png",
     description: [
-      `The ${DHV_NAME} uses its own pricing mechanism to price ETH options.`,
+      `The ${DHV_NAME} uses its own mechanism to price ETH options.`,
       `The ${DHV_NAME} quotes:`,
-      `- a price to SELL the option to a trader;`,
-      `- a price to BUY the option from a trader.`,
+      `- A price to SELL the option to a trader.`,
+      `- A price to BUY the option from a trader.`,
       `The difference (spread) between the sell and buy price forms the uncorrelated returns generated to the depositors.`,
-      `The vault Revenue Potential for the Depositors comes from Spread * Volume.`
+       <>The vault revenue potential for the depositors comes from <code>spread * volume</code>.</>
     ],
   },
   {
@@ -31,9 +31,9 @@ const STRATEGY_STEPS = [
     src: "/images/3_trade.png",
     description: [
       `The ${DHV_NAME} acts as a counterparty to options traders:`,
-      `- when an option is minted and SOLD, the vault locks collateral and COLLECTS premium`,
-      `- when an option is BOUGHT, the vault PAYS OUT a premium`,
-      `The ${DHV_NAME} is targeting to turn over option inventory as much as possible since that will decrease risk and increase revenue (assuming the same spread) increasing profitability for depositors.`
+      `- When an option is minted and SOLD, the vault locks collateral and COLLECTS premium.`,
+      `- When an option is BOUGHT, the vault PAYS OUT a premium.`,
+      `The ${DHV_NAME} targets option inventory turnover as much as possible since this will decrease risk and increase revenue (assuming the same spread), increasing profitability for depositors.`
     ],
   },
   {
@@ -41,8 +41,8 @@ const STRATEGY_STEPS = [
     title: "4. Dynamic Hedging",
     src: "/images/4_hedge.png",
     description: [
-      `At all times ${DHV_NAME} will be aware of its own position and will price its options in such a way as to incentivize the sale/purchase of options that bring its exposures closer to 0.`,
-      `During periods of sustained stronger demand in one direction and where the rebalancing incentivisation alone isn't enough, ${DHV_NAME} can immediately hedge delta, in either direction by trading spot or other derivatives (such as perpetuals) to minimize the market exposure and reduce directionality.`
+      `At all times, ${DHV_NAME} will be aware of its position and will price its options in such a way as to incentivize sales and or purchases that bring its exposures closer to zero.`,
+      `During periods of sustained strong demand in one direction and where the rebalancing incentive alone isn't enough, the ${DHV_NAME} can immediately hedge delta by trading spot or other derivatives (such as perpetuals) to minimise the market exposure and reduce directionality.`
     ],
   },
 ];
@@ -78,7 +78,7 @@ export const VaultStrategy = () => {
             close to zero.
             <br />
             If the {DHV_NAME} delta moves too far from zero, the position will
-            be dynamically hedged to minimize the market exposure and
+            be dynamically hedged to minimise the market exposure and
             reduce directionality.
           </p>
         </div>
