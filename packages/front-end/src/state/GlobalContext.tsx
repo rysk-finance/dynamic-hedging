@@ -14,6 +14,7 @@ import { useLocalStorage } from "../hooks/useLocalStorage";
 import { EMPTY_POSITION } from "./constants";
 import { globalReducer } from "./reducer";
 import { ActionType, AppSettings, GlobalContext, GlobalState } from "./types";
+import { ActivePositionSort } from "./constants";
 
 export const defaultSpotShock = 0.7;
 export const defaultTimesToExpiry = [
@@ -128,6 +129,11 @@ export const defaultGlobalState: GlobalState = {
   userStats: {
     activePnL: 0,
     activePositions: [EMPTY_POSITION],
+    activePositionsFilters: {
+      hideExpired: false,
+      isAscending: true,
+      sort: ActivePositionSort.Expiry,
+    },
     delta: 0,
     historicalPnL: 0,
     loading: true,

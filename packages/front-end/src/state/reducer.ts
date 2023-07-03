@@ -202,6 +202,17 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
           activePnL: action.activePnL ?? state.userStats.activePnL,
           activePositions:
             action.activePositions || state.userStats.activePositions,
+          activePositionsFilters: {
+            hideExpired:
+              action.activePositionsFilters?.hideExpired ??
+              state.userStats.activePositionsFilters.hideExpired,
+            isAscending:
+              action.activePositionsFilters?.isAscending ??
+              state.userStats.activePositionsFilters.isAscending,
+            sort:
+              action.activePositionsFilters?.sort ||
+              state.userStats.activePositionsFilters.sort,
+          },
           delta: action.delta ?? state.userStats.delta,
           historicalPnL: action.historicalPnL ?? state.userStats.historicalPnL,
           loading: action.loading ?? state.userStats.loading,
