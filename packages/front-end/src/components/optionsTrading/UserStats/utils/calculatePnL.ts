@@ -66,7 +66,11 @@ export const calculatePnL = async (
         } else if (expiriesAt > nowToUnix) {
           // Open positions.
           const { quote } =
-            quotes[activePositions.findIndex((pos) => pos.id === id)];
+            quotes[
+              activePositions.findIndex(
+                (pos) => pos.id === id && !pos.collateralAsset?.symbol
+              )
+            ];
           const value = realizedPnL + quote;
 
           return [historicalPnL + value, activePnL + value];
@@ -113,7 +117,14 @@ export const calculatePnL = async (
         } else if (expiriesAt > nowToUnix) {
           // Open positions.
           const { quote } =
-            quotes[activePositions.findIndex((pos) => pos.id === id)];
+            quotes[
+              activePositions.findIndex(
+                (pos) =>
+                  pos.id === id &&
+                  pos.collateralAsset?.symbol === collateralAsset?.symbol
+              )
+            ];
+
           const value = realizedPnL - quote;
 
           return [historicalPnL + value, activePnL + value];
