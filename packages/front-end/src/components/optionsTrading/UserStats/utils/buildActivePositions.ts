@@ -19,7 +19,7 @@ import {
   fromOpyn,
 } from "src/utils/conversion-helper";
 import { getLiquidationPrices } from "../../../shared/utils/getLiquidationPrice";
-import { POSITION_ACTION } from "../enums";
+import { PositionAction } from "../enums";
 
 const formatCollateralAmount = (
   fallback: number,
@@ -89,106 +89,102 @@ export const buildActivePositions = async (
     timesToExpiry
   );
 
-  return positions
-    .sort((first, second) =>
-      first.expiryTimestamp.localeCompare(second.expiryTimestamp)
-    )
-    .map(
-      (
-        {
-          collateralAsset,
-          netAmount,
-          id,
-          isPut,
-          strikePrice,
-          expiryTimestamp,
-          realizedPnl,
-          symbol,
+  return positions.map(
+    (
+      {
+        collateralAsset,
+        netAmount,
+        id,
+        isPut,
+        strikePrice,
+        expiryTimestamp,
+        realizedPnl,
+        symbol,
+        vault,
+      },
+      index
+    ) => {
+      const [, ...series] = symbol.split("-");
+      const isOpen = parseInt(expiryTimestamp) > nowToUnix;
+      const isShort = Boolean(collateralAsset && "symbol" in collateralAsset);
+      const amount = fromWeiToInt(netAmount);
+      const absAmount = Math.abs(amount);
+      const side = isPut ? "put" : "call";
+      const strike = fromOpynToNumber(strikePrice);
+      const { delta, buy, sell } = isOpen
+        ? chainData[expiryTimestamp][strike][side]
+        : {
+            delta: 0,
+            buy: { quote: { quote: 0 } },
+            sell: { quote: { quote: 0 } },
+          };
+
+      // P/L calcs.
+      const formattedPnl = tFormatUSDC(realizedPnl);
+      const { quote } = quotes[index];
+      const priceAtExpiry = wethOracleHashMap[expiryTimestamp];
+      const _profitLoss = () => {
+        if (isOpen) {
+          if (isShort) {
+            return formattedPnl - quote;
+          } else {
+            return formattedPnl + quote;
+          }
+        }
+
+        const valueAtExpiry = isPut
+          ? Math.max(strike - priceAtExpiry, 0)
+          : Math.max(priceAtExpiry - strike, 0);
+
+        return formattedPnl + valueAtExpiry * amount;
+      };
+      const profitLoss = _profitLoss();
+
+      // Determine action.
+      const disabled = isShort
+        ? buy.disabled || !buy.quote.quote
+        : sell.disabled || !sell.quote.quote;
+      const _action = () => {
+        if (!isOpen && isShort) {
+          return PositionAction.SETTLE;
+        }
+
+        if (!isOpen) {
+          if (profitLoss > 0) {
+            return PositionAction.REDEEM;
+          } else {
+            return PositionAction.BURN;
+          }
+        }
+
+        if (disabled) {
+          return PositionAction.UNTRADEABLE;
+        } else {
+          return PositionAction.CLOSE;
+        }
+      };
+
+      return {
+        action: _action(),
+        amount,
+        breakEven: strike + formattedPnl / absAmount,
+        collateral: {
+          amount: formatCollateralAmount(0, collateralAsset, vault),
+          asset: collateralAsset?.symbol,
+          liquidationPrice: liquidationPrices[index],
           vault,
         },
-        index
-      ) => {
-        const [, ...series] = symbol.split("-");
-        const isOpen = parseInt(expiryTimestamp) > nowToUnix;
-        const isShort = Boolean(collateralAsset && "symbol" in collateralAsset);
-        const amount = fromWeiToInt(netAmount);
-        const absAmount = Math.abs(amount);
-        const side = isPut ? "put" : "call";
-        const strike = fromOpynToNumber(strikePrice);
-        const { delta, buy, sell } = isOpen
-          ? chainData[expiryTimestamp][strike][side]
-          : {
-              delta: 0,
-              buy: { quote: { quote: 0 } },
-              sell: { quote: { quote: 0 } },
-            };
-
-        // P/L calcs.
-        const formattedPnl = tFormatUSDC(realizedPnl);
-        const { quote } = quotes[index];
-        const priceAtExpiry = wethOracleHashMap[expiryTimestamp];
-        const _profitLoss = () => {
-          if (isOpen) {
-            if (isShort) {
-              return formattedPnl - quote;
-            } else {
-              return formattedPnl + quote;
-            }
-          }
-
-          const valueAtExpiry = isPut
-            ? Math.max(strike - priceAtExpiry, 0)
-            : Math.max(priceAtExpiry - strike, 0);
-
-          return formattedPnl + valueAtExpiry * amount;
-        };
-        const profitLoss = _profitLoss();
-
-        // Determine action.
-        const disabled = isShort
-          ? buy.disabled || !buy.quote.quote
-          : sell.disabled || !sell.quote.quote;
-        const _action = () => {
-          if (!isOpen && isShort) {
-            return POSITION_ACTION.SETTLE;
-          }
-
-          if (!isOpen) {
-            if (profitLoss > 0) {
-              return POSITION_ACTION.REDEEM;
-            } else {
-              return POSITION_ACTION.BURN;
-            }
-          }
-
-          if (disabled) {
-            return POSITION_ACTION.UNTRADEABLE;
-          } else {
-            return POSITION_ACTION.CLOSE;
-          }
-        };
-
-        return {
-          action: _action(),
-          amount,
-          breakEven: strike + formattedPnl / absAmount,
-          collateral: {
-            amount: formatCollateralAmount(0, collateralAsset, vault),
-            asset: collateralAsset?.symbol,
-            liquidationPrice: liquidationPrices[index],
-            vault,
-          },
-          disabled: isOpen && disabled,
-          delta: amount * delta,
-          expiryTimestamp,
-          id,
-          isOpen,
-          isPut,
-          isShort,
-          profitLoss,
-          series: series.join("-"),
-          strike: fromOpyn(strikePrice),
-        };
-      }
-    );
+        disabled: isOpen && disabled,
+        delta: amount * delta,
+        expiryTimestamp,
+        id,
+        isOpen,
+        isPut,
+        isShort,
+        profitLoss,
+        series: series.join("-"),
+        strike: fromOpyn(strikePrice),
+      };
+    }
+  );
 };
