@@ -1,4 +1,5 @@
 import { Change } from "./Change";
+import { ChevronUpDown } from "./ChevronUpDown";
 import { Close } from "./Close";
 import { CursorRipple } from "./CursorRipple";
 import { DownChevron } from "./DownChevron";
@@ -17,6 +18,7 @@ import { WETH } from "./WETH";
 
 export {
   Change,
+  ChevronUpDown,
   Close,
   CursorRipple,
   DownChevron,
