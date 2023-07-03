@@ -5,16 +5,32 @@ import { RyskCountUp } from "src/components/shared/RyskCountUp";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { Card } from "./components/Card";
 import { useUserStats } from "./hooks/useUserStats";
+import { usePreferences } from "./hooks/usePreferences";
+import { Table } from "./components/PositionsTable";
+import { Filters } from "./components/Filters";
 
 export const UserStats = () => {
   const {
     state: {
-      options: { data },
-      userStats: { activePnL, delta, historicalPnL },
+      options: { data, loading },
+      userStats: {
+        activePnL,
+        activePositions,
+        delta,
+        historicalPnL,
+        loading: statsLoading,
+      },
     },
   } = useGlobalContext();
 
   useUserStats();
+  usePreferences();
+
+  // Media queries
+  // Animations
+  // Collateral modal
+  // Closed positions on dashboard
+  // Clean up
 
   return (
     <AnimatePresence mode="wait">
@@ -25,8 +41,20 @@ export const UserStats = () => {
           {...FadeInUpDelayed(0.3)}
         >
           <Card
-            explainer="Total P/L for all unexpired positions."
+            explainer="All active user positions. Please check the dashboard area for historical positions."
+            hasData={Boolean(activePositions.length)}
+            loading={loading || statsLoading}
+            span="col-span-4"
+            title="Active Positions"
+          >
+            <Table />
+            <Filters />
+          </Card>
+
+          <Card
+            explainer="Total P/L for all active positions."
             hasData={Boolean(activePnL)}
+            loading={loading || statsLoading}
             title="P/L (active)"
           >
             <p className="text-2xl mb-3">
@@ -36,6 +64,7 @@ export const UserStats = () => {
           <Card
             explainer="Total P/L for all open and closed positions."
             hasData={Boolean(historicalPnL)}
+            loading={loading || statsLoading}
             title="P/L (historical)"
           >
             <p className="text-2xl mb-3">
@@ -44,7 +73,8 @@ export const UserStats = () => {
           </Card>
           <Card
             explainer="Total delta for all open positions."
-            hasData={Boolean(delta)}
+            hasData={Boolean(delta) || delta === 0}
+            loading={loading || statsLoading}
             title="Delta"
           >
             <p className="text-2xl mb-3">
@@ -55,6 +85,7 @@ export const UserStats = () => {
             disabled
             explainer="Total gamma for all open positions."
             hasData={false}
+            loading={loading || statsLoading}
             title="Gamma"
           >
             <p className="text-2xl mb-3">
@@ -65,6 +96,7 @@ export const UserStats = () => {
             disabled
             explainer="Total theta for all open positions."
             hasData={false}
+            loading={loading || statsLoading}
             title="Theta"
           >
             <p className="text-2xl mb-3">
