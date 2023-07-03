@@ -30,7 +30,7 @@ export const ChevronUpDown = (props: ChevronUpDownProps) => {
         className={`${
           !isAscending && active ? "currentColor" : "text-gray-600"
         }`}
-        d="M8.25 15L12 18.75 15.75 15m"
+        d="M8.25 15L12 18.75 15.75 15"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
