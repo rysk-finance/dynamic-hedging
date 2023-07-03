@@ -1,12 +1,17 @@
 import type { CardProps } from "../../types";
 
+import { AnimatePresence, motion } from "framer-motion";
 import { useAccount } from "wagmi";
+
+import { Loading } from "src/Icons";
+import FadeInOut from "src/animation/FadeInOut";
 
 export const Card = ({
   children,
   disabled,
   explainer,
   hasData,
+  loading,
   span = "col-span-1",
   title,
 }: CardProps) => {
@@ -21,7 +26,9 @@ export const Card = ({
 
   return (
     <div
-      className={`flex flex-col ${span} ${disabled ? "opacity-40" : ""}`}
+      className={`relative flex flex-col ${span} ${
+        disabled ? "opacity-40" : ""
+      }`}
       key={title}
     >
       <span className="w-fit flex items-center bg-[url('./assets/CardTab.svg')] bg-[length:100%_100%]">
@@ -31,6 +38,18 @@ export const Card = ({
         <h3 className="text-white py-2 font-dm-mono mr-9">{title}</h3>
       </span>
       <span className="block h-full border-black border-2 rounded-r-lg rounded-bl-lg drop-shadow-lg p-2 bg-[url('./assets/white-ascii-50.png')] bg-fixed">
+        <AnimatePresence initial={false}>
+          {!disabled && loading && (
+            <motion.span
+              className="absolute inset-0 z-10 flex items-center w-full h-full bg-black/10"
+              key="data-loading"
+              {...FadeInOut()}
+            >
+              <Loading className="h-12 mx-auto animate-spin text-bone-light" />
+            </motion.span>
+          )}
+        </AnimatePresence>
+
         {children}
 
         <em className="block not-italic text-xs border-black border-t pt-3">

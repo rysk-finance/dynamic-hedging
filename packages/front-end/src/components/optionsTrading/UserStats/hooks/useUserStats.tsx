@@ -80,6 +80,8 @@ export const useUserStats = () => {
       return { activePnL, activePositions, delta, historicalPnL };
     };
 
+    dispatch({ type: ActionType.SET_USER_STATS, loading: true });
+
     if (isDisconnected) {
       dispatch({
         type: ActionType.SET_USER_STATS,
@@ -96,5 +98,7 @@ export const useUserStats = () => {
         dispatch({ type: ActionType.SET_USER_STATS, ...values })
       );
     }
+
+    dispatch({ type: ActionType.SET_USER_STATS, loading: false });
   }, [isDisconnected, userPositions]);
 };
