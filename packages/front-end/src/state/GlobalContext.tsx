@@ -130,6 +130,7 @@ export const defaultGlobalState: GlobalState = {
     activePositions: [EMPTY_POSITION],
     delta: 0,
     historicalPnL: 0,
+    loading: true,
   },
 };
 

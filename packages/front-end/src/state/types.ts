@@ -170,6 +170,7 @@ export interface UserStats {
   activePositions: ActivePositions[];
   delta: number;
   historicalPnL: number;
+  loading: boolean;
 }
 
 // Global context
@@ -407,6 +408,7 @@ export type GlobalAction =
       activePositions?: ActivePositions[];
       delta?: number;
       historicalPnL?: number;
+      loading?: boolean;
     };
 
 export type GlobalContext = {
