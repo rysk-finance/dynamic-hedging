@@ -10,6 +10,8 @@ import type {
 
 import { Dispatch } from "react";
 
+import { ActivePositionSort } from "./constants";
+
 export type AppSettings = {
   vaultDepositUnlimitedApproval: boolean;
   optionsTradingUnlimitedApproval: boolean;
@@ -165,9 +167,16 @@ export interface ActivePositions {
   strike: string;
 }
 
+export type ActivePositionsSortType = keyof typeof ActivePositionSort;
+
 export interface UserStats {
   activePnL: number;
   activePositions: ActivePositions[];
+  activePositionsFilters: {
+    hideExpired: boolean;
+    isAscending: boolean;
+    sort: ActivePositionsSortType;
+  };
   delta: number;
   historicalPnL: number;
   loading: boolean;
@@ -406,6 +415,11 @@ export type GlobalAction =
       type: ActionType.SET_USER_STATS;
       activePnL?: number;
       activePositions?: ActivePositions[];
+      activePositionsFilters?: {
+        hideExpired?: boolean;
+        isAscending?: boolean;
+        sort?: ActivePositionsSortType;
+      };
       delta?: number;
       historicalPnL?: number;
       loading?: boolean;

@@ -3619,3 +3619,10 @@ export const EMPTY_POSITION = {
   series: "-",
   strike: ",",
 };
+
+export enum ActivePositionSort {
+  Delta = "Delta",
+  Expiry = "Expiry",
+  PnL = "PnL",
+  Size = "Size",
+}
