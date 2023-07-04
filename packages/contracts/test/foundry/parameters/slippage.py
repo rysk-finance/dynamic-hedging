@@ -6,42 +6,105 @@ import math
 from decimal import Decimal
 
 call_multipliers_1 = [
-			Decimal(1.0),
-			Decimal(1.1),
-			Decimal(1.2),
-			Decimal(1.3),
-			Decimal(1.4),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000)
 		]
 
 put_multipliers_1 = [
-			Decimal(1.1),
-			Decimal(1.2),
-			Decimal(1.3),
-			Decimal(1.4),
-			Decimal(1.5),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000)
 		]
 call_multipliers_2 = [
-			Decimal(2.0),
-			Decimal(2.1),
-			Decimal(2.2),
-			Decimal(2.3),
-			Decimal(2.4),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000)
 		]
 
 put_multipliers_2 = [
-			Decimal(2.1),
-			Decimal(2.2),
-			Decimal(2.3),
-			Decimal(2.4),
-			Decimal(2.5),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000),
+    	Decimal(161.000000000000000000)
 		]
 tenor_multipliers = [
     [call_multipliers_1, put_multipliers_1, call_multipliers_1, put_multipliers_1, call_multipliers_1, put_multipliers_1],
     [call_multipliers_2, put_multipliers_2, call_multipliers_2, put_multipliers_2, call_multipliers_2, put_multipliers_2],
-    [call_multipliers_1, put_multipliers_1, call_multipliers_1, put_multipliers_1, call_multipliers_1, put_multipliers_1]]
-delta_band_width = Decimal(20)
+    [call_multipliers_1, put_multipliers_1, call_multipliers_1, put_multipliers_1, call_multipliers_1, put_multipliers_1],
+    [call_multipliers_2, put_multipliers_2, call_multipliers_2, put_multipliers_2, call_multipliers_2, put_multipliers_2],
+    [call_multipliers_1, put_multipliers_1, call_multipliers_1, put_multipliers_1, call_multipliers_1, put_multipliers_1]
+    ]
+delta_band_width = Decimal(5)
 max_tenor_value = 2800
-number_of_tenors = 3
+number_of_tenors = 5
 
 def main(args): 
     if (args.isNetDhvExposureNegative == 1):
