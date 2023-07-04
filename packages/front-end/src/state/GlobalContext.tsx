@@ -130,6 +130,7 @@ export const defaultGlobalState: GlobalState = {
     activePnL: 0,
     activePositions: [EMPTY_POSITION],
     activePositionsFilters: {
+      compact: true,
       hideExpired: false,
       isAscending: true,
       sort: ActivePositionSort.Expiry,

@@ -203,6 +203,9 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
           activePositions:
             action.activePositions || state.userStats.activePositions,
           activePositionsFilters: {
+            compact:
+              action.activePositionsFilters?.compact ??
+              state.userStats.activePositionsFilters.compact,
             hideExpired:
               action.activePositionsFilters?.hideExpired ??
               state.userStats.activePositionsFilters.hideExpired,

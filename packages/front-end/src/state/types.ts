@@ -175,6 +175,7 @@ export interface UserStats {
   activePnL: number;
   activePositions: ActivePositions[];
   activePositionsFilters: {
+    compact: boolean;
     hideExpired: boolean;
     isAscending: boolean;
     sort: ActivePositionsSortType;
@@ -418,6 +419,7 @@ export type GlobalAction =
       activePnL?: number;
       activePositions?: ActivePositions[];
       activePositionsFilters?: {
+        compact?: boolean;
         hideExpired?: boolean;
         isAscending?: boolean;
         sort?: ActivePositionsSortType;
