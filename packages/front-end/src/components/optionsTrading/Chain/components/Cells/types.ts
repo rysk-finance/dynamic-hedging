@@ -18,9 +18,7 @@ export interface QuoteProps extends BaseProps {
 
 export interface DeltaProps extends BaseProps {}
 
-export interface PositionProps extends BaseProps {
-  disabled: boolean;
-}
+export interface PositionProps extends BaseProps {}
 
 export interface ExposureProps extends BaseProps {}
 
