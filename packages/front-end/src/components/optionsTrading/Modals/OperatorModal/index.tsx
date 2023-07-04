@@ -8,7 +8,7 @@ import { ActionType } from "src/state/types";
 
 import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
-import { useNotifications } from "../Shared/hooks/useNotifications";
+import { useNotifications } from "../../hooks/useNotifications";
 import { getButtonProps } from "../Shared/utils/getButtonProps";
 import { setOperator } from "../Shared/utils/transactions";
 

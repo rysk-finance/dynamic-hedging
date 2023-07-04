@@ -20,7 +20,7 @@ import { updateCollateral } from "../Shared/utils/transactions";
 import { ActionType } from "src/state/types";
 import { useGlobalContext } from "src/state/GlobalContext";
 
-import { useNotifications } from "src/components/optionsTrading/Modals/Shared/hooks/useNotifications";
+import { useNotifications } from "src/components/optionsTrading/hooks/useNotifications";
 import { getButtonProps } from "src/components/optionsTrading/Modals/Shared/utils/getButtonProps";
 import { approveAllowance } from "src/components/optionsTrading/Modals/Shared/utils/transactions";
 import { AddressesRequired } from "src/components/optionsTrading/Modals/Shared/types";
