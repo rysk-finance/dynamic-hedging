@@ -27,7 +27,6 @@ export const UserStats = () => {
   usePreferences();
 
   // Media queries
-  // Animations
   // Collateral modal
   // Closed positions on dashboard
   // Clean up
