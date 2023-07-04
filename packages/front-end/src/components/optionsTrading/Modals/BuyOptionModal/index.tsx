@@ -15,7 +15,7 @@ import { Disclaimer } from "../Shared/components/Disclaimer";
 import { Button, Input, Label, Wrapper } from "../Shared/components/Form";
 import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
-import { useNotifications } from "../Shared/hooks/useNotifications";
+import { useNotifications } from "../../hooks/useNotifications";
 import { getButtonProps } from "../Shared/utils/getButtonProps";
 import { approveAllowance, buy } from "../Shared/utils/transactions";
 import { Pricing } from "./components/Pricing";
