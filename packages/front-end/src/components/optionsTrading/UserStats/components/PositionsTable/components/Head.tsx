@@ -26,18 +26,26 @@ const columns = [
     sortable: true,
   },
   {
-    className: "cursor-pointer col-span-2",
+    className: "cursor-pointer",
     columnKey: ActivePositionSort.PnL,
-    name: "p/l ($)",
+    name: "p/l",
     sortable: true,
+  },
+  {
+    className: "",
+    name: "entry price",
+  },
+  {
+    className: "",
+    name: "mark price",
   },
   {
     className: "col-span-2",
     name: "liq. price (collateral)",
   },
   {
-    className: "col-span-2",
-    name: "break even ($)",
+    className: "",
+    name: "break even",
   },
   {
     className: "col-span-2",

@@ -26,10 +26,10 @@ export const UserStats = () => {
   useUserStats();
   usePreferences();
 
-  // Media queries
   // Collateral modal
-  // Closed positions on dashboard
+  // Media queries
   // Clean up
+  // Closed positions on dashboard
 
   return (
     <AnimatePresence mode="wait">
