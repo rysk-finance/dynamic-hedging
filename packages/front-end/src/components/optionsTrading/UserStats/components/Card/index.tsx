@@ -1,4 +1,4 @@
-import type { CardProps } from "../../types";
+import type { CardProps } from "./types";
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useAccount } from "wagmi";
