@@ -66,18 +66,10 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
             option.call?.sell.disabled || !option.call?.sell.quote.quote;
           const callBuyDisabled =
             option.call?.buy.disabled || !option.call?.buy.quote.quote;
-          const callPosDisabled =
-            !option.call?.pos ||
-            (option.call?.pos < 0 && callBuyDisabled) ||
-            (option.call?.pos > 0 && callSellDisabled);
           const putSellDisabled =
             option.put?.sell.disabled || !option.put?.sell.quote.quote;
           const putBuyDisabled =
             option.put?.buy.disabled || !option.put?.buy.quote.quote;
-          const putPosDisabled =
-            !option.put?.pos ||
-            (option.put?.pos < 0 && putBuyDisabled) ||
-            (option.put?.pos > 0 && putSellDisabled);
 
           const callAtTheMoney = option.strike === callAtmStrike;
           const putAtTheMoney = option.strike === putAtmStrike;
@@ -154,14 +146,8 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
               )}
 
               {showCol("pos") && (
-                <Cell
-                  cellClasses="!p-0"
-                  disabled={callSellDisabled && callBuyDisabled}
-                >
-                  <Position
-                    disabled={callPosDisabled}
-                    value={option.call?.pos || 0}
-                  />
+                <Cell disabled={callSellDisabled && callBuyDisabled}>
+                  <Position value={option.call?.pos || 0} />
                 </Cell>
               )}
 
@@ -237,14 +223,8 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
               )}
 
               {showCol("pos") && (
-                <Cell
-                  cellClasses="!p-0"
-                  disabled={putSellDisabled && putBuyDisabled}
-                >
-                  <Position
-                    disabled={putPosDisabled}
-                    value={option.put?.pos || 0}
-                  />
+                <Cell disabled={putSellDisabled && putBuyDisabled}>
+                  <Position value={option.put?.pos || 0} />
                 </Cell>
               )}
 
