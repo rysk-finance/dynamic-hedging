@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useAccount, useNetwork } from "wagmi";
 
+import { TERMS_LINK } from "src/config/links";
 import LPABI from "../../abis/LiquidityPool.json";
 import ERC20ABI from "../../abis/erc20.json";
 import {
@@ -50,7 +51,7 @@ export const VaultDeposit = () => {
   const [_, setLocalStorage] = useLocalStorage();
   const {
     dispatch: globalDispatch,
-    state: { settings },
+    state: { geoData, settings },
   } = useGlobalContext();
   const { updatePosition, userPositionValue } = useUserPosition();
 
@@ -314,11 +315,13 @@ export const VaultDeposit = () => {
     amountIsApproved ||
     listeningForApproval ||
     ethers.utils.parseUnits(inputValue)._hex === ZERO_UINT_256 ||
-    !isWhitelisted;
+    !isWhitelisted ||
+    geoData.blocked;
   const depositIsDisabled =
     !(inputValue && address && approveIsDisabled) ||
     listeningForDeposit ||
-    !isWhitelisted;
+    !isWhitelisted ||
+    geoData.blocked;
 
   return (
     <div className="flex-col items-center justify-between h-full">
@@ -413,10 +416,28 @@ export const VaultDeposit = () => {
             />
           </div>
 
-          {isConnected && !isWhitelisted && (
-            <small className="flex border-b-2 border-black p-2 text-red-900">
-              {`Depositing is currently only available for early access to whitelisted addresses. Please come back soon to deposit into the ${DHV_NAME}.`}
-            </small>
+          {isConnected && (
+            <>
+              {!isWhitelisted ? (
+                <small className="flex border-b-2 border-black p-2 text-red-900">
+                  {`Depositing is currently only available for early access to whitelisted addresses. Please come back soon to deposit into the ${DHV_NAME}.`}
+                </small>
+              ) : geoData.blocked ? (
+                <small className="block border-b-2 border-black p-2 text-red-900">
+                  {`Trading is not available for people or entities in ${
+                    geoData.country || "your country"
+                  } and other restricted jurisdictions. Learn more in the `}
+                  <a
+                    href={TERMS_LINK}
+                    className={`text-red-500 underline`}
+                    rel="noreferrer noopener"
+                    target="_blank"
+                  >
+                    {`Rysk user terms of service.`}
+                  </a>
+                </small>
+              ) : null}
+            </>
           )}
 
           <div className="flex items-center border-b-2 border-black p-2 justify-between">
