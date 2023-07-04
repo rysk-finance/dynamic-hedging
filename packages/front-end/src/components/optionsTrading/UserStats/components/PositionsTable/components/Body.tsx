@@ -173,10 +173,12 @@ export const Body = () => {
                 collateral,
                 delta,
                 disabled,
+                entry,
                 expiryTimestamp,
                 id,
                 isPut,
                 isShort,
+                mark,
                 profitLoss,
                 series,
                 strike,
@@ -190,20 +192,20 @@ export const Body = () => {
                 {...FadeInUpDelayed(Math.min(index * 0.1, 2))}
               >
                 <td
-                  className={`col-span-2 flex justify-center ${
+                  className={`col-span-2 flex ${
                     isShort ? "text-red-900" : "text-green-1100"
                   }`}
                 >
                   {isShort ? (
                     <DownChevron
                       aria-hidden={true}
-                      className="min-w-6 h-6 mr-3 stroke-red-900"
+                      className="min-w-6 h-6 mx-3 stroke-red-900"
                       strokeWidth={2}
                     />
                   ) : (
                     <UpChevron
                       aria-hidden={true}
-                      className="min-w-6 h-6 mr-3 stroke-green 1100"
+                      className="min-w-6 h-6 mx-3 stroke-green 1100"
                       strokeWidth={2}
                     />
                   )}
@@ -216,11 +218,17 @@ export const Body = () => {
                   <RyskCountUp value={delta} />
                 </td>
                 <td
-                  className={`col-span-2 font-dm-mono ${
+                  className={`font-dm-mono ${
                     profitLoss < 0 ? "text-red-900" : "text-green-1100"
                   }`}
                 >
                   <RyskCountUp value={profitLoss} />
+                </td>
+                <td className="font-dm-mono">
+                  <RyskCountUp value={entry} />
+                </td>
+                <td className="font-dm-mono">
+                  <RyskCountUp value={mark} />
                 </td>
                 {collateral.amount ? (
                   <td className="col-span-2 decoration-dotted underline cursor-pointer font-dm-mono text-sm">
@@ -238,7 +246,7 @@ export const Body = () => {
                 ) : (
                   <td className="col-span-2 font-dm-mono text-sm">{`N/A`}</td>
                 )}
-                <td className="col-span-2 font-dm-mono">
+                <td className="font-dm-mono">
                   <RyskCountUp value={breakEven} />
                 </td>
                 <td className="col-span-2 cursor-pointer !py-0">

@@ -157,11 +157,13 @@ export interface ActivePositions {
   };
   disabled: boolean;
   delta: number;
+  entry: number;
   expiryTimestamp: string;
   id: HexString;
   isOpen: boolean;
   isPut: boolean;
   isShort: boolean;
+  mark: number;
   profitLoss: number;
   series: string;
   strike: string;
