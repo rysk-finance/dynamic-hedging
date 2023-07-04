@@ -158,12 +158,13 @@ export const CloseOptionModal = () => {
               !addresses.user ||
               !addresses.token ||
               transactionPending ||
+              loading ||
               blocked
             }
             {...FadeInOutQuick}
             {...getButtonProps(
               "sell",
-              transactionPending,
+              transactionPending || loading,
               allowance.approved,
               handleApprove,
               handleSell
