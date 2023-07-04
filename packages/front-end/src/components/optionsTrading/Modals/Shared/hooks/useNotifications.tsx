@@ -1,6 +1,5 @@
 import { useAddRecentTransaction } from "@rainbow-me/rainbowkit";
 import { useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 
 import { useGlobalContext } from "src/state/GlobalContext";
@@ -9,7 +8,6 @@ import { logError } from "src/utils/logError";
 
 export const useNotifications = () => {
   const addRecentTransaction = useAddRecentTransaction();
-  const [, setSearchParams] = useSearchParams();
 
   const { dispatch } = useGlobalContext();
 
@@ -28,9 +26,8 @@ export const useNotifications = () => {
       dispatch({
         type: ActionType.RESET_OPTIONS_CHAIN_STATE,
       });
-      setSearchParams({});
     },
-    [addRecentTransaction, dispatch, setSearchParams]
+    [addRecentTransaction, dispatch]
   );
 
   const notifyFailure = useCallback((error: unknown) => {
