@@ -126,7 +126,7 @@ export const closeLong = async (
       operation: OperationType.RyskAction,
       operationQueue: [
         {
-          actionType: BigNumber.from(RyskActionType.CloseOption),
+          actionType: BigNumber.from(RyskActionType.SellOption),
           owner: ZERO_ADDRESS,
           secondAddress: addresses.user,
           asset: addresses.token,
