@@ -2,6 +2,7 @@ import { prepareWriteContract, writeContract } from "@wagmi/core";
 import { BigNumber } from "ethers";
 import { useMemo } from "react";
 import { useAccount } from "wagmi";
+import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 
 import { NewControllerABI } from "src/abis/NewController_ABI";
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
@@ -15,6 +16,8 @@ import { toOpyn } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { PositionAction } from "../../../enums";
+import FadeInUpDelayed from "src/animation/FadeInUpDelayed";
+import { DownChevron, UpChevron } from "src/Icons";
 
 const opynControllerAddress = getContractAddress("OpynController");
 
@@ -158,83 +161,108 @@ export const Body = () => {
     };
 
   return (
-    <tbody className="block border-b-2 border-black border-dashed h-52 overflow-y-scroll">
-      {sortedActivePositions.map(
-        ({
-          action,
-          amount,
-          breakEven,
-          collateral,
-          delta,
-          disabled,
-          expiryTimestamp,
-          id,
-          isPut,
-          isShort,
-          profitLoss,
-          series,
-          strike,
-        }) => (
-          <tr
-            className="grid grid-cols-12 text-center capitalize [&_td]:border-l-2 first:[&_td]:border-0 [&_td]:border-gray-500 [&_td]:border-dashed [&_td]:py-3"
-            key={`${id}-${isShort ? "SHORT" : "LONG"}`}
-          >
-            <td
-              className={`col-span-2 ${
-                isShort ? "text-red-900" : "text-green-1100"
-              }`}
-            >
-              {series}
-            </td>
-            <td className="font-dm-mono">
-              {<RyskCountUp value={Math.abs(amount)} />}
-            </td>
-            <td className="font-dm-mono">
-              <RyskCountUp value={delta} />
-            </td>
-            <td
-              className={`col-span-2 font-dm-mono ${
-                profitLoss < 0 ? "text-red-900" : "text-green-1100"
-              }`}
-            >
-              <RyskCountUp value={profitLoss} />
-            </td>
-            {collateral.amount ? (
-              <td className="col-span-2 decoration-dotted underline cursor-pointer font-dm-mono text-sm">
-                <RyskCountUp prefix="$" value={collateral.liquidationPrice} />
-                {` (`}
-                <RyskCountUp
-                  prefix={collateral.asset === "USDC" ? "$" : "Ξ"}
-                  value={collateral.amount}
-                />
-                {`)`}
-              </td>
-            ) : (
-              <td className="col-span-2 font-dm-mono text-sm">{`N/A`}</td>
-            )}
-            <td className="col-span-2 font-dm-mono">
-              <RyskCountUp value={breakEven} />
-            </td>
-            <td className="col-span-2 cursor-pointer !py-0">
-              <button
-                className="w-full h-full decoration-dotted underline"
-                disabled={disabled}
-                onClick={handleActionClick(action, expiryTimestamp, {
-                  address: id,
-                  amount,
-                  isPut,
-                  isShort,
-                  series,
-                  strike,
-                  vault: collateral.vault,
-                })}
+    <LayoutGroup>
+      <tbody className="block border-b-2 border-black border-dashed h-60 overflow-y-scroll">
+        <AnimatePresence>
+          {sortedActivePositions.map(
+            (
+              {
+                action,
+                amount,
+                breakEven,
+                collateral,
+                delta,
+                disabled,
+                expiryTimestamp,
+                id,
+                isPut,
+                isShort,
+                profitLoss,
+                series,
+                strike,
+              },
+              index
+            ) => (
+              <motion.tr
+                className="grid grid-cols-12 text-center capitalize [&_td]:border-l-2 first:[&_td]:border-0 [&_td]:border-gray-500 [&_td]:border-dashed [&_td]:py-3"
+                key={`${id}-${isShort ? "SHORT" : "LONG"}`}
+                layout="position"
+                {...FadeInUpDelayed(Math.min(index * 0.1, 2))}
               >
-                {action}
-              </button>
-            </td>
-          </tr>
-        )
-      )}
-    </tbody>
+                <td
+                  className={`col-span-2 flex justify-center ${
+                    isShort ? "text-red-900" : "text-green-1100"
+                  }`}
+                >
+                  {isShort ? (
+                    <DownChevron
+                      aria-hidden={true}
+                      className="min-w-6 h-6 mr-3 stroke-red-900"
+                      strokeWidth={2}
+                    />
+                  ) : (
+                    <UpChevron
+                      aria-hidden={true}
+                      className="min-w-6 h-6 mr-3 stroke-green 1100"
+                      strokeWidth={2}
+                    />
+                  )}
+                  {series}
+                </td>
+                <td className="font-dm-mono">
+                  {<RyskCountUp value={Math.abs(amount)} />}
+                </td>
+                <td className="font-dm-mono">
+                  <RyskCountUp value={delta} />
+                </td>
+                <td
+                  className={`col-span-2 font-dm-mono ${
+                    profitLoss < 0 ? "text-red-900" : "text-green-1100"
+                  }`}
+                >
+                  <RyskCountUp value={profitLoss} />
+                </td>
+                {collateral.amount ? (
+                  <td className="col-span-2 decoration-dotted underline cursor-pointer font-dm-mono text-sm">
+                    <RyskCountUp
+                      prefix="$"
+                      value={collateral.liquidationPrice}
+                    />
+                    {` (`}
+                    <RyskCountUp
+                      prefix={collateral.asset === "USDC" ? "$" : "Ξ"}
+                      value={collateral.amount}
+                    />
+                    {`)`}
+                  </td>
+                ) : (
+                  <td className="col-span-2 font-dm-mono text-sm">{`N/A`}</td>
+                )}
+                <td className="col-span-2 font-dm-mono">
+                  <RyskCountUp value={breakEven} />
+                </td>
+                <td className="col-span-2 cursor-pointer !py-0">
+                  <button
+                    className="w-full h-full decoration-dotted underline"
+                    disabled={disabled}
+                    onClick={handleActionClick(action, expiryTimestamp, {
+                      address: id,
+                      amount,
+                      isPut,
+                      isShort,
+                      series,
+                      strike,
+                      vault: collateral.vault,
+                    })}
+                  >
+                    {action}
+                  </button>
+                </td>
+              </motion.tr>
+            )
+          )}
+        </AnimatePresence>
+      </tbody>
+    </LayoutGroup>
   );
 };
