@@ -1,10 +1,13 @@
 import { prepareWriteContract, writeContract } from "@wagmi/core";
 import { BigNumber } from "ethers";
+import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import { useMemo } from "react";
 import { useAccount } from "wagmi";
-import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 
+import { DownChevron, UpChevron } from "src/Icons";
 import { NewControllerABI } from "src/abis/NewController_ABI";
+import FadeInUpDelayed from "src/animation/FadeInUpDelayed";
+import Resize from "src/animation/Resize";
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
 import { waitForTransactionOrTimer } from "src/components/shared/utils/waitForTransaction";
 import { GAS_MULTIPLIER, ZERO_ADDRESS } from "src/config/constants";
@@ -16,8 +19,6 @@ import { toOpyn } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { PositionAction } from "../../../enums";
-import FadeInUpDelayed from "src/animation/FadeInUpDelayed";
-import { DownChevron, UpChevron } from "src/Icons";
 
 const opynControllerAddress = getContractAddress("OpynController");
 
@@ -30,7 +31,7 @@ export const Body = () => {
       options: { refresh },
       userStats: {
         activePositions,
-        activePositionsFilters: { hideExpired, isAscending, sort },
+        activePositionsFilters: { compact, hideExpired, isAscending, sort },
       },
     },
   } = useGlobalContext();
@@ -162,7 +163,10 @@ export const Body = () => {
 
   return (
     <LayoutGroup>
-      <tbody className="block border-b-2 border-black border-dashed h-60 overflow-y-scroll">
+      <motion.tbody
+        className="block border-b-2 border-black border-dashed overflow-y-scroll"
+        {...Resize(compact ? "auto" : 220, compact ? 220 : "auto")}
+      >
         <AnimatePresence>
           {sortedActivePositions.map(
             (
@@ -186,7 +190,7 @@ export const Body = () => {
               index
             ) => (
               <motion.tr
-                className="grid grid-cols-12 text-center capitalize [&_td]:border-l-2 first:[&_td]:border-0 [&_td]:border-gray-500 [&_td]:border-dashed [&_td]:py-3"
+                className="grid grid-cols-12 text-center capitalize [&_td]:border-l-2 first:[&_td]:border-0 [&_td]:border-gray-500 [&_td]:border-dashed [&_td]:py-2.5"
                 key={`${id}-${isShort ? "SHORT" : "LONG"}`}
                 layout="position"
                 {...FadeInUpDelayed(Math.min(index * 0.1, 2))}
@@ -270,7 +274,7 @@ export const Body = () => {
             )
           )}
         </AnimatePresence>
-      </tbody>
+      </motion.tbody>
     </LayoutGroup>
   );
 };

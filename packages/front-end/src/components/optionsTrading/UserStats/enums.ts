@@ -10,4 +10,5 @@ export enum PositionAction {
 export enum Preferences {
   ACTIVE_POSITIONS_FILTERS_SORTING = "rysk-active-positions-filters-sorting",
   ACTIVE_POSITIONS_FILTERS_HIDE_EXPIRED = "rysk-active-positions-filters-hide-expired",
+  ACTIVE_POSITIONS_FILTERS_COMPACT = "rysk-active-positions-filters-compact",
 }

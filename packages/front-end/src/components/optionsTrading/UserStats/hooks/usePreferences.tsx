@@ -18,13 +18,17 @@ export const usePreferences = () => {
       "{}"
   ) as UserStats["activePositionsFilters"];
 
+  const activePositionsFiltersCompact = JSON.parse(
+    localStorage.getItem(Preferences.ACTIVE_POSITIONS_FILTERS_COMPACT) || "{}"
+  ) as UserStats["activePositionsFilters"];
+
   useEffect(() => {
     dispatch({
       type: ActionType.SET_USER_STATS,
       activePositionsFilters: {
-        hideExpired: activePositionsFiltersHideExpired.hideExpired,
-        isAscending: activePositionsFiltersSorting.isAscending,
-        sort: activePositionsFiltersSorting.sort,
+        ...activePositionsFiltersSorting,
+        ...activePositionsFiltersHideExpired,
+        ...activePositionsFiltersCompact,
       },
     });
   }, []);
