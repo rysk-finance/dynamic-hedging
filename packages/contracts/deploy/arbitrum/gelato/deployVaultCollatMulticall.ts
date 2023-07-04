@@ -15,10 +15,10 @@ const main = async () => {
 			address: multicall.address,
 			constructorArguments: [executorAddress, optionRegistryAddress]
 		})
-		console.log("normDist verified")
+		console.log("multicall verified")
 	} catch (err: any) {
 		if (err.message.includes("Reason: Already Verified")) {
-			console.log("normDist contract already verified")
+			console.log("multicall contract already verified")
 		}
 	}
 }
