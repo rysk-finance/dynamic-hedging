@@ -26,7 +26,7 @@ export const UserStats = () => {
   useUserStats();
   usePreferences();
 
-  // Collateral modal
+  // Better height animation on chain - time box
   // Media queries
   // Clean up
   // Closed positions on dashboard
