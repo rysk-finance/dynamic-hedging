@@ -234,6 +234,7 @@ export type GlobalState = {
 
   // Options chain state.
   collateralPreferences: CollateralPreferences;
+  adjustingOption?: AdjustingOption;
   closingOption?: ClosingOption;
   selectedOption?: SelectedOption;
   optionChainModalOpen?: OptionChainModal;
@@ -273,6 +274,7 @@ export enum ActionType {
   SET_VISIBLE_COLUMNS,
   SET_COLLATERAL_PREFERENCES,
   SET_DASHBOARD_MODAL_VISIBLE,
+  SET_ADJUSTING_OPTION,
   SET_SELECTED_OPTION,
   SET_CLOSING_OPTION,
   SET_OPTION_CHAIN_MODAL_VISIBLE,
@@ -372,6 +374,10 @@ export type GlobalAction =
       option?: SelectedOption;
     }
   | {
+      type: ActionType.SET_ADJUSTING_OPTION;
+      option?: AdjustingOption;
+    }
+  | {
       type: ActionType.SET_CLOSING_OPTION;
       expiry?: string;
       option?: ClosingOption;
@@ -466,6 +472,7 @@ export type OptionsTradingState = {
 };
 
 export enum OptionChainModalActions {
+  ADJUST_COLLATERAL = "adjustCollateral",
   BUY = "buy",
   CLOSE = "close",
   OPERATOR = "operator",
@@ -487,6 +494,19 @@ export interface SelectedOption {
   buyOrSell: "sell" | "buy";
   callOrPut: CallOrPut;
   strikeOptions: StrikeOptions;
+}
+
+export interface AdjustingOption {
+  address: HexString;
+  amount: number;
+  asset: CollateralType;
+  collateralAmount: number;
+  expiryTimestamp: string;
+  isPut: boolean;
+  liquidationPrice: number;
+  series: string;
+  strike: number;
+  vault: Vault;
 }
 
 export interface ClosingOption {

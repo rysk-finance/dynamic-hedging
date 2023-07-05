@@ -130,8 +130,12 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
     case ActionType.SET_SELECTED_OPTION:
       return {
         ...state,
-
         selectedOption: action.option,
+      };
+    case ActionType.SET_ADJUSTING_OPTION:
+      return {
+        ...state,
+        adjustingOption: action.option,
       };
     case ActionType.SET_CLOSING_OPTION:
       return {
@@ -162,6 +166,7 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
     case ActionType.RESET_OPTIONS_CHAIN_STATE:
       return {
         ...state,
+        adjustingOption: defaultGlobalState.adjustingOption,
         closingOption: defaultGlobalState.closingOption,
         selectedOption: defaultGlobalState.selectedOption,
         optionChainModalOpen: defaultGlobalState.optionChainModalOpen,
