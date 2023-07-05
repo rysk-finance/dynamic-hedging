@@ -75,7 +75,7 @@ contract OptionExchange is Pausable, AccessControl, ReentrancyGuard, IHedgingRea
 	/// @notice maximum amount allowed for a single trade
 	uint256 public maxTradeSize = 1000e18;
 	/// @notice minimum amount allowed for a single trade
-	uint256 public minTradeSize = 1e16;
+	uint256 public minTradeSize = 1e17;
 	/// @notice mapping of approved collateral for puts and calls
 	mapping(address => mapping(bool => bool)) public approvedCollateral;
 

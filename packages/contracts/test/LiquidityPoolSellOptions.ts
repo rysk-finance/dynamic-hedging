@@ -173,7 +173,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 		const res = await setupTestOracle(await sender.getAddress())
 		oracle = res[0] as Oracle
 		opynAggregator = res[1] as MockChainlinkAggregator
-		let deployParams = await deploySystem(signers, oracle, opynAggregator)
+		let deployParams = await deploySystem(signers, opynAggregator)
 		weth = deployParams.weth
 		wethERC20 = deployParams.wethERC20
 		usd = deployParams.usd
@@ -585,7 +585,7 @@ describe("Liquidity Pools hedging reactor: gamma", async () => {
 								vaultId: 0,
 								amount: amount,
 								optionSeries: emptySeries,
-								indexOrAcceptablePremium: quote.sub(2e6),
+								indexOrAcceptablePremium: quote.sub(5e6),
 								data: "0x"
 							}
 						]

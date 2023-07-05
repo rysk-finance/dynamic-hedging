@@ -74,7 +74,7 @@ contract BeyondPricer is AccessControl, ReentrancyGuard {
 
 	uint256 public bidAskIVSpread;
 	uint256 public riskFreeRate;
-	uint256 public feePerContract = 3e5;
+	uint256 public feePerContract = 5e5;
 
 	uint256 public slippageGradient;
 
