@@ -1,26 +1,22 @@
 import type { ChangeEvent } from "react";
 
-import type { AddressesRequired } from "../Shared/types";
-
 import { useState } from "react";
 import { useDebounce } from "use-debounce";
 
+import { adjustCollateral } from "src/components/shared/utils/transactions/adjustCollateral";
+import { approveAllowance } from "src/components/shared/utils/transactions/approveAllowance";
 import { useGlobalContext } from "src/state/GlobalContext";
+import { toUSDC, toWei } from "src/utils/conversion-helper";
+import { useNotifications } from "../../hooks/useNotifications";
 import { Disclaimer } from "../Shared/components/Disclaimer";
 import { Button, Input, Label, Wrapper } from "../Shared/components/Form";
 import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
-import { useCollateralData } from "./hooks/useCollateralData";
 import { getButtonProps } from "../Shared/utils/getButtonProps";
-import {
-  approveAllowance,
-  updateCollateral,
-} from "../Shared/utils/transactions";
-import { useNotifications } from "../../hooks/useNotifications";
-import { toUSDC, toWei } from "src/utils/conversion-helper";
 import { Pricing } from "./components/Pricing";
 import { Symbol } from "./components/Symbol";
 import { Toggle } from "./components/Toggle";
+import { useCollateralData } from "./hooks/useCollateralData";
 
 export const AdjustCollateralModal = () => {
   const {
@@ -63,7 +59,8 @@ export const AdjustCollateralModal = () => {
             : toWei(collateralData.requiredApproval);
 
         const hash = await approveAllowance(
-          addresses as AddressesRequired,
+          addresses.exchange,
+          addresses.token,
           amount
         );
 
@@ -89,15 +86,13 @@ export const AdjustCollateralModal = () => {
             ? toUSDC(collateralData.requiredApproval)
             : toWei(collateralData.requiredApproval);
 
-        const hash = await updateCollateral(
-          {
-            token: addresses.token,
-            user: addresses.user,
-            exchange: addresses.exchange,
-          },
+        const hash = await adjustCollateral(
           amount,
+          addresses.exchange,
           isDepositing,
           refresh,
+          addresses.token,
+          addresses.user,
           adjustingOption.vault.vaultId
         );
 
@@ -128,14 +123,14 @@ export const AdjustCollateralModal = () => {
         <Label
           id="adjust-collateral"
           title={`Enter how much collateral you would like to ${
-            isDepositing ? "add" : "remove"
+            isDepositing ? "deposit" : "remove"
           }.`}
         >
           <Input
             name="adjust-collateral"
             onChange={handleChange}
             placeholder={`How much would you like to ${
-              isDepositing ? "add" : "remove"
+              isDepositing ? "deposit" : "remove"
             }?`}
             value={amountToAdjust}
           />
@@ -153,7 +148,7 @@ export const AdjustCollateralModal = () => {
           }
           id="buy-button"
           {...getButtonProps(
-            "update",
+            isDepositing ? "deposit" : "withdraw",
             transactionPending || loading,
             allowance.approved,
             handleApprove,
