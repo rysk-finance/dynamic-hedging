@@ -52,7 +52,7 @@ export const Card = ({
 
         {children}
 
-        <em className="block not-italic text-xs border-black border-t pt-3">
+        <em className="block not-italic text-xs border-black border-t pt-2">
           {disabled ? "Coming soon..." : explainer}
         </em>
       </span>
