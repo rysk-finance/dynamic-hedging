@@ -10,12 +10,10 @@ const main = async () => {
 	const resolver = await resolverFactory.deploy(addressBookAddress)
 
 	try {
-		console.log("boop")
 		await hre.run("verify:verify", {
 			address: resolver.address,
 			constructorArguments: [addressBookAddress]
 		})
-		console.log("boop")
 
 		console.log("resolver verified")
 	} catch (err: any) {
