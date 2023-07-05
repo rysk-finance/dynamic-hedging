@@ -1,7 +1,5 @@
 import type { PropsWithChildren } from "react";
 
-import { useSearchParams } from "react-router-dom";
-
 import { Change, Close, Question } from "src/Icons";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType, OptionChainModalActions } from "src/state/types";
@@ -24,13 +22,10 @@ export const Header = ({
     },
   } = useGlobalContext();
 
-  const [_, setSearchParams] = useSearchParams();
-
   const closeModal = () => {
     dispatch({
       type: ActionType.RESET_OPTIONS_CHAIN_STATE,
     });
-    setSearchParams({});
   };
 
   const changeModal = () => {

@@ -26,8 +26,6 @@ export const UserStats = () => {
   useUserStats();
   usePreferences();
 
-  // Media queries
-  // Clean up
   // Closed positions on dashboard
 
   return (

@@ -1,34 +1,26 @@
 import { useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
 
 import { useGlobalContext } from "src/state/GlobalContext";
 
-import {
-  ActionType,
-  OptionChainModalActions,
-  DashboardModalActions,
-} from "src/state/types";
+import { ActionType, OptionChainModalActions } from "src/state/types";
 
 /**
  * Hook that checks query params and state to determine if
  * the modal should be visible.
  *
- * The buy modal is keyed from the `selectedOption` state variable.
- *
- * The close long position modal is keyed from query params.
+ * The buy/sell modals are keyed from the `selectedOption` state variable.
+ * The closing modals are keyed from the `closingOption` state variable.
+ * The collateral adjustment modal is keyed from the `adjustingOption` state variable.
  *
  * Returns a boolean value for the modal state.
  *
  * @returns readonly [OptionChainModalActions | undefined]
  */
 export const useModal = () => {
-  const [searchParams] = useSearchParams();
-
   const {
     state: {
       adjustingOption,
       closingOption,
-      dashboardModalOpen,
       optionChainModalOpen,
       options: { activeExpiry, isOperator },
       selectedOption,
@@ -66,7 +58,7 @@ export const useModal = () => {
       } else if (closingOption && !closingOption.isShort) {
         dispatch({
           type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
-          visible: OptionChainModalActions.CLOSE,
+          visible: OptionChainModalActions.CLOSE_LONG,
         });
       } else if (closingOption && closingOption.isShort) {
         dispatch({
@@ -91,21 +83,13 @@ export const useModal = () => {
       }
       return;
     }
-
-    if (searchParams.get("ref") === "adjust-collateral") {
-      dispatch({
-        type: ActionType.SET_DASHBOARD_MODAL_VISIBLE,
-        visible: DashboardModalActions.ADJUST_COLLATERAL,
-      });
-    }
   }, [
     activeExpiry,
     adjustingOption,
     closingOption,
     isOperator,
-    searchParams,
     selectedOption,
   ]);
 
-  return [optionChainModalOpen, dashboardModalOpen] as const;
+  return [optionChainModalOpen] as const;
 };

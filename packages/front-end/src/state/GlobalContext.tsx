@@ -111,7 +111,6 @@ export const defaultGlobalState: GlobalState = {
     "pos",
     "exposure",
   ] as ColumNames[]),
-  dashboardModalOpen: undefined,
 
   // User balances
   balances: {
