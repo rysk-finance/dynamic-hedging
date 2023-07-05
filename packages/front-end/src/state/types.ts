@@ -242,7 +242,6 @@ export type GlobalState = {
   chainTutorialIndex?: number;
   sellTutorialIndex?: number;
   visibleColumns: Set<ColumNames>;
-  dashboardModalOpen?: DashboardModal;
 
   // User balances
   balances: Balances;
@@ -293,13 +292,6 @@ export enum ActionType {
   // User stats
   SET_USER_STATS,
 }
-
-export enum DashboardModalActions {
-  ADJUST_COLLATERAL = "adjustCollateral",
-}
-
-type DashboardModal =
-  (typeof DashboardModalActions)[keyof typeof DashboardModalActions];
 
 export type GlobalAction =
   | {
@@ -409,10 +401,6 @@ export type GlobalAction =
         | OptionChainModalActions.OPERATOR;
     }
   | {
-      type: ActionType.SET_DASHBOARD_MODAL_VISIBLE;
-      visible?: DashboardModalActions;
-    }
-  | {
       type: ActionType.SET_USER_BALANCES;
       balances: Balances;
     }
@@ -474,7 +462,7 @@ export type OptionsTradingState = {
 export enum OptionChainModalActions {
   ADJUST_COLLATERAL = "adjustCollateral",
   BUY = "buy",
-  CLOSE = "close",
+  CLOSE_LONG = "closeLong",
   OPERATOR = "operator",
   SELL = "sell",
   CLOSE_SHORT = "closeShort",

@@ -42,15 +42,23 @@ export const OptionsTradingContent = () => {
 
         <AnimatePresence mode="wait">
           {modalType === OptionChainModalActions.ADJUST_COLLATERAL && (
-            <AdjustCollateralModal />
+            <AdjustCollateralModal key="adjust-collateral" />
           )}
-          {modalType === OptionChainModalActions.BUY && <BuyOptionModal />}
-          {modalType === OptionChainModalActions.CLOSE && <CloseOptionModal />}
+          {modalType === OptionChainModalActions.BUY && (
+            <BuyOptionModal key="buy" />
+          )}
+          {modalType === OptionChainModalActions.CLOSE_LONG && (
+            <CloseOptionModal key="close-long" />
+          )}
           {modalType === OptionChainModalActions.CLOSE_SHORT && (
-            <CloseShortOptionModal />
+            <CloseShortOptionModal key="close-short" />
           )}
-          {modalType === OptionChainModalActions.OPERATOR && <OperatorModal />}
-          {modalType === OptionChainModalActions.SELL && <SellOptionModal />}
+          {modalType === OptionChainModalActions.OPERATOR && (
+            <OperatorModal key="operator" />
+          )}
+          {modalType === OptionChainModalActions.SELL && (
+            <SellOptionModal key="sell" />
+          )}
         </AnimatePresence>
       </section>
 
