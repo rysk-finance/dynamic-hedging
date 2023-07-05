@@ -81,7 +81,7 @@ export const Head = () => {
   };
 
   return (
-    <thead className="border-b-2 border-black border-dashed pr-[17px]">
+    <thead className="border-b-2 border-black border-dashed xl:pr-[17px]">
       <tr className="grid grid-cols-12 text-center capitalize [&_th]:border-l-2 first:[&_th]:border-0 [&_th]:border-gray-500 [&_th]:border-dashed [&_th]:py-3 [&_th]:text-xs [&_th]:lg:text-sm [&_th]:xl:text-base select-none">
         {columns.map(({ className, columnKey, name, sortable }) => (
           <th
@@ -90,7 +90,7 @@ export const Head = () => {
             onClick={columnKey && handleSortClick(columnKey)}
             scope="col"
           >
-            <span className={`${sortable ? "pl-6" : ""}`}>{name}</span>
+            <span>{name}</span>
             {sortable && (
               <ChevronUpDown
                 isAscending={sort === columnKey ? isAscending : undefined}
