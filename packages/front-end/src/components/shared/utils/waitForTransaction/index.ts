@@ -11,7 +11,7 @@ import { waitForTransaction } from "@wagmi/core";
  */
 export const waitForTransactionOrTimer = async (
   hash: HexString,
-  confirmations: number = 5,
+  confirmations: number = 12,
   timerMs: number = 15000
 ): Promise<unknown> => {
   return Promise.race([
