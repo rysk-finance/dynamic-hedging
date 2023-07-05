@@ -6,7 +6,7 @@ export enum CHAINID {
 	ARBITRUM = 42161, // eslint-disable-line no-unused-vars
 	ARBITRUM_GOERLI = 421613, // eslint-disable-line no-unused-vars
 	AVAX_MAINNET = 43114, // eslint-disable-line no-unused-vars
-	AVAX_FUJI = 43113, // eslint-disable-line no-unused-vars
+	AVAX_FUJI = 43113 // eslint-disable-line no-unused-vars
 }
 
 /**
@@ -51,7 +51,7 @@ export const USDC_PRICE_ORACLE = {
 
 export const CHAINLINK_WETH_PRICER = {
 	[CHAINID.ETH_MAINNET]: "0x128cE9B4D97A6550905dE7d9Abc2b8C747b0996C",
-	[CHAINID.ARBITRUM]: "0x6a1F5eF89Bd6CB297BeDEEEbff3308d240dBa99E" // opyn pricer contract
+	[CHAINID.ARBITRUM]: "0x37d8543673fE8038dce4964fc9A8B99693042d18" // opyn pricer contract
 }
 
 /**
