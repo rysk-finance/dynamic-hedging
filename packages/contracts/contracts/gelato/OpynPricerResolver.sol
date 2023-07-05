@@ -14,12 +14,10 @@ contract OpynPricerResolver {
 	// address constant chainlinkPriceFeedAddress = 0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612; // ETH/USD on arbitrum
 	address constant chainlinkPriceFeedAddress = 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419; // ETH/USD on ethereum mainnet
 
-	IChainlinkPricer chainlinkPricer;
 	IAddressBook addressBook;
 	AggregatorInterface priceFeed = AggregatorInterface(chainlinkPriceFeedAddress);
 
-	constructor(address _chainlinkPricer, address _addressBook) public {
-		chainlinkPricer = IChainlinkPricer(_chainlinkPricer);
+	constructor(address _addressBook) {
 		addressBook = IAddressBook(_addressBook);
 	}
 
