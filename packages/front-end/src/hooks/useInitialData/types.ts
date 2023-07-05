@@ -27,7 +27,7 @@ export interface Vault {
   vaultId: string;
   collateralAmount: string;
   shortAmount: string;
-  collateralAsset: { id: string };
+  collateralAsset: { id: HexString };
 }
 
 export interface Position {

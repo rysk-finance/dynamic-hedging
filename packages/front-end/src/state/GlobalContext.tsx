@@ -95,6 +95,7 @@ export const defaultGlobalState: GlobalState = {
     full: false,
     type: "USDC",
   },
+  adjustingOption: undefined,
   closingOption: undefined,
   selectedOption: undefined,
   optionChainModalOpen: undefined,
