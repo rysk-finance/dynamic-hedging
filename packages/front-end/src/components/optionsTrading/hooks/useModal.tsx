@@ -26,10 +26,11 @@ export const useModal = () => {
 
   const {
     state: {
+      adjustingOption,
       closingOption,
       dashboardModalOpen,
       optionChainModalOpen,
-      options: { activeExpiry, isOperator, userPositions },
+      options: { activeExpiry, isOperator },
       selectedOption,
     },
     dispatch,
@@ -57,7 +58,12 @@ export const useModal = () => {
   // Dispatcher for opening modals.
   useEffect(() => {
     if (activeExpiry) {
-      if (closingOption && !closingOption.isShort) {
+      if (adjustingOption) {
+        dispatch({
+          type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
+          visible: OptionChainModalActions.ADJUST_COLLATERAL,
+        });
+      } else if (closingOption && !closingOption.isShort) {
         dispatch({
           type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
           visible: OptionChainModalActions.CLOSE,
@@ -92,7 +98,14 @@ export const useModal = () => {
         visible: DashboardModalActions.ADJUST_COLLATERAL,
       });
     }
-  }, [activeExpiry, closingOption, isOperator, searchParams, selectedOption]);
+  }, [
+    activeExpiry,
+    adjustingOption,
+    closingOption,
+    isOperator,
+    searchParams,
+    selectedOption,
+  ]);
 
   return [optionChainModalOpen, dashboardModalOpen] as const;
 };
