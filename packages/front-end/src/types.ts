@@ -30,26 +30,15 @@ export enum ETHNetwork {
 
 export type RyskContractAddresses = {
   OpynController: string;
-  OpynAddressBook: string;
   OpynOracle: string;
   OpynNewCalculator: string;
   OpynOptionRegistry: string;
   priceFeed: string;
-  volFeed: string;
-  optionProtocol: string;
   liquidityPool: string;
-  authority: string;
   portfolioValuesFeed: string;
   optionHandler: string;
-  opynInteractions: string;
-  normDist: string;
-  BlackScholes: string;
-  optionsCompute: string;
-  beyondPricer: string;
   optionExchange: string;
-  optionCatalogue: string;
-  DHVLens: string;
-  UserPositionLens: string;
+  beyondPricer: string;
 };
 
 export type ExternalContractAddresses = {
@@ -57,8 +46,14 @@ export type ExternalContractAddresses = {
   WETH: string;
 };
 
+export type RyskLensAddresses = {
+  DHVLens: string;
+  UserPositionLens: string;
+};
+
 export type ContractAddresses = RyskContractAddresses &
-  ExternalContractAddresses;
+  ExternalContractAddresses &
+  RyskLensAddresses;
 
 export type OptionSeries = {
   expiration: BigNumber;
