@@ -371,3 +371,54 @@ export const vaultSell = async (
     return hash;
   }
 };
+
+export const updateCollateral = async (
+  addresses: AddressesRequired,
+  collateral: BigNumberType,
+  isDepositing: boolean,
+  refresh: () => void,
+  vaultId: string
+) => {
+  const txData = [
+    {
+      operation: OperationType.OpynAction,
+      operationQueue: [
+        {
+          actionType: BigNumber.from(
+            isDepositing
+              ? OpynActionType.DepositCollateral
+              : OpynActionType.WithdrawCollateral
+          ),
+          owner: addresses.user,
+          secondAddress: isDepositing ? addresses.exchange : addresses.user,
+          asset: addresses.token,
+          vaultId: BigNumber.from(vaultId),
+          amount: collateral,
+          optionSeries: EMPTY_SERIES,
+          indexOrAcceptablePremium: BigNumber.from(0),
+          data: ZERO_ADDRESS,
+        },
+      ],
+    },
+  ];
+
+  const config = await prepareWriteContract({
+    address: addresses.exchange,
+    abi: OptionExchangeABI,
+    functionName: "operate",
+    args: [txData],
+  });
+  config.request.gasLimit = config.request.gasLimit
+    .mul(GAS_MULTIPLIER * 100)
+    .div(100);
+
+  if (config.request.data) {
+    const { hash } = await writeContract(config);
+
+    await waitForTransactionOrTimer(hash);
+
+    refresh();
+
+    return hash;
+  }
+};
