@@ -1,22 +1,21 @@
 import type { ChangeEvent } from "react";
 
-import type { AddressesRequired } from "../Shared/types";
-
 import { BigNumber } from "ethers";
 import { useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 
+import { approveAllowance } from "src/components/shared/utils/transactions/approveAllowance";
+import { sell } from "src/components/shared/utils/transactions/sell";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
 import { toRysk, toUSDC, toWei } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
+import { useNotifications } from "../../hooks/useNotifications";
 import { Disclaimer } from "../Shared/components/Disclaimer";
 import { Button, Input, Label, Wrapper } from "../Shared/components/Form";
 import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
-import { useNotifications } from "../../hooks/useNotifications";
 import { getButtonProps } from "../Shared/utils/getButtonProps";
-import { approveAllowance, sell } from "../Shared/utils/transactions";
 import { Filters } from "./components/Filters";
 import { Pricing } from "./components/Pricing";
 import { Symbol } from "./components/Symbol";
@@ -65,7 +64,8 @@ export const SellOptionModal = () => {
             : toRysk(positionData.requiredApproval);
 
         const hash = await approveAllowance(
-          addresses as AddressesRequired,
+          addresses.exchange,
+          addresses.token,
           amount
         );
 
@@ -97,14 +97,16 @@ export const SellOptionModal = () => {
 
         const hash = await sell(
           positionData.acceptablePremium,
-          addresses as AddressesRequired,
           toRysk(amountToSell),
-          optionSeries,
-          refresh,
-          vaults,
           collateralPreferences.type === "USDC"
             ? toUSDC(positionData.collateral.toString())
-            : toRysk(positionData.collateral.toString())
+            : toRysk(positionData.collateral.toString()),
+          addresses.exchange,
+          optionSeries,
+          refresh,
+          addresses.token,
+          addresses.user,
+          vaults
         );
 
         if (hash) {

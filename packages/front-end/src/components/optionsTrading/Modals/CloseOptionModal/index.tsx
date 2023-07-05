@@ -1,7 +1,5 @@
 import type { ChangeEvent } from "react";
 
-import type { AddressesRequired } from "../Shared/types";
-
 import dayjs from "dayjs";
 import LocalizedFormat from "dayjs/plugin/localizedFormat";
 import { AnimatePresence } from "framer-motion";
@@ -9,8 +7,11 @@ import { useState } from "react";
 import { useDebounce } from "use-debounce";
 
 import FadeInOutQuick from "src/animation/FadeInOutQuick";
+import { approveAllowance } from "src/components/shared/utils/transactions/approveAllowance";
+import { closeLong } from "src/components/shared/utils/transactions/closeLong";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { toOpyn, toRysk } from "src/utils/conversion-helper";
+import { useNotifications } from "../../hooks/useNotifications";
 import { Disclaimer } from "../Shared/components/Disclaimer";
 import {
   Button,
@@ -21,9 +22,7 @@ import {
 } from "../Shared/components/Form";
 import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
-import { useNotifications } from "../../hooks/useNotifications";
 import { getButtonProps } from "../Shared/utils/getButtonProps";
-import { approveAllowance, closeLong } from "../Shared/utils/transactions";
 import { Pricing } from "./components/Pricing";
 import { usePositionData } from "./hooks/usePositionData";
 
@@ -80,7 +79,8 @@ export const CloseOptionModal = () => {
         const amount = toOpyn(amountToClose);
 
         const hash = await approveAllowance(
-          addresses as AddressesRequired,
+          addresses.exchange,
+          addresses.token,
           amount
         );
 
@@ -105,9 +105,11 @@ export const CloseOptionModal = () => {
 
         const hash = await closeLong(
           positionData.acceptablePremium,
-          addresses as AddressesRequired,
           amount,
-          refresh
+          addresses.exchange,
+          refresh,
+          addresses.token,
+          addresses.user
         );
 
         if (hash) {

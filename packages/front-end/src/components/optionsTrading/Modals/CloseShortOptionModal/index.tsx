@@ -1,10 +1,5 @@
 import type { ChangeEvent } from "react";
 
-import type {
-  AddressesRequired,
-  AddressesRequiredVaultSell,
-} from "../Shared/types";
-
 import dayjs from "dayjs";
 import LocalizedFormat from "dayjs/plugin/localizedFormat";
 import { AnimatePresence } from "framer-motion";
@@ -14,8 +9,11 @@ import FadeInOutQuick from "src/animation/FadeInOutQuick";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { toRysk, toUSDC } from "src/utils/conversion-helper";
 
+import { approveAllowance } from "src/components/shared/utils/transactions/approveAllowance";
+import { closeShort } from "src/components/shared/utils/transactions/closeShort";
 import { getContractAddress } from "src/utils/helpers";
 import { useDebounce } from "use-debounce";
+import { useNotifications } from "../../hooks/useNotifications";
 import { Disclaimer } from "../Shared/components/Disclaimer";
 import {
   Button,
@@ -26,9 +24,7 @@ import {
 } from "../Shared/components/Form";
 import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
-import { useNotifications } from "../../hooks/useNotifications";
 import { getButtonProps } from "../Shared/utils/getButtonProps";
-import { approveAllowance, vaultSell } from "../Shared/utils/transactions";
 import { Pricing } from "./components/Pricing";
 import { useShortPositionData } from "./hooks/useShortPositionData";
 
@@ -80,10 +76,8 @@ export const CloseShortOptionModal = () => {
         const amount = toUSDC(positionData.requiredApproval);
 
         const hash = await approveAllowance(
-          {
-            ...addresses,
-            token: getContractAddress("USDC"),
-          } as AddressesRequired,
+          addresses.exchange,
+          getContractAddress("USDC"),
           amount
         );
 
@@ -106,12 +100,15 @@ export const CloseShortOptionModal = () => {
       if (addresses.token && addresses.user && vaultId) {
         const amount = toRysk(amountToSell);
 
-        const hash = await vaultSell(
+        const hash = await closeShort(
           positionData.acceptablePremium,
-          addresses as AddressesRequiredVaultSell,
           amount,
-          refresh,
+          addresses.exchange,
+          addresses.collateral!,
           positionData.collateralToRemove,
+          refresh,
+          addresses.token,
+          addresses.user,
           vaultId
         );
 
