@@ -1,7 +1,7 @@
 import hre, { ethers } from "hardhat"
 
-const executorAddress = "0xA67D0C1180E0e183f482304A9b5436A3478F0674" // rysk deployer mainnet
-const optionRegistryAddress = "0x04706DE6cE851a284b569EBaE2e258225D952368"
+const executorAddress = "0x5c47ca059ab8f3838bd7136830de24e06cf9359a"
+const optionRegistryAddress = "0x8Bc23878981a207860bA4B185fD065f4fd3c7725"
 
 const main = async () => {
 	const [deployer] = await ethers.getSigners()
