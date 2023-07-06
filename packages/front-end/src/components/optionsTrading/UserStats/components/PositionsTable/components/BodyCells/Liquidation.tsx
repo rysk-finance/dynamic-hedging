@@ -14,7 +14,10 @@ export const Liquidation = ({
   series,
   strike,
 }: LiquidationProps) => {
-  const { dispatch } = useGlobalContext();
+  const {
+    dispatch,
+    state: { ethPrice },
+  } = useGlobalContext();
 
   const {
     amount: collateralAmount,
@@ -30,12 +33,21 @@ export const Liquidation = ({
     });
   };
 
+  // Highlight positions where the liquidation price is within 3% of the underlying.
+  const liquidationThreshold = 1.03;
+  const inDanger = ethPrice
+    ? isPut
+      ? ethPrice < liquidationPrice * liquidationThreshold
+      : ethPrice > liquidationPrice / liquidationThreshold
+    : false;
+  const textColor = inDanger ? "text-red-900" : "text-black";
+
   return (
     <>
       {asset && collateralAmount && vault ? (
         <td className="col-span-2 font-dm-mono">
           <button
-            className="w-full h-full decoration-dotted underline"
+            className={`w-full h-full decoration-dotted underline ease-in-out duration-200 ${textColor}`}
             onClick={handleCollateralClick({
               address: id,
               amount: Math.abs(amount),
