@@ -5,7 +5,6 @@ import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
 
 import { getQuotes } from "src/components/shared/utils/getQuote";
-import { EMPTY_POSITION } from "src/state/constants";
 import { fromOpyn, fromWeiToInt, toRysk } from "src/utils/conversion-helper";
 import { buildActivePositions } from "../utils/buildActivePositions";
 import { calculateDelta } from "../utils/calculateDelta";
@@ -86,7 +85,7 @@ export const useUserStats = () => {
       dispatch({
         type: ActionType.SET_USER_STATS,
         activePnL: 0,
-        activePositions: [EMPTY_POSITION],
+        activePositions: [],
         delta: 0,
         historicalPnL: 0,
       });
