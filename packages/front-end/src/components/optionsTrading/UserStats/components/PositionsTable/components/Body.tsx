@@ -53,7 +53,7 @@ export const Body = () => {
     <LayoutGroup>
       <motion.tbody
         className="block border-b-2 border-black border-dashed overflow-y-scroll"
-        {...Resize(compact ? "auto" : 220, compact ? 220 : "auto")}
+        {...Resize(compact ? "auto" : 222, compact ? 222 : "auto")}
       >
         <AnimatePresence>
           {sortedActivePositions.map((activePosition, index) => {
