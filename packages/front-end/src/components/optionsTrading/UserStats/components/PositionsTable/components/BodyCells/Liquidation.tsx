@@ -45,7 +45,7 @@ export const Liquidation = ({
   return (
     <>
       {asset && collateralAmount && vault ? (
-        <td className="col-span-2 font-dm-mono">
+        <td className="col-span-2 font-dm-mono xl:!text-xs 2xl:!text-sm">
           <button
             className={`w-full h-full decoration-dotted underline ease-in-out duration-200 ${textColor}`}
             onClick={handleCollateralClick({
