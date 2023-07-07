@@ -6,7 +6,7 @@ export const Series = ({ isShort, series }: SeriesProps) => {
   const dynamicClasses = isShort ? "text-red-900" : "text-green-1100";
 
   return (
-    <td className={`col-span-2 flex ${dynamicClasses}`}>
+    <td className={`col-span-2 flex justify-center ${dynamicClasses}`}>
       {isShort ? (
         <DownChevron
           aria-hidden={true}
@@ -20,7 +20,7 @@ export const Series = ({ isShort, series }: SeriesProps) => {
           strokeWidth={2}
         />
       )}
-      {series}
+      <span className="w-2/3">{series}</span>
     </td>
   );
 };
