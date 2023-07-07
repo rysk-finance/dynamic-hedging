@@ -49,11 +49,16 @@ export const Body = () => {
       .filter((position) => (hideExpired ? position.isOpen : position));
   }, [activePositions, hideExpired, isAscending, sort]);
 
+  const compactOffHeight = sortedActivePositions.length <= 5 ? 222 : "auto";
+
   return (
     <LayoutGroup>
       <motion.tbody
         className="block border-b-2 border-black border-dashed overflow-y-scroll"
-        {...Resize(compact ? "auto" : 222, compact ? 222 : "auto")}
+        {...Resize(
+          compact ? compactOffHeight : 222,
+          compact ? 222 : compactOffHeight
+        )}
       >
         <AnimatePresence>
           {sortedActivePositions.map((activePosition, index) => {
