@@ -49,7 +49,7 @@ export const VaultRisks = () => {
               <ul className="list-disc px-8">
                 <li className="pb-2">
                   <b>Rysk prioritises security.</b> Our {DHV_NAME} smart
-                  contracts have been audited by Dedaub and Akira, however,
+                  contracts have been audited by Dedaub, Trust and Akira, however,
                   smart contracts are an experimental technology and we
                   encourage caution, only risking funds you can afford to lose.{" "}
                 </li>
