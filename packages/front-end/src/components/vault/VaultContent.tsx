@@ -13,26 +13,26 @@ import { useUserPosition } from "../../hooks/useUserPosition";
 import { VaultMechanism } from "../VaultMechanism";
 import { VaultRisks } from "../VaultRisks";
 import { VaultStrategy } from "../VaultStrategy";
-import { VaultDeposit } from "./VaultDeposit";
+// import { VaultDeposit } from "./VaultDeposit";
 import { VaultWithdraw } from "./VaultWithdraw";
 
 export const VaultContent = () => {
   const { address } = useAccount();
   const { chain } = useNetwork();
   const { updatePosition } = useUserPosition();
-  const { search } = useLocation();
+  // const { search } = useLocation();
 
   const envChainID = process.env.REACT_APP_CHAIN_ID;
 
-  const initialTabIndex = useMemo(() => {
-    if (search) {
-      const params = new URLSearchParams(search);
-      if (params.get("type") === "withdraw") {
-        return 1;
-      }
-      return 0;
-    }
-  }, [search]);
+  // const initialTabIndex = useMemo(() => {
+  //   if (search) {
+  //     const params = new URLSearchParams(search);
+  //     if (params.get("type") === "withdraw") {
+  //       return 1;
+  //     }
+  //     return 0;
+  //   }
+  // }, [search]);
 
   useEffect(() => {
     if (address) {
@@ -58,10 +58,10 @@ export const VaultContent = () => {
           </div>
         )}
 
-        <p className="text-sm">
-          Rysk is in Mainnet Alpha. Use with caution and{" "}
-          <a href={DISCORD_LINK} target="blank" className="underline">
-            send us any feedback
+        <p>
+          {`Rysk Alpha is now deprecated. Please withdraw your funds and deposit into `} 
+          <a href="https://app.rysk.finance" target="blank" className="underline">
+            Rysk Beyond 
           </a>
         </p>
 
@@ -97,14 +97,9 @@ export const VaultContent = () => {
       <div className="col-start-9 col-end-17">
         <Card
           tabs={[
-            {
-              label: "Deposit",
-              content: <VaultDeposit />,
-            },
             { label: "Withdraw", content: <VaultWithdraw /> },
           ]}
-          initialTabIndex={initialTabIndex}
-        ></Card>
+        />
       </div>
 
       <section className="col-start-1 col-end-17 mt-16">
