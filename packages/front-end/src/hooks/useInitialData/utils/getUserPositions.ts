@@ -9,12 +9,16 @@ export const getUserPositions = (positions: Position[]): UserPositions => {
       positions,
       {
         active,
+        buyAmount,
+        liquidateActions,
         netAmount,
         oToken,
         optionsBoughtTransactions,
         optionsSoldTransactions,
-        liquidateActions,
         realizedPnl,
+        redeemActions,
+        sellAmount,
+        settleActions,
         vault,
       }
     ) => {
@@ -45,10 +49,14 @@ export const getUserPositions = (positions: Position[]): UserPositions => {
       const token = {
         ...oToken,
         active,
-        netAmount,
-        totalPremium,
+        buyAmount,
         liquidateActions,
+        netAmount,
         realizedPnl,
+        redeemActions,
+        sellAmount,
+        settleActions,
+        totalPremium,
         vault,
       };
 
@@ -61,6 +69,7 @@ export const getUserPositions = (positions: Position[]): UserPositions => {
           isLong,
           isShort,
           activeTokens: active ? [token] : [],
+          inactiveTokens: !active ? [token] : [],
           longTokens: hasCollateral ? [] : [token],
           shortTokens: hasCollateral ? [token] : [],
         };
@@ -72,6 +81,9 @@ export const getUserPositions = (positions: Position[]): UserPositions => {
           activeTokens: active
             ? [...key.activeTokens, token]
             : key.activeTokens,
+          inactiveTokens: !active
+            ? [...key.inactiveTokens, token]
+            : key.inactiveTokens,
           longTokens: hasCollateral
             ? key.longTokens
             : [...key.longTokens, token],

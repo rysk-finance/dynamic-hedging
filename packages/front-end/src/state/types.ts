@@ -5,6 +5,8 @@ import type { ReactNode } from "react";
 import type {
   LiquidateActions,
   PositionOToken,
+  RedeemActions,
+  SettleActions,
   Vault,
 } from "src/hooks/useInitialData/types";
 
@@ -22,11 +24,15 @@ export type Expiries = string[];
 
 export interface UserPositionToken extends PositionOToken {
   active: boolean;
+  buyAmount?: BigNumberish;
   id: HexString;
   netAmount: BigNumberish;
   totalPremium: number;
   liquidateActions?: LiquidateActions[];
   realizedPnl: BigNumberish;
+  redeemActions?: RedeemActions[];
+  sellAmount?: BigNumberish;
+  settleActions?: SettleActions[];
   vault?: Vault;
 }
 
@@ -36,6 +42,7 @@ export interface UserPositions {
     isLong: boolean;
     isShort: boolean;
     activeTokens: UserPositionToken[];
+    inactiveTokens: UserPositionToken[];
     longTokens: UserPositionToken[];
     shortTokens: UserPositionToken[];
   };

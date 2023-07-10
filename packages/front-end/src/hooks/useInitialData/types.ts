@@ -19,6 +19,14 @@ export interface OptionsTransaction {
   premium: string;
 }
 
+export interface RedeemActions {
+  block: string;
+}
+
+export interface SettleActions {
+  block: string;
+}
+
 export interface LiquidateActions {
   collateralPayout: BigNumberish;
 }
@@ -32,12 +40,16 @@ export interface Vault {
 
 export interface Position {
   active: boolean;
-  netAmount: string;
-  realizedPnl: BigNumberish;
+  buyAmount?: BigNumberish;
+  liquidateActions?: LiquidateActions[];
+  netAmount: BigNumberish;
   oToken: PositionOToken;
   optionsBoughtTransactions: OptionsTransaction[];
   optionsSoldTransactions: OptionsTransaction[];
-  liquidateActions?: LiquidateActions[];
+  realizedPnl: BigNumberish;
+  redeemActions?: RedeemActions[];
+  sellAmount?: BigNumberish;
+  settleActions?: SettleActions[];
   vault?: Vault;
 }
 

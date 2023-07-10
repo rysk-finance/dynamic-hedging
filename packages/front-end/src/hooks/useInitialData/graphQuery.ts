@@ -9,7 +9,11 @@ query ${QueriesEnum.INITIAL_DATA} (
     where: { account: $address }
   ) {
     active
+    buyAmount
     netAmount
+    redeemActions {
+      block
+    }
     realizedPnl
     oToken {
       createdAt
@@ -34,6 +38,7 @@ query ${QueriesEnum.INITIAL_DATA} (
     where: { account: $address }
   ) {
     active
+    sellAmount
     netAmount
     realizedPnl
     oToken {
@@ -58,6 +63,9 @@ query ${QueriesEnum.INITIAL_DATA} (
     liquidateActions {
       collateralPayout
     }
+    settleActions {
+      block
+    }
     vault {
       id
       vaultId
@@ -72,7 +80,9 @@ query ${QueriesEnum.INITIAL_DATA} (
   oracleAsset(
     id: $underlying
   ) {
-    prices {
+    prices(
+      first:1000,
+    ) {
       expiry
       price
     }
