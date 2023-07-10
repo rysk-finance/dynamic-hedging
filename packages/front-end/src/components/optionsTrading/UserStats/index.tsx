@@ -3,11 +3,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import FadeInUpDelayed from "src/animation/FadeInUpDelayed";
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { Card } from "./components/Card";
-import { useUserStats } from "./hooks/useUserStats";
-import { usePreferences } from "./hooks/usePreferences";
-import { Table } from "./components/PositionsTable";
+import { Card } from "../../shared/SimpleCard";
 import { Filters } from "./components/Filters";
+import { Table } from "./components/PositionsTable";
+import { usePreferences } from "./hooks/usePreferences";
+import { useUserStats } from "./hooks/useUserStats";
 
 export const UserStats = () => {
   const {
@@ -69,7 +69,9 @@ export const UserStats = () => {
           </Card>
           <Card
             explainer="Total delta for all open positions."
-            hasData={Boolean(delta) || delta === 0}
+            hasData={
+              Boolean(delta) || (Boolean(activePositions.length) && delta === 0)
+            }
             loading={loading || statsLoading}
             title="Delta"
           >
