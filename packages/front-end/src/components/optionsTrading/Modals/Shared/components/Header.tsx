@@ -49,7 +49,7 @@ export const Header = ({
 
   return (
     <span className="grid grid-cols-10 bg-black text-white bg-[url('./assets/circle-lines.png')] bg-no-repeat bg-[top_left_-50%] bg-contain">
-      <h2 className="col-span-4 col-start-4 text-xl font-medium text-center py-4">
+      <h2 className="col-span-4 col-start-4 text-lg font-medium text-center py-4">
         {children}
       </h2>
 
