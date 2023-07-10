@@ -273,7 +273,8 @@ describe("Lens", async () => {
 				pricer.address,
 				usd.address,
 				weth.address,
-				usd.address
+				usd.address,
+				exchange.address
 			)) as DHVLensMK1
 		})
 

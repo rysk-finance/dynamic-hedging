@@ -8,6 +8,7 @@ const wethAddress = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1"
 const catalogueAddress = "0x44227Dc2a1d71FC07DC254Dfd42B1C44aFF12168"
 const pricerAddress = "0xeA5Fb118862876f249Ff0b3e7fb25fEb38158def"
 const optionProtocolAddress = "0x4e920e9A901069d9b211646B6E191d81BA40E5FB"
+const exchangeAddress = "0xC117bf3103bd09552F9a721F0B8Bce9843aaE1fa"
 
 export async function deployLens() {
 	const lensFactory = await ethers.getContractFactory("DHVLensMK1")
@@ -17,7 +18,8 @@ export async function deployLens() {
 		pricerAddress,
 		usdcAddress,
 		wethAddress,
-		usdcAddress
+		usdcAddress,
+		exchangeAddress
 	)) as DHVLensMK1
 
 	console.log("DHV lens contract deployed")
@@ -31,7 +33,8 @@ export async function deployLens() {
 				pricerAddress,
 				usdcAddress,
 				wethAddress,
-				usdcAddress
+				usdcAddress,
+				exchangeAddress
 			]
 		})
 		console.log("DHV lens verified")
