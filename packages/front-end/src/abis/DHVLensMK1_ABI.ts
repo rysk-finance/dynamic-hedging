@@ -63,6 +63,19 @@ export const DHVLensMK1ABI = [
 	},
 	{
 		"inputs": [],
+		"name": "exchange",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
 		"name": "getExpirations",
 		"outputs": [
 			{
@@ -177,6 +190,40 @@ export const DHVLensMK1ABI = [
 										"internalType": "int256",
 										"name": "exposure",
 										"type": "int256"
+									},
+									{
+										"components": [
+											{
+												"internalType": "address",
+												"name": "seriesAddress",
+												"type": "address"
+											},
+											{
+												"internalType": "uint256",
+												"name": "optionExchangeBalance",
+												"type": "uint256"
+											}
+										],
+										"internalType": "struct DHVLensMK1.SeriesExchangeBalance",
+										"name": "usdCollatseriesExchangeBalance",
+										"type": "tuple"
+									},
+									{
+										"components": [
+											{
+												"internalType": "address",
+												"name": "seriesAddress",
+												"type": "address"
+											},
+											{
+												"internalType": "uint256",
+												"name": "optionExchangeBalance",
+												"type": "uint256"
+											}
+										],
+										"internalType": "struct DHVLensMK1.SeriesExchangeBalance",
+										"name": "wethCollatseriesExchangeBalance",
+										"type": "tuple"
 									}
 								],
 								"internalType": "struct DHVLensMK1.OptionStrikeDrill[]",
@@ -268,6 +315,40 @@ export const DHVLensMK1ABI = [
 										"internalType": "int256",
 										"name": "exposure",
 										"type": "int256"
+									},
+									{
+										"components": [
+											{
+												"internalType": "address",
+												"name": "seriesAddress",
+												"type": "address"
+											},
+											{
+												"internalType": "uint256",
+												"name": "optionExchangeBalance",
+												"type": "uint256"
+											}
+										],
+										"internalType": "struct DHVLensMK1.SeriesExchangeBalance",
+										"name": "usdCollatseriesExchangeBalance",
+										"type": "tuple"
+									},
+									{
+										"components": [
+											{
+												"internalType": "address",
+												"name": "seriesAddress",
+												"type": "address"
+											},
+											{
+												"internalType": "uint256",
+												"name": "optionExchangeBalance",
+												"type": "uint256"
+											}
+										],
+										"internalType": "struct DHVLensMK1.SeriesExchangeBalance",
+										"name": "wethCollatseriesExchangeBalance",
+										"type": "tuple"
 									}
 								],
 								"internalType": "struct DHVLensMK1.OptionStrikeDrill[]",
@@ -395,6 +476,40 @@ export const DHVLensMK1ABI = [
 								"internalType": "int256",
 								"name": "exposure",
 								"type": "int256"
+							},
+							{
+								"components": [
+									{
+										"internalType": "address",
+										"name": "seriesAddress",
+										"type": "address"
+									},
+									{
+										"internalType": "uint256",
+										"name": "optionExchangeBalance",
+										"type": "uint256"
+									}
+								],
+								"internalType": "struct DHVLensMK1.SeriesExchangeBalance",
+								"name": "usdCollatseriesExchangeBalance",
+								"type": "tuple"
+							},
+							{
+								"components": [
+									{
+										"internalType": "address",
+										"name": "seriesAddress",
+										"type": "address"
+									},
+									{
+										"internalType": "uint256",
+										"name": "optionExchangeBalance",
+										"type": "uint256"
+									}
+								],
+								"internalType": "struct DHVLensMK1.SeriesExchangeBalance",
+								"name": "wethCollatseriesExchangeBalance",
+								"type": "tuple"
 							}
 						],
 						"internalType": "struct DHVLensMK1.OptionStrikeDrill[]",
@@ -486,6 +601,40 @@ export const DHVLensMK1ABI = [
 								"internalType": "int256",
 								"name": "exposure",
 								"type": "int256"
+							},
+							{
+								"components": [
+									{
+										"internalType": "address",
+										"name": "seriesAddress",
+										"type": "address"
+									},
+									{
+										"internalType": "uint256",
+										"name": "optionExchangeBalance",
+										"type": "uint256"
+									}
+								],
+								"internalType": "struct DHVLensMK1.SeriesExchangeBalance",
+								"name": "usdCollatseriesExchangeBalance",
+								"type": "tuple"
+							},
+							{
+								"components": [
+									{
+										"internalType": "address",
+										"name": "seriesAddress",
+										"type": "address"
+									},
+									{
+										"internalType": "uint256",
+										"name": "optionExchangeBalance",
+										"type": "uint256"
+									}
+								],
+								"internalType": "struct DHVLensMK1.SeriesExchangeBalance",
+								"name": "wethCollatseriesExchangeBalance",
+								"type": "tuple"
 							}
 						],
 						"internalType": "struct DHVLensMK1.OptionStrikeDrill[]",

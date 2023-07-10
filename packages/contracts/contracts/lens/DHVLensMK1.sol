@@ -8,7 +8,7 @@ import "../VolatilityFeed.sol";
 import "../OptionCatalogue.sol";
 import "../libraries/Types.sol";
 import "../interfaces/IAlphaPortfolioValuesFeed.sol";
-
+import "../interfaces/IOptionRegistry.sol";
 /**
  *  @title Lens contract to view parameters of the protocol that require too much computation for a frontend
  */
@@ -17,6 +17,7 @@ contract DHVLensMK1 {
 	Protocol public protocol;
 	OptionCatalogue public catalogue;
 	BeyondPricer public pricer;
+	address public exchange;
 	// asset that denominates the strike price
 	address public strikeAsset;
 	// asset that is used as the reference asset
@@ -30,6 +31,11 @@ contract DHVLensMK1 {
 	///////////////
 	/// structs ///
 	///////////////
+
+	struct SeriesExchangeBalance {
+		address seriesAddress;
+		uint256 optionExchangeBalance;
+	}
 
 	struct TradingSpec {
 		uint256 iv;
@@ -45,6 +51,8 @@ contract DHVLensMK1 {
 		TradingSpec buy;
 		int256 delta;
 		int256 exposure;
+		SeriesExchangeBalance usdCollatseriesExchangeBalance;
+		SeriesExchangeBalance wethCollatseriesExchangeBalance;
 	}
 
 	struct OptionExpirationDrill {
@@ -67,7 +75,8 @@ contract DHVLensMK1 {
 		address _pricer,
 		address _collateralAsset,
 		address _underlyingAsset,
-		address _strikeAsset
+		address _strikeAsset,
+		address _exchange
 	) {
 		protocol = Protocol(_protocol);
 		collateralAsset = _collateralAsset;
@@ -75,6 +84,7 @@ contract DHVLensMK1 {
 		strikeAsset = _strikeAsset;
 		catalogue = OptionCatalogue(_catalogue);
 		pricer = BeyondPricer(_pricer);
+		exchange = _exchange;
 	}
 
 	function getOptionChain() external view returns (OptionChain memory) {
@@ -182,8 +192,7 @@ contract DHVLensMK1 {
 		OptionStrikeDrill[] memory optionStrikeDrills = new OptionStrikeDrill[](strikes.length);
 		for (uint j; j < strikes.length; j++) {
 			// get the hash of the option (how the option is stored on the books)
-			bytes32 optionHash = keccak256(abi.encodePacked(expiration, strikes[j], isPut));
-			int256 netDhvExposure = getPortfolioValuesFeed().netDhvExposure(optionHash);
+			int256 netDhvExposure = getPortfolioValuesFeed().netDhvExposure(keccak256(abi.encodePacked(expiration, strikes[j], isPut)));
 			(TradingSpec memory sellTradingSpec, int256 delta) = _constructTradingSpec(
 				expiration,
 				strikes[j],
@@ -200,14 +209,18 @@ contract DHVLensMK1 {
 				false,
 				underlyingPrice
 			);
+			
 			OptionStrikeDrill memory optionStrikeDrill = OptionStrikeDrill(
 				strikes[j],
 				sellTradingSpec,
 				buyTradingSpec,
 				delta,
-				netDhvExposure
+				netDhvExposure,
+				_getSeriesExchangeBalance(expiration, isPut, strikes[j], strikeAsset),
+				_getSeriesExchangeBalance(expiration, isPut, strikes[j], underlyingAsset)
 			);
 			optionStrikeDrills[j] = optionStrikeDrill;
+
 		}
 		return optionStrikeDrills;
 	}
@@ -277,6 +290,14 @@ contract DHVLensMK1 {
 		}
 	}
 
+	function _getSeriesExchangeBalance(uint64 expiration, bool isPut, uint128 strike, address collateral) internal view returns (SeriesExchangeBalance memory) {
+			IOptionRegistry optionRegistry = getOptionRegistry();
+			address series = optionRegistry.getOtoken(underlyingAsset, strikeAsset, expiration, isPut, strike, collateral);
+			uint256 balance = series != address(0) ? ERC20(series).balanceOf(exchange) : 0;
+			SeriesExchangeBalance memory seriesExchangeBalance = SeriesExchangeBalance(series, balance);
+			return seriesExchangeBalance;
+	}
+
 	///////////////////////////
 	/// non-complex getters ///
 	///////////////////////////
@@ -287,6 +308,14 @@ contract DHVLensMK1 {
 	 */
 	function getPortfolioValuesFeed() internal view returns (IAlphaPortfolioValuesFeed) {
 		return IAlphaPortfolioValuesFeed(protocol.portfolioValuesFeed());
+	}
+
+	/**
+	 * @notice get the option registry used by the liquidity pool
+	 * @return the option registrt contract
+	 */
+	function getOptionRegistry() internal view returns (IOptionRegistry) {
+		return IOptionRegistry(protocol.optionRegistry());
 	}
 
 	/**
