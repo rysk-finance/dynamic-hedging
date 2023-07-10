@@ -11,9 +11,9 @@ import {
 } from "react";
 import { LOCAL_STORAGE_SETTINGS_KEY } from "../components/dashboard/Settings";
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import { ActivePositionSort } from "./constants";
 import { globalReducer } from "./reducer";
 import { ActionType, AppSettings, GlobalContext, GlobalState } from "./types";
-import { ActivePositionSort } from "./constants";
 
 export const defaultSpotShock = 0.7;
 export const defaultTimesToExpiry = [
@@ -82,12 +82,6 @@ export const defaultGlobalState: GlobalState = {
     wethOracleHashMap: {},
   },
 
-  dashboard: {
-    activePositions: [],
-    inactivePositions: [],
-    modalPosition: undefined,
-  },
-
   // Options chain state.
   collateralPreferences: {
     amount: 2,
@@ -136,6 +130,10 @@ export const defaultGlobalState: GlobalState = {
     },
     delta: 0,
     historicalPnL: 0,
+    inactivePositions: [],
+    inactivePositionsFilters: {
+      compact: true,
+    },
     loading: true,
   },
 };

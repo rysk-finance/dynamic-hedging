@@ -81,17 +81,6 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
             action.wethOracleHashMap || state.options.wethOracleHashMap,
         },
       };
-    case ActionType.SET_DASHBOARD:
-      return {
-        ...state,
-        dashboard: {
-          activePositions:
-            action.activePositions || state.dashboard.activePositions,
-          inactivePositions:
-            action.inactivePositions || state.dashboard.inactivePositions,
-          modalPosition: action.modalPosition || state.dashboard.modalPosition,
-        },
-      };
     case ActionType.SET_VISIBLE_COLUMNS:
       const newSet = new Set(state.visibleColumns);
 
@@ -218,6 +207,13 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
           },
           delta: action.delta ?? state.userStats.delta,
           historicalPnL: action.historicalPnL ?? state.userStats.historicalPnL,
+          inactivePositions:
+            action.inactivePositions ?? state.userStats.inactivePositions,
+          inactivePositionsFilters: {
+            compact:
+              action.inactivePositionsFilters?.compact ??
+              state.userStats.inactivePositionsFilters.compact,
+          },
           loading: action.loading ?? state.userStats.loading,
         },
       };

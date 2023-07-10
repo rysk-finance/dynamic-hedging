@@ -1,6 +1,5 @@
 import type { ApolloError } from "@apollo/client";
 import type { BigNumber, BigNumberish } from "ethers";
-import type { ReactNode } from "react";
 
 import type {
   LiquidateActions,
@@ -46,32 +45,6 @@ export interface UserPositions {
     longTokens: UserPositionToken[];
     shortTokens: UserPositionToken[];
   };
-}
-
-export interface FullPosition {
-  amount: number;
-  breakEven: number;
-  createdAt: string;
-  entryPrice: string;
-  expired: boolean;
-  expiryPrice?: string;
-  liquidationPrice: number;
-  id: string;
-  isPut: boolean;
-  isRedeemable: boolean;
-  otokenId: string;
-  side: string;
-  status: string | ReactNode;
-  strikePrice: string;
-  symbol: string;
-  totalPremium: number;
-  underlyingAsset: string;
-  isSettleable: boolean;
-  vaultId: string;
-  collateralAsset: string;
-  expiryTimestamp: string;
-  collateralAmount: string;
-  pnl: number;
 }
 
 export interface ChainData {
@@ -176,6 +149,16 @@ export interface ActivePositions {
   strike: string;
 }
 
+export interface InactivePositions {
+  entry: number;
+  id: string;
+  isShort: boolean;
+  oraclePrice: number;
+  profitLoss?: number;
+  series: string;
+  size: number;
+}
+
 export type ActivePositionsSortType = keyof typeof ActivePositionSort;
 
 export interface UserStats {
@@ -189,6 +172,10 @@ export interface UserStats {
   };
   delta: number;
   historicalPnL: number;
+  inactivePositions: InactivePositions[];
+  inactivePositionsFilters: {
+    compact: boolean;
+  };
   loading: boolean;
 }
 
@@ -233,12 +220,6 @@ export type GlobalState = {
     wethOracleHashMap: WethOracleHashMap;
   };
 
-  dashboard: {
-    activePositions: FullPosition[];
-    inactivePositions: FullPosition[];
-    modalPosition?: FullPosition;
-  };
-
   // Options chain state.
   collateralPreferences: CollateralPreferences;
   adjustingOption?: AdjustingOption;
@@ -273,13 +254,9 @@ export enum ActionType {
   // Actions related to useInitialData hook.
   SET_OPTIONS,
 
-  // Actions related to dashboard state.
-  SET_DASHBOARD,
-
   // Actions related to options chain state.
   SET_VISIBLE_COLUMNS,
   SET_COLLATERAL_PREFERENCES,
-  SET_DASHBOARD_MODAL_VISIBLE,
   SET_ADJUSTING_OPTION,
   SET_SELECTED_OPTION,
   SET_CLOSING_OPTION,
@@ -355,12 +332,6 @@ export type GlobalAction =
       wethOracleHashMap?: WethOracleHashMap;
     }
   | {
-      type: ActionType.SET_DASHBOARD;
-      activePositions?: FullPosition[];
-      inactivePositions?: FullPosition[];
-      modalPosition?: FullPosition;
-    }
-  | {
       type: ActionType.SET_VISIBLE_COLUMNS;
       column?: ColumNames;
     }
@@ -427,6 +398,10 @@ export type GlobalAction =
       };
       delta?: number;
       historicalPnL?: number;
+      inactivePositions?: InactivePositions[];
+      inactivePositionsFilters?: {
+        compact?: boolean;
+      };
       loading?: boolean;
     };
 
