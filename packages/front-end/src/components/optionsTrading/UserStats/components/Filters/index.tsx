@@ -1,7 +1,7 @@
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
 import { Preferences } from "../../enums";
-import { Toggle } from "./components/Toggle";
+import { Toggle } from "../../../../shared/SimpleToggle";
 
 export const Filters = () => {
   const {
@@ -47,14 +47,14 @@ export const Filters = () => {
         className="flex items-center cursor-pointer mr-8 py-3"
         onClick={handleCompactClick}
       >
-        <Toggle isLeft={compact}>{`Compact view:`}</Toggle>
+        <Toggle isActive={compact}>{`Compact view:`}</Toggle>
       </span>
 
       <span
         className="flex items-center cursor-pointer py-3"
         onClick={handleHideExpiredClick}
       >
-        <Toggle isLeft={hideExpired}>{`Hide expired positions:`}</Toggle>
+        <Toggle isActive={hideExpired}>{`Hide expired positions:`}</Toggle>
       </span>
     </div>
   );
