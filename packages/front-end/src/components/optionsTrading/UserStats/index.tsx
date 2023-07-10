@@ -26,8 +26,6 @@ export const UserStats = () => {
   useUserStats();
   usePreferences();
 
-  // Closed positions on dashboard
-
   return (
     <AnimatePresence mode="wait">
       {Object.values(data).length ? (
