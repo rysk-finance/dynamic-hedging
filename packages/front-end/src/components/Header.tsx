@@ -1,10 +1,8 @@
+import { LayoutGroup, motion } from "framer-motion";
 import { Link, useLocation } from "react-router-dom";
-import { motion, LayoutGroup } from "framer-motion";
-import { useAccount } from "wagmi";
 
-import { AppPaths } from "../config/appPaths";
 import { Connect } from "src/clients/WalletProvider/components/Connect";
-import { Podium } from "src/Icons";
+import { AppPaths } from "../config/appPaths";
 
 const links = [
   { id: "header-vault", path: AppPaths.VAULT, label: "Vault" },
@@ -13,7 +11,6 @@ const links = [
 ];
 
 export const Header = () => {
-  const { address } = useAccount();
   const { pathname } = useLocation();
 
   return (
@@ -29,7 +26,7 @@ export const Header = () => {
 
       <div className="flex items-center">
         <LayoutGroup>
-          <motion.div className="mr-4" layout="position">
+          {/* <motion.div className="mr-4" layout="position">
             {links.map(({ id, path, label }) => (
               <Link
                 key={path}
@@ -42,20 +39,7 @@ export const Header = () => {
                 {label}
               </Link>
             ))}
-          </motion.div>
-
-          {/* <motion.a
-            className="flex items-center mr-8"
-            href={`https://www.rysk.finance/leaderboard/${
-              address ? `?address=${address.toLowerCase()}` : ""
-            }`}
-            layout="position"
-            rel="noreferrer noopener"
-            target="_blank"
-            title="Click to view the competition leaderboard."
-          >
-            <Podium className="fill-black w-10 h-10" key="leader-board" />
-          </motion.a> */}
+          </motion.div> */}
 
           <Connect />
         </LayoutGroup>

@@ -40,9 +40,9 @@ function App() {
                 <Routes>
                   <Route path={AppPaths.VAULT} element={<Vault />} />
                   <Route path={AppPaths.HOME} element={<Vault />} />
-                  <Route path={AppPaths.TRADE} element={<OptionsTrading />} />
+                  {/* <Route path={AppPaths.TRADE} element={<OptionsTrading />} />
                   <Route path={AppPaths.DASHBOARD} element={<Dashboard />} />
-                  <Route path={AppPaths.OTC} element={<OTC />} />
+                  <Route path={AppPaths.OTC} element={<OTC />} /> */}
                 </Routes>
               </div>
             </div>
