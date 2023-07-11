@@ -3591,8 +3591,20 @@ const testAddresses: HexString[] = [
   "0x99eff2f8c7ebd3e05ffc09c6aaa4eddec7831065",
 ];
 
+const commandosAddresses:  HexString[] = [ 
+  "0xdb4ac98cfcd13e2f06c19d7a843345280e52119c",
+  "0xd1f9eebcd233e7a5d8bb0441e3f79fbf3cfd6f98",
+  "0x2a6334c30f36d1eefd64689c590dd199d3475972",
+  "0x52b13b2f6804d659aa7a55e8d06410dfa9b805b8",
+  "0xb0b2b405c9d09d129e9f9b18c9dd218c532f2b2a",
+  "0x5e5633046a35c8b2842ded8bb91c6a4bb1cf4f08",
+  "0xb8d1047861979e496ead3c37dd0370d122b095d2",
+  "0xc9d37d9267b4378b75ac4a66f4217e6d3863ea3d"
+]
+
 export const LP_WHITELIST: HexString[] = [
   ...alphaDepositors,
   ...degenscoreDepositors,
   ...testAddresses,
+  ...commandosAddresses
 ];
