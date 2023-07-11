@@ -3591,7 +3591,7 @@ const testAddresses: HexString[] = [
   "0x99eff2f8c7ebd3e05ffc09c6aaa4eddec7831065",
 ];
 
-const Commandos:  HexString[] = [ 
+const commandosAddresses:  HexString[] = [ 
   "0xdb4aC98CfCd13E2f06C19d7A843345280e52119C",
   "0xd1f9eeBcd233E7A5D8BB0441e3F79fBF3CfD6f98",
   "0x2a6334C30f36D1EEfd64689c590Dd199D3475972",
@@ -3605,5 +3605,5 @@ export const LP_WHITELIST: HexString[] = [
   ...alphaDepositors,
   ...degenscoreDepositors,
   ...testAddresses,
-  ...Commandos
+  ...commandosAddresses
 ];
