@@ -494,20 +494,27 @@ export interface Quote {
 }
 
 export interface StrikeSide {
-  sell: {
-    IV: number;
-    quote: Quote;
-    disabled: boolean;
-  };
   buy: {
     IV: number;
     quote: Quote;
     disabled: boolean;
   };
   delta: number;
-  pos: number;
+  exchangeAddresses: {
+    USDC: HexString;
+    WETH: HexString;
+  };
+  exchangeBalances: {
+    USDC: BigNumber;
+    WETH: BigNumber;
+  };
   exposure: number;
-  tokenID?: HexString;
+  pos: number;
+  sell: {
+    IV: number;
+    quote: Quote;
+    disabled: boolean;
+  };
 }
 
 export interface StrikeOptions {

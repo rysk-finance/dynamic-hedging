@@ -52,10 +52,12 @@ export const getChainData = async (
           sideData,
           {
             buy,
+            delta,
+            exposure,
             sell,
             strike,
-            exposure,
-            delta,
+            usdCollatseriesExchangeBalance,
+            wethCollatseriesExchangeBalance,
           }: DHVLensMK1.OptionStrikeDrillStruct
         ) => {
           const strikeUSDC = Number(fromWei(strike));
@@ -87,12 +89,6 @@ export const getChainData = async (
             return toTwoDecimalPlaces(IV);
           };
 
-          // Longs - each strike side has only one oToken so we pass tokenID for closing.
-          // Shorts - each strike side has two tokens (WETH / USDC)
-          // This could also include owning long and short positions for a strike side.
-          // UI PLAN
-          // Single column UI (net position) --> click to open modal with checkboxes for each possible position.
-          // Pass all token IDs as an array to the chain state.
           const positions = (userPositions[expiry]?.activeTokens || []).reduce(
             (acc, position) => {
               if (
@@ -110,20 +106,27 @@ export const getChainData = async (
 
           sideData[strikeUSDC] = {
             [side]: {
-              sell: {
-                disabled: sell.disabled || sell.premiumTooSmall,
-                IV: _getIV(Number(fromUSDC(sell.quote))),
-                quote: _getQuote(sell, true),
-              },
               buy: {
                 disabled: buy.disabled,
                 IV: _getIV(Number(fromUSDC(buy.quote))),
                 quote: _getQuote(buy, false),
               },
               delta: toTwoDecimalPlaces(Number(fromWei(delta))),
-              pos: positions.netAmount,
+              exchangeAddresses: {
+                USDC: usdCollatseriesExchangeBalance.seriesAddress,
+                WETH: wethCollatseriesExchangeBalance.seriesAddress,
+              },
+              exchangeBalances: {
+                USDC: usdCollatseriesExchangeBalance.optionExchangeBalance,
+                WETH: wethCollatseriesExchangeBalance.optionExchangeBalance,
+              },
               exposure: Number(fromWei(exposure)),
-              tokenID: positions.id[0], // temp
+              pos: positions.netAmount,
+              sell: {
+                disabled: sell.disabled || sell.premiumTooSmall,
+                IV: _getIV(Number(fromUSDC(sell.quote))),
+                quote: _getQuote(sell, true),
+              },
             },
           } as CallSide | PutSide;
 
