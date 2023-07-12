@@ -1,4 +1,4 @@
-import { BigNumber as BigNumberType } from "ethers";
+import type { BigNumber } from "ethers";
 
 import { prepareWriteContract, writeContract } from "@wagmi/core";
 
@@ -9,7 +9,7 @@ import { GAS_MULTIPLIER } from "src/config/constants";
 export const approveAllowance = async (
   exchangeAddress: HexString,
   tokenAddress: HexString,
-  amount: BigNumberType
+  amount: BigNumber
 ) => {
   const config = await prepareWriteContract({
     address: tokenAddress,

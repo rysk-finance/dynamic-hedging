@@ -1,5 +1,3 @@
-import { BigNumber as BigNumberType } from "ethers";
-
 import { prepareWriteContract, writeContract } from "@wagmi/core";
 import { BigNumber } from "ethers";
 
@@ -14,7 +12,7 @@ import OperationType from "src/enums/OperationType";
 import { OpynActionType } from "src/enums/OpynActionType";
 
 export const adjustCollateral = async (
-  collateral: BigNumberType,
+  collateral: BigNumber,
   exchangeAddress: HexString,
   isDepositing: boolean,
   refresh: () => void,

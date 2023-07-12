@@ -1,5 +1,3 @@
-import { BigNumber as BigNumberType } from "ethers";
-
 import type { UserVaults } from "src/state/types";
 import type { OptionSeries } from "src/types";
 
@@ -28,9 +26,9 @@ import { fromWeiToOpyn } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 
 export const sell = async (
-  acceptablePremium: BigNumberType,
-  amount: BigNumberType,
-  collateral: BigNumberType,
+  acceptablePremium: BigNumber,
+  amount: BigNumber,
+  collateral: BigNumber,
   exchangeAddress: HexString,
   optionSeries: OptionSeries,
   refresh: () => void,
