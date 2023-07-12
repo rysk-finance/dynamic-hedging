@@ -37,6 +37,56 @@ const formatCollateralAmount = (
   }
 };
 
+const calculateProfitLoss = (
+  amount: number,
+  formattedPnl: number,
+  isOpen: boolean,
+  isPut: boolean,
+  isShort: boolean,
+  priceAtExpiry: number,
+  quote: number,
+  strike: number
+) => {
+  if (isOpen) {
+    if (isShort) {
+      return formattedPnl - quote;
+    } else {
+      return formattedPnl + quote;
+    }
+  }
+
+  const valueAtExpiry = isPut
+    ? Math.max(strike - priceAtExpiry, 0)
+    : Math.max(priceAtExpiry - strike, 0);
+
+  return formattedPnl + valueAtExpiry * amount;
+};
+
+const getAction = (
+  disabled: boolean,
+  isOpen: boolean,
+  isShort: boolean,
+  profitLoss: number
+) => {
+  if (!isOpen && isShort) {
+    return PositionAction.SETTLE;
+  }
+
+  if (!isOpen) {
+    if (profitLoss > 0) {
+      return PositionAction.REDEEM;
+    } else {
+      return PositionAction.BURN;
+    }
+  }
+
+  if (disabled) {
+    return PositionAction.UNTRADEABLE;
+  } else {
+    return PositionAction.CLOSE;
+  }
+};
+
 /**
  * Calculate table data for all active user positions.
  *
@@ -120,53 +170,28 @@ export const buildActivePositions = async (
             sell: { quote: { quote: 0 } },
           };
 
+      // Determine if disabled.
+      const disabled = isShort
+        ? buy.disabled || !buy.quote.quote
+        : sell.disabled || !sell.quote.quote;
+
       // P/L calcs.
       const formattedPnl = tFormatUSDC(realizedPnl);
       const { quote } = quotes[index];
       const priceAtExpiry = wethOracleHashMap[expiryTimestamp];
-      const _profitLoss = () => {
-        if (isOpen) {
-          if (isShort) {
-            return formattedPnl - quote;
-          } else {
-            return formattedPnl + quote;
-          }
-        }
-
-        const valueAtExpiry = isPut
-          ? Math.max(strike - priceAtExpiry, 0)
-          : Math.max(priceAtExpiry - strike, 0);
-
-        return formattedPnl + valueAtExpiry * amount;
-      };
-      const profitLoss = _profitLoss();
-
-      // Determine action.
-      const disabled = isShort
-        ? buy.disabled || !buy.quote.quote
-        : sell.disabled || !sell.quote.quote;
-      const _action = () => {
-        if (!isOpen && isShort) {
-          return PositionAction.SETTLE;
-        }
-
-        if (!isOpen) {
-          if (profitLoss > 0) {
-            return PositionAction.REDEEM;
-          } else {
-            return PositionAction.BURN;
-          }
-        }
-
-        if (disabled) {
-          return PositionAction.UNTRADEABLE;
-        } else {
-          return PositionAction.CLOSE;
-        }
-      };
+      const profitLoss = calculateProfitLoss(
+        amount,
+        formattedPnl,
+        isOpen,
+        isPut,
+        isShort,
+        priceAtExpiry,
+        quote,
+        strike
+      );
 
       return {
-        action: _action(),
+        action: getAction(disabled, isOpen, isShort, profitLoss),
         amount,
         breakEven: strike + formattedPnl / absAmount,
         collateral: {
