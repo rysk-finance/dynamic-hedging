@@ -30,6 +30,11 @@ export const DHVLensMK1ABI = [
 				"internalType": "address",
 				"name": "_strikeAsset",
 				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_exchange",
+				"type": "address"
 			}
 		],
 		"stateMutability": "nonpayable",

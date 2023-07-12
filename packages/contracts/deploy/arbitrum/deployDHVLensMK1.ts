@@ -1,52 +1,56 @@
-import hre, { ethers } from "hardhat"
-import { DHVLensMK1 } from "../../types/DHVLensMK1"
 
-// update these addresses to connect to the appropriate set of contracts
+import { deployments, getNamedAccounts, ethers } from "hardhat"
+import { HardhatRuntimeEnvironment } from "hardhat/types"
+import { DeployFunction } from "hardhat-deploy/types"
+import { getAddresses } from "../utils/lensAddress"
 
-const usdcAddress = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831"
-const wethAddress = "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1"
-const catalogueAddress = "0x44227Dc2a1d71FC07DC254Dfd42B1C44aFF12168"
-const pricerAddress = "0xeA5Fb118862876f249Ff0b3e7fb25fEb38158def"
-const optionProtocolAddress = "0x4e920e9A901069d9b211646B6E191d81BA40E5FB"
-const exchangeAddress = "0xC117bf3103bd09552F9a721F0B8Bce9843aaE1fa"
+const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
+	console.log(`Deploying DHVLensMK1 to ${hre.network.name}. Hit ctrl + c to abort`)
 
-export async function deployLens() {
-	const lensFactory = await ethers.getContractFactory("DHVLensMK1")
-	const lens = (await lensFactory.deploy(
-		optionProtocolAddress,
-		catalogueAddress,
-		pricerAddress,
-		usdcAddress,
-		wethAddress,
-		usdcAddress,
-		exchangeAddress
-	)) as DHVLensMK1
+	const addresses = getAddresses(hre.network.name)
+	const { deploy } = deployments
+	const { deployer } = await getNamedAccounts()
 
-	console.log("DHV lens contract deployed")
+	const deployResult = await deploy("DHVLensMK1", {
+		from: deployer,
+		args: [
+			addresses.protocol,
+			addresses.catalogue,
+			addresses.pricer,
+			addresses.usdc,
+			addresses.weth,
+			addresses.usdc,
+			addresses.exchange
+		],
+		log: true
+	})
+
+	console.log(`DHVLensMK1 deployed to: ${deployResult.address}`)
 
 	try {
 		await hre.run("verify:verify", {
-			address: lens.address,
+			address: deployResult.address,
 			constructorArguments: [
-				optionProtocolAddress,
-				catalogueAddress,
-				pricerAddress,
-				usdcAddress,
-				wethAddress,
-				usdcAddress,
-				exchangeAddress
+				addresses.protocol,
+				addresses.catalogue,
+				addresses.pricer,
+				addresses.usdc,
+				addresses.weth,
+				addresses.usdc,
+				addresses.exchange
 			]
 		})
 		console.log("DHV lens verified")
-	} catch (err: any) {
-		console.log(err)
-		console.log("DHV lens contract already verified")
+	} catch (verificationError) {
+		console.log({verificationError})
 	}
 }
 
-deployLens()
-	.then(() => process.exit(0))
-	.catch(error => {
-		console.error(error)
-		process.exit(1)
-	})
+export default func
+
+func.tags = ["DHVLensMK1"]
+
+if (require.main === module) {
+	//@ts-ignore
+	func(hre)
+}
