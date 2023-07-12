@@ -28,22 +28,26 @@ export const Body = () => {
   const sortedActivePositions = useMemo(() => {
     return activePositions
       .sort((first, second) => {
-        if (sort === ActivePositionSort.Size) {
-          return isAscending
-            ? first.amount - second.amount
-            : second.amount - first.amount;
-        } else if (sort === ActivePositionSort.Delta) {
-          return isAscending
-            ? first.delta - second.delta
-            : second.delta - first.delta;
-        } else if (sort === ActivePositionSort.PnL) {
-          return isAscending
-            ? first.profitLoss - second.profitLoss
-            : second.profitLoss - first.profitLoss;
-        } else {
-          return isAscending
-            ? first.expiryTimestamp.localeCompare(second.expiryTimestamp)
-            : second.expiryTimestamp.localeCompare(first.expiryTimestamp);
+        switch (sort) {
+          case ActivePositionSort.Size:
+            return isAscending
+              ? first.amount - second.amount
+              : second.amount - first.amount;
+
+          case ActivePositionSort.Delta:
+            return isAscending
+              ? first.delta - second.delta
+              : second.delta - first.delta;
+
+          case ActivePositionSort.PnL:
+            return isAscending
+              ? first.profitLoss - second.profitLoss
+              : second.profitLoss - first.profitLoss;
+
+          default:
+            return isAscending
+              ? first.expiryTimestamp.localeCompare(second.expiryTimestamp)
+              : second.expiryTimestamp.localeCompare(first.expiryTimestamp);
         }
       })
       .filter((position) => (hideExpired ? position.isOpen : position));
