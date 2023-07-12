@@ -48,7 +48,7 @@ export const Pricing = ({ collateralData }: PricingProps) => {
             format={asset === "USDC" ? "USD" : "ETH"}
             value={collateral}
           />
-          {asset === "USDC" ? ` USDC` : ` WETH`}
+          {` ${asset}`}
         </p>
       </span>
 
