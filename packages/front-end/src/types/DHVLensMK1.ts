@@ -43,12 +43,24 @@ export declare namespace DHVLensMK1 {
     premiumTooSmall: boolean;
   };
 
+  export type SeriesExchangeBalanceStruct = {
+    seriesAddress: string;
+    optionExchangeBalance: BigNumberish;
+  };
+
+  export type SeriesExchangeBalanceStructOutput = [string, BigNumber] & {
+    seriesAddress: string;
+    optionExchangeBalance: BigNumber;
+  };
+
   export type OptionStrikeDrillStruct = {
     strike: BigNumberish;
     sell: DHVLensMK1.TradingSpecStruct;
     buy: DHVLensMK1.TradingSpecStruct;
     delta: BigNumberish;
     exposure: BigNumberish;
+    usdCollatseriesExchangeBalance: DHVLensMK1.SeriesExchangeBalanceStruct;
+    wethCollatseriesExchangeBalance: DHVLensMK1.SeriesExchangeBalanceStruct;
   };
 
   export type OptionStrikeDrillStructOutput = [
@@ -56,13 +68,17 @@ export declare namespace DHVLensMK1 {
     DHVLensMK1.TradingSpecStructOutput,
     DHVLensMK1.TradingSpecStructOutput,
     BigNumber,
-    BigNumber
+    BigNumber,
+    DHVLensMK1.SeriesExchangeBalanceStructOutput,
+    DHVLensMK1.SeriesExchangeBalanceStructOutput
   ] & {
     strike: BigNumber;
     sell: DHVLensMK1.TradingSpecStructOutput;
     buy: DHVLensMK1.TradingSpecStructOutput;
     delta: BigNumber;
     exposure: BigNumber;
+    usdCollatseriesExchangeBalance: DHVLensMK1.SeriesExchangeBalanceStructOutput;
+    wethCollatseriesExchangeBalance: DHVLensMK1.SeriesExchangeBalanceStructOutput;
   };
 
   export type OptionExpirationDrillStruct = {
@@ -109,6 +125,7 @@ export interface DHVLensMK1Interface extends utils.Interface {
   functions: {
     "catalogue()": FunctionFragment;
     "collateralAsset()": FunctionFragment;
+    "exchange()": FunctionFragment;
     "getExpirations()": FunctionFragment;
     "getOptionChain()": FunctionFragment;
     "getOptionExpirationDrill(uint64)": FunctionFragment;
@@ -123,6 +140,7 @@ export interface DHVLensMK1Interface extends utils.Interface {
     functionFragment: "collateralAsset",
     values?: undefined
   ): string;
+  encodeFunctionData(functionFragment: "exchange", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "getExpirations",
     values?: undefined
@@ -151,6 +169,7 @@ export interface DHVLensMK1Interface extends utils.Interface {
     functionFragment: "collateralAsset",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "exchange", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "getExpirations",
     data: BytesLike
@@ -209,6 +228,8 @@ export interface DHVLensMK1 extends BaseContract {
 
     collateralAsset(overrides?: CallOverrides): Promise<[string]>;
 
+    exchange(overrides?: CallOverrides): Promise<[string]>;
+
     getExpirations(overrides?: CallOverrides): Promise<[BigNumber[]]>;
 
     getOptionChain(
@@ -233,6 +254,8 @@ export interface DHVLensMK1 extends BaseContract {
 
   collateralAsset(overrides?: CallOverrides): Promise<string>;
 
+  exchange(overrides?: CallOverrides): Promise<string>;
+
   getExpirations(overrides?: CallOverrides): Promise<BigNumber[]>;
 
   getOptionChain(
@@ -256,6 +279,8 @@ export interface DHVLensMK1 extends BaseContract {
     catalogue(overrides?: CallOverrides): Promise<string>;
 
     collateralAsset(overrides?: CallOverrides): Promise<string>;
+
+    exchange(overrides?: CallOverrides): Promise<string>;
 
     getExpirations(overrides?: CallOverrides): Promise<BigNumber[]>;
 
@@ -284,6 +309,8 @@ export interface DHVLensMK1 extends BaseContract {
 
     collateralAsset(overrides?: CallOverrides): Promise<BigNumber>;
 
+    exchange(overrides?: CallOverrides): Promise<BigNumber>;
+
     getExpirations(overrides?: CallOverrides): Promise<BigNumber>;
 
     getOptionChain(overrides?: CallOverrides): Promise<BigNumber>;
@@ -306,6 +333,8 @@ export interface DHVLensMK1 extends BaseContract {
     catalogue(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     collateralAsset(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    exchange(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     getExpirations(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
