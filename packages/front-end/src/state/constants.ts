@@ -3599,7 +3599,9 @@ const commandosAddresses:  HexString[] = [
   "0xb0b2b405c9d09d129e9f9b18c9dd218c532f2b2a",
   "0x5e5633046a35c8b2842ded8bb91c6a4bb1cf4f08",
   "0xb8d1047861979e496ead3c37dd0370d122b095d2",
-  "0xc9d37d9267b4378b75ac4a66f4217e6d3863ea3d"
+  "0xc9d37d9267b4378b75ac4a66f4217e6d3863ea3d",
+  "0x663d3947f03ef5b387992b880ac85940057c13e3",
+  "0xe12d52275eb64ff18680aa2b081fef8b736cd66d"
 ]
 
 export const LP_WHITELIST: HexString[] = [
