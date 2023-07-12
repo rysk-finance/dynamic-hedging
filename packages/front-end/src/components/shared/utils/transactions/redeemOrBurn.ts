@@ -1,5 +1,3 @@
-import { BigNumber as BigNumberType } from "ethers";
-
 import { prepareWriteContract, writeContract } from "@wagmi/core";
 import { BigNumber } from "ethers";
 
@@ -12,7 +10,7 @@ import { getContractAddress } from "src/utils/helpers";
 const opynControllerAddress = getContractAddress("OpynController");
 
 export const redeemOrBurn = async (
-  amount: BigNumberType,
+  amount: BigNumber,
   userAddress: HexString,
   tokenAddress: HexString,
   refresh: () => void

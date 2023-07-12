@@ -1,5 +1,3 @@
-import { BigNumber as BigNumberType } from "ethers";
-
 import { prepareWriteContract, writeContract } from "@wagmi/core";
 import { BigNumber, ethers } from "ethers";
 
@@ -15,11 +13,11 @@ import { OpynActionType } from "src/enums/OpynActionType";
 import RyskActionType from "src/enums/RyskActionType";
 
 export const closeShort = async (
-  acceptablePremium: BigNumberType,
-  amount: BigNumberType,
+  acceptablePremium: BigNumber,
+  amount: BigNumber,
   exchangeAddress: HexString,
   collateralAddress: HexString,
-  collateralAmount: BigNumberType,
+  collateralAmount: BigNumber,
   refresh: () => void,
   tokenAddress: HexString,
   userAddress: HexString,
