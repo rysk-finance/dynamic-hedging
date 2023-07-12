@@ -3785,6 +3785,8 @@ const commandosAddresses:  HexString[] = [
 export const LP_WHITELIST: HexString[] = [
   ...alphaDepositors,
   ...degenscoreDepositors,
+  ...moniAddresses,
+  ...alfaDaoAddresses,
   ...testAddresses,
   ...commandosAddresses
 ];
