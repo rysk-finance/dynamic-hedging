@@ -4292,7 +4292,7 @@ const primapesAddresses: HexString[] = [
 
 const otherCommunitiesAddresses: HexString[] = [
   //a
-    "0xcf10b967a9e422753812004cd59990f62e360760",
+  "0xcf10b967a9e422753812004cd59990f62e360760",
   "0x483f0cd803fbbeb996d61ca7ea7b0f6d781c9a6b",
   "0xaea7b7805d51cd7978ef12f79a238be2427d44cc",
   "0x6d7686acc2094c867d3d328856d105716b68fe67",
