@@ -64,7 +64,7 @@ export const Header = () => {
               {`Rysk Finance is using native USDC. To swap your bridged USDC.e, you can `}
               <a
                 className="text-cyan-dark-compliant underline"
-                href="https://app.1inch.io/#/42161/simple/swap/USDC.e/USDC"
+                href="https://jumper.exchange/?fromChain=42161&fromToken=0xff970a61a04b1ca14834a43f5de4533ebddb5cc8&toChain=42161&toToken=0xaf88d065e77c8cc2239327c5edb3a432268e5831"
                 rel="noopener noreferrer"
                 target="_blank"
               >
