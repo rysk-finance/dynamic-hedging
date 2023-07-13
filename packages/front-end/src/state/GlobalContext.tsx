@@ -52,7 +52,7 @@ export const defaultGlobalState: GlobalState = {
     liquidityPool: {
       remainingBeforeBuffer: 0,
       totalAssets: 0,
-      utilisationLow: false,
+      utilisationHigh: false,
     },
     loading: true,
     refresh: () => {},

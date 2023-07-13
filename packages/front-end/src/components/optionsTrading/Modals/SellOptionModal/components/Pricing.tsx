@@ -12,7 +12,7 @@ export const Pricing = ({ loading, positionData }: PricingProps) => {
     state: {
       collateralPreferences: { full, type },
       options: {
-        liquidityPool: { utilisationLow },
+        liquidityPool: { utilisationHigh },
       },
     },
   } = useGlobalContext();
@@ -53,7 +53,7 @@ export const Pricing = ({ loading, positionData }: PricingProps) => {
       case !hasRequiredCapital && Boolean(quote):
         return "Insufficient balance to cover collateral.";
 
-      case utilisationLow:
+      case utilisationHigh:
         return "DHV utilisation is high. Some TXs may fail.";
 
       default:

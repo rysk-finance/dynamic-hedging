@@ -26,12 +26,12 @@ export const getLiquidityPoolInfo = async (): Promise<LiquidityPool> => {
 
     const remainingBeforeBuffer = tFormatUSDC(checkBuffer, 2);
     const totalAssets = fromWeiToInt(getAssets);
-    const utilisationLow = (remainingBeforeBuffer / totalAssets) * 100 <= 3;
+    const utilisationHigh = (remainingBeforeBuffer / totalAssets) * 100 <= 3;
 
     return {
       remainingBeforeBuffer,
       totalAssets,
-      utilisationLow,
+      utilisationHigh,
     };
   } catch (error) {
     logError(error);
@@ -39,7 +39,7 @@ export const getLiquidityPoolInfo = async (): Promise<LiquidityPool> => {
     return {
       remainingBeforeBuffer: 0,
       totalAssets: 0,
-      utilisationLow: true,
+      utilisationHigh: true,
     };
   }
 };

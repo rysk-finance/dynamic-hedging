@@ -11,7 +11,7 @@ export const Pricing = ({ positionData }: PricingProps) => {
   const {
     state: {
       options: {
-        liquidityPool: { utilisationLow },
+        liquidityPool: { utilisationHigh },
       },
     },
   } = useGlobalContext();
@@ -34,7 +34,7 @@ export const Pricing = ({ positionData }: PricingProps) => {
       case remainingBalance <= 0 && Boolean(quote):
         return "Final balance cannot be negative.";
 
-      case utilisationLow:
+      case utilisationHigh:
         return "DHV utilisation is high. Some TXs may fail.";
 
       default:

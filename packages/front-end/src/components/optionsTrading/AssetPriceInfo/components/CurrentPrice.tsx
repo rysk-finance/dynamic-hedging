@@ -10,13 +10,10 @@ export const CurrentPrice = () => {
       ethPrice,
       ethPriceUpdateTime,
       options: {
-        loading,
-        liquidityPool: { remainingBeforeBuffer, utilisationLow },
+        liquidityPool: { remainingBeforeBuffer, utilisationHigh },
       },
     },
   } = useGlobalContext();
-
-  const liquidityPoolLow = utilisationLow && !loading;
 
   return (
     <div className="flex items-center justify-between grow px-4">
@@ -28,10 +25,10 @@ export const CurrentPrice = () => {
 
         <small
           className={`text-xs text-left mt-2 ${
-            liquidityPoolLow ? "text-red-500" : "text-gray-600"
+            utilisationHigh ? "text-red-500" : "text-gray-600"
           }`}
         >
-          {liquidityPoolLow ? (
+          {utilisationHigh ? (
             <>{`DHV utilisation is high. Some TXs may fail.`}</>
           ) : (
             <>
