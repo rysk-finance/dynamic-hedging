@@ -6,17 +6,13 @@ export const Reset = () => {
 
   const handleClick = () => {
     dispatch({
-      type: ActionType.SET_VISIBLE_STRIKE_RANGE,
-    });
-
-    dispatch({
       type: ActionType.SET_VISIBLE_COLUMNS,
     });
   };
 
   return (
     <button
-      className="px-7 py-3 font-medium border-t-2 border-black xl:border-none hover:bg-bone-light"
+      className="ml-auto px-7 py-3 font-medium border-black border-l-2 hover:bg-bone-light"
       id="filter-reset"
       onClick={handleClick}
     >
