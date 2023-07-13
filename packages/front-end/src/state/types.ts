@@ -2,8 +2,8 @@ import type { ApolloError } from "@apollo/client";
 import type { BigNumber, BigNumberish } from "ethers";
 
 import type {
-  PositionOToken,
   LiquidateActions,
+  PositionOToken,
   Vault,
 } from "src/hooks/useInitialData/types";
 
@@ -131,7 +131,7 @@ export interface Balances {
 export interface LiquidityPool {
   remainingBeforeBuffer: number;
   totalAssets: number;
-  utilisationLow: boolean;
+  utilisationHigh: boolean;
 }
 
 export interface GeoData {

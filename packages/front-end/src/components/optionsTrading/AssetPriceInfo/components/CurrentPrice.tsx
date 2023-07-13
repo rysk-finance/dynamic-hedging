@@ -10,7 +10,7 @@ export const CurrentPrice = () => {
       ethPrice,
       ethPriceUpdateTime,
       options: {
-        liquidityPool: { remainingBeforeBuffer, utilisationLow },
+        liquidityPool: { remainingBeforeBuffer, utilisationHigh },
       },
     },
   } = useGlobalContext();
@@ -25,10 +25,10 @@ export const CurrentPrice = () => {
 
         <small
           className={`text-xs text-left mt-2 ${
-            utilisationLow ? "text-red-500" : "text-gray-600"
+            utilisationHigh ? "text-red-500" : "text-gray-600"
           }`}
         >
-          {utilisationLow ? (
+          {utilisationHigh ? (
             <>{`DHV utilisation is high. Some TXs may fail.`}</>
           ) : (
             <>

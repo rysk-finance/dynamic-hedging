@@ -16,7 +16,7 @@ export const Pricing = ({
   const {
     state: {
       options: {
-        liquidityPool: { utilisationLow },
+        liquidityPool: { utilisationHigh },
       },
     },
   } = useGlobalContext();
@@ -45,7 +45,7 @@ export const Pricing = ({
       case remainingBalanceUSDC <= 0 && Boolean(quote):
         return "Final balance cannot be negative.";
 
-      case utilisationLow:
+      case utilisationHigh:
         return "DHV utilisation is high. Some TXs may fail.";
 
       default:
