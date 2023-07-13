@@ -1,10 +1,10 @@
+import { LayoutGroup, motion } from "framer-motion";
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { motion, LayoutGroup } from "framer-motion";
-import { useAccount } from "wagmi";
 
-import { AppPaths } from "../config/appPaths";
 import { Connect } from "src/clients/WalletProvider/components/Connect";
-import { Podium } from "src/Icons";
+import { AppPaths } from "../config/appPaths";
+import { Close } from "src/Icons";
 
 const links = [
   { id: "header-vault", path: AppPaths.VAULT, label: "Vault" },
@@ -13,53 +13,65 @@ const links = [
 ];
 
 export const Header = () => {
-  const { address } = useAccount();
   const { pathname } = useLocation();
 
+  const [visible, setVisible] = useState(true);
+
+  const handleClose = () => setVisible(false);
+
   return (
-    <div className="fixed w-full h-24 t-0 flex items-center px-16 justify-between border-b-2 border-black bg-bone z-20">
-      <Link to={AppPaths.VAULT}>
-        <img
-          alt="Rysk logo"
-          className="w-20"
-          src={"/logo-animated.gif"}
-          title="Rysk: Uncorrelated Returns"
-        />
-      </Link>
+    <header className="sticky top-0 z-50 w-full bg-bone">
+      <nav className="flex items-center px-16 justify-between border-b-2 border-black">
+        <Link to={AppPaths.VAULT}>
+          <img
+            alt="Rysk logo"
+            className="h-20 py-4"
+            src={"/logo-animated.gif"}
+            title="Rysk: Uncorrelated Returns"
+          />
+        </Link>
 
-      <div className="flex items-center">
-        <LayoutGroup>
-          <motion.div className="mr-4" layout="position">
-            {links.map(({ id, path, label }) => (
-              <Link
-                key={path}
-                id={id}
-                to={path}
-                className={`mr-2 border-none bg-transparent p-2 underline-offset-2 ${
-                  pathname === path ? "underline" : ""
-                }`}
-              >
-                {label}
-              </Link>
-            ))}
-          </motion.div>
+        <div className="flex items-center">
+          <LayoutGroup>
+            <motion.div className="mr-4" layout="position">
+              {links.map(({ id, path, label }) => (
+                <Link
+                  key={path}
+                  id={id}
+                  to={path}
+                  className={`mr-2 border-none bg-transparent p-2 underline-offset-2 ${
+                    pathname === path ? "underline" : ""
+                  }`}
+                >
+                  {label}
+                </Link>
+              ))}
+            </motion.div>
 
-          {/* <motion.a
-            className="flex items-center mr-8"
-            href={`https://www.rysk.finance/leaderboard/${
-              address ? `?address=${address.toLowerCase()}` : ""
-            }`}
-            layout="position"
-            rel="noreferrer noopener"
-            target="_blank"
-            title="Click to view the competition leaderboard."
-          >
-            <Podium className="fill-black w-10 h-10" key="leader-board" />
-          </motion.a> */}
+            <Connect />
+          </LayoutGroup>
+        </div>
+      </nav>
 
-          <Connect />
-        </LayoutGroup>
-      </div>
-    </div>
+      {visible && (
+        <b className="relative flex justify-center px-16 border-b-2 border-black font-normal">
+          <span className="mx-auto py-3 text-sm lg:text-base">
+            {`Rysk Finance is using native USDC. To swap your bridged USDC.e, you can `}
+            <a
+              className="text-cyan-dark-compliant underline"
+              href="https://app.1inch.io/#/42161/simple/swap/USDC.e/USDC"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              {`click here.`}
+            </a>
+          </span>
+
+          <button className="p-3" onClick={handleClose}>
+            <Close />
+          </button>
+        </b>
+      )}
+    </header>
   );
 };
