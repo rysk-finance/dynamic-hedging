@@ -60,8 +60,17 @@ export const Header = () => {
             className="relative flex justify-center px-16 border-b-2 border-black"
             {...FadeInDown(0.3)}
           >
-            <span className="mx-auto py-3 text-sm lg:text-base">
-              {`Rysk Finance is using native USDC. To swap your bridged USDC.e, you can `}
+            <span className="w-2/3 mx-auto py-3 text-center text-sm lg:text-base">
+              {`Rysk Finance is using `}
+              <a
+                className="text-cyan-dark-compliant underline"
+                href="https://www.circle.com/blog/arbitrum-usdc-now-available"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                {`native USDC.`}
+              </a>
+              {` To swap your bridged USDC.e, you can `}
               <a
                 className="text-cyan-dark-compliant underline"
                 href="https://jumper.exchange/?fromChain=42161&fromToken=0xff970a61a04b1ca14834a43f5de4533ebddb5cc8&toChain=42161&toToken=0xaf88d065e77c8cc2239327c5edb3a432268e5831"
