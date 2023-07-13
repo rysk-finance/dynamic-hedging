@@ -77,17 +77,15 @@ export const VaultContent = () => {
         </a>
       </div> */}
 
-      <div className="col-start-1 col-end-8">
+      <div className="col-start-1 col-end-8 pt-16">
         <div className="font-parabole mb-8">
           <h4 className="pb-4 text-xl">Dynamic Hedging Vault</h4>
           <h1 className="text-4xl">{DHV_NAME}</h1>
         </div>
 
         <p className="mt-8">
-          {DHV_NAME} generates uncorrelated returns on USDC by market making 
-          <Link to={AppPaths.TRADE}>
-          {" "} ETH options {" "}
-          </Link>
+          {DHV_NAME} generates uncorrelated returns on USDC by market making
+          <Link to={AppPaths.TRADE}> ETH options </Link>
           trades.
         </p>
         <p className="py-4">
@@ -99,7 +97,7 @@ export const VaultContent = () => {
         <LPStats />
       </div>
 
-      <div className="col-start-9 col-end-17">
+      <div className="col-start-9 col-end-17 pt-16">
         <Card
           tabs={[
             {

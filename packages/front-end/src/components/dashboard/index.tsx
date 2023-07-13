@@ -12,7 +12,7 @@ export const DashboardContent = () => {
   const [modalType] = useModal();
 
   return (
-    <div className="table col-start-1 col-end-17">
+    <div className="table col-start-1 col-end-17 pt-16">
       {/* <UserVault />
       <UserEpochPNL /> */}
       <UserOptions />

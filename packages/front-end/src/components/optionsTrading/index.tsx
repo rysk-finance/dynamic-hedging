@@ -23,7 +23,7 @@ export const OptionsTradingContent = () => {
 
   return (
     <>
-      <section className="col-start-1 col-end-17 -mt-16">
+      <section className="col-start-1 col-end-17">
         <BuyModalTutorial />
         <OptionChainTutorial />
         <SellModalTutorial />
