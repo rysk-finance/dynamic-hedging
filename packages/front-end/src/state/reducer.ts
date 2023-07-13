@@ -92,12 +92,6 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
           modalPosition: action.modalPosition || state.dashboard.modalPosition,
         },
       };
-    case ActionType.SET_VISIBLE_STRIKE_RANGE:
-      return {
-        ...state,
-        visibleStrikeRange:
-          action.visibleStrikeRange || defaultGlobalState.visibleStrikeRange,
-      };
     case ActionType.SET_VISIBLE_COLUMNS:
       const newSet = new Set(state.visibleColumns);
 

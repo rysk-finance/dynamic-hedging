@@ -3,7 +3,6 @@ import type { SelectedOption, StrikeOptions } from "src/state/types";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useDebounce } from "use-debounce";
 
 import { Loading } from "src/Icons";
 import FadeInOut from "src/animation/FadeInOut";
@@ -17,7 +16,6 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
     state: {
       ethPrice,
       options: { loading },
-      visibleStrikeRange,
     },
     dispatch,
   } = useGlobalContext();
@@ -25,27 +23,6 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
   const [, setSearchParams] = useSearchParams();
 
   const [colSize, , showCol] = useShowColumn();
-
-  const [strikeRange] = useDebounce(visibleStrikeRange, 300);
-
-  const filteredChainRows = useMemo(
-    () =>
-      chainRows.filter(({ strike }) => {
-        const min = Number(strikeRange[0]);
-        const max = Number(strikeRange[1]);
-
-        if (min && max) {
-          return strike >= min && strike <= max;
-        } else if (min) {
-          return strike >= min;
-        } else if (max) {
-          return strike <= max;
-        } else {
-          return !(min && max);
-        }
-      }),
-    [chainRows, strikeRange]
-  );
 
   const [callAtmStrike, putAtmStrike] = useMemo(() => {
     if (chainRows.length) {
@@ -87,7 +64,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
       id="chain-body"
     >
       <AnimatePresence initial={false}>
-        {filteredChainRows.map((option) => {
+        {chainRows.map((option) => {
           const callSellDisabled =
             option.call.sell.disabled || !option.call.sell.quote.quote;
           const callBuyDisabled =

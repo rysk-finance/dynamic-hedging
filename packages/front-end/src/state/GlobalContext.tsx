@@ -98,7 +98,6 @@ export const defaultGlobalState: GlobalState = {
   buyTutorialIndex: undefined,
   chainTutorialIndex: undefined,
   sellTutorialIndex: undefined,
-  visibleStrikeRange: ["", ""],
   visibleColumns: new Set([
     "sell",
     "buy",

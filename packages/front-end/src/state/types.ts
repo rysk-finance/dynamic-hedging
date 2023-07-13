@@ -98,8 +98,6 @@ export interface TimesToExpiry {
   };
 }
 
-export type StrikeRangeTuple = [string, string];
-
 export type ColumNames =
   | "sell"
   | "buy"
@@ -203,7 +201,6 @@ export type GlobalState = {
   buyTutorialIndex?: number;
   chainTutorialIndex?: number;
   sellTutorialIndex?: number;
-  visibleStrikeRange: StrikeRangeTuple;
   visibleColumns: Set<ColumNames>;
   dashboardModalOpen?: DashboardModal;
 
@@ -234,7 +231,6 @@ export enum ActionType {
   SET_DASHBOARD,
 
   // Actions related to options chain state.
-  SET_VISIBLE_STRIKE_RANGE,
   SET_VISIBLE_COLUMNS,
   SET_COLLATERAL_PREFERENCES,
   SET_DASHBOARD_MODAL_VISIBLE,
@@ -322,10 +318,6 @@ export type GlobalAction =
       activePositions?: FullPosition[];
       inactivePositions?: FullPosition[];
       modalPosition?: FullPosition;
-    }
-  | {
-      type: ActionType.SET_VISIBLE_STRIKE_RANGE;
-      visibleStrikeRange?: StrikeRangeTuple;
     }
   | {
       type: ActionType.SET_VISIBLE_COLUMNS;

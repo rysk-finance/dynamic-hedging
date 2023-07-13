@@ -6,10 +6,6 @@ export const Reset = () => {
 
   const handleClick = () => {
     dispatch({
-      type: ActionType.SET_VISIBLE_STRIKE_RANGE,
-    });
-
-    dispatch({
       type: ActionType.SET_VISIBLE_COLUMNS,
     });
   };
