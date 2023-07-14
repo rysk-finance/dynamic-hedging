@@ -1,23 +1,23 @@
 import { BigNumber } from "ethers";
 import { useCallback } from "react";
 import { useAccount, useNetwork } from "wagmi";
+import { readContract, readContracts } from "@wagmi/core";
 
-import LPABI from "../abis/LiquidityPool.json";
+import { LiquidityPoolABI } from "src/abis/LiquidityPool_ABI";
 import { BIG_NUMBER_DECIMALS } from "../config/constants";
 import { useGlobalContext } from "../state/GlobalContext";
 import { ActionType, GlobalState } from "../state/types";
 import { DepositReceipt, WithdrawalReceipt } from "../types";
-import { useContract } from "./useContract";
+import { getContractAddress } from "src/utils/helpers";
 
 export const useUserPosition = () => {
   const { address } = useAccount();
   const { chain } = useNetwork();
 
-  const [lpContract] = useContract({
-    contract: "liquidityPool",
-    ABI: LPABI,
-    readOnly: true,
-  });
+  const liquidityPoolContract = {
+    address: getContractAddress("liquidityPool"),
+    abi: LiquidityPoolABI,
+  } as const;
 
   const {
     dispatch,
@@ -42,12 +42,8 @@ export const useUserPosition = () => {
     async (
       receipt: DepositReceipt,
       currentDepositEpoch: BigNumber,
-      currentWithdrawalEpoch: BigNumber
+      latestWithdrawalSharePrice: BigNumber
     ) => {
-      const latestEpochSharePrice =
-        await lpContract?.withdrawalEpochPricePerShare(
-          currentWithdrawalEpoch.sub(1)
-        );
       let receiptUSDCValue = BigNumber.from(0);
 
       let receiptEpochSharePrice: BigNumber | null = null;
@@ -56,9 +52,9 @@ export const useUserPosition = () => {
       if (
         currentDepositEpoch &&
         receipt &&
-        currentDepositEpoch._hex === receipt.epoch._hex
+        currentDepositEpoch.eq(receipt.epoch)
       ) {
-        receiptEpochSharePrice = latestEpochSharePrice;
+        receiptEpochSharePrice = latestWithdrawalSharePrice;
         // amount of the deposit
         receiptUSDCValue = receiptUSDCValue.add(receipt.amount);
         setPositionBreakdown({
@@ -66,11 +62,22 @@ export const useUserPosition = () => {
           unredeemedShares: receipt.unredeemedShares,
         });
       } else if (receipt) {
-        receiptEpochSharePrice = await lpContract?.withdrawalEpochPricePerShare(
-          receipt.epoch
-        );
-        const depositEpochSharePrice =
-          await lpContract?.depositEpochPricePerShare(receipt.epoch);
+        const [withdrawPPS, depositEpochSharePrice] = await readContracts({
+          contracts: [
+            {
+              ...liquidityPoolContract,
+              functionName: "withdrawalEpochPricePerShare",
+              args: [receipt.epoch],
+            },
+            {
+              ...liquidityPoolContract,
+              functionName: "depositEpochPricePerShare",
+              args: [receipt.epoch],
+            },
+          ],
+        });
+
+        receiptEpochSharePrice = withdrawPPS;
         // If the receipt epoch was executed, but the user hasn't redeemed or deposited since,
         // we need to calculate the latest usdc value of the "amount" field
         // at the current epoch, with the withdraw epoch share price.
@@ -82,7 +89,7 @@ export const useUserPosition = () => {
           .div(depositEpochSharePrice); // deposit epoch share price for current receipt epoch
         // e6
         const sharesCurrentValue = amountInShares
-          .mul(latestEpochSharePrice) // withdrawal epoch share price for receipt epoch - 1
+          .mul(latestWithdrawalSharePrice) // withdrawal epoch share price for receipt epoch - 1
           .div(BIG_NUMBER_DECIMALS.RYSK);
         receiptUSDCValue = receiptUSDCValue.add(sharesCurrentValue);
 
@@ -99,7 +106,7 @@ export const useUserPosition = () => {
 
       if (receiptEpochSharePrice) {
         const unredeemedSharesValue = receipt.unredeemedShares // unredeemedShares is total of all shares besides last receipt amount
-          .mul(latestEpochSharePrice)
+          .mul(latestWithdrawalSharePrice)
           .div(BIG_NUMBER_DECIMALS.RYSK)
           .div(BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.USDC));
 
@@ -108,37 +115,37 @@ export const useUserPosition = () => {
 
       return receiptUSDCValue;
     },
-    [lpContract, setPositionBreakdown]
+    [setPositionBreakdown]
   );
 
   const parseWithdrawalReceipt = useCallback(
     async (
       withdrawalReceipt: WithdrawalReceipt,
-      currentWithdrawalEpoch: BigNumber
+      currentWithdrawalEpoch: BigNumber = BigNumber.from(1),
+      latestWithdrawalSharePrice: BigNumber
     ) => {
       if (
         currentWithdrawalEpoch &&
         withdrawalReceipt &&
         currentWithdrawalEpoch._hex === withdrawalReceipt.epoch._hex
       ) {
-        const epochSharePrice = await lpContract?.withdrawalEpochPricePerShare(
-          currentWithdrawalEpoch.sub(1)
-        );
         setPositionBreakdown({
           pendingWithdrawShares: {
             amount: withdrawalReceipt.shares,
-            epochPrice: epochSharePrice,
+            epochPrice: latestWithdrawalSharePrice,
           },
         });
 
         return withdrawalReceipt.shares
-          .mul(epochSharePrice)
+          .mul(latestWithdrawalSharePrice)
           .div(BIG_NUMBER_DECIMALS.RYSK)
           .div(BIG_NUMBER_DECIMALS.RYSK.div(BIG_NUMBER_DECIMALS.USDC));
       } else if (withdrawalReceipt) {
-        const epochSharePrice = await lpContract?.withdrawalEpochPricePerShare(
-          withdrawalReceipt.epoch
-        );
+        const epochSharePrice = await readContract({
+          ...liquidityPoolContract,
+          functionName: "withdrawalEpochPricePerShare",
+          args: [withdrawalReceipt.epoch],
+        });
         setPositionBreakdown({
           pendingWithdrawShares: {
             amount: withdrawalReceipt.shares,
@@ -154,37 +161,64 @@ export const useUserPosition = () => {
         return BigNumber.from(0);
       }
     },
-    [lpContract, setPositionBreakdown]
+    [setPositionBreakdown]
   );
 
   const getCurrentPosition = useCallback(
-    async (address: string) => {
-      const balance: BigNumber = await lpContract?.balanceOf(address);
+    async (address: HexString) => {
+      const [
+        balance,
+        currentDepositEpoch,
+        currentWithdrawalEpoch,
+        depositReceipt,
+        withdrawalReceipt,
+      ] = await readContracts({
+        contracts: [
+          {
+            ...liquidityPoolContract,
+            functionName: "balanceOf",
+            args: [address],
+          },
+          {
+            ...liquidityPoolContract,
+            functionName: "depositEpoch",
+          },
+          {
+            ...liquidityPoolContract,
+            functionName: "withdrawalEpoch",
+          },
+          {
+            ...liquidityPoolContract,
+            functionName: "depositReceipts",
+            args: [address],
+          },
+          {
+            ...liquidityPoolContract,
+            functionName: "withdrawalReceipts",
+            args: [address],
+          },
+        ],
+      });
       setPositionBreakdown({ redeemedShares: balance });
 
-      const currentDepositEpoch = await lpContract?.depositEpoch();
-      const currentWithdrawalEpoch = await lpContract?.withdrawalEpoch();
-      const latestWithdrawalSharePrice =
-        await lpContract?.withdrawalEpochPricePerShare(
-          currentWithdrawalEpoch.sub(1)
-        );
+      const latestWithdrawalSharePrice = await readContract({
+        ...liquidityPoolContract,
+        functionName: "withdrawalEpochPricePerShare",
+        args: [currentWithdrawalEpoch.sub(1)],
+      });
       setPositionBreakdown({
         currentWithdrawSharePrice: latestWithdrawalSharePrice,
       });
 
-      const depositReceipt: DepositReceipt = await lpContract?.depositReceipts(
-        address
-      );
       const depositReceiptValue = await parseDepositReceipt(
         depositReceipt,
         currentDepositEpoch,
-        currentWithdrawalEpoch
+        latestWithdrawalSharePrice
       );
-      const withdrawalReceipt: WithdrawalReceipt =
-        await lpContract?.withdrawalReceipts(address);
       const withdrawalReceiptValue = await parseWithdrawalReceipt(
         withdrawalReceipt,
-        currentWithdrawalEpoch
+        currentWithdrawalEpoch,
+        latestWithdrawalSharePrice
       );
 
       if (balance && !chain?.unsupported) {
@@ -203,7 +237,6 @@ export const useUserPosition = () => {
     [
       address,
       chain,
-      lpContract,
       parseDepositReceipt,
       parseWithdrawalReceipt,
       setPositionValue,
