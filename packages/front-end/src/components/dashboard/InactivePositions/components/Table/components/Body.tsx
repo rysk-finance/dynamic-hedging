@@ -20,14 +20,14 @@ export const Body = () => {
 
   return (
     <LayoutGroup>
-      <motion.tbody
-        className="block border-b-2 border-black border-dashed overflow-y-scroll"
-        {...Resize(
-          compact ? compactOffHeight : 442,
-          compact ? 442 : compactOffHeight
-        )}
-      >
-        <AnimatePresence>
+      <AnimatePresence initial={false}>
+        <motion.tbody
+          className="block border-b-2 border-black border-dashed overflow-y-scroll"
+          {...Resize(
+            compact ? compactOffHeight : 442,
+            compact ? 442 : compactOffHeight
+          )}
+        >
           {inactivePositions.map(
             (
               { entry, id, isShort, oraclePrice, profitLoss, series, size },
@@ -86,8 +86,8 @@ export const Body = () => {
               );
             }
           )}
-        </AnimatePresence>
-      </motion.tbody>
+        </motion.tbody>
+      </AnimatePresence>
     </LayoutGroup>
   );
 };
