@@ -41,17 +41,12 @@ export const AssetPriceInfo = () => {
     }
   }, [ethLastUpdateTimestamp]);
 
-  const handleHelpClick = () => {
-    dispatch({ type: ActionType.SET_CHAIN_TUTORIAL_INDEX, index: 0 });
-  };
-
   const ready = Boolean(!ethPriceError && ethPrice && ethPriceUpdateTime);
 
   return (
     <motion.div className="flex" {...FadeInOut()}>
       <button
         className="w-full h-24 flex items-stretch"
-        id="chain-price-info"
         onClick={handleManualUpdate}
         title="Click to refetch price data."
       >
@@ -77,12 +72,9 @@ export const AssetPriceInfo = () => {
         </AnimatePresence>
       </button>
 
-      <button
-        className="ml-auto border-l-2 border-black"
-        onClick={handleHelpClick}
-        title="Click to go through our introduction to the Rysk options chain."
-      >
+      <button className="ml-auto border-l-2 border-black">
         <Question className="min-w-[8rem] w-24 h-24 py-4" />
+        {/* TODO: Change to cog for settings. */}
       </button>
     </motion.div>
   );

@@ -156,15 +156,12 @@ export const BuyOptionModal = () => {
     }
   }, [selectedOption]);
 
-  const handleTutorialClick = () => {
-    dispatch({ type: ActionType.SET_BUY_TUTORIAL_INDEX, index: 0 });
-  };
+
 
   return (
     <Modal>
       <Header
         changeVisible={!disableChangeButton}
-        tutorialVisible={handleTutorialClick}
       >
         {`Buy Position`}
       </Header>
@@ -173,7 +170,6 @@ export const BuyOptionModal = () => {
 
       <Wrapper>
         <Label
-          id="buy-input"
           title="Enter how many contracts you would like to buy."
         >
           <Input
@@ -194,7 +190,6 @@ export const BuyOptionModal = () => {
             loading ||
             blocked
           }
-          id="buy-button"
           {...getButtonProps(
             "buy",
             transactionPending || loading,

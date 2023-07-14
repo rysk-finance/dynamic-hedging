@@ -20,7 +20,6 @@ export const Chain = () => {
       {hasData ? (
         <motion.table
           className="block bg-bone overflow-x-auto overflow-y-hidden"
-          id="options-chain"
           key="chain"
           {...FadeInOut(0.75)}
         >

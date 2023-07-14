@@ -46,13 +46,13 @@ export const Pricing = ({ positionData }: PricingProps) => {
     <div className="flex flex-col">
       <p
         className="text-center py-4 bg-white border-b-2 border-black font-dm-mono"
-        id="buy-symbol"
+        
       >
         {`ETH ${expiry} $${strike} ${callOrPut}`.toUpperCase()}
       </p>
 
       <div className="w-3/5 mx-auto py-4">
-        <div id="buy-price-per-option">
+        <div>
           <span className="flex">
             <p className="mr-auto">{`Premium:`}</p>
             <p className="font-medium">
@@ -82,7 +82,7 @@ export const Pricing = ({ positionData }: PricingProps) => {
           </small>
         </div>
 
-        <span className="flex pt-2" id="buy-break-even">
+        <span className="flex pt-2">
           <p className="mr-auto">{`Break even:`}</p>
           <p className="font-medium">
             <RyskCountUp value={breakEven} />
@@ -92,7 +92,6 @@ export const Pricing = ({ positionData }: PricingProps) => {
 
         <span
           className="flex pb-2 border-gray-600 border-b"
-          id="buy-total-price"
         >
           <p className="mr-auto">{`Total to pay:`}</p>
           <p className="font-medium">
@@ -101,7 +100,7 @@ export const Pricing = ({ positionData }: PricingProps) => {
           </p>
         </span>
 
-        <span className="flex pt-2" id="buy-balance">
+        <span className="flex pt-2">
           <p className="mr-auto">{`Balance after:`}</p>
           <p className="font-medium">
             <RyskCountUp value={remainingBalance} />

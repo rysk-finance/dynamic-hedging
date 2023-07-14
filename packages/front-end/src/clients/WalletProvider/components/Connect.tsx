@@ -10,7 +10,6 @@ const { Custom } = ConnectButton;
 
 const buttonProps = {
   className: "flex items-center px-4 py-0 h-11 bg-black text-white",
-  id: "connect-wallet",
   layout: "position" as const,
   type: "button" as const,
   ...FadeInOutFixedDelay,

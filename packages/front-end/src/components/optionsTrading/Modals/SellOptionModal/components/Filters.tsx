@@ -92,7 +92,6 @@ export const Filters = () => {
   return (
     <div
       className="flex flex-col w-3/5 mx-auto pt-4 select-none"
-      id="sell-collateral"
     >
       <p className="leading-6 border-gray-600 border-b">{`Collateral Preferences`}</p>
 

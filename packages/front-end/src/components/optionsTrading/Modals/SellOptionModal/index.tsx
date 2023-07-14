@@ -138,15 +138,13 @@ export const SellOptionModal = () => {
     }
   }, [selectedOption]);
 
-  const handleTutorialClick = () => {
-    dispatch({ type: ActionType.SET_SELL_TUTORIAL_INDEX, index: 0 });
-  };
+
+
 
   return (
     <Modal>
       <Header
         changeVisible={!disableChangeButton}
-        tutorialVisible={handleTutorialClick}
       >
         {`Sell Position`}
       </Header>
@@ -161,7 +159,6 @@ export const SellOptionModal = () => {
 
       <Wrapper>
         <Label
-          id="sell-input"
           title="Enter how many contracts you would like to sell."
         >
           <Input
@@ -184,7 +181,6 @@ export const SellOptionModal = () => {
             loading ||
             blocked
           }
-          id="sell-button"
           {...getButtonProps(
             "sell",
             transactionPending || loading,

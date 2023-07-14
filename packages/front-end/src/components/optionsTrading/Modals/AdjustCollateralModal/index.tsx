@@ -146,7 +146,6 @@ export const AdjustCollateralModal = () => {
             transactionPending ||
             loading
           }
-          id="buy-button"
           {...getButtonProps(
             isDepositing ? "deposit" : "withdraw",
             transactionPending || loading,

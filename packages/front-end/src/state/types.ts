@@ -227,9 +227,6 @@ export type GlobalState = {
   closingOption?: ClosingOption;
   selectedOption?: SelectedOption;
   optionChainModalOpen?: OptionChainModal;
-  buyTutorialIndex?: number;
-  chainTutorialIndex?: number;
-  sellTutorialIndex?: number;
   visibleColumns: Set<ColumNames>;
 
   // User balances
@@ -262,9 +259,6 @@ export enum ActionType {
   SET_SELECTED_OPTION,
   SET_CLOSING_OPTION,
   SET_OPTION_CHAIN_MODAL_VISIBLE,
-  SET_BUY_TUTORIAL_INDEX,
-  SET_CHAIN_TUTORIAL_INDEX,
-  SET_SELL_TUTORIAL_INDEX,
   RESET_OPTIONS_CHAIN_STATE,
   CHANGE_FROM_BUYING_OR_SELLING,
 
@@ -358,18 +352,6 @@ export type GlobalAction =
       visible?: OptionChainModalActions;
     }
   | {
-      type: ActionType.SET_BUY_TUTORIAL_INDEX;
-      index?: number;
-    }
-  | {
-      type: ActionType.SET_CHAIN_TUTORIAL_INDEX;
-      index?: number;
-    }
-  | {
-      type: ActionType.SET_SELL_TUTORIAL_INDEX;
-      index?: number;
-    }
-  | {
       type: ActionType.RESET_OPTIONS_CHAIN_STATE;
     }
   | {
@@ -439,7 +421,6 @@ export type VaultContext = {
 export type OptionsTradingState = {
   selectedOption?: SelectedOption;
   optionChainModalOpen?: OptionChainModal;
-  chainTutorialIndex?: number;
 };
 
 export enum OptionChainModalActions {

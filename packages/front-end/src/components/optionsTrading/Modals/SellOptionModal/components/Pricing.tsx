@@ -63,7 +63,7 @@ export const Pricing = ({ loading, positionData }: PricingProps) => {
 
   return (
     <div className="w-3/5 mx-auto pt-2 pb-4">
-      <span className="flex" id="sell-collateral-required">
+      <span className="flex">
         <p className="mr-auto">{`Collateral required:`}</p>
         <AnimatePresence mode="wait">
           <motion.p
@@ -82,7 +82,6 @@ export const Pricing = ({ loading, positionData }: PricingProps) => {
 
       <span
         className="flex pb-2 border-gray-600 border-b"
-        id="sell-liquidation-price"
       >
         <p className="mr-auto">{`Liquidation Price:`}</p>
         <AnimatePresence mode="wait">
@@ -100,7 +99,7 @@ export const Pricing = ({ loading, positionData }: PricingProps) => {
         </AnimatePresence>
       </span>
 
-      <div id="sell-price-per-option">
+      <div>
         <span className="flex pt-2">
           <p className="mr-auto">{`Premium:`}</p>
           <p className="font-medium">
@@ -130,7 +129,7 @@ export const Pricing = ({ loading, positionData }: PricingProps) => {
         </small>
       </div>
 
-      <span className="flex pt-2" id="sell-total-price">
+      <span className="flex pt-2">
         <p className="mr-auto">{`Premium received:`}</p>
         <p className="font-medium">
           <RyskCountUp value={quote} />
@@ -138,7 +137,7 @@ export const Pricing = ({ loading, positionData }: PricingProps) => {
         </p>
       </span>
 
-      <span className="flex" id="sell-break-even">
+      <span className="flex">
         <p className="mr-auto">{`Break even:`}</p>
         <p className="font-medium">
           <RyskCountUp value={breakEven} />
@@ -146,7 +145,7 @@ export const Pricing = ({ loading, positionData }: PricingProps) => {
         </p>
       </span>
 
-      <div id="sell-balances">
+      <div>
         <span className="flex">
           <p className="mr-auto">{`Balances after:`}</p>
           <p className="font-medium">

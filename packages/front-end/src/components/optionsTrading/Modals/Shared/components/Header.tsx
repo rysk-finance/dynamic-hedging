@@ -1,19 +1,14 @@
 import type { PropsWithChildren } from "react";
 
-import { Change, Close, Question } from "src/Icons";
+import { Change, Close } from "src/Icons";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType, OptionChainModalActions } from "src/state/types";
 
 interface HeaderProps extends PropsWithChildren {
   changeVisible?: boolean;
-  tutorialVisible?: () => void;
 }
 
-export const Header = ({
-  children,
-  changeVisible = false,
-  tutorialVisible,
-}: HeaderProps) => {
+export const Header = ({ children, changeVisible = false }: HeaderProps) => {
   const {
     dispatch,
     state: {
@@ -55,22 +50,11 @@ export const Header = ({
 
       {changeVisible && (
         <button
-          className={`${tutorialVisible ? "" : "col-start-9"} col-span-1 p-2`}
-          id="quick-switch"
+          className={`col-start-9 col-span-1 p-2`}
           onClick={changeModal}
           title={changeTitle}
         >
           <Change className="text-white" />
-        </button>
-      )}
-
-      {tutorialVisible && (
-        <button
-          className={`${changeVisible ? "" : "col-start-9"} col-span-1 p-2`}
-          onClick={tutorialVisible}
-          title="Click to learn more about this interface."
-        >
-          <Question className="text-white" />
         </button>
       )}
 
