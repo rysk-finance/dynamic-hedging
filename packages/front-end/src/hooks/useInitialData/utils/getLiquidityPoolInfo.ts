@@ -9,7 +9,7 @@ import { logError } from "src/utils/logError";
 
 export const getLiquidityPoolInfo = async (): Promise<LiquidityPool> => {
   try {
-    const [checkBuffer, getAssets] = await readContracts({
+    const [checkBuffer, getAssets, collateralCap] = await readContracts({
       contracts: [
         {
           address: getContractAddress("liquidityPool"),
@@ -21,6 +21,11 @@ export const getLiquidityPoolInfo = async (): Promise<LiquidityPool> => {
           abi: LiquidityPoolABI,
           functionName: "getAssets",
         },
+        {
+          address: getContractAddress("liquidityPool"),
+          abi: LiquidityPoolABI,
+          functionName: "collateralCap",
+        },
       ],
     });
 
@@ -29,6 +34,7 @@ export const getLiquidityPoolInfo = async (): Promise<LiquidityPool> => {
     const utilisationHigh = (remainingBeforeBuffer / totalAssets) * 100 <= 3;
 
     return {
+      collateralCap: fromWeiToInt(collateralCap),
       remainingBeforeBuffer,
       totalAssets,
       utilisationHigh,
@@ -37,6 +43,7 @@ export const getLiquidityPoolInfo = async (): Promise<LiquidityPool> => {
     logError(error);
 
     return {
+      collateralCap:0,
       remainingBeforeBuffer: 0,
       totalAssets: 0,
       utilisationHigh: true,
