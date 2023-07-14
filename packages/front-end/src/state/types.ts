@@ -4,10 +4,14 @@ import type { BigNumber, BigNumberish } from "ethers";
 import type {
   LiquidateActions,
   PositionOToken,
+  RedeemActions,
+  SettleActions,
   Vault,
 } from "src/hooks/useInitialData/types";
 
-import { Dispatch, ReactNode } from "react";
+import { Dispatch } from "react";
+
+import { ActivePositionSort } from "./constants";
 
 export type AppSettings = {
   vaultDepositUnlimitedApproval: boolean;
@@ -19,10 +23,15 @@ export type Expiries = string[];
 
 export interface UserPositionToken extends PositionOToken {
   active: boolean;
+  buyAmount?: BigNumberish;
+  id: HexString;
   netAmount: BigNumberish;
   totalPremium: number;
   liquidateActions?: LiquidateActions[];
   realizedPnl: BigNumberish;
+  redeemActions?: RedeemActions[];
+  sellAmount?: BigNumberish;
+  settleActions?: SettleActions[];
   vault?: Vault;
 }
 
@@ -32,35 +41,10 @@ export interface UserPositions {
     isLong: boolean;
     isShort: boolean;
     activeTokens: UserPositionToken[];
+    inactiveTokens: UserPositionToken[];
     longTokens: UserPositionToken[];
     shortTokens: UserPositionToken[];
   };
-}
-
-export interface FullPosition {
-  amount: number;
-  breakEven: number;
-  createdAt: string;
-  entryPrice: string;
-  expired: boolean;
-  expiryPrice?: string;
-  liquidationPrice: number;
-  id: string;
-  isPut: boolean;
-  isRedeemable: boolean;
-  otokenId: string;
-  side: string;
-  status: string | ReactNode;
-  strikePrice: string;
-  symbol: string;
-  totalPremium: number;
-  underlyingAsset: string;
-  isSettleable: boolean;
-  vaultId: string;
-  collateralAsset: string;
-  expiryTimestamp: string;
-  collateralAmount: string;
-  pnl: number;
 }
 
 export interface ChainData {
@@ -141,10 +125,58 @@ export interface WethOracleHashMap {
   [expiry: string]: number;
 }
 
+export interface ActivePositions {
+  action: string;
+  amount: number;
+  breakEven: number;
+  collateral: {
+    amount: number;
+    asset?: CollateralType;
+    liquidationPrice: number;
+    vault?: Vault;
+  };
+  disabled: boolean;
+  delta: number;
+  entry: number;
+  expiryTimestamp: string;
+  id: HexString;
+  isOpen: boolean;
+  isPut: boolean;
+  isShort: boolean;
+  mark: number;
+  profitLoss: number;
+  series: string;
+  strike: string;
+}
+
+export interface InactivePositions {
+  entry: number;
+  id: string;
+  isShort: boolean;
+  oraclePrice: number;
+  profitLoss?: number;
+  series: string;
+  size: number;
+}
+
+export type ActivePositionsSortType = keyof typeof ActivePositionSort;
+
 export interface UserStats {
   activePnL: number;
+  activePositions: ActivePositions[];
+  activePositionsFilters: {
+    compact: boolean;
+    hideExpired: boolean;
+    isAscending: boolean;
+    sort: ActivePositionsSortType;
+  };
   delta: number;
   historicalPnL: number;
+  inactivePositions: InactivePositions[];
+  inactivePositionsFilters: {
+    compact: boolean;
+  };
+  loading: boolean;
 }
 
 // Global context
@@ -188,21 +220,16 @@ export type GlobalState = {
     wethOracleHashMap: WethOracleHashMap;
   };
 
-  dashboard: {
-    activePositions: FullPosition[];
-    inactivePositions: FullPosition[];
-    modalPosition?: FullPosition;
-  };
-
   // Options chain state.
   collateralPreferences: CollateralPreferences;
+  adjustingOption?: AdjustingOption;
+  closingOption?: ClosingOption;
   selectedOption?: SelectedOption;
   optionChainModalOpen?: OptionChainModal;
   buyTutorialIndex?: number;
   chainTutorialIndex?: number;
   sellTutorialIndex?: number;
   visibleColumns: Set<ColumNames>;
-  dashboardModalOpen?: DashboardModal;
 
   // User balances
   balances: Balances;
@@ -227,14 +254,12 @@ export enum ActionType {
   // Actions related to useInitialData hook.
   SET_OPTIONS,
 
-  // Actions related to dashboard state.
-  SET_DASHBOARD,
-
   // Actions related to options chain state.
   SET_VISIBLE_COLUMNS,
   SET_COLLATERAL_PREFERENCES,
-  SET_DASHBOARD_MODAL_VISIBLE,
+  SET_ADJUSTING_OPTION,
   SET_SELECTED_OPTION,
+  SET_CLOSING_OPTION,
   SET_OPTION_CHAIN_MODAL_VISIBLE,
   SET_BUY_TUTORIAL_INDEX,
   SET_CHAIN_TUTORIAL_INDEX,
@@ -251,13 +276,6 @@ export enum ActionType {
   // User stats
   SET_USER_STATS,
 }
-
-export enum DashboardModalActions {
-  ADJUST_COLLATERAL = "adjustCollateral",
-}
-
-type DashboardModal =
-  (typeof DashboardModalActions)[keyof typeof DashboardModalActions];
 
 export type GlobalAction =
   | {
@@ -314,12 +332,6 @@ export type GlobalAction =
       wethOracleHashMap?: WethOracleHashMap;
     }
   | {
-      type: ActionType.SET_DASHBOARD;
-      activePositions?: FullPosition[];
-      inactivePositions?: FullPosition[];
-      modalPosition?: FullPosition;
-    }
-  | {
       type: ActionType.SET_VISIBLE_COLUMNS;
       column?: ColumNames;
     }
@@ -330,6 +342,15 @@ export type GlobalAction =
   | {
       type: ActionType.SET_SELECTED_OPTION;
       option?: SelectedOption;
+    }
+  | {
+      type: ActionType.SET_ADJUSTING_OPTION;
+      option?: AdjustingOption;
+    }
+  | {
+      type: ActionType.SET_CLOSING_OPTION;
+      expiry?: string;
+      option?: ClosingOption;
     }
   | {
       type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE;
@@ -358,10 +379,6 @@ export type GlobalAction =
         | OptionChainModalActions.OPERATOR;
     }
   | {
-      type: ActionType.SET_DASHBOARD_MODAL_VISIBLE;
-      visible?: DashboardModalActions;
-    }
-  | {
       type: ActionType.SET_USER_BALANCES;
       balances: Balances;
     }
@@ -372,8 +389,20 @@ export type GlobalAction =
   | {
       type: ActionType.SET_USER_STATS;
       activePnL?: number;
+      activePositions?: ActivePositions[];
+      activePositionsFilters?: {
+        compact?: boolean;
+        hideExpired?: boolean;
+        isAscending?: boolean;
+        sort?: ActivePositionsSortType;
+      };
       delta?: number;
       historicalPnL?: number;
+      inactivePositions?: InactivePositions[];
+      inactivePositionsFilters?: {
+        compact?: boolean;
+      };
+      loading?: boolean;
     };
 
 export type GlobalContext = {
@@ -413,8 +442,9 @@ export type OptionsTradingState = {
 };
 
 export enum OptionChainModalActions {
+  ADJUST_COLLATERAL = "adjustCollateral",
   BUY = "buy",
-  CLOSE = "close",
+  CLOSE_LONG = "closeLong",
   OPERATOR = "operator",
   SELL = "sell",
   CLOSE_SHORT = "closeShort",
@@ -434,6 +464,29 @@ export interface SelectedOption {
   buyOrSell: "sell" | "buy";
   callOrPut: CallOrPut;
   strikeOptions: StrikeOptions;
+}
+
+export interface AdjustingOption {
+  address: HexString;
+  amount: number;
+  asset: CollateralType;
+  collateralAmount: number;
+  expiryTimestamp: string;
+  isPut: boolean;
+  liquidationPrice: number;
+  series: string;
+  strike: number;
+  vault: Vault;
+}
+
+export interface ClosingOption {
+  address: HexString;
+  amount: number;
+  isPut: boolean;
+  isShort: boolean;
+  series: string;
+  strike: string;
+  vault?: Vault;
 }
 
 export interface Quote {

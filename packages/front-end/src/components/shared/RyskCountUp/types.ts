@@ -4,4 +4,5 @@ export interface RyskCountUpProps {
   value: number;
   fallback?: string | number;
   format?: Format;
+  prefix?: string;
 }

@@ -1,28 +1,27 @@
 import { ChangeEvent } from "react";
 
-import type { AddressesRequired } from "../Shared/types";
-
 import { BigNumber } from "ethers";
 import { useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 
 import { readContract } from "@wagmi/core";
+import { OptionExchangeABI } from "src/abis/OptionExchange_ABI";
+import { erc20ABI } from "src/abis/erc20_ABI";
+import { approveAllowance } from "src/components/shared/utils/transactions/approveAllowance";
+import { buy } from "src/components/shared/utils/transactions/buy";
+import { ZERO_ADDRESS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
 import { toOpyn, toRysk, toUSDC, toWei } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
+import { useNotifications } from "../../hooks/useNotifications";
 import { Disclaimer } from "../Shared/components/Disclaimer";
 import { Button, Input, Label, Wrapper } from "../Shared/components/Form";
 import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
-import { useNotifications } from "../Shared/hooks/useNotifications";
 import { getButtonProps } from "../Shared/utils/getButtonProps";
-import { approveAllowance, buy } from "../Shared/utils/transactions";
 import { Pricing } from "./components/Pricing";
 import { useBuyOption } from "./hooks/useBuyOption";
-import { OptionExchangeABI } from "src/abis/OptionExchange_ABI";
-import { ZERO_ADDRESS } from "src/config/constants";
-import { erc20ABI } from "src/abis/erc20_ABI";
 
 export const BuyOptionModal = () => {
   const {
@@ -63,7 +62,8 @@ export const BuyOptionModal = () => {
         const amount = toUSDC(positionData.requiredApproval);
 
         const hash = await approveAllowance(
-          addresses as AddressesRequired,
+          addresses.exchange,
+          addresses.token,
           amount
         );
 
@@ -120,10 +120,11 @@ export const BuyOptionModal = () => {
 
         const hash = await buy(
           positionData.acceptablePremium,
-          addresses as AddressesRequired,
           amount,
+          addresses.exchange,
           optionSeries,
-          refresh
+          refresh,
+          addresses.user
         );
 
         if (hash) {

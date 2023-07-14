@@ -3596,3 +3596,10 @@ export const LP_WHITELIST: HexString[] = [
   ...degenscoreDepositors,
   ...testAddresses,
 ];
+
+export enum ActivePositionSort {
+  Delta = "Delta",
+  Expiry = "Expiry",
+  PnL = "PnL",
+  Size = "Size",
+}

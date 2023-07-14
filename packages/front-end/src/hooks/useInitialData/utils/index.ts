@@ -1,13 +1,13 @@
 import type { InitialDataQuery } from "../types";
 
-import { getExpiries } from "./getExpiries";
-import { getUserPositions } from "./getUserPositions";
+import { buildOracleHashMap } from "./buildOracleHashMap";
 import { getChainData } from "./getChainData";
-import { getOperatorStatus } from "./getOperatorStatus";
-import { getUserVaults } from "./getUserVaults";
+import { getExpiries } from "./getExpiries";
 import { getLiquidationCalculationParameters } from "./getLiquidationCalculationParameters";
 import { getLiquidityPoolInfo } from "./getLiquidityPoolInfo";
-import { buildOracleHashMap } from "./buildOracleHashMap";
+import { getOperatorStatus } from "./getOperatorStatus";
+import { getUserPositions } from "./getUserPositions";
+import { getUserVaults } from "./getUserVaults";
 
 export const getInitialData = async (
   data: InitialDataQuery,

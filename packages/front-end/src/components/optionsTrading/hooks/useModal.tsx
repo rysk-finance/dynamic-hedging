@@ -1,35 +1,28 @@
 import { useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
-import { BigNumber } from "ethers";
 
 import { useGlobalContext } from "src/state/GlobalContext";
 
-import {
-  ActionType,
-  OptionChainModalActions,
-  DashboardModalActions,
-} from "src/state/types";
+import { ActionType, OptionChainModalActions } from "src/state/types";
 
 /**
  * Hook that checks query params and state to determine if
  * the modal should be visible.
  *
- * The buy modal is keyed from the `selectedOption` state variable.
- *
- * The close long position modal is keyed from query params.
+ * The buy/sell modals are keyed from the `selectedOption` state variable.
+ * The closing modals are keyed from the `closingOption` state variable.
+ * The collateral adjustment modal is keyed from the `adjustingOption` state variable.
  *
  * Returns a boolean value for the modal state.
  *
  * @returns readonly [OptionChainModalActions | undefined]
  */
 export const useModal = () => {
-  const [searchParams] = useSearchParams();
-
   const {
     state: {
-      options: { activeExpiry, isOperator, userPositions },
-      dashboardModalOpen,
+      adjustingOption,
+      closingOption,
       optionChainModalOpen,
+      options: { activeExpiry, isOperator },
       selectedOption,
     },
     dispatch,
@@ -57,22 +50,17 @@ export const useModal = () => {
   // Dispatcher for opening modals.
   useEffect(() => {
     if (activeExpiry) {
-      const hasSellRef = searchParams.get("ref") === "close";
-      const hasVaultCloseRef = searchParams.get("ref") === "vault-close";
-      const hasUserPosition = userPositions[activeExpiry]?.activeTokens.find(
-        ({ id, netAmount }) =>
-          id === searchParams.get("token") &&
-          (hasVaultCloseRef
-            ? BigNumber.from(netAmount).lt(0)
-            : BigNumber.from(netAmount).gt(0))
-      );
-
-      if (hasSellRef && hasUserPosition) {
+      if (adjustingOption) {
         dispatch({
           type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
-          visible: OptionChainModalActions.CLOSE,
+          visible: OptionChainModalActions.ADJUST_COLLATERAL,
         });
-      } else if (hasVaultCloseRef && hasUserPosition) {
+      } else if (closingOption && !closingOption.isShort) {
+        dispatch({
+          type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
+          visible: OptionChainModalActions.CLOSE_LONG,
+        });
+      } else if (closingOption && closingOption.isShort) {
         dispatch({
           type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
           visible: OptionChainModalActions.CLOSE_SHORT,
@@ -95,14 +83,13 @@ export const useModal = () => {
       }
       return;
     }
+  }, [
+    activeExpiry,
+    adjustingOption,
+    closingOption,
+    isOperator,
+    selectedOption,
+  ]);
 
-    if (searchParams.get("ref") === "adjust-collateral") {
-      dispatch({
-        type: ActionType.SET_DASHBOARD_MODAL_VISIBLE,
-        visible: DashboardModalActions.ADJUST_COLLATERAL,
-      });
-    }
-  }, [activeExpiry, isOperator, searchParams, selectedOption]);
-
-  return [optionChainModalOpen, dashboardModalOpen] as const;
+  return [optionChainModalOpen] as const;
 };
