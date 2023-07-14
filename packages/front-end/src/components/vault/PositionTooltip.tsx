@@ -2,7 +2,7 @@ import { BIG_NUMBER_DECIMALS, ZERO_UINT_256 } from "../../config/constants";
 import { useUserPosition } from "../../hooks/useUserPosition";
 import { Currency } from "../../types";
 import { BigNumberDisplay } from "../BigNumberDisplay";
-import { RyskTooltip } from "../RyskTooltip";
+import { RyskTooltip } from "../shared/RyskToolTip";
 
 export const PositionTooltip = () => {
   const { positionBreakdown } = useUserPosition();

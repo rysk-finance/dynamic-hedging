@@ -29,9 +29,9 @@ import {
 } from "../../types";
 import { BigNumberDisplay } from "../BigNumberDisplay";
 import { Loader } from "../Loader";
-import { RyskTooltip } from "../RyskTooltip";
 import { LOCAL_STORAGE_SETTINGS_KEY } from "../dashboard/Settings";
 import { Button } from "../shared/Button";
+import { RyskTooltip } from "../shared/RyskToolTip";
 import { TextInput } from "../shared/TextInput";
 import { Toggle } from "../shared/Toggle";
 import { PositionTooltip } from "./PositionTooltip";

@@ -11,8 +11,8 @@ import { useContract } from "../../hooks/useContract";
 import { useUserPosition } from "../../hooks/useUserPosition";
 import { Currency, DepositReceipt } from "../../types";
 import { BigNumberDisplay } from "../BigNumberDisplay";
-import { RyskTooltip } from "../RyskTooltip";
 import { Card } from "../shared/Card";
+import { RyskTooltip } from "../shared/RyskToolTip";
 import { PositionTooltip } from "../vault/PositionTooltip";
 
 export const UserVault = () => {

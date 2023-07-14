@@ -4,8 +4,8 @@ import NumberFormat from "react-number-format";
 import ReactSlider from "react-slider";
 import { useAccount, useNetwork } from "wagmi";
 
-import ERC20ABI from "../../abis/erc20.json";
 import LPABI from "../../abis/LiquidityPool.json";
+import ERC20ABI from "../../abis/erc20.json";
 import {
   BIG_NUMBER_DECIMALS,
   DECIMALS,
@@ -22,8 +22,8 @@ import { useVaultContext } from "../../state/VaultContext";
 import { Currency, WithdrawalReceipt } from "../../types";
 import { BigNumberDisplay } from "../BigNumberDisplay";
 import { Loader } from "../Loader";
-import { RyskTooltip } from "../RyskTooltip";
 import { Button } from "../shared/Button";
+import { RyskTooltip } from "../shared/RyskToolTip";
 import { TextInput } from "../shared/TextInput";
 import { PositionTooltip } from "./PositionTooltip";
 

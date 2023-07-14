@@ -1,24 +1,16 @@
-import type { ReactElement, ReactNode } from "react";
-import type { Placement } from "tippy.js";
+import type { RyskToolTipProps } from "./types";
 
 import Tippy from "@tippyjs/react";
 import "tippy.js/dist/tippy.css";
 
 import { Info } from "src/Icons";
 
-interface Props {
-  children?: ReactElement;
-  disabled?: boolean;
-  content: ReactNode;
-  placement?: Placement;
-}
-
 export const RyskTooltip = ({
   children,
   disabled = false,
   content,
   placement = "auto",
-}: Props) => (
+}: RyskToolTipProps) => (
   <Tippy
     content={content}
     disabled={disabled}
