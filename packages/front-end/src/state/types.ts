@@ -111,6 +111,7 @@ export interface Balances {
 }
 
 export interface LiquidityPool {
+  collateralCap: number;
   remainingBeforeBuffer: number;
   totalAssets: number;
   utilisationHigh: boolean;

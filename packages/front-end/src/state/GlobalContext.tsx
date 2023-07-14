@@ -51,6 +51,7 @@ export const defaultGlobalState: GlobalState = {
     expiries: [],
     isOperator: false,
     liquidityPool: {
+      collateralCap: 0,
       remainingBeforeBuffer: 0,
       totalAssets: 0,
       utilisationHigh: false,
