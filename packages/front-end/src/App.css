@@ -43,9 +43,7 @@
   background-color: #6abd00;
 }
 
-.__react_component_tooltip {
-  opacity: 1 !important;
-}
+
 
 .overflow-hidden {
   overflow: hidden;
@@ -61,4 +59,9 @@
   -webkit-appearance: none;
   margin: 0;
   -moz-appearance: textfield !important;
+}
+
+.tippy-box[data-theme~='rysk'] {
+  background-color: #000;
+  color: #EDE9DD;
 }

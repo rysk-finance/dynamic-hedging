@@ -492,11 +492,7 @@ export const VaultDeposit = () => {
             <div className="flex justify-between items-center">
               <div className="flex">
                 <p>Deposits on hold</p>
-                <RyskTooltip
-                  message={DEPOSIT_SHARES_EPOCH}
-                  id={"strategeyTip"}
-                  tooltipProps={{ className: "max-w-[350px]" }}
-                />
+                <RyskTooltip content={DEPOSIT_SHARES_EPOCH} />
               </div>
               <div className="h-4 flex items-center">
                 {listeningForDeposit && <Loader className="mr-2 !h-[24px]" />}

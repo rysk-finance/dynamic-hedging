@@ -67,13 +67,5 @@ export const PositionTooltip = () => {
     );
   };
 
-  return (
-    <RyskTooltip
-      message={<TooltipMessage />}
-      id={"positionTip"}
-      tooltipProps={{ place: "bottom", className: "w-fit" }}
-      color="white"
-      iconProps={{ className: "translate-y-[2px]" }}
-    ></RyskTooltip>
-  );
+  return <RyskTooltip content={<TooltipMessage />} />;
 };

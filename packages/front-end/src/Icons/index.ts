@@ -5,6 +5,7 @@ import { Cog } from "./Cog";
 import { CursorRipple } from "./CursorRipple";
 import { DownChevron } from "./DownChevron";
 import { Ether } from "./Ether";
+import { Info } from "./Info";
 import { LeftArrow } from "./LeftArrow";
 import { Loading } from "./Loading";
 import { Podium } from "./Podium";
@@ -25,6 +26,7 @@ export {
   CursorRipple,
   DownChevron,
   Ether,
+  Info,
   LeftArrow,
   Loading,
   Podium,

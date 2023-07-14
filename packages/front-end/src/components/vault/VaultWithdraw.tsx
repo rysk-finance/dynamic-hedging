@@ -388,11 +388,7 @@ export const VaultWithdraw = () => {
                 <div className="flex justify-between items-center">
                   <p className="text-[16px] mr-2">
                     {`Estimated withdrawal amount`}
-                    <RyskTooltip
-                      tooltipProps={{ className: "max-w-[350px]" }}
-                      message={WITHDRAW_ESTIMATE_MESSAGE}
-                      id={"withdrawTip"}
-                    />
+                    <RyskTooltip content={WITHDRAW_ESTIMATE_MESSAGE} />
                   </p>
                   <p>
                     {isConnected ? (
@@ -450,11 +446,7 @@ export const VaultWithdraw = () => {
               <div className="flex justify-between items-center">
                 <div className="flex">
                   <p>Withdraw on hold</p>
-                  <RyskTooltip
-                    tooltipProps={{ className: "max-w-[350px]" }}
-                    message={WITHDRAW_SHARES_EPOCH}
-                    id={"strategeyTip"}
-                  />
+                  <RyskTooltip content={WITHDRAW_SHARES_EPOCH} />
                 </div>
 
                 <div className="h-4 flex items-center">

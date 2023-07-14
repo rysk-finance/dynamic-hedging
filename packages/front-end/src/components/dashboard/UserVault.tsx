@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import NumberFormat from "react-number-format";
 import { useAccount, useNetwork } from "wagmi";
 
-import ReactTooltip from "react-tooltip";
 import { QueriesEnum } from "src/clients/Apollo/Queries";
 import LPABI from "../../abis/LiquidityPool.json";
 import { BIG_NUMBER_DECIMALS, DHV_NAME } from "../../config/constants";
@@ -155,9 +154,7 @@ export const UserVault = () => {
                       <h4 className="mb-2 text-xl">
                         P/L
                         <RyskTooltip
-                          message={`Profit or Losses based on your current ${DHV_NAME} position in USDC net of deposits and withdraws`}
-                          color="white"
-                          id="pnlTip"
+                          content={`Profit or Losses based on your current ${DHV_NAME} position in USDC net of deposits and withdraws`}
                         />
                       </h4>
                     </>
@@ -182,18 +179,7 @@ export const UserVault = () => {
                       <img alt="info" src="/icons/info.svg" />
                     </button>
                     {/* TODO  update with epoch time */}
-                    <ReactTooltip
-                      id="queuedTip"
-                      place="bottom"
-                      multiline={true}
-                      backgroundColor="#EDE9DD"
-                      textColor="black"
-                      border={true}
-                      borderColor="black"
-                    >
-                      Your USDC will be available to redeem as shares every
-                      Friday
-                    </ReactTooltip>
+                    <RyskTooltip content="Your USDC will be available to redeem as shares every Friday" />
                   </div>
                 )}
 
