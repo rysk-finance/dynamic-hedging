@@ -2,20 +2,17 @@ import { gql, useQuery } from "@apollo/client";
 import { BigNumber } from "ethers/lib/ethers";
 import { useEffect, useState } from "react";
 import NumberFormat from "react-number-format";
-import { Link } from "react-router-dom";
 import { useAccount, useNetwork } from "wagmi";
 
 import ReactTooltip from "react-tooltip";
 import { QueriesEnum } from "src/clients/Apollo/Queries";
 import LPABI from "../../abis/LiquidityPool.json";
-import { AppPaths } from "../../config/appPaths";
 import { BIG_NUMBER_DECIMALS, DHV_NAME } from "../../config/constants";
 import { useContract } from "../../hooks/useContract";
 import { useUserPosition } from "../../hooks/useUserPosition";
 import { Currency, DepositReceipt } from "../../types";
 import { BigNumberDisplay } from "../BigNumberDisplay";
 import { RyskTooltip } from "../RyskTooltip";
-import { Button } from "../shared/Button";
 import { Card } from "../shared/Card";
 import { PositionTooltip } from "../vault/PositionTooltip";
 
@@ -23,9 +20,6 @@ export const UserVault = () => {
   const { address, isConnected, isDisconnected } = useAccount();
   const { chain } = useNetwork();
   const { userPositionValue, updatePosition } = useUserPosition();
-
-  const SUBGRAPH_URI =
-    chain?.id !== undefined ? process.env.REACT_APP_SUBGRAPH_URL : "";
 
   const [depositBalance, setDepositBalance] = useState<BigNumber>(
     BigNumber.from(0)
@@ -43,11 +37,9 @@ export const UserVault = () => {
 
   useEffect(() => {
     if (address) {
-      (() => {
-        updatePosition(address);
-      })();
+      updatePosition(address);
     }
-  }, [address, updatePosition]);
+  }, [address]);
 
   useQuery(
     gql`
@@ -96,12 +88,10 @@ export const UserVault = () => {
       setUnredeemedSharesValue(unredeemedSharesValue);
     };
 
-    (async () => {
-      if (address && lpContract) {
-        await getCurrentPosition(address);
-      }
-    })();
-  }, [address, lpContract, SUBGRAPH_URI]);
+    if (address) {
+      getCurrentPosition(address);
+    }
+  }, [address]);
 
   return (
     <Card

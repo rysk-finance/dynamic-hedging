@@ -121,6 +121,7 @@ export const VaultDeposit = () => {
         type: VaultActionType.SET,
         data: { userDHVBalance: sharesBalance },
       });
+
       return sharesBalance;
     },
     [lpContract, dispatch]
@@ -200,7 +201,7 @@ export const VaultDeposit = () => {
       getRedeemedShares(address);
       updatePosition(address);
     }
-  }, [updateDepositState, address, getRedeemedShares, updatePosition]);
+  }, [updateDepositState, address, getRedeemedShares]);
 
   const getAllowance = useCallback(async () => {
     if (address) {
