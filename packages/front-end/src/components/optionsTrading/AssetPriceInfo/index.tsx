@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback } from "react";
 
-import { Question } from "src/Icons";
+import { Cog } from "src/Icons";
 import FadeInOut from "src/animation/FadeInOut";
 import FadeInOutFixedDelay from "src/animation/FadeInOutFixedDelay";
 import { useGlobalContext } from "src/state/GlobalContext";
@@ -73,8 +73,7 @@ export const AssetPriceInfo = () => {
       </button>
 
       <button className="ml-auto border-l-2 border-black">
-        <Question className="min-w-[8rem] w-24 h-24 py-4" />
-        {/* TODO: Change to cog for settings. */}
+        <Cog className="min-w-[8rem] w-24 h-24 py-4" />
       </button>
     </motion.div>
   );

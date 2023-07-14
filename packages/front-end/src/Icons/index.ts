@@ -1,6 +1,7 @@
 import { Change } from "./Change";
 import { ChevronUpDown } from "./ChevronUpDown";
 import { Close } from "./Close";
+import { Cog } from "./Cog";
 import { CursorRipple } from "./CursorRipple";
 import { DownChevron } from "./DownChevron";
 import { Ether } from "./Ether";
@@ -20,6 +21,7 @@ export {
   Change,
   ChevronUpDown,
   Close,
+  Cog,
   CursorRipple,
   DownChevron,
   Ether,
