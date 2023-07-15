@@ -3588,6 +3588,13 @@ const degenscoreDepositors: HexString[] = [
   "0x470d235ca1caff614abee02d98ac3aa89a6758bd",
   "0xdd32231c664f6e3456e81ec6c27c6f429c7dc3b3",
   "0xcdb1d02bc1da07e8d166241d339e645d1466579c",
+  "0x4026b3da349c2952255ca9db4f055ea57f4e037c",
+  "0xc2a4b640dd4e591559fcdeb8566a05c23237d9e6",
+  "0xedf4fa418216a13e7629fed73e7448985cc8bc82",
+  "0x38cd808be77b1a61973e7202a8e1b96e98cf315b",
+  "0x49f63b254ea9043e57678c13e06aef257fab45c1",
+  "0xc8dd49c2ffb2d07b496aae231075433c32702ff8",
+  "0x7494eb2916cad8649f4f91eb1db6e20be605dad6",
 ];
 
 const moniAddresses: HexString[] = [
