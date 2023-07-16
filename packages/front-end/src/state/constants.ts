@@ -4422,6 +4422,7 @@ const otherCommunitiesAddresses: HexString[] = [
   "0x2ba838e42126ac349d01c3d1fac85a36266151a4",
   "0xeb309f610be8569eaca8afab585c65c55de1934a",
   "0x11ad3f9158691c5e49b100a8517e23ce98f1421f",
+  "0xf8e6f23f18a04bfd481ce71ac894488568285f1b"
 ]
 
 const testAddresses: HexString[] = [
