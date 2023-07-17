@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import { useMemo } from "react";
 
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
 import { Refresh } from "src/Icons";
@@ -12,8 +13,14 @@ export const CurrentPrice = () => {
       options: {
         liquidityPool: { remainingBeforeBuffer, utilisationHigh },
       },
+      userTradingPreferences: { dhvBalance },
     },
   } = useGlobalContext();
+
+  const warning = useMemo(
+    () => utilisationHigh && !dhvBalance,
+    [utilisationHigh, dhvBalance]
+  );
 
   return (
     <div className="flex items-center justify-between grow px-4">
@@ -25,10 +32,10 @@ export const CurrentPrice = () => {
 
         <small
           className={`text-xs text-left mt-2 ${
-            utilisationHigh ? "text-red-500" : "text-gray-600"
+            warning ? "text-red-500" : "text-gray-600"
           }`}
         >
-          {utilisationHigh ? (
+          {warning ? (
             <>{`DHV utilisation is high. Some TXs may fail.`}</>
           ) : (
             <>

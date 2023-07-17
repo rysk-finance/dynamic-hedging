@@ -43,7 +43,7 @@ export const getLiquidityPoolInfo = async (): Promise<LiquidityPool> => {
     logError(error);
 
     return {
-      collateralCap:0,
+      collateralCap: 0,
       remainingBeforeBuffer: 0,
       totalAssets: 0,
       utilisationHigh: true,
