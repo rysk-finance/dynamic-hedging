@@ -12,10 +12,12 @@ export const RyskModal = ({ children, lightBoxClickFn }: RyskModalProps) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    document.body.classList.toggle("overflow-hidden", true);
+    document.body.classList.toggle("overflow-y-scroll", true);
+    document.body.classList.toggle("fixed", true);
 
     return () => {
-      document.body.classList.toggle("overflow-hidden", false);
+      document.body.classList.toggle("overflow-y-scroll", false);
+      document.body.classList.toggle("fixed", false);
     };
   }, []);
 
