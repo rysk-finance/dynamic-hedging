@@ -417,7 +417,6 @@ export type VaultState = {
   withdrawalEpoch: BigNumber | null;
   withdrawPricePerShare: BigNumber | null;
   withdrawalPricePerShare: BigNumber | null;
-  whitelistedAddresses: HexString[];
 };
 
 export enum VaultActionType {
