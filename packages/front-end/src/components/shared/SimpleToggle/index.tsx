@@ -2,7 +2,11 @@ import type { ToggleProps } from "./types";
 
 export const SimpleToggle = ({ children, isActive }: ToggleProps) => (
   <>
-    <small className="leading-6">{children}</small>
+    {typeof children === "string" ? (
+      <small className="leading-6">{children}</small>
+    ) : (
+      <>{children}</>
+    )}
     <div className="relative w-8 h-4 ml-2 p-1 bg-bone-dark rounded-full shadow-[inset_0_0_10px_rgba(0,0,0,0.2)]">
       <div
         className={`absolute ${
