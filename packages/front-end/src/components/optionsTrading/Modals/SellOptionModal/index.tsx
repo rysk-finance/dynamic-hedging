@@ -7,7 +7,6 @@ import { useDebounce } from "use-debounce";
 import { approveAllowance } from "src/components/shared/utils/transactions/approveAllowance";
 import { sell } from "src/components/shared/utils/transactions/sell";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { ActionType } from "src/state/types";
 import { toRysk, toUSDC, toWei } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { useNotifications } from "../../hooks/useNotifications";
@@ -138,16 +137,9 @@ export const SellOptionModal = () => {
     }
   }, [selectedOption]);
 
-
-
-
   return (
     <Modal>
-      <Header
-        changeVisible={!disableChangeButton}
-      >
-        {`Sell Position`}
-      </Header>
+      <Header changeVisible={!disableChangeButton}>{`Sell Position`}</Header>
 
       <div className="flex flex-col">
         <Symbol positionData={positionData} />
@@ -158,9 +150,7 @@ export const SellOptionModal = () => {
       </div>
 
       <Wrapper>
-        <Label
-          title="Enter how many contracts you would like to sell."
-        >
+        <Label title="Enter how many contracts you would like to sell.">
           <Input
             name="sell-amount"
             onChange={handleAmountChange}

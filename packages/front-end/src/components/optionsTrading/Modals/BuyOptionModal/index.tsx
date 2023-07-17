@@ -11,7 +11,6 @@ import { approveAllowance } from "src/components/shared/utils/transactions/appro
 import { buy } from "src/components/shared/utils/transactions/buy";
 import { ZERO_ADDRESS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { ActionType } from "src/state/types";
 import { toOpyn, toRysk, toUSDC, toWei } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { useNotifications } from "../../hooks/useNotifications";
@@ -156,22 +155,14 @@ export const BuyOptionModal = () => {
     }
   }, [selectedOption]);
 
-
-
   return (
     <Modal>
-      <Header
-        changeVisible={!disableChangeButton}
-      >
-        {`Buy Position`}
-      </Header>
+      <Header changeVisible={!disableChangeButton}>{`Buy Position`}</Header>
 
       <Pricing positionData={positionData} />
 
       <Wrapper>
-        <Label
-          title="Enter how many contracts you would like to buy."
-        >
+        <Label title="Enter how many contracts you would like to buy.">
           <Input
             name="buy-amount"
             onChange={handleChange}
