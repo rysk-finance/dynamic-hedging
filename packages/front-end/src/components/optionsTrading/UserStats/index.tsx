@@ -6,7 +6,6 @@ import { useGlobalContext } from "src/state/GlobalContext";
 import { Card } from "../../shared/SimpleCard";
 import { Filters } from "./components/Filters";
 import { Table } from "./components/PositionsTable";
-import { usePreferences } from "./hooks/usePreferences";
 import { useUserStats } from "./hooks/useUserStats";
 
 export const UserStats = () => {
@@ -24,7 +23,6 @@ export const UserStats = () => {
   } = useGlobalContext();
 
   useUserStats();
-  usePreferences();
 
   return (
     <AnimatePresence mode="wait">

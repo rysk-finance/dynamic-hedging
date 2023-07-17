@@ -1,10 +1,13 @@
 import type { ActivePositionsSortType } from "src/state/types";
 
+import { ChevronUpDown } from "src/Icons";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActivePositionSort } from "src/state/constants";
+import {
+  LocalStorageKeys,
+  setLocalStorageObject,
+} from "src/state/localStorage";
 import { ActionType } from "src/state/types";
-import { Preferences } from "../../../enums";
-import { ChevronUpDown } from "src/Icons";
 
 const columns = [
   {
@@ -69,9 +72,9 @@ export const Head = () => {
       sort: newSort,
     };
 
-    localStorage.setItem(
-      Preferences.ACTIVE_POSITIONS_FILTERS_SORTING,
-      JSON.stringify(activePositionsFilters)
+    setLocalStorageObject(
+      LocalStorageKeys.ACTIVE_POSITIONS_FILTERS_SORTING,
+      activePositionsFilters
     );
 
     dispatch({

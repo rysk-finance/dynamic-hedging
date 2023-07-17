@@ -1,5 +1,9 @@
 export enum LocalStorageKeys {
-  TRADING_PREFERENCES = "rysk-up",
+  ACTIVE_POSITIONS_FILTERS_COMPACT = "rysk-apfc",
+  ACTIVE_POSITIONS_FILTERS_HIDE_EXPIRED = "rysk-apfhe",
+  ACTIVE_POSITIONS_FILTERS_SORTING = "rysk-apfs",
+  INACTIVE_POSITIONS_FILTERS_COMPACT = "rysk-ipfc",
+  TRADING_PREFERENCES = "rysk-tp",
 }
 
 export const getLocalStorageObject = <

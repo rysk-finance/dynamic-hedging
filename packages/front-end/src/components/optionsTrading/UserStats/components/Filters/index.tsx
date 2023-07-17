@@ -1,6 +1,9 @@
 import { useGlobalContext } from "src/state/GlobalContext";
+import {
+  LocalStorageKeys,
+  setLocalStorageObject,
+} from "src/state/localStorage";
 import { ActionType } from "src/state/types";
-import { Preferences } from "../../enums";
 import { SimpleToggle } from "../../../../shared/SimpleToggle";
 
 export const Filters = () => {
@@ -16,9 +19,9 @@ export const Filters = () => {
   const handleHideExpiredClick = () => {
     const activePositionsFilters = { hideExpired: !hideExpired };
 
-    localStorage.setItem(
-      Preferences.ACTIVE_POSITIONS_FILTERS_HIDE_EXPIRED,
-      JSON.stringify(activePositionsFilters)
+    setLocalStorageObject(
+      LocalStorageKeys.ACTIVE_POSITIONS_FILTERS_HIDE_EXPIRED,
+      activePositionsFilters
     );
 
     dispatch({
@@ -30,9 +33,9 @@ export const Filters = () => {
   const handleCompactClick = () => {
     const activePositionsFilters = { compact: !compact };
 
-    localStorage.setItem(
-      Preferences.ACTIVE_POSITIONS_FILTERS_COMPACT,
-      JSON.stringify(activePositionsFilters)
+    setLocalStorageObject(
+      LocalStorageKeys.ACTIVE_POSITIONS_FILTERS_COMPACT,
+      activePositionsFilters
     );
 
     dispatch({

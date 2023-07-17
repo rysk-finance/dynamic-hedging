@@ -5,6 +5,7 @@ import type {
   ColumNames,
   GlobalContext,
   GlobalState,
+  UserStats,
   UserTradingPreferences,
 } from "./types";
 
@@ -134,17 +135,22 @@ export const defaultGlobalState: GlobalState = {
     activePnL: 0,
     activePositions: [],
     activePositionsFilters: {
-      compact: true,
-      hideExpired: false,
-      isAscending: true,
-      sort: ActivePositionSort.Expiry,
+      ...getLocalStorageObject<UserStats["activePositionsFilters"]>(
+        LocalStorageKeys.ACTIVE_POSITIONS_FILTERS_COMPACT
+      ),
+      ...getLocalStorageObject<UserStats["activePositionsFilters"]>(
+        LocalStorageKeys.ACTIVE_POSITIONS_FILTERS_HIDE_EXPIRED
+      ),
+      ...getLocalStorageObject<UserStats["activePositionsFilters"]>(
+        LocalStorageKeys.ACTIVE_POSITIONS_FILTERS_SORTING
+      ),
     },
     delta: 0,
     historicalPnL: 0,
     inactivePositions: [],
-    inactivePositionsFilters: {
-      compact: true,
-    },
+    inactivePositionsFilters: getLocalStorageObject<
+      UserStats["inactivePositionsFilters"]
+    >(LocalStorageKeys.INACTIVE_POSITIONS_FILTERS_COMPACT),
     loading: true,
   },
 };
