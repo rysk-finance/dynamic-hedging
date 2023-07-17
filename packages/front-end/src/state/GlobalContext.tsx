@@ -19,12 +19,16 @@ import {
 
 import { LOCAL_STORAGE_SETTINGS_KEY } from "../components/dashboard/Settings";
 import { useLocalStorage } from "../hooks/useLocalStorage";
-import { ActivePositionSort } from "./constants";
 import { globalReducer } from "./reducer";
 import { ActionType } from "./types";
 
 // Trading preferences
-import { getLocalStorageObject, LocalStorageKeys } from "./localStorage";
+import { ActivePositionSort } from "./constants";
+import {
+  getLocalStorageObject,
+  getLocalStorageSet,
+  LocalStorageKeys,
+} from "./localStorage";
 
 export const defaultSpotShock = 0.7;
 export const defaultTimesToExpiry = [
@@ -104,17 +108,19 @@ export const defaultGlobalState: GlobalState = {
   closingOption: undefined,
   selectedOption: undefined,
   optionChainModalOpen: undefined,
-  visibleColumns: new Set([
-    "sell",
-    "buy",
-    "iv sell",
-    "iv buy",
-    "delta",
-    "pos",
-    "exposure",
-  ] as ColumNames[]),
+  visibleColumns: getLocalStorageSet<Set<ColumNames>>(
+    LocalStorageKeys.OPTION_CHAIN_FILTERS,
+    new Set(["sell", "buy", "iv sell", "iv buy", "delta", "pos", "exposure"])
+  ),
   userTradingPreferences: getLocalStorageObject<UserTradingPreferences>(
-    LocalStorageKeys.TRADING_PREFERENCES
+    LocalStorageKeys.TRADING_PREFERENCES,
+    {
+      approvals: false,
+      calendarMode: false,
+      dhvBalance: false,
+      tutorialMode: false,
+      untradeableStrikes: false,
+    }
   ),
 
   // User balances
@@ -136,13 +142,16 @@ export const defaultGlobalState: GlobalState = {
     activePositions: [],
     activePositionsFilters: {
       ...getLocalStorageObject<UserStats["activePositionsFilters"]>(
-        LocalStorageKeys.ACTIVE_POSITIONS_FILTERS_COMPACT
+        LocalStorageKeys.ACTIVE_POSITIONS_FILTERS_COMPACT,
+        { compact: true }
       ),
       ...getLocalStorageObject<UserStats["activePositionsFilters"]>(
-        LocalStorageKeys.ACTIVE_POSITIONS_FILTERS_HIDE_EXPIRED
+        LocalStorageKeys.ACTIVE_POSITIONS_FILTERS_HIDE_EXPIRED,
+        { hideExpired: false }
       ),
       ...getLocalStorageObject<UserStats["activePositionsFilters"]>(
-        LocalStorageKeys.ACTIVE_POSITIONS_FILTERS_SORTING
+        LocalStorageKeys.ACTIVE_POSITIONS_FILTERS_SORTING,
+        { isAscending: true, sort: ActivePositionSort.Expiry }
       ),
     },
     delta: 0,
@@ -150,7 +159,7 @@ export const defaultGlobalState: GlobalState = {
     inactivePositions: [],
     inactivePositionsFilters: getLocalStorageObject<
       UserStats["inactivePositionsFilters"]
-    >(LocalStorageKeys.INACTIVE_POSITIONS_FILTERS_COMPACT),
+    >(LocalStorageKeys.INACTIVE_POSITIONS_FILTERS_COMPACT, { compact: true }),
     loading: true,
   },
 };

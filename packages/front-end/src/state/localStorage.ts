@@ -10,11 +10,14 @@ export enum LocalStorageKeys {
 export const getLocalStorageObject = <
   StorageObjectType = Record<string, boolean>
 >(
-  localStorageKey: `${LocalStorageKeys}`
+  localStorageKey: `${LocalStorageKeys}`,
+  defaultValue = {}
 ) => {
   const storageObject = localStorage.getItem(localStorageKey);
 
-  return (storageObject ? JSON.parse(storageObject) : {}) as StorageObjectType;
+  return (
+    storageObject ? JSON.parse(storageObject) : defaultValue
+  ) as StorageObjectType;
 };
 
 export const setLocalStorageObject = (
@@ -23,12 +26,13 @@ export const setLocalStorageObject = (
 ) => localStorage.setItem(localStorageKey, JSON.stringify(data));
 
 export const getLocalStorageSet = <StorageObjectType = Set<string>>(
-  localStorageKey: `${LocalStorageKeys}`
+  localStorageKey: `${LocalStorageKeys}`,
+  defaultValue = new Set()
 ) => {
   const storageObject = localStorage.getItem(localStorageKey);
 
   return (
-    storageObject ? new Set(JSON.parse(storageObject)) : new Set()
+    storageObject ? new Set(JSON.parse(storageObject)) : defaultValue
   ) as StorageObjectType;
 };
 
