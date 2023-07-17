@@ -9,7 +9,6 @@ import ERC20ABI from "../../abis/erc20.json";
 import {
   BIG_NUMBER_DECIMALS,
   DECIMALS,
-  DHV_NAME,
   MAX_UINT_256,
   ZERO_UINT_256,
 } from "../../config/constants";
@@ -43,7 +42,6 @@ export const VaultDeposit = () => {
   const {
     state: {
       depositEpoch: currentEpoch,
-      whitelistedAddresses,
       withdrawPricePerShare: currentPricePerShare,
     },
     dispatch,
@@ -307,20 +305,14 @@ export const VaultDeposit = () => {
       ? approvedAmount?.gt(BigNumber.from(MAX_UINT_256).div(2))
       : true);
 
-  const isWhitelisted = whitelistedAddresses.includes(
-    address?.toLowerCase() as HexString
-  );
   const approveIsDisabled =
     !inputValue ||
     amountIsApproved ||
     listeningForApproval ||
-    ethers.utils.parseUnits(inputValue)._hex === ZERO_UINT_256 ||
-    !isWhitelisted ||
-    geoData.blocked;
+    ethers.utils.parseUnits(inputValue)._hex === ZERO_UINT_256;
   const depositIsDisabled =
     !(inputValue && address && approveIsDisabled) ||
     listeningForDeposit ||
-    !isWhitelisted ||
     geoData.blocked;
 
   return (
@@ -418,11 +410,7 @@ export const VaultDeposit = () => {
 
           {isConnected && (
             <>
-              {!isWhitelisted ? (
-                <small className="flex border-b-2 border-black p-2 text-red-900">
-                  {`Depositing is currently only available for early access to whitelisted addresses. Please come back soon to deposit into the ${DHV_NAME}.`}
-                </small>
-              ) : geoData.blocked ? (
+              {geoData.blocked ? (
                 <small className="block border-b-2 border-black p-2 text-red-900">
                   {`Trading is not available for people or entities in ${
                     geoData.country || "your country"
