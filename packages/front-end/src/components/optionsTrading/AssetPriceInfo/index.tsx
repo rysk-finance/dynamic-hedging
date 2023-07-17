@@ -2,12 +2,11 @@ import dayjs from "dayjs";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback } from "react";
 
-import { Cog } from "src/Icons";
+import { Ether, USDC } from "src/Icons";
 import FadeInOut from "src/animation/FadeInOut";
 import FadeInOutFixedDelay from "src/animation/FadeInOutFixedDelay";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
-import { AssetLogos } from "./components/AssetLogos";
 import { CurrentPrice } from "./components/CurrentPrice";
 import { Error } from "./components/Error";
 import { OneDayChange } from "./components/OneDayChange";
@@ -50,7 +49,11 @@ export const AssetPriceInfo = () => {
         onClick={handleManualUpdate}
         title="Click to refetch price data."
       >
-        <AssetLogos />
+        <span className="flex min-w-[6rem] py-4 border-r-2 border-black">
+          <div className="flex items-center justify-center mx-auto w-16 h-16 bg-[#ECEFF0]/90 rounded-full">
+            <Ether aria-label="Ethereum logo" className="h-12" />
+          </div>
+        </span>
 
         <AnimatePresence mode="wait">
           {ready && (
@@ -70,10 +73,10 @@ export const AssetPriceInfo = () => {
 
           {ethPriceError && <Error />}
         </AnimatePresence>
-      </button>
 
-      <button className="ml-auto border-l-2 border-black">
-        <Cog className="min-w-[8rem] w-24 h-24 py-4" />
+        <span className="flex min-w-[6rem] py-4 border-l-2 border-black">
+          <USDC aria-label="USDC logo" className="mx-auto w-16 h-16" />
+        </span>
       </button>
     </motion.div>
   );
