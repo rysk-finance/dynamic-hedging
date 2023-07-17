@@ -1,6 +1,6 @@
 import type { ToggleProps } from "./types";
 
-export const Toggle = ({ children, isActive }: ToggleProps) => (
+export const SimpleToggle = ({ children, isActive }: ToggleProps) => (
   <>
     <small className="leading-6">{children}</small>
     <div className="relative w-8 h-4 ml-2 p-1 bg-bone-dark rounded-full shadow-[inset_0_0_10px_rgba(0,0,0,0.2)]">

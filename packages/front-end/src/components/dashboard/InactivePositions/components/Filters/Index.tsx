@@ -1,6 +1,6 @@
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
-import { Toggle } from "../../../../shared/SimpleToggle";
+import { SimpleToggle } from "../../../../shared/SimpleToggle";
 import { Preferences } from "../../enums";
 
 export const Filters = () => {
@@ -33,7 +33,7 @@ export const Filters = () => {
         className="flex items-center cursor-pointer py-3"
         onClick={handleCompactClick}
       >
-        <Toggle isActive={compact}>{`Compact view:`}</Toggle>
+        <SimpleToggle isActive={compact}>{`Compact view:`}</SimpleToggle>
       </span>
     </div>
   );
