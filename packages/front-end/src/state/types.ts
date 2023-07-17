@@ -180,6 +180,14 @@ export interface UserStats {
   loading: boolean;
 }
 
+export interface UserTradingPreferences {
+  approvals?: boolean;
+  calendarMode?: boolean;
+  dhvBalance?: boolean;
+  tutorialMode?: boolean;
+  untradeableStrikes?: boolean;
+}
+
 // Global context
 export type GlobalState = {
   ethPrice: number | null;
@@ -228,6 +236,7 @@ export type GlobalState = {
   selectedOption?: SelectedOption;
   optionChainModalOpen?: OptionChainModal;
   visibleColumns: Set<ColumNames>;
+  userTradingPreferences: UserTradingPreferences;
 
   // User balances
   balances: Balances;
@@ -261,6 +270,7 @@ export enum ActionType {
   SET_OPTION_CHAIN_MODAL_VISIBLE,
   RESET_OPTIONS_CHAIN_STATE,
   CHANGE_FROM_BUYING_OR_SELLING,
+  SET_USER_TRADING_PREFERENCES,
 
   // User balances
   SET_USER_BALANCES,
@@ -386,6 +396,10 @@ export type GlobalAction =
         compact?: boolean;
       };
       loading?: boolean;
+    }
+  | {
+      type: ActionType.SET_USER_TRADING_PREFERENCES;
+      userTradingPreferences: UserTradingPreferences;
     };
 
 export type GlobalContext = {

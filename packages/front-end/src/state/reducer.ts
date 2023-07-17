@@ -201,6 +201,14 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
           loading: action.loading ?? state.userStats.loading,
         },
       };
+    case ActionType.SET_USER_TRADING_PREFERENCES:
+      return {
+        ...state,
+        userTradingPreferences: {
+          ...state.userTradingPreferences,
+          ...action.userTradingPreferences,
+        },
+      };
   }
 };
 

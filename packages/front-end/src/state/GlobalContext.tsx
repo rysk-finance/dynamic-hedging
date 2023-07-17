@@ -1,6 +1,12 @@
 import type { PropsWithChildren } from "react";
 
-import type { ColumNames } from "./types";
+import type {
+  AppSettings,
+  ColumNames,
+  GlobalContext,
+  GlobalState,
+  UserTradingPreferences,
+} from "./types";
 
 import {
   createContext,
@@ -9,11 +15,15 @@ import {
   useEffect,
   useReducer,
 } from "react";
+
 import { LOCAL_STORAGE_SETTINGS_KEY } from "../components/dashboard/Settings";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { ActivePositionSort } from "./constants";
 import { globalReducer } from "./reducer";
-import { ActionType, AppSettings, GlobalContext, GlobalState } from "./types";
+import { ActionType } from "./types";
+
+// Trading preferences
+import { getLocalStorageObject, LocalStorageKeys } from "./localStorage";
 
 export const defaultSpotShock = 0.7;
 export const defaultTimesToExpiry = [
@@ -102,6 +112,9 @@ export const defaultGlobalState: GlobalState = {
     "pos",
     "exposure",
   ] as ColumNames[]),
+  userTradingPreferences: getLocalStorageObject<UserTradingPreferences>(
+    LocalStorageKeys.TRADING_PREFERENCES
+  ),
 
   // User balances
   balances: {
