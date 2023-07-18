@@ -88,7 +88,7 @@ export const VaultContent = () => {
         </p>
         <p className="py-4">
           The {DHV_NAME} exposure is dynamically hedged to target market
-          neutrality in order reduce the directional risk associated with ETH
+          neutrality in order to reduce the directional risk associated with ETH
           price movements.
         </p>
 
