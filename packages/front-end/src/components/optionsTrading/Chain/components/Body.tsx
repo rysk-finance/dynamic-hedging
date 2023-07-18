@@ -15,6 +15,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
     state: {
       ethPrice,
       options: { loading },
+      userTradingPreferences: { untradeableStrikes },
     },
     dispatch,
   } = useGlobalContext();
@@ -24,28 +25,20 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
   const [callAtmStrike, putAtmStrike] = useMemo(() => {
     if (chainRows.length) {
       const atmIndex = chainRows.findIndex(
-        (row) => ethPrice && row.strike >= ethPrice
+        ({ strike }) => ethPrice && strike >= ethPrice
       );
       const maxIndex = chainRows.length - 1;
 
-      if (atmIndex === -1) {
-        return [
-          chainRows[maxIndex].strike,
-          chainRows[maxIndex].strike + 1,
-        ] as const;
-      }
+      switch (atmIndex) {
+        case -1:
+          return [chainRows[maxIndex].strike, chainRows[maxIndex].strike + 1];
 
-      if (atmIndex === 0) {
-        return [
-          chainRows[atmIndex].strike - 1,
-          chainRows[atmIndex].strike,
-        ] as const;
-      }
+        case 0:
+          return [chainRows[atmIndex].strike - 1, chainRows[atmIndex].strike];
 
-      return [
-        chainRows[atmIndex - 1].strike,
-        chainRows[atmIndex].strike,
-      ] as const;
+        default:
+          return [chainRows[atmIndex - 1].strike, chainRows[atmIndex].strike];
+      }
     } else {
       return [0, 0];
     }
@@ -78,6 +71,16 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
             : putAtTheMoney
             ? "border-t"
             : "";
+
+          if (
+            untradeableStrikes &&
+            callSellDisabled &&
+            callBuyDisabled &&
+            putSellDisabled &&
+            putBuyDisabled
+          ) {
+            return null;
+          }
 
           return (
             <motion.tr
