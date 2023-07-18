@@ -43,15 +43,17 @@
   background-color: #6abd00;
 }
 
-
-
 .overflow-hidden {
   overflow: hidden;
 }
 
-:is( div[aria-labelledby=rk_account_modal_title], div[aria-labelledby=rk_connect_title], div[aria-labelledby=rk_chain_modal_title] )
+:is(
+    div[aria-labelledby="rk_account_modal_title"],
+    div[aria-labelledby="rk_connect_title"],
+    div[aria-labelledby="rk_chain_modal_title"]
+  )
   :is(h1, div) {
-    font-weight: 500 !important;
+  font-weight: 500 !important;
 }
 
 .number-input-hide-arrows::-webkit-outer-spin-button,
@@ -61,7 +63,23 @@
   -moz-appearance: textfield !important;
 }
 
-.tippy-box[data-theme~='rysk'] {
+.tippy-box[data-theme~="rysk"] {
   background-color: #000;
-  color: #EDE9DD;
+  color: #ede9dd;
+}
+
+.rysk-scrollbar {
+  scrollbar-color: #989898 transparent;
+}
+.rysk-scrollbar::-webkit-scrollbar {
+  background: transparent;
+  border-radius: 1rem;
+}
+.rysk-scrollbar::-webkit-scrollbar-thumb {
+  background: #989898;
+  border-radius: 1rem;
+}
+.rysk-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 1rem;
 }
