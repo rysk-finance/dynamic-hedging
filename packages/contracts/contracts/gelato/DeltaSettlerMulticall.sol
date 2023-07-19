@@ -2,15 +2,15 @@
 pragma solidity >=0.8.9;
 
 import "../../contracts/LiquidityPool.sol";
-import "../packages/opyn/new/NewController.sol";
+import { GammaTypes, IController } from "../interfaces/GammaInterface.sol";
 import "../OptionRegistry.sol";
 
 contract DeltaSettlerMulticall {
 	address public executorAddress;
-
-	NewController constant controller = NewController(0x594bD4eC29F7900AE29549c140Ac53b5240d4019);
+	address optionRegistryAddress = 0x8Bc23878981a207860bA4B185fD065f4fd3c7725;
 	OptionRegistry constant optionRegistry =
 		OptionRegistry(0x8Bc23878981a207860bA4B185fD065f4fd3c7725);
+	IController constant controller = IController(0x594bD4eC29F7900AE29549c140Ac53b5240d4019);
 	LiquidityPool constant liquidityPool = LiquidityPool(0x217749d9017cB87712654422a1F5856AAA147b80);
 
 	error invalidMsgSender();
@@ -28,17 +28,17 @@ contract DeltaSettlerMulticall {
 
 	function checkVaultsToSettle(
 		address[] calldata seriesAddresses
-	) external view returns (uint256[] memory) {
+	) external view returns (address[] memory) {
 		// create fixed length dynamic memory array to return
-		uint256[] memory vaultsToSettle = new uint256[](seriesAddress.length);
+		address[] memory vaultsToSettle = new address[](seriesAddresses.length);
 		uint256 i = 0;
 		uint256 length = seriesAddresses.length;
 
-		for (uint i = 0; i < length; i++) {
+		for (i; i < length; i++) {
 			uint vaultId = optionRegistry.vaultIds(seriesAddresses[i]);
-			MarginVault.Vault vault = controller.getVault(optionRegistryAddress, vaultId);
+			GammaTypes.Vault memory vault = controller.getVault(optionRegistryAddress, vaultId);
 			if ((controller.isSettlementAllowed(seriesAddresses[i])) && vault.shortAmounts[0] > 0) {
-				vaultsToSettle.push(seriesAddresses[i]);
+				vaultsToSettle[i] = seriesAddresses[i];
 			}
 		}
 		return vaultsToSettle;
@@ -50,7 +50,7 @@ contract DeltaSettlerMulticall {
 		}
 
 		uint256 i = 0;
-		uint256 length = seriesAddress.length;
+		uint256 length = seriesAddresses.length;
 		for (i; i < length; i++) {
 			try liquidityPool.settleVault(seriesAddresses[i]) {} catch {}
 		}
