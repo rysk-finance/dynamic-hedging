@@ -35,6 +35,7 @@ export const CloseShortOptionModal = () => {
     state: {
       geoData: { blocked },
       options: { refresh },
+      userTradingPreferences: { approvals },
     },
   } = useGlobalContext();
 
@@ -78,7 +79,8 @@ export const CloseShortOptionModal = () => {
         const hash = await approveAllowance(
           addresses.exchange,
           getContractAddress("USDC"),
-          amount
+          amount,
+          approvals
         );
 
         if (hash) {

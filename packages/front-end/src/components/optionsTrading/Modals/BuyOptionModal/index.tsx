@@ -28,8 +28,8 @@ export const BuyOptionModal = () => {
       geoData: { blocked },
       options: { activeExpiry, refresh },
       selectedOption,
+      userTradingPreferences: { approvals },
     },
-    dispatch,
   } = useGlobalContext();
 
   const [amountToBuy, setAmountToBuy] = useState("");
@@ -63,7 +63,8 @@ export const BuyOptionModal = () => {
         const hash = await approveAllowance(
           addresses.exchange,
           addresses.token,
-          amount
+          amount,
+          approvals
         );
 
         if (hash) {

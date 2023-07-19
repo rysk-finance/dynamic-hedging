@@ -23,6 +23,7 @@ export const AdjustCollateralModal = () => {
     state: {
       adjustingOption,
       options: { refresh },
+      userTradingPreferences: { approvals },
     },
   } = useGlobalContext();
 
@@ -61,7 +62,8 @@ export const AdjustCollateralModal = () => {
         const hash = await approveAllowance(
           addresses.exchange,
           addresses.token,
-          amount
+          amount,
+          approvals
         );
 
         if (hash) {
