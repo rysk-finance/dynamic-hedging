@@ -59,17 +59,17 @@ export const Preferences = () => {
       <AnimatePresence mode="wait">
         {modalOpen && (
           <RyskModal lightBoxClickFn={toggleModal}>
-            <span className="grid grid-cols-10 bg-black text-white bg-[url('./assets/circle-lines.png')] bg-no-repeat bg-[top_left_-50%] bg-contain">
-              <h2 className="col-span-4 col-start-4 text-lg font-medium text-center py-4">
+            <span className="grid grid-cols-10 bg-black text-white bg-[url('./assets/circle-lines.png')] bg-no-repeat bg-contain">
+              <h2 className="col-span-4 col-start-4 text-lg font-medium text-center py-3">
                 {`Trading Preferences`}
               </h2>
 
               <button
-                className={`col-span-1 col-start-10 p-2`}
+                className={`col-span-1 col-start-10 mx-auto p-2`}
                 onClick={toggleModal}
                 title="Click to close the modal."
               >
-                <Close className="text-white" />
+                <Close className="text-white h-8 w-8" />
               </button>
             </span>
 
