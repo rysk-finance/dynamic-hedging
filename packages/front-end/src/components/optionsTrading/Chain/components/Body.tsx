@@ -66,21 +66,21 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
       <AnimatePresence initial={false}>
         {chainRows.map((option) => {
           const callSellDisabled =
-            option.call.sell.disabled || !option.call.sell.quote.quote;
+            option.call?.sell.disabled || !option.call?.sell.quote.quote;
           const callBuyDisabled =
-            option.call.buy.disabled || !option.call.buy.quote.quote;
+            option.call?.buy.disabled || !option.call?.buy.quote.quote;
           const callPosDisabled =
-            !option.call.pos ||
-            (option.call.pos < 0 && callBuyDisabled) ||
-            (option.call.pos > 0 && callSellDisabled);
+            !option.call?.pos ||
+            (option.call?.pos < 0 && callBuyDisabled) ||
+            (option.call?.pos > 0 && callSellDisabled);
           const putSellDisabled =
-            option.put.sell.disabled || !option.put.sell.quote.quote;
+            option.put?.sell.disabled || !option.put?.sell.quote.quote;
           const putBuyDisabled =
-            option.put.buy.disabled || !option.put.buy.quote.quote;
+            option.put?.buy.disabled || !option.put?.buy.quote.quote;
           const putPosDisabled =
-            !option.put.pos ||
-            (option.put.pos < 0 && putBuyDisabled) ||
-            (option.put.pos > 0 && putSellDisabled);
+            !option.put?.pos ||
+            (option.put?.pos < 0 && putBuyDisabled) ||
+            (option.put?.pos > 0 && putSellDisabled);
 
           const callAtTheMoney = option.strike === callAtmStrike;
           const putAtTheMoney = option.strike === putAtmStrike;
@@ -102,7 +102,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
             >
               {showCol("iv sell") && (
                 <Cell cellClasses="!border-l-0" disabled={callSellDisabled}>
-                  <IV value={option.call.sell.IV} />
+                  <IV value={option.call?.sell.IV || 0} />
                 </Cell>
               )}
 
@@ -121,7 +121,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                     strikeOptions: option,
                   })}
                   disabled={callSellDisabled}
-                  value={option.call.sell.quote.quote}
+                  value={option.call?.sell.quote.quote || 0}
                 />
               </Cell>
 
@@ -140,19 +140,19 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                     strikeOptions: option,
                   })}
                   disabled={callBuyDisabled}
-                  value={option.call.buy.quote.quote}
+                  value={option.call?.buy.quote.quote || 0}
                 />
               </Cell>
 
               {showCol("iv buy") && (
                 <Cell disabled={callBuyDisabled}>
-                  <IV value={option.call.buy.IV} />
+                  <IV value={option.call?.buy.IV || 0} />
                 </Cell>
               )}
 
               {showCol("delta") && (
                 <Cell disabled={callSellDisabled && callBuyDisabled}>
-                  <Delta value={option.call.delta} />
+                  <Delta value={option.call?.delta || 0} />
                 </Cell>
               )}
 
@@ -163,15 +163,15 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                 >
                   <Position
                     clickFn={() => {
-                      if (option.call.pos > 0) {
+                      if (option.call && option.call?.pos > 0) {
                         setSearchParams({
                           ref: "close",
-                          token: option.call.tokenID || "",
+                          token: option.call?.tokenID || "",
                         });
                       }
                     }}
                     disabled={callPosDisabled}
-                    value={option.call.pos}
+                    value={option.call?.pos || 0}
                   />
                 </Cell>
               )}
@@ -181,7 +181,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                   cellClasses="!border-r-0"
                   disabled={callSellDisabled && callBuyDisabled}
                 >
-                  <Exposure value={option.call.exposure} />
+                  <Exposure value={option.call?.exposure || 0} />
                 </Cell>
               )}
 
@@ -193,7 +193,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
 
               {showCol("iv sell") && (
                 <Cell cellClasses="!border-l-0" disabled={putSellDisabled}>
-                  <IV value={option.put.sell.IV} />
+                  <IV value={option.put?.sell.IV || 0} />
                 </Cell>
               )}
 
@@ -212,7 +212,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                     strikeOptions: option,
                   })}
                   disabled={putSellDisabled}
-                  value={option.put.sell.quote.quote}
+                  value={option.put?.sell.quote.quote || 0}
                 />
               </Cell>
 
@@ -231,19 +231,19 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                     strikeOptions: option,
                   })}
                   disabled={putBuyDisabled}
-                  value={option.put.buy.quote.quote}
+                  value={option.put?.buy.quote.quote || 0}
                 />
               </Cell>
 
               {showCol("iv buy") && (
                 <Cell disabled={putBuyDisabled}>
-                  <IV value={option.put.buy.IV} />
+                  <IV value={option.put?.buy.IV || 0} />
                 </Cell>
               )}
 
               {showCol("delta") && (
                 <Cell disabled={putSellDisabled && putBuyDisabled}>
-                  <Delta value={option.put.delta} />
+                  <Delta value={option.put?.delta || 0} />
                 </Cell>
               )}
 
@@ -254,15 +254,15 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                 >
                   <Position
                     clickFn={() => {
-                      if (option.put.pos > 0) {
+                      if (option.put && option.put?.pos > 0) {
                         setSearchParams({
                           ref: "close",
-                          token: option.put.tokenID || "",
+                          token: option.put?.tokenID || "",
                         });
                       }
                     }}
                     disabled={putPosDisabled}
-                    value={option.put.pos}
+                    value={option.put?.pos || 0}
                   />
                 </Cell>
               )}
@@ -272,7 +272,7 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
                   cellClasses="!border-r-0"
                   disabled={putSellDisabled && putBuyDisabled}
                 >
-                  <Exposure value={option.put.exposure} />
+                  <Exposure value={option.put?.exposure || 0} />
                 </Cell>
               )}
             </motion.tr>
