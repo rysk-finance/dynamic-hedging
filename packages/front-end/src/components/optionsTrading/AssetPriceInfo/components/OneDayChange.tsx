@@ -26,7 +26,7 @@ export const OneDayChange = ({ low, change, high }: OneDayChangeProps) => {
           decimalScale={2}
           fixedDecimalScale
           renderText={(value) => (
-            <p className="text-red-500 before:content-['$'] before:mr-1">
+            <p className="text-red-900 before:content-['$'] before:mr-1">
               {value}
             </p>
           )}
@@ -43,7 +43,7 @@ export const OneDayChange = ({ low, change, high }: OneDayChangeProps) => {
           decimalScale={2}
           fixedDecimalScale
           renderText={(value) => (
-            <p className="text-green-500 before:content-['$'] before:mr-1">
+            <p className="text-green-1100 before:content-['$'] before:mr-1">
               {value}
             </p>
           )}

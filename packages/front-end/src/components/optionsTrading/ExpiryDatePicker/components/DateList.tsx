@@ -63,10 +63,10 @@ export const DateList = ({
                 >
                   <div className="flex">
                     <DownChevron
-                      className={`min-w-6 h-6 stroke-red-500 ${
+                      className={`min-w-6 h-6 stroke-red-900 ${
                         !positions?.isShort && "opacity-0"
                       }`}
-                      strokeWidth={4}
+                      strokeWidth={2}
                     />
 
                     <time
@@ -77,10 +77,10 @@ export const DateList = ({
                     </time>
 
                     <UpChevron
-                      className={`min-w-6 h-6 stroke-green-500 ${
+                      className={`min-w-6 h-6 stroke-green-1100 ${
                         !positions?.isLong && "opacity-0"
                       }`}
-                      strokeWidth={4}
+                      strokeWidth={2}
                     />
                   </div>
 
