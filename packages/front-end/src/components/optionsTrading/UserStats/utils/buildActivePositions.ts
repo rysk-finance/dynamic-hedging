@@ -160,6 +160,7 @@ export const buildActivePositions = async (
       const isShort = Boolean(collateralAsset && "symbol" in collateralAsset);
       const amount = fromWeiToInt(netAmount);
       const absAmount = Math.abs(amount);
+      const entry = totalPremium / amount;
       const side = isPut ? "put" : "call";
       const strike = fromOpynToNumber(strikePrice);
       const chainSideData = chainData[expiryTimestamp]?.[strike][side];
@@ -198,7 +199,7 @@ export const buildActivePositions = async (
       return {
         action: getAction(disabled, isOpen, isShort, profitLoss),
         amount,
-        breakEven: strike + formattedPnl / absAmount,
+        breakEven: isPut ? strike - entry : strike + entry,
         collateral: {
           amount: formatCollateralAmount(0, collateralAsset, vault),
           asset: collateralAsset?.symbol,
@@ -207,7 +208,7 @@ export const buildActivePositions = async (
         },
         disabled: isOpen && disabled,
         delta: amount * delta,
-        entry: totalPremium / amount,
+        entry,
         expiryTimestamp,
         id,
         isOpen,
