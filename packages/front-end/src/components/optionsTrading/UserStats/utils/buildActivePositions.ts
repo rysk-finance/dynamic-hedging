@@ -162,18 +162,23 @@ export const buildActivePositions = async (
       const absAmount = Math.abs(amount);
       const side = isPut ? "put" : "call";
       const strike = fromOpynToNumber(strikePrice);
-      const { delta, buy, sell } = isOpen
-        ? chainData[expiryTimestamp][strike][side]
-        : {
-            delta: 0,
-            buy: { quote: { quote: 0 } },
-            sell: { quote: { quote: 0 } },
-          };
+      const chainSideData = chainData[expiryTimestamp][strike][side];
+      const { delta, buy, sell } = {
+        delta: isOpen && chainSideData?.delta ? chainSideData.delta : 0,
+        buy:
+          isOpen && chainSideData?.buy
+            ? chainSideData.buy
+            : { disabled: false, quote: { quote: 0 } },
+        sell:
+          isOpen && chainSideData?.sell
+            ? chainSideData.sell
+            : { disabled: false, quote: { quote: 0 } },
+      };
 
       // Determine if disabled.
       const disabled = isShort
-        ? buy.disabled || !buy.quote.quote
-        : sell.disabled || !sell.quote.quote;
+        ? buy?.disabled || !buy.quote.quote
+        : sell?.disabled || !sell.quote.quote;
 
       // P/L calcs.
       const formattedPnl = tFormatUSDC(realizedPnl);
