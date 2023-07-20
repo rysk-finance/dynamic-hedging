@@ -1,8 +1,8 @@
-import type { ColumNames } from "src/state/types";
+import type { ColumnNamesSet } from "src/state/types";
 import type { CheckBoxProps } from "./types";
 
 export const buildCheckboxList = (
-  visibleColumns: Set<ColumNames>
+  visibleColumns: ColumnNamesSet
 ): CheckBoxProps[] => {
   return [
     {

@@ -2,11 +2,12 @@ import type { PropsWithChildren } from "react";
 
 import type {
   AppSettings,
-  ColumNames,
+  ColumnNames,
+  ColumnNamesSet,
   GlobalContext,
   GlobalState,
   UserStats,
-  UserTradingPreferences,
+  UserTradingPreferences
 } from "./types";
 
 import {
@@ -108,9 +109,17 @@ export const defaultGlobalState: GlobalState = {
   closingOption: undefined,
   selectedOption: undefined,
   optionChainModalOpen: undefined,
-  visibleColumns: getLocalStorageSet<Set<ColumNames>>(
+  visibleColumns: getLocalStorageSet<ColumnNamesSet>(
     LocalStorageKeys.OPTION_CHAIN_FILTERS,
-    new Set(["sell", "buy", "iv sell", "iv buy", "delta", "pos", "exposure"])
+    new Set<ColumnNames>([
+      "sell",
+      "buy",
+      "iv sell",
+      "iv buy",
+      "delta",
+      "pos",
+      "exposure",
+    ])
   ),
   userTradingPreferences: getLocalStorageObject<UserTradingPreferences>(
     LocalStorageKeys.TRADING_PREFERENCES,
@@ -141,18 +150,20 @@ export const defaultGlobalState: GlobalState = {
     activePnL: 0,
     activePositions: [],
     activePositionsFilters: {
-      ...getLocalStorageObject<UserStats["activePositionsFilters"]>(
-        LocalStorageKeys.ACTIVE_POSITIONS_FILTERS_COMPACT,
-        { compact: true }
-      ),
-      ...getLocalStorageObject<UserStats["activePositionsFilters"]>(
-        LocalStorageKeys.ACTIVE_POSITIONS_FILTERS_HIDE_EXPIRED,
-        { hideExpired: false }
-      ),
-      ...getLocalStorageObject<UserStats["activePositionsFilters"]>(
-        LocalStorageKeys.ACTIVE_POSITIONS_FILTERS_SORTING,
-        { isAscending: true, sort: ActivePositionSort.Expiry }
-      ),
+      ...getLocalStorageObject<
+        Pick<UserStats["activePositionsFilters"], "compact">
+      >(LocalStorageKeys.ACTIVE_POSITIONS_FILTERS_COMPACT, { compact: true }),
+      ...getLocalStorageObject<
+        Pick<UserStats["activePositionsFilters"], "hideExpired">
+      >(LocalStorageKeys.ACTIVE_POSITIONS_FILTERS_HIDE_EXPIRED, {
+        hideExpired: false,
+      }),
+      ...getLocalStorageObject<
+        Pick<UserStats["activePositionsFilters"], "isAscending" | "sort">
+      >(LocalStorageKeys.ACTIVE_POSITIONS_FILTERS_SORTING, {
+        isAscending: true,
+        sort: ActivePositionSort.Expiry,
+      }),
     },
     delta: 0,
     historicalPnL: 0,

@@ -1,4 +1,4 @@
-import type { ColumNames } from "src/state/types";
+import type { ColumnNames } from "src/state/types";
 
 import { useGlobalContext } from "src/state/GlobalContext";
 
@@ -21,7 +21,7 @@ export const useShowColumn = () => {
   const colSize = visibleColumns.size * 2 + 1;
   const sideSize = visibleColumns.size;
   const showCol = useCallback(
-    (columnName: ColumNames) => visibleColumns.has(columnName),
+    (columnName: ColumnNames) => visibleColumns.has(columnName),
     [visibleColumns]
   );
 

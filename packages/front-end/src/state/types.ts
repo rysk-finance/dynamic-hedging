@@ -82,7 +82,7 @@ export interface TimesToExpiry {
   };
 }
 
-export type ColumNames =
+export type ColumnNames =
   | "sell"
   | "buy"
   | "iv sell"
@@ -90,6 +90,8 @@ export type ColumNames =
   | "delta"
   | "pos"
   | "exposure";
+
+export type ColumnNamesSet = Set<ColumnNames>;
 
 export type CollateralType = "USDC" | "WETH";
 
@@ -235,7 +237,7 @@ export type GlobalState = {
   closingOption?: ClosingOption;
   selectedOption?: SelectedOption;
   optionChainModalOpen?: OptionChainModal;
-  visibleColumns: Set<ColumNames>;
+  visibleColumns: ColumnNamesSet;
   userTradingPreferences: UserTradingPreferences;
 
   // User balances
@@ -338,7 +340,7 @@ export type GlobalAction =
     }
   | {
       type: ActionType.SET_VISIBLE_COLUMNS;
-      column?: ColumNames;
+      column?: ColumnNames;
     }
   | {
       type: ActionType.SET_COLLATERAL_PREFERENCES;

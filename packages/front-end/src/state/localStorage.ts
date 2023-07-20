@@ -11,7 +11,7 @@ export const getLocalStorageObject = <
   StorageObjectType = Record<string, boolean>
 >(
   localStorageKey: `${LocalStorageKeys}`,
-  defaultValue = {}
+  defaultValue: StorageObjectType
 ) => {
   const storageObject = localStorage.getItem(localStorageKey);
 
@@ -27,7 +27,7 @@ export const setLocalStorageObject = (
 
 export const getLocalStorageSet = <StorageObjectType = Set<string>>(
   localStorageKey: `${LocalStorageKeys}`,
-  defaultValue = new Set()
+  defaultValue: StorageObjectType
 ) => {
   const storageObject = localStorage.getItem(localStorageKey);
 

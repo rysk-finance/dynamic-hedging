@@ -1,4 +1,4 @@
-import type { ColumNames } from "src/state/types";
+import type { ColumnNames } from "src/state/types";
 
 import { useEffect, useMemo } from "react";
 
@@ -13,7 +13,7 @@ export const Checkboxes = () => {
     state: { visibleColumns },
   } = useGlobalContext();
 
-  const handleChange = (column: ColumNames) => () => {
+  const handleChange = (column: ColumnNames) => () => {
     dispatch({
       type: ActionType.SET_VISIBLE_COLUMNS,
       column,
