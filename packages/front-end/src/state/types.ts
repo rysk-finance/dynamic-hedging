@@ -348,6 +348,7 @@ export type GlobalAction =
     }
   | {
       type: ActionType.SET_SELECTED_OPTION;
+      activeExpiry?: string;
       option?: SelectedOption;
     }
   | {

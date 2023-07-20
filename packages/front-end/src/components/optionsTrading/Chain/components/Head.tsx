@@ -1,9 +1,11 @@
+import type { HeadProps } from "./types";
+
 import dayjs from "dayjs";
 
 import { useShowColumn } from "../hooks/useShowColumn";
 import { useGlobalContext } from "src/state/GlobalContext";
 
-export const Head = () => {
+export const Head = ({ expiry }: HeadProps) => {
   const {
     state: {
       options: { activeExpiry },
@@ -54,7 +56,8 @@ export const Head = () => {
         </th>
 
         <th className="col-span-1">
-          {activeExpiry && dayjs.unix(Number(activeExpiry)).format("DD MMM YY")}
+          {activeExpiry &&
+            dayjs.unix(Number(expiry || activeExpiry)).format("DD MMM YY")}
         </th>
 
         <th style={{ gridColumn: `span ${sideSize} / span ${sideSize}` }}>

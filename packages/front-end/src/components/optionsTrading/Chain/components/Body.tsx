@@ -1,4 +1,5 @@
-import type { SelectedOption, StrikeOptions } from "src/state/types";
+import type { SelectedOption } from "src/state/types";
+import type { BodyProps } from "./types";
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo } from "react";
@@ -10,7 +11,7 @@ import { ActionType } from "src/state/types";
 import { useShowColumn } from "../hooks/useShowColumn";
 import { Cell, Delta, Exposure, IV, Position, Quote, Strike } from "./Cells";
 
-export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
+export const Body = ({ chainRows, expiry }: BodyProps) => {
   const {
     state: {
       ethPrice,
@@ -45,7 +46,11 @@ export const Body = ({ chainRows }: { chainRows: StrikeOptions[] }) => {
   }, [ethPrice, chainRows]);
 
   const setSelectedOption = (option: SelectedOption) => () => {
-    dispatch({ type: ActionType.SET_SELECTED_OPTION, option });
+    dispatch({
+      type: ActionType.SET_SELECTED_OPTION,
+      activeExpiry: expiry,
+      option,
+    });
   };
 
   return (

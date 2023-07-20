@@ -8,16 +8,17 @@ export const ExpiryDatePicker = () => {
   const {
     state: {
       options: { expiries },
+      userTradingPreferences: { calendarMode },
     },
   } = useGlobalContext();
 
   const [visibleRange, handleExpirySelection, scrollExpiries] =
     useExpiryDates();
 
+  if (calendarMode) return null;
+
   return (
-    <div
-      className="grid grid-cols-12 items-center font-medium bg-[url('./assets/wave-lines.png')] bg-[top_right_-50%] lg:bg-[top_right_-15%] xl:bg-[top_right_0%] bg-no-repeat bg-contain"
-    >
+    <div className="grid grid-cols-12 items-center font-medium border-b-2 border-black bg-[url('./assets/wave-lines.png')] bg-[top_right_-50%] lg:bg-[top_right_-15%] xl:bg-[top_right_0%] bg-no-repeat bg-contain">
       <ArrowButton
         onClick={scrollExpiries(-1)}
         disabled={!expiries.length || visibleRange[0] === 0}

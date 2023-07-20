@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
+import { Fragment } from "react";
 
 import FadeInOut from "src/animation/FadeInOut";
 import LoadingOrError from "src/components/shared/LoadingOrError";
@@ -10,6 +11,7 @@ export const Chain = () => {
   const {
     state: {
       options: { activeExpiry, data, error },
+      userTradingPreferences: { calendarMode },
     },
   } = useGlobalContext();
 
@@ -23,8 +25,16 @@ export const Chain = () => {
           key="chain"
           {...FadeInOut(0.75)}
         >
-          <Head />
-          <Body chainRows={Object.values(data[activeExpiry || 0])} />
+          {Object.entries(data).map(([expiry, strikeData]) => {
+            if (!calendarMode && activeExpiry !== expiry) return null;
+
+            return (
+              <Fragment key={expiry}>
+                <Head expiry={expiry} />
+                <Body chainRows={Object.values(strikeData)} expiry={expiry} />
+              </Fragment>
+            );
+          })}
         </motion.table>
       ) : (
         <LoadingOrError

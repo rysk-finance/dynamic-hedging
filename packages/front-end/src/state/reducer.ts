@@ -114,6 +114,10 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
     case ActionType.SET_SELECTED_OPTION:
       return {
         ...state,
+        options: {
+          ...state.options,
+          activeExpiry: action.activeExpiry || state.options.activeExpiry,
+        },
         selectedOption: action.option,
       };
     case ActionType.SET_ADJUSTING_OPTION:
