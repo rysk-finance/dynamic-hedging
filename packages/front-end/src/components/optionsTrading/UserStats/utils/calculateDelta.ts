@@ -26,7 +26,7 @@ export const calculateDelta = (
       const side = isPut ? "put" : "call";
       const size = fromWeiToInt(netAmount);
       const strike = fromOpynToNumber(strikePrice);
-      const chainDataDelta = chainData[expiryTimestamp][strike][side]?.delta;
+      const chainDataDelta = chainData[expiryTimestamp]?.[strike][side]?.delta;
       const delta = isOpen && chainDataDelta ? chainDataDelta : 0;
 
       return totalDelta + delta * size;

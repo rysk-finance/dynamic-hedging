@@ -13,10 +13,10 @@ import dayjs from "dayjs";
 import { ZERO_ADDRESS } from "src/config/constants";
 import { Vault } from "src/hooks/useInitialData/types";
 import {
+  fromOpyn,
   fromOpynToNumber,
   fromWeiToInt,
   tFormatUSDC,
-  fromOpyn,
 } from "src/utils/conversion-helper";
 import { getLiquidationPrices } from "../../../shared/utils/getLiquidationPrice";
 import { PositionAction } from "../enums";
@@ -162,7 +162,7 @@ export const buildActivePositions = async (
       const absAmount = Math.abs(amount);
       const side = isPut ? "put" : "call";
       const strike = fromOpynToNumber(strikePrice);
-      const chainSideData = chainData[expiryTimestamp][strike][side];
+      const chainSideData = chainData[expiryTimestamp]?.[strike][side];
       const { delta, buy, sell } = {
         delta: isOpen && chainSideData?.delta ? chainSideData.delta : 0,
         buy:
