@@ -12,7 +12,6 @@ export const buildCheckboxList = (
         checked: visibleColumns.has("iv sell"),
       },
       label: "IV (Sell)",
-      title: "Switch the IV (Sell) column visibility.",
     },
     {
       inputProps: {
@@ -21,7 +20,6 @@ export const buildCheckboxList = (
         checked: visibleColumns.has("iv buy"),
       },
       label: "IV (Buy)",
-      title: "Switch the IV (Buy) column visibility.",
     },
     {
       inputProps: {
@@ -30,7 +28,6 @@ export const buildCheckboxList = (
         checked: visibleColumns.has("delta"),
       },
       label: "Delta",
-      title: "Switch the delta column visibility.",
     },
     {
       inputProps: {
@@ -39,7 +36,7 @@ export const buildCheckboxList = (
         checked: visibleColumns.has("pos"),
       },
       label: "Position",
-      title: "Switch the user position column visibility.",
+
     },
     {
       inputProps: {
@@ -48,7 +45,7 @@ export const buildCheckboxList = (
         checked: visibleColumns.has("exposure"),
       },
       label: "DHV Exposure",
-      title: "Switch the net DHV exposure column visibility.",
+
     },
   ];
 };

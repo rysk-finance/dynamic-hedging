@@ -10,6 +10,7 @@ import { ActionType } from "src/state/types";
 import { CurrentPrice } from "./components/CurrentPrice";
 import { Error } from "./components/Error";
 import { OneDayChange } from "./components/OneDayChange";
+import { RyskTooltip } from "src/components/shared/RyskToolTip";
 
 const MANUAL_LIMIT_SECONDS = 30;
 
@@ -24,6 +25,7 @@ export const AssetPriceInfo = () => {
       ethPriceError,
       ethLastUpdateTimestamp,
       options: { refresh },
+      userTradingPreferences: { tutorialMode },
     },
     dispatch,
   } = useGlobalContext();
@@ -47,13 +49,17 @@ export const AssetPriceInfo = () => {
       <button
         className="w-full h-24 flex items-stretch"
         onClick={handleManualUpdate}
-        title="Click to refetch price data."
       >
-        <span className="flex min-w-[6rem] py-4 border-r-2 border-black">
-          <div className="flex items-center justify-center mx-auto w-16 h-16 bg-[#ECEFF0]/90 rounded-full">
-            <Ether aria-label="Ethereum logo" className="h-12" />
-          </div>
-        </span>
+        <RyskTooltip
+          content="Ethereum is the underlying asset."
+          disabled={!tutorialMode}
+        >
+          <span className="flex min-w-[6rem] py-4 border-r-2 border-black">
+            <div className="flex items-center justify-center mx-auto w-16 h-16 bg-[#ECEFF0]/90 rounded-full">
+              <Ether aria-label="Ethereum logo" className="h-12" />
+            </div>
+          </span>
+        </RyskTooltip>
 
         <AnimatePresence mode="wait">
           {ready && (
@@ -74,9 +80,27 @@ export const AssetPriceInfo = () => {
           {ethPriceError && <Error />}
         </AnimatePresence>
 
-        <span className="flex min-w-[6rem] py-4 border-l-2 border-black">
-          <USDC aria-label="USDC logo" className="mx-auto w-16 h-16" />
-        </span>
+        <RyskTooltip
+          content={
+            <div>
+              {`Rysk uses `}
+              <a
+                className="text-cyan-dark-compliant underline"
+                href="https://www.circle.com/blog/arbitrum-usdc-now-available"
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                {`native USDC`}
+              </a>
+              {` for buying and selling options.`}
+            </div>
+          }
+          disabled={!tutorialMode}
+        >
+          <span className="flex min-w-[6rem] ml-auto py-4 border-l-2 border-black">
+            <USDC aria-label="USDC logo" className="mx-auto w-16 h-16" />
+          </span>
+        </RyskTooltip>
       </button>
     </motion.div>
   );

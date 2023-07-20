@@ -7,5 +7,4 @@ export interface CheckBoxProps {
     checked: boolean;
   };
   label: string;
-  title: string;
 }

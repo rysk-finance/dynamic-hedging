@@ -34,7 +34,7 @@ export const buildPreferencesList = (
     },
     {
       explainer:
-        "Enable tutorial mode to provide tooltips to key areas of the options chain and widgets.",
+        "Enable tutorial mode to provide tooltips to key areas of the options chain.",
       isActive: tutorialMode,
       label: "Enable tutorial mode",
       preferencesKey: "tutorialMode",

@@ -15,6 +15,7 @@ export const RyskTooltip = ({
     content={content}
     disabled={disabled}
     duration={[200, 150]}
+    hideOnClick="toggle"
     interactive
     placement={placement}
     theme="rysk"

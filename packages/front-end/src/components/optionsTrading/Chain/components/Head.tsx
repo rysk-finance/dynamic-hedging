@@ -4,11 +4,13 @@ import dayjs from "dayjs";
 
 import { useShowColumn } from "../hooks/useShowColumn";
 import { useGlobalContext } from "src/state/GlobalContext";
+import { RyskTooltip } from "src/components/shared/RyskToolTip";
 
 export const Head = ({ expiry }: HeadProps) => {
   const {
     state: {
       options: { activeExpiry },
+      userTradingPreferences: { tutorialMode },
     },
   } = useGlobalContext();
 
@@ -17,30 +19,55 @@ export const Head = ({ expiry }: HeadProps) => {
   const columns = [
     {
       label: "IV (Sell)",
+      tutorial:
+        "The figures in this column represent the sell side implied volatility of the series.", // Learn more link?
       visible: showCol("iv sell"),
     },
     {
       label: "Sell",
+      tutorial:
+        "The prices in this column represent the amount of premium you will receive for selling one contract of the series. To begin the sale process, you can click on the price.",
       visible: true,
     },
     {
       label: "Buy",
+      tutorial:
+        "The prices in this column represent the price you will pay to purchase one contract of the series. To begin the buying process, you can click on the price.",
       visible: true,
     },
     {
       label: "IV (Buy)",
+      tutorial:
+        "The figures in this column represent the buy side implied volatility of the series.", // Learn more link?
       visible: showCol("iv buy"),
     },
     {
       label: "Delta",
+      tutorial: (
+        <div>
+          {`The figures in this column represent the delta of the series. `}
+          <a
+            className="text-cyan-dark-compliant underline"
+            href="https://blog.rysk.finance/looking-under-the-hood-of-rysks-dynamic-hedging-vault-e059e1b87e41"
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            {`Learn more about delta.`}
+          </a>
+        </div>
+      ),
       visible: showCol("delta"),
     },
     {
       label: "Position",
+      tutorial:
+        "The figures in this column show your current net position for the series. A positive value means that you are long and a negative value means that you are short.",
       visible: showCol("pos"),
     },
     {
       label: "DHV",
+      tutorial:
+        "The figures in this column represent the total exposure of the DHV for the series. A positive value means that the DHV is long and a negative value means that the DHV is short.",
       visible: showCol("exposure"),
     },
   ];
@@ -51,18 +78,36 @@ export const Head = ({ expiry }: HeadProps) => {
         className="grid bg-bone-dark [&_th]:text-sm [&_th]:xl:text-base [&_th]:py-3 [&_th]:px-0"
         style={{ gridTemplateColumns: `repeat(${colSize}, minmax(0, 1fr))` }}
       >
-        <th style={{ gridColumn: `span ${sideSize} / span ${sideSize}` }}>
-          {`CALLS`}
-        </th>
+        <RyskTooltip
+          content="The information on this side of the chain is for call options." // Learn more link?
+          disabled={!tutorialMode}
+          placement="bottom"
+        >
+          <th style={{ gridColumn: `span ${sideSize} / span ${sideSize}` }}>
+            {`CALLS`}
+          </th>
+        </RyskTooltip>
 
-        <th className="col-span-1">
-          {activeExpiry &&
-            dayjs.unix(Number(expiry || activeExpiry)).format("DD MMM YY")}
-        </th>
+        <RyskTooltip
+          content="The information below is specific to this expiry date."
+          disabled={!tutorialMode}
+          placement="bottom"
+        >
+          <th className="col-span-1">
+            {activeExpiry &&
+              dayjs.unix(Number(expiry || activeExpiry)).format("DD MMM YY")}
+          </th>
+        </RyskTooltip>
 
-        <th style={{ gridColumn: `span ${sideSize} / span ${sideSize}` }}>
-          {`PUTS`}
-        </th>
+        <RyskTooltip
+          content="The information on this side of the chain is for put options." // Learn more link?
+          disabled={!tutorialMode}
+          placement="bottom"
+        >
+          <th style={{ gridColumn: `span ${sideSize} / span ${sideSize}` }}>
+            {`PUTS`}
+          </th>
+        </RyskTooltip>
       </tr>
 
       <tr
@@ -70,15 +115,38 @@ export const Head = ({ expiry }: HeadProps) => {
         style={{ gridTemplateColumns: `repeat(${colSize}, minmax(0, 1fr))` }}
       >
         {columns.map(
-          ({ label, visible }) =>
-            visible && <th key={`${label}-call`}>{label}</th>
+          ({ label, tutorial, visible }) =>
+            visible && (
+              <RyskTooltip
+                content={tutorial}
+                disabled={!tutorialMode}
+                key={`${label}-call`}
+                placement="bottom"
+              >
+                <th>{label}</th>
+              </RyskTooltip>
+            )
         )}
 
-        <th className="bg-bone-dark">{`Strike`}</th>
+        <RyskTooltip
+          content="The prices in this column represent the strike price of each option series."
+          disabled={!tutorialMode}
+        >
+          <th className="bg-bone-dark">{`Strike`}</th>
+        </RyskTooltip>
 
         {columns.map(
-          ({ label, visible }) =>
-            visible && <th key={`${label}-put`}>{label}</th>
+          ({ label, tutorial, visible }) =>
+            visible && (
+              <RyskTooltip
+                content={tutorial}
+                disabled={!tutorialMode}
+                key={`${label}-put`}
+                placement="bottom"
+              >
+                <th>{label}</th>
+              </RyskTooltip>
+            )
         )}
       </tr>
     </thead>
