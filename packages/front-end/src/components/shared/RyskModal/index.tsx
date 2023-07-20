@@ -12,12 +12,18 @@ export const RyskModal = ({ children, lightBoxClickFn }: RyskModalProps) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    document.body.classList.toggle("overflow-y-scroll", true);
-    document.body.classList.toggle("fixed", true);
+    document.body.style.top = `-${window.scrollY}px`;
+    document.body.classList.toggle("overflow-y-scroll");
+    document.body.classList.toggle("fixed");
 
     return () => {
-      document.body.classList.toggle("overflow-y-scroll", false);
-      document.body.classList.toggle("fixed", false);
+      const scrollY = document.body.style.top;
+
+      document.body.style.top = "";
+      document.body.classList.toggle("overflow-y-scroll");
+      document.body.classList.toggle("fixed");
+
+      window.scrollTo({ top: parseInt(scrollY || "0") * -1 });
     };
   }, []);
 
