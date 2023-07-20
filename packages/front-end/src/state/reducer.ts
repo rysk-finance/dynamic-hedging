@@ -81,17 +81,6 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
             action.wethOracleHashMap || state.options.wethOracleHashMap,
         },
       };
-    case ActionType.SET_DASHBOARD:
-      return {
-        ...state,
-        dashboard: {
-          activePositions:
-            action.activePositions || state.dashboard.activePositions,
-          inactivePositions:
-            action.inactivePositions || state.dashboard.inactivePositions,
-          modalPosition: action.modalPosition || state.dashboard.modalPosition,
-        },
-      };
     case ActionType.SET_VISIBLE_COLUMNS:
       const newSet = new Set(state.visibleColumns);
 
@@ -122,13 +111,22 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
           collateralPreferences: defaultGlobalState.collateralPreferences,
         };
       }
-    case ActionType.SET_DASHBOARD_MODAL_VISIBLE:
+    case ActionType.SET_SELECTED_OPTION:
       return {
         ...state,
-        dashboardModalOpen: action.visible,
+        selectedOption: action.option,
       };
-    case ActionType.SET_SELECTED_OPTION:
-      return { ...state, selectedOption: action.option };
+    case ActionType.SET_ADJUSTING_OPTION:
+      return {
+        ...state,
+        adjustingOption: action.option,
+      };
+    case ActionType.SET_CLOSING_OPTION:
+      return {
+        ...state,
+        closingOption: action.option,
+        options: { ...state.options, activeExpiry: action.expiry },
+      };
     case ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE:
       return {
         ...state,
@@ -152,6 +150,8 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
     case ActionType.RESET_OPTIONS_CHAIN_STATE:
       return {
         ...state,
+        adjustingOption: defaultGlobalState.adjustingOption,
+        closingOption: defaultGlobalState.closingOption,
         selectedOption: defaultGlobalState.selectedOption,
         optionChainModalOpen: defaultGlobalState.optionChainModalOpen,
         chainTutorialIndex: defaultGlobalState.chainTutorialIndex,
@@ -189,8 +189,32 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
         ...state,
         userStats: {
           activePnL: action.activePnL ?? state.userStats.activePnL,
+          activePositions:
+            action.activePositions || state.userStats.activePositions,
+          activePositionsFilters: {
+            compact:
+              action.activePositionsFilters?.compact ??
+              state.userStats.activePositionsFilters.compact,
+            hideExpired:
+              action.activePositionsFilters?.hideExpired ??
+              state.userStats.activePositionsFilters.hideExpired,
+            isAscending:
+              action.activePositionsFilters?.isAscending ??
+              state.userStats.activePositionsFilters.isAscending,
+            sort:
+              action.activePositionsFilters?.sort ||
+              state.userStats.activePositionsFilters.sort,
+          },
           delta: action.delta ?? state.userStats.delta,
           historicalPnL: action.historicalPnL ?? state.userStats.historicalPnL,
+          inactivePositions:
+            action.inactivePositions ?? state.userStats.inactivePositions,
+          inactivePositionsFilters: {
+            compact:
+              action.inactivePositionsFilters?.compact ??
+              state.userStats.inactivePositionsFilters.compact,
+          },
+          loading: action.loading ?? state.userStats.loading,
         },
       };
   }

@@ -1,19 +1,30 @@
 import { AnimatePresence, motion } from "framer-motion";
 
 import FadeInUpDelayed from "src/animation/FadeInUpDelayed";
+import { RyskCountUp } from "src/components/shared/RyskCountUp";
 import { useGlobalContext } from "src/state/GlobalContext";
+import { Card } from "../../shared/SimpleCard";
+import { Filters } from "./components/Filters";
+import { Table } from "./components/PositionsTable";
+import { usePreferences } from "./hooks/usePreferences";
 import { useUserStats } from "./hooks/useUserStats";
-import { Card } from "./components/Card";
 
 export const UserStats = () => {
   const {
     state: {
-      options: { data },
-      userStats: { activePnL, delta, historicalPnL },
+      options: { data, loading },
+      userStats: {
+        activePnL,
+        activePositions,
+        delta,
+        historicalPnL,
+        loading: statsLoading,
+      },
     },
   } = useGlobalContext();
 
   useUserStats();
+  usePreferences();
 
   return (
     <AnimatePresence mode="wait">
@@ -24,37 +35,70 @@ export const UserStats = () => {
           {...FadeInUpDelayed(0.3)}
         >
           <Card
-            explainer="Total P/L for all unexpired positions."
-            symbol="$"
+            explainer="All active user positions. Please check the dashboard area for historical positions."
+            hasData={Boolean(activePositions.length)}
+            loading={loading || statsLoading}
+            span="col-span-4"
+            title="Active Positions"
+          >
+            <Table />
+            <Filters />
+          </Card>
+
+          <Card
+            explainer="Total P/L for all active positions."
+            hasData={Boolean(activePnL)}
+            loading={loading || statsLoading}
             title="P/L (active)"
-            value={activePnL}
-          />
+          >
+            <p className="text-2xl mb-2">
+              {<RyskCountUp prefix="$" value={activePnL} />}
+            </p>
+          </Card>
           <Card
             explainer="Total P/L for all open and closed positions."
-            symbol="$"
+            hasData={Boolean(historicalPnL)}
+            loading={loading || statsLoading}
             title="P/L (historical)"
-            value={historicalPnL}
-          />
+          >
+            <p className="text-2xl mb-2">
+              <RyskCountUp prefix="$" value={historicalPnL} />
+            </p>
+          </Card>
           <Card
             explainer="Total delta for all open positions."
-            symbol="Δ"
+            hasData={
+              Boolean(delta) || (Boolean(activePositions.length) && delta === 0)
+            }
+            loading={loading || statsLoading}
             title="Delta"
-            value={delta}
-          />
+          >
+            <p className="text-2xl mb-2">
+              <RyskCountUp prefix="Δ" value={delta} />
+            </p>
+          </Card>
           <Card
             disabled
             explainer="Total gamma for all open positions."
-            symbol="Γ"
+            hasData={false}
+            loading={loading || statsLoading}
             title="Gamma"
-            value={0}
-          />
+          >
+            <p className="text-2xl mb-2">
+              <RyskCountUp prefix="Γ" value={0} />
+            </p>
+          </Card>
           <Card
             disabled
             explainer="Total theta for all open positions."
-            symbol="θ"
+            hasData={false}
+            loading={loading || statsLoading}
             title="Theta"
-            value={0}
-          />
+          >
+            <p className="text-2xl mb-2">
+              <RyskCountUp prefix="θ" value={0} />
+            </p>
+          </Card>
         </motion.section>
       ) : null}
     </AnimatePresence>

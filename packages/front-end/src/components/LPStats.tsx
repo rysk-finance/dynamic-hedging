@@ -1,66 +1,33 @@
 import ProgressBar from "@ramonak/react-progress-bar";
-import { BigNumber, ethers } from "ethers";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import NumberFormat from "react-number-format";
-import { useContract, useProvider } from "wagmi";
 
-import LPABI from "../abis/LiquidityPool.json";
-import { BIG_NUMBER_DECIMALS, DECIMALS } from "../config/constants";
-import { ETHNetwork } from "../types";
 import { Loader } from "./Loader";
-import { getContractAddress } from "src/utils/helpers";
+import { useGlobalContext } from "src/state/GlobalContext";
 
 export const LPStats = () => {
-  const provider = useProvider();
+  const {
+    state: {
+      options: {
+        liquidityPool: { collateralCap, totalAssets },
+      },
+    },
+  } = useGlobalContext();
 
-  const [depositedCollateral, setDepositedCollateral] =
-    useState<BigNumber | null>(null);
-  const [collateralCap, setCollateralCap] = useState<BigNumber | null>(null);
-
-  const lpContract = useContract({
-    address: getContractAddress("liquidityPool"),
-    abi: LPABI,
-    signerOrProvider: provider,
-  });
-
-  useEffect(() => {
-    const getDepositedCollateral = async () => {
-      if (lpContract) {
-        const assets = await lpContract.getAssets();
-        setDepositedCollateral(assets);
-      }
-    };
-    const getCollateralCap = async () => {
-      if (lpContract) {
-        const cap = await lpContract.collateralCap();
-        setCollateralCap(cap);
-      }
-    };
-
-    getDepositedCollateral();
-    getCollateralCap();
-  }, [lpContract]);
-
-  const showDeposit = useMemo(() => {
-    if (depositedCollateral && collateralCap) {
-      return depositedCollateral?.gte(collateralCap)
-        ? collateralCap
-        : depositedCollateral;
-    }
-  }, [depositedCollateral, collateralCap]);
+  const progress = useMemo(
+    () => (totalAssets / collateralCap) * 100,
+    [totalAssets, collateralCap]
+  );
 
   return (
     <div className="mt-8">
       <div className="flex justify-between mb-4">
-        {depositedCollateral ? (
+        {totalAssets ? (
           <>
             <div>
               <p className="text-xl font-medium">
                 <NumberFormat
-                  value={ethers.utils.formatUnits(
-                    showDeposit ? showDeposit : depositedCollateral,
-                    DECIMALS.RYSK
-                  )}
+                  value={totalAssets}
                   displayType={"text"}
                   suffix=" USDC"
                   decimalScale={0}
@@ -73,10 +40,7 @@ export const LPStats = () => {
               <p className="text-xl font-medium">
                 {collateralCap && (
                   <NumberFormat
-                    value={ethers.utils.formatUnits(
-                      collateralCap,
-                      DECIMALS.RYSK
-                    )}
+                    value={collateralCap}
                     displayType={"text"}
                     suffix=" USDC"
                     decimalScale={0}
@@ -93,13 +57,10 @@ export const LPStats = () => {
           </div>
         )}
       </div>
-      {depositedCollateral && (
+
+      {Boolean(totalAssets) && (
         <ProgressBar
-          completed={Math.round(
-            (Number(showDeposit ? showDeposit : depositedCollateral) /
-              Number(collateralCap)) *
-              100
-          )}
+          completed={Math.round(progress)}
           bgColor={"#000"}
           height={"24px"}
           baseBgColor={"#ebebeb"}

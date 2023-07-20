@@ -37,11 +37,10 @@ export const VaultContent = () => {
 
   useEffect(() => {
     if (address) {
-      (() => {
-        updatePosition(address);
-      })();
+      updatePosition(address);
+      console.log("here");
     }
-  }, [address, updatePosition]);
+  }, [address]);
 
   return (
     <>

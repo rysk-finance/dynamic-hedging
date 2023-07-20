@@ -6,14 +6,7 @@ import {
   RainbowKitProvider,
   getDefaultWallets,
 } from "@rainbow-me/rainbowkit";
-import {
-  coinbaseWallet,
-  injectedWallet,
-  ledgerWallet,
-  metaMaskWallet,
-  trustWallet,
-  walletConnectWallet,
-} from "@rainbow-me/rainbowkit/wallets";
+import { ledgerWallet, trustWallet } from "@rainbow-me/rainbowkit/wallets";
 import { configureChains, createClient, WagmiConfig } from "wagmi";
 import { arbitrum, arbitrumGoerli } from "wagmi/chains";
 import { alchemyProvider } from "wagmi/providers/alchemy";
@@ -49,9 +42,7 @@ const privateProviders = [...infura, ...alchemy].sort(
 
 const providers = [...privateProviders, publicProvider()];
 
-const { chains, provider } = configureChains(defaultChains, providers, {
-  pollingInterval: 60000,
-});
+const { chains, provider } = configureChains(defaultChains, providers);
 
 const { wallets } = getDefaultWallets({
   appName: "Rysk Finance",

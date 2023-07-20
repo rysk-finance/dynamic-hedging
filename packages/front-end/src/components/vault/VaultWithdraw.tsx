@@ -66,14 +66,6 @@ export const VaultWithdraw = () => {
     contract: "liquidityPool",
     ABI: LPABI,
     readOnly: false,
-    events: {
-      WithdrawalEpochExecuted: () => {
-        epochListener();
-      },
-    },
-    isListening: {
-      WithdrawalEpochExecuted: true,
-    },
   });
 
   const [usdcContract, usdcContractCall] = useContract({
@@ -130,13 +122,6 @@ export const VaultWithdraw = () => {
       }
     }
   }, [address, currentEpoch, getWithdrawalReceipt, lpContract]);
-
-  const epochListener = useCallback(async () => {
-    updateWithdrawState();
-    if (address) {
-      updatePosition(address);
-    }
-  }, [updateWithdrawState, address, updatePosition]);
 
   useEffect(() => {
     (async () => {

@@ -4,19 +4,11 @@ import type { PositionDataState } from "../types";
 import dayjs from "dayjs";
 import { BigNumber } from "ethers";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { useAccount } from "wagmi";
 
 import { getQuotes } from "src/components/shared/utils/getQuote";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { optionSymbolFromOToken } from "src/utils";
-import {
-  fromOpyn,
-  fromWeiToInt,
-  renameOtoken,
-  toOpyn,
-  toRysk,
-} from "src/utils/conversion-helper";
+import { toOpyn, toRysk } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
@@ -26,17 +18,15 @@ export const usePositionData = (amountToClose: string) => {
   const {
     state: {
       balances,
+      closingOption,
       ethPrice,
-      options: { activeExpiry, userPositions },
+      options: { activeExpiry },
     },
   } = useGlobalContext();
 
-  // URL query params.
-  const [searchParams] = useSearchParams();
-
   // Addresses.
   const { address } = useAccount();
-  const tokenAddress = (searchParams.get("token") as HexString) || undefined;
+  const tokenAddress = closingOption?.address || undefined;
   const exchangeAddress = getContractAddress("optionExchange");
 
   // User allowance state for the oToken.
@@ -63,31 +53,19 @@ export const usePositionData = (amountToClose: string) => {
       setLoading(true);
 
       try {
-        if (activeExpiry && tokenAddress && userPositions) {
-          const userPosition = userPositions[activeExpiry]?.activeTokens.find(
-            ({ id }) => id === searchParams.get("token")
-          );
-
+        if (activeExpiry && tokenAddress && closingOption) {
           const now = dayjs().format("MMM DD, YYYY HH:mm A");
 
-          const totalSize = fromWeiToInt(userPosition?.netAmount || 0);
-          const title = `${
-            !userPosition?.symbol
-              ? renameOtoken(userPosition?.symbol || "")
-              : optionSymbolFromOToken(
-                  userPosition?.isPut || false,
-                  userPosition?.expiryTimestamp || "0",
-                  userPosition?.strikePrice.toString() || "0"
-                )
-          } (${totalSize})`.toUpperCase();
+          const totalSize = closingOption.amount;
+          const title = closingOption.series;
 
-          if (amount > 0 && userPosition) {
+          if (amount > 0) {
             const [{ acceptablePremium, fee, premium, quote, slippage }] =
               await getQuotes([
                 {
                   expiry: Number(activeExpiry),
-                  strike: toRysk(fromOpyn(userPosition.strikePrice)),
-                  isPut: userPosition.isPut,
+                  strike: toRysk(closingOption.strike),
+                  isPut: closingOption.isPut,
                   orderSize: amount,
                   isSell: true,
                 },
@@ -136,7 +114,7 @@ export const usePositionData = (amountToClose: string) => {
     };
 
     setPriceData(Number(amountToClose));
-  }, [activeExpiry, amountToClose, ethPrice, tokenAddress, userPositions]);
+  }, [activeExpiry, amountToClose, ethPrice, tokenAddress]);
 
   const addresses: Addresses = {
     exchange: exchangeAddress,

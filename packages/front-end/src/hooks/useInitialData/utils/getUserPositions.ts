@@ -1,24 +1,24 @@
 import type { UserPositions } from "src/state/types";
 import type { OptionsTransaction, Position } from "../types";
 
-import dayjs from "dayjs";
-
 import { tFormatUSDC } from "src/utils/conversion-helper";
 
 export const getUserPositions = (positions: Position[]): UserPositions => {
-  const now = dayjs().unix();
-
   return positions.reduce(
     (
       positions,
       {
         active,
+        buyAmount,
+        liquidateActions,
         netAmount,
         oToken,
         optionsBoughtTransactions,
         optionsSoldTransactions,
-        liquidateActions,
         realizedPnl,
+        redeemActions,
+        sellAmount,
+        settleActions,
         vault,
       }
     ) => {
@@ -49,14 +49,17 @@ export const getUserPositions = (positions: Position[]): UserPositions => {
       const token = {
         ...oToken,
         active,
-        netAmount,
-        totalPremium,
+        buyAmount,
         liquidateActions,
+        netAmount,
         realizedPnl,
+        redeemActions,
+        sellAmount,
+        settleActions,
+        totalPremium,
         vault,
       };
 
-      const isActive = active && parseInt(expiryTimestamp) >= now;
       const hasCollateral = Boolean(token.collateralAsset);
       const key = positions[expiryTimestamp];
 
@@ -65,7 +68,8 @@ export const getUserPositions = (positions: Position[]): UserPositions => {
           netAmount,
           isLong,
           isShort,
-          activeTokens: isActive ? [token] : [],
+          activeTokens: active ? [token] : [],
+          inactiveTokens: !active ? [token] : [],
           longTokens: hasCollateral ? [] : [token],
           shortTokens: hasCollateral ? [token] : [],
         };
@@ -74,9 +78,12 @@ export const getUserPositions = (positions: Position[]): UserPositions => {
           ...key,
           isLong: key.isLong || isLong,
           isShort: key.isShort || isShort,
-          activeTokens: isActive
+          activeTokens: active
             ? [...key.activeTokens, token]
             : key.activeTokens,
+          inactiveTokens: !active
+            ? [...key.inactiveTokens, token]
+            : key.inactiveTokens,
           longTokens: hasCollateral
             ? key.longTokens
             : [...key.longTokens, token],

@@ -1,5 +1,7 @@
 import type { ChainData, UserPositionToken } from "src/state/types";
 
+import dayjs from "dayjs";
+
 import { fromOpynToNumber, fromWeiToInt } from "src/utils/conversion-helper";
 
 /**
@@ -16,12 +18,16 @@ export const calculateDelta = (
 ): number => {
   if (positions.length === 0) return 0;
 
+  const nowToUnix = dayjs().unix();
+
   return positions.reduce(
     (totalDelta, { expiryTimestamp, isPut, strikePrice, netAmount }) => {
+      const isOpen = parseInt(expiryTimestamp) > nowToUnix;
       const side = isPut ? "put" : "call";
       const size = fromWeiToInt(netAmount);
       const strike = fromOpynToNumber(strikePrice);
-      const delta = chainData[expiryTimestamp][strike][side]?.delta || 0;
+      const chainDataDelta = chainData[expiryTimestamp][strike][side]?.delta;
+      const delta = isOpen && chainDataDelta ? chainDataDelta : 0;
 
       return totalDelta + delta * size;
     },

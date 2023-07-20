@@ -11,6 +11,7 @@ import {
 } from "react";
 import { LOCAL_STORAGE_SETTINGS_KEY } from "../components/dashboard/Settings";
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import { ActivePositionSort } from "./constants";
 import { globalReducer } from "./reducer";
 import { ActionType, AppSettings, GlobalContext, GlobalState } from "./types";
 
@@ -50,6 +51,7 @@ export const defaultGlobalState: GlobalState = {
     expiries: [],
     isOperator: false,
     liquidityPool: {
+      collateralCap: 0,
       remainingBeforeBuffer: 0,
       totalAssets: 0,
       utilisationHigh: false,
@@ -81,18 +83,14 @@ export const defaultGlobalState: GlobalState = {
     wethOracleHashMap: {},
   },
 
-  dashboard: {
-    activePositions: [],
-    inactivePositions: [],
-    modalPosition: undefined,
-  },
-
   // Options chain state.
   collateralPreferences: {
     amount: 2,
     full: false,
     type: "USDC",
   },
+  adjustingOption: undefined,
+  closingOption: undefined,
   selectedOption: undefined,
   optionChainModalOpen: undefined,
   buyTutorialIndex: undefined,
@@ -107,7 +105,6 @@ export const defaultGlobalState: GlobalState = {
     "pos",
     "exposure",
   ] as ColumNames[]),
-  dashboardModalOpen: undefined,
 
   // User balances
   balances: {
@@ -125,8 +122,20 @@ export const defaultGlobalState: GlobalState = {
   // User stats
   userStats: {
     activePnL: 0,
+    activePositions: [],
+    activePositionsFilters: {
+      compact: true,
+      hideExpired: false,
+      isAscending: true,
+      sort: ActivePositionSort.Expiry,
+    },
     delta: 0,
     historicalPnL: 0,
+    inactivePositions: [],
+    inactivePositionsFilters: {
+      compact: true,
+    },
+    loading: true,
   },
 };
 

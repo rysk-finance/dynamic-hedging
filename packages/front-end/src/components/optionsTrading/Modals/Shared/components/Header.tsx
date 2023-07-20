@@ -1,7 +1,5 @@
 import type { PropsWithChildren } from "react";
 
-import { useSearchParams } from "react-router-dom";
-
 import { Change, Close, Question } from "src/Icons";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType, OptionChainModalActions } from "src/state/types";
@@ -24,13 +22,10 @@ export const Header = ({
     },
   } = useGlobalContext();
 
-  const [_, setSearchParams] = useSearchParams();
-
   const closeModal = () => {
     dispatch({
       type: ActionType.RESET_OPTIONS_CHAIN_STATE,
     });
-    setSearchParams({});
   };
 
   const changeModal = () => {
@@ -54,7 +49,7 @@ export const Header = ({
 
   return (
     <span className="grid grid-cols-10 bg-black text-white bg-[url('./assets/circle-lines.png')] bg-no-repeat bg-[top_left_-50%] bg-contain">
-      <h2 className="col-span-4 col-start-4 text-xl font-medium text-center py-4">
+      <h2 className="col-span-4 col-start-4 text-lg font-medium text-center py-4">
         {children}
       </h2>
 

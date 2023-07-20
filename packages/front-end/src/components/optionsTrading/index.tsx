@@ -7,6 +7,7 @@ import { AssetPriceInfo } from "./AssetPriceInfo";
 import { Chain } from "./Chain";
 import { ExpiryDatePicker } from "./ExpiryDatePicker";
 import { Filters } from "./Filters/Filters";
+import { AdjustCollateralModal } from "./Modals/AdjustCollateralModal";
 import { BuyOptionModal } from "./Modals/BuyOptionModal";
 import { CloseOptionModal } from "./Modals/CloseOptionModal";
 import { CloseShortOptionModal } from "./Modals/CloseShortOptionModal";
@@ -40,14 +41,21 @@ export const OptionsTradingContent = () => {
         </LayoutGroup>
 
         <AnimatePresence mode="wait">
+          {modalType === OptionChainModalActions.ADJUST_COLLATERAL && (
+            <AdjustCollateralModal key="adjust-collateral" />
+          )}
           {modalType === OptionChainModalActions.BUY && (
             <BuyOptionModal key="buy" />
           )}
-          {modalType === OptionChainModalActions.CLOSE && <CloseOptionModal />}
-          {modalType === OptionChainModalActions.CLOSE_SHORT && (
-            <CloseShortOptionModal />
+          {modalType === OptionChainModalActions.CLOSE_LONG && (
+            <CloseOptionModal key="close-long" />
           )}
-          {modalType === OptionChainModalActions.OPERATOR && <OperatorModal />}
+          {modalType === OptionChainModalActions.CLOSE_SHORT && (
+            <CloseShortOptionModal key="close-short" />
+          )}
+          {modalType === OptionChainModalActions.OPERATOR && (
+            <OperatorModal key="operator" />
+          )}
           {modalType === OptionChainModalActions.SELL && (
             <SellOptionModal key="sell" />
           )}
