@@ -4,19 +4,28 @@ pragma solidity >=0.8.9;
 import "../../contracts/LiquidityPool.sol";
 import { GammaTypes, IController } from "../interfaces/GammaInterface.sol";
 import "../OptionRegistry.sol";
+import "hardhat/console.sol";
 
 contract DeltaSettlerMulticall {
 	address public executorAddress;
-	address optionRegistryAddress = 0x8Bc23878981a207860bA4B185fD065f4fd3c7725;
-	OptionRegistry constant optionRegistry =
-		OptionRegistry(0x8Bc23878981a207860bA4B185fD065f4fd3c7725);
-	IController constant controller = IController(0x594bD4eC29F7900AE29549c140Ac53b5240d4019);
-	LiquidityPool constant liquidityPool = LiquidityPool(0x217749d9017cB87712654422a1F5856AAA147b80);
+	address public immutable optionRegistryAddress;
+	OptionRegistry public immutable optionRegistry;
+	IController public immutable controller;
+	LiquidityPool public immutable liquidityPool;
 
 	error invalidMsgSender();
 
-	constructor(address _executorAddress) {
+	constructor(
+		address _executorAddress,
+		address _optionRegistryAddress,
+		address _controllerAddres,
+		address _liquidityPoolAddress
+	) {
 		executorAddress = _executorAddress;
+		optionRegistryAddress = _optionRegistryAddress;
+		optionRegistry = OptionRegistry(_optionRegistryAddress);
+		controller = IController(_controllerAddres);
+		liquidityPool = LiquidityPool(_liquidityPoolAddress);
 	}
 
 	function setExecutor(address _executorAddress) external {
@@ -28,20 +37,33 @@ contract DeltaSettlerMulticall {
 
 	function checkVaultsToSettle(
 		address[] calldata seriesAddresses
-	) external view returns (address[] memory) {
+	) external view returns (address[] memory, bool) {
 		// create fixed length dynamic memory array to return
 		address[] memory vaultsToSettle = new address[](seriesAddresses.length);
 		uint256 i = 0;
 		uint256 length = seriesAddresses.length;
 
+		// will return false if no vaults need settling otherwise will return true
+		bool needsToExecute = false;
+
 		for (i; i < length; i++) {
+			console.log(seriesAddresses[i]);
 			uint vaultId = optionRegistry.vaultIds(seriesAddresses[i]);
+			console.log("vault id", vaultId);
 			GammaTypes.Vault memory vault = controller.getVault(optionRegistryAddress, vaultId);
+			console.log(
+				"is settle allowed:",
+				controller.isSettlementAllowed(seriesAddresses[i]),
+				vault.shortAmounts[0]
+			);
 			if ((controller.isSettlementAllowed(seriesAddresses[i])) && vault.shortAmounts[0] > 0) {
 				vaultsToSettle[i] = seriesAddresses[i];
+				needsToExecute = true;
+			} else {
+				vaultsToSettle[i] = address(0);
 			}
 		}
-		return vaultsToSettle;
+		return (vaultsToSettle, needsToExecute);
 	}
 
 	function settleVaults(address[] calldata seriesAddresses) external {
