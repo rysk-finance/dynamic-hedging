@@ -138,9 +138,16 @@ export const BuyOptionModal = () => {
   };
 
   const disableChangeButton = useMemo(() => {
-    if (selectedOption) {
-      const sellData =
-        selectedOption.strikeOptions[selectedOption.callOrPut].sell;
+    const isPut = selectedOption?.callOrPut === "put";
+
+    if (selectedOption && isPut && selectedOption.strikeOptions.put) {
+      const sellData = selectedOption.strikeOptions.put.sell;
+
+      return sellData.disabled || !sellData.quote.total;
+    }
+
+    if (selectedOption && !isPut && selectedOption.strikeOptions.call) {
+      const sellData = selectedOption.strikeOptions.call.sell;
 
       return sellData.disabled || !sellData.quote.total;
     } else {

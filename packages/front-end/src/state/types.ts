@@ -461,8 +461,8 @@ export interface StrikeSide {
 
 export interface StrikeOptions {
   strike: number;
-  call: StrikeSide;
-  put: StrikeSide;
+  call?: StrikeSide;
+  put?: StrikeSide;
 }
 
 export interface OptionSeries {
