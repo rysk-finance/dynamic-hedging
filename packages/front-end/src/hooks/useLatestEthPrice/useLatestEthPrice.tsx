@@ -5,7 +5,7 @@ import { priceFeedGetRate } from "src/hooks/useUpdateEthPrice";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
 
-const INITIAL_INTERVAL_SECONDS = 5;
+const INITIAL_INTERVAL_SECONDS = 6;
 
 /**
  * Automated getter for Eth prices.
@@ -29,7 +29,7 @@ export const useLatestEthPrice = () => {
   }, [ethLastUpdateTimestamp]);
 
   useEffect(() => {
-    // Check Ether price in increasing intervals, starting at five seconds.
+    // Check Ether price in increasing intervals, starting at six seconds.
     const priceCheckInterval = setInterval(async () => {
       const newPrice = await priceFeedGetRate();
 
