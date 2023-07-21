@@ -1,12 +1,20 @@
 import type { PricingProps } from "../types";
 
-import { useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useMemo } from "react";
 
-import { RyskCountUp } from "src/components/shared/RyskCountUp";
 import FadeInOutQuick from "src/animation/FadeInOutQuick";
+import { RyskCountUp } from "src/components/shared/RyskCountUp";
+import { RyskTooltip } from "src/components/shared/RyskToolTip";
+import { useGlobalContext } from "src/state/GlobalContext";
 
 export const Pricing = ({ collateralData }: PricingProps) => {
+  const {
+    state: {
+      userTradingPreferences: { tutorialMode },
+    },
+  } = useGlobalContext();
+
   const {
     asset,
     collateral,
@@ -35,21 +43,33 @@ export const Pricing = ({ collateralData }: PricingProps) => {
     <div className="w-3/5 mx-auto py-4">
       <span className="flex">
         <p className="mr-auto">{`Liquidation Price:`}</p>
-        <p className="font-medium">
-          <RyskCountUp value={liquidationPrice} />
-          {` USDC`}
-        </p>
+        <RyskTooltip
+          content="The price at which your position will be liquidated. You can deposit or withdraw more collateral to adjust this price."
+          disabled={!tutorialMode}
+          placement="left"
+        >
+          <p className="font-medium">
+            <RyskCountUp value={liquidationPrice} />
+            {` USDC`}
+          </p>
+        </RyskTooltip>
       </span>
 
       <span className="flex">
         <p className="mr-auto">{`Collateral:`}</p>
-        <p className="font-medium">
-          <RyskCountUp
-            format={asset === "USDC" ? "USD" : "ETH"}
-            value={collateral}
-          />
-          {` ${asset}`}
-        </p>
+        <RyskTooltip
+          content="The amount of collateral that is placed against this position."
+          disabled={!tutorialMode}
+          placement="left"
+        >
+          <p className="font-medium">
+            <RyskCountUp
+              format={asset === "USDC" ? "USD" : "ETH"}
+              value={collateral}
+            />
+            {` ${asset}`}
+          </p>
+        </RyskTooltip>
       </span>
 
       <span className="flex pt-2">
