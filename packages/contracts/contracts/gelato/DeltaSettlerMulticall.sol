@@ -51,6 +51,9 @@ contract DeltaSettlerMulticall {
 			uint vaultId = optionRegistry.vaultIds(seriesAddresses[i]);
 			console.log("vault id", vaultId);
 			GammaTypes.Vault memory vault = controller.getVault(optionRegistryAddress, vaultId);
+			if (vault.shortAmounts.length == 0) {
+				continue;
+			}
 			console.log(
 				"is settle allowed:",
 				controller.isSettlementAllowed(seriesAddresses[i]),
