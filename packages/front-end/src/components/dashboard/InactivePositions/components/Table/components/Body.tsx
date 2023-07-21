@@ -22,7 +22,7 @@ export const Body = () => {
     <LayoutGroup>
       <AnimatePresence initial={false}>
         <motion.tbody
-          className="block border-b-2 border-black border-dashed overflow-y-scroll"
+          className="block border-b-2 border-black border-dashed overflow-y-scroll rysk-scrollbar rysk-scrollbar-padded"
           {...Resize(
             compact ? compactOffHeight : 442,
             compact ? 442 : compactOffHeight

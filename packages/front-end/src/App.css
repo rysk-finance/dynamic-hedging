@@ -72,14 +72,21 @@
   scrollbar-color: #989898 transparent;
 }
 .rysk-scrollbar::-webkit-scrollbar {
+  /* -webkit-appearance: none; */
+  width: 0.75rem;
   background: transparent;
-  border-radius: 1rem;
+  border-radius: 0.5rem;
 }
 .rysk-scrollbar::-webkit-scrollbar-thumb {
   background: #989898;
-  border-radius: 1rem;
+  border-radius: 0.5rem;
 }
 .rysk-scrollbar::-webkit-scrollbar-track {
   background: transparent;
-  border-radius: 1rem;
+  border-radius: 0.5rem;
 }
+.rysk-scrollbar-padded::-webkit-scrollbar-button:single-button {
+  height: 0.75rem;
+  width: 0.75rem;
+}
+

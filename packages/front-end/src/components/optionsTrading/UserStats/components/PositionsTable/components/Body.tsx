@@ -58,7 +58,7 @@ export const Body = () => {
   return (
     <LayoutGroup>
       <motion.tbody
-        className="block border-b-2 border-black border-dashed overflow-y-scroll"
+        className="block border-b-2 border-black border-dashed overflow-y-scroll rysk-scrollbar rysk-scrollbar-padded"
         {...Resize(
           compact ? compactOffHeight : 222,
           compact ? 222 : compactOffHeight

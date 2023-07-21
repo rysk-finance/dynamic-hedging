@@ -47,7 +47,7 @@ export const RyskModal = ({ children, lightBoxClickFn }: RyskModalProps) => {
     >
       <motion.div
         aria-modal="true"
-        className="flex flex-col col-span-8 col-start-3 lg:col-span-6 lg:col-start-4 my-auto border-black border-2 rounded-2xl bg-bone-light bg-[url('./assets/white-ascii-50.png')] bg-center overflow-auto cursor-default max-h-[90%] rysk-scrollbar"
+        className="flex flex-col col-span-8 col-start-3 lg:col-span-6 lg:col-start-4 my-auto border-black border-2 rounded-lg bg-bone-light bg-[url('./assets/white-ascii-50.png')] bg-center overflow-auto cursor-default max-h-[90%] rysk-scrollbar"
         onClick={handleModalClick}
         ref={modalRef}
         title=""
