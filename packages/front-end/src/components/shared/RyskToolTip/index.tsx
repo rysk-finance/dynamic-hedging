@@ -10,24 +10,33 @@ export const RyskTooltip = ({
   disabled = false,
   content,
   placement = "auto",
-}: RyskToolTipProps) => (
-  <Tippy
-    content={content}
-    disabled={disabled}
-    duration={[200, 150]}
-    hideOnClick="toggle"
-    interactive
-    placement={placement}
-    theme="rysk"
-  >
-    {children ? (
-      children
+}: RyskToolTipProps) => {
+  const formattedContent =
+    typeof content === "string" ? (
+      <span className="block text-center">{content}</span>
     ) : (
-      <span
-        className={`p-3 ${disabled ? "cursor-not-allowed" : "cursor-help"}`}
-      >
-        <Info className="inline-flex w-6 h-6" />
-      </span>
-    )}
-  </Tippy>
-);
+      content
+    );
+
+  return (
+    <Tippy
+      content={formattedContent}
+      disabled={disabled}
+      duration={[200, 150]}
+      hideOnClick="toggle"
+      interactive
+      placement={placement}
+      theme="rysk"
+    >
+      {children ? (
+        children
+      ) : (
+        <span
+          className={`p-3 ${disabled ? "cursor-not-allowed" : "cursor-help"}`}
+        >
+          <Info className="inline-flex w-6 h-6" />
+        </span>
+      )}
+    </Tippy>
+  );
+};
