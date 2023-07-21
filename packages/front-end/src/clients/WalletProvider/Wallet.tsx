@@ -12,6 +12,7 @@ import { arbitrum, arbitrumGoerli } from "wagmi/chains";
 import { alchemyProvider } from "wagmi/providers/alchemy";
 import { infuraProvider } from "wagmi/providers/infura";
 import { publicProvider } from "wagmi/providers/public";
+import { jsonRpcProvider } from "wagmi/providers/jsonRpc";
 
 import "@rainbow-me/rainbowkit/styles.css";
 
@@ -28,21 +29,69 @@ const defaultChains: [Chain] =
 const projectId = process.env.REACT_APP_WALLET_CONNECT_KEY || "";
 
 const alchemy = process.env.REACT_APP_ALCHEMY_KEY
-  ? [alchemyProvider({ apiKey: process.env.REACT_APP_ALCHEMY_KEY })]
+  ? [
+      alchemyProvider({
+        apiKey: process.env.REACT_APP_ALCHEMY_KEY,
+        priority: 1,
+      }),
+    ]
   : [];
 
 const infura = process.env.REACT_APP_INFURA_KEY
-  ? [infuraProvider({ apiKey: process.env.REACT_APP_INFURA_KEY })]
+  ? [
+      infuraProvider({
+        apiKey: process.env.REACT_APP_INFURA_KEY,
+        priority: 1,
+      }),
+    ]
   : [];
 
-// Rudimentary load balancer.
-const privateProviders = [...infura, ...alchemy].sort(
-  () => Math.random() - Math.random()
-);
+const blastApi = [
+  jsonRpcProvider({
+    priority: 1,
+    rpc: ({ testnet }) => {
+      const network = testnet ? "arbitrum-goerli" : "arbitrum-one";
 
-const providers = [...privateProviders, publicProvider()];
+      return { http: `https://${network}.public.blastapi.io` };
+    },
+  }),
+];
 
-const { chains, provider } = configureChains(defaultChains, providers);
+const publicNode = [
+  jsonRpcProvider({
+    priority: 1,
+    rpc: ({ testnet }) => {
+      const network = testnet ? "arbitrum-goerli" : "arbitrum-one";
+
+      return { http: `https://${network}.publicnode.com` };
+    },
+  }),
+];
+
+const blockPi = [
+  jsonRpcProvider({
+    priority: 2,
+    rpc: ({ network }) => {
+      return { http: `https://${network}.blockpi.network/v1/rpc/public` };
+    },
+  }),
+];
+
+const providers = [
+  // priority
+  ...alchemy,
+  ...blastApi,
+  ...infura,
+  ...publicNode,
+
+  // fallback
+  ...blockPi,
+  publicProvider({ priority: 3 }),
+];
+
+const { chains, provider } = configureChains(defaultChains, providers, {
+  stallTimeout: 500,
+});
 
 const { wallets } = getDefaultWallets({
   appName: "Rysk Finance",
