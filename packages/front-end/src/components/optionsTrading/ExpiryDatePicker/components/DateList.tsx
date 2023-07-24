@@ -70,7 +70,7 @@ export const DateList = ({
                     />
 
                     <time
-                      className="mx-2 text-sm xl:text-base"
+                      className="mx-2 text-2xs xl:text-base"
                       dateTime={datetime.format("YYYY-MM-DD")}
                     >
                       {`${datetime.format("DD MMM YY")}`}
@@ -84,7 +84,7 @@ export const DateList = ({
                     />
                   </div>
 
-                  <small className={`text-xs mt-1 `}>
+                  <small className={`text-2xs xl:text-xs mt-1 `}>
                     {duration.asDays() < 1
                       ? `Untradeable`
                       : `${Math.floor(

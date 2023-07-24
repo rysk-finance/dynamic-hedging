@@ -30,7 +30,7 @@ export const CurrentPrice = () => {
         disabled={!tutorialMode}
       >
         <span className="flex flex-col">
-          <h4 className="flex font-medium font-dm-mono text-lg lg:text-xl before:content-['Ether:_$'] before:mr-1">
+          <h4 className="flex font-medium font-dm-mono text-md lg:text-xl before:content-['Ether:_$'] before:mr-1">
             <RyskCountUp value={ethPrice || 0} />
             <Refresh className="w-6 h-6 ml-2" />
           </h4>
