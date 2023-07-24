@@ -36,7 +36,7 @@ export const UserStats = () => {
             explainer="All active user positions. Please check the dashboard area for historical positions."
             hasData={Boolean(activePositions.length)}
             loading={loading || statsLoading}
-            span="col-span-4"
+            span={["col-span-4", "col-span-4"]}
             title="Active Positions"
           >
             <Table />
@@ -49,7 +49,7 @@ export const UserStats = () => {
             loading={loading || statsLoading}
             title="P/L (active)"
           >
-            <p className="text-2xl mb-2">
+            <p className="text-lg xl:text-2xl mb-2">
               {<RyskCountUp prefix="$" value={activePnL} />}
             </p>
           </Card>
@@ -59,7 +59,7 @@ export const UserStats = () => {
             loading={loading || statsLoading}
             title="P/L (historical)"
           >
-            <p className="text-2xl mb-2">
+            <p className="text-lg xl:text-2xl mb-2">
               <RyskCountUp prefix="$" value={historicalPnL} />
             </p>
           </Card>
@@ -71,7 +71,7 @@ export const UserStats = () => {
             loading={loading || statsLoading}
             title="Delta"
           >
-            <p className="text-2xl mb-2">
+            <p className="text-lg xl:text-2xl mb-2">
               <RyskCountUp prefix="Δ" value={delta} />
             </p>
           </Card>
@@ -82,7 +82,7 @@ export const UserStats = () => {
             loading={loading || statsLoading}
             title="Gamma"
           >
-            <p className="text-2xl mb-2">
+            <p className="text-lg xl:text-2xl mb-2">
               <RyskCountUp prefix="Γ" value={0} />
             </p>
           </Card>
@@ -93,7 +93,7 @@ export const UserStats = () => {
             loading={loading || statsLoading}
             title="Theta"
           >
-            <p className="text-2xl mb-2">
+            <p className="text-lg xl:text-2xl mb-2">
               <RyskCountUp prefix="θ" value={0} />
             </p>
           </Card>

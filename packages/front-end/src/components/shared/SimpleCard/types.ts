@@ -5,6 +5,6 @@ export interface CardProps extends PropsWithChildren {
   explainer: string;
   hasData: boolean;
   loading: boolean;
-  span?: `col-span-${number}`;
+  span?: (`${string}:col-span-${number}` | `col-span-${number}`)[];
   title: string;
 }
