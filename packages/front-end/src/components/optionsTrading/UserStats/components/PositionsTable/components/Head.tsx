@@ -36,19 +36,19 @@ const columns = [
   },
   {
     className: "",
-    name: "entry price",
+    name: "entry",
   },
   {
     className: "",
-    name: "mark price",
+    name: "mark",
   },
   {
     className: "col-span-2",
-    name: "liq. price (collateral)",
+    name: "liq. price (coll)",
   },
   {
     className: "",
-    name: "break even",
+    name: "B/E",
   },
   {
     className: "col-span-2",
@@ -84,7 +84,7 @@ export const Head = () => {
   };
 
   return (
-    <thead className="border-b-2 border-black border-dashed xl:pr-3">
+    <thead className="border-b-2 border-black border-dashed pr-3">
       <tr className="grid grid-cols-12 text-center capitalize [&_th]:border-l-2 first:[&_th]:border-0 [&_th]:border-gray-500 [&_th]:border-dashed [&_th]:py-3 [&_th]:text-xs [&_th]:lg:text-sm [&_th]:xl:text-base select-none">
         {columns.map(({ className, columnKey, name, sortable }) => (
           <th
