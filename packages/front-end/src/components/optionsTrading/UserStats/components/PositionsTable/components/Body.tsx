@@ -58,7 +58,7 @@ export const Body = () => {
   return (
     <LayoutGroup>
       <motion.tbody
-        className="block border-b-2 border-black border-dashed overflow-y-scroll rysk-scrollbar rysk-scrollbar-padded"
+        className="block w-[150%] lg:w-full border-b-2 border-black border-dashed overflow-y-scroll rysk-scrollbar rysk-scrollbar-padded"
         {...Resize(
           compact ? compactOffHeight : 222,
           compact ? 222 : compactOffHeight
@@ -80,7 +80,7 @@ export const Body = () => {
 
             return (
               <motion.tr
-                className="grid grid-cols-12 text-center capitalize [&_td]:border-l-2 first:[&_td]:border-0 [&_td]:border-gray-500 [&_td]:border-dashed [&_td]:py-2.5 [&_td]:text-2xs [&_td]:xl:text-sm"
+                className="h-11 grid grid-cols-12 items-center text-center capitalize [&_td]:border-l-2 first:[&_td]:border-0 [&_td]:border-gray-500 [&_td]:border-dashed [&_td]:text-2xs [&_td]:xl:text-sm [&_td]:h-full [&_td]:flex [&_td]:items-center [&_td]:justify-center"
                 key={`${id}-${isShort ? "SHORT" : "LONG"}`}
                 layout="position"
                 {...FadeInUpDelayed(Math.min(index * 0.1, 2))}

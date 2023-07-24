@@ -10,17 +10,17 @@ export const Series = ({ isShort, series }: SeriesProps) => {
       {isShort ? (
         <DownChevron
           aria-hidden={true}
-          className="min-w-6 h-6 mx-3 stroke-red-900"
+          className="min-w-6 h-6 mx-3 my-auto stroke-red-900"
           strokeWidth={2}
         />
       ) : (
         <UpChevron
           aria-hidden={true}
-          className="min-w-6 h-6 mx-3 stroke-green 1100"
+          className="min-w-6 h-6 mx-3 my-auto stroke-green 1100"
           strokeWidth={2}
         />
       )}
-      <span className="w-2/3">{series}</span>
+      <span className="w-2/3 my-auto">{series}</span>
     </td>
   );
 };
