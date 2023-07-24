@@ -9,7 +9,7 @@ import { Button as ConnectButton } from "src/components/shared/Button";
 
 export const Wrapper = ({ children }: HTMLProps<HTMLFormElement>) => (
   <form
-    className="flex h-12 border-black border-y-2"
+    className="flex min-h-[3rem] border-black border-y-2"
     onSubmit={(event) => event.preventDefault()}
   >
     {children}

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import FadeInOutQuick from "src/animation/FadeInOutQuick";
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
+import { RyskTooltip } from "src/components/shared/RyskToolTip";
 import { useGlobalContext } from "src/state/GlobalContext";
 
 export const Pricing = ({ loading, positionData }: PricingProps) => {
@@ -14,6 +15,7 @@ export const Pricing = ({ loading, positionData }: PricingProps) => {
       options: {
         liquidityPool: { utilisationHigh },
       },
+      userTradingPreferences: { tutorialMode },
     },
   } = useGlobalContext();
 
@@ -65,63 +67,92 @@ export const Pricing = ({ loading, positionData }: PricingProps) => {
     <div className="w-3/5 mx-auto pt-2 pb-4">
       <span className="flex">
         <p className="mr-auto">{`Collateral required:`}</p>
+
         <AnimatePresence mode="wait">
-          <motion.p
-            className="font-medium"
-            key={collateralType}
-            {...FadeInOutQuick}
+          <RyskTooltip
+            content="The total amount of collateral required to cover the position."
+            disabled={!tutorialMode}
+            placement="left"
           >
-            <RyskCountUp
-              value={collateral}
-              format={collateralType === "USDC" ? "USD" : "ETH"}
-            />
-            {collateralType === "USDC" ? ` USDC` : ` WETH`}
-          </motion.p>
+            <motion.p
+              className="font-medium"
+              key={collateralType}
+              {...FadeInOutQuick}
+            >
+              <RyskCountUp
+                value={collateral}
+                format={collateralType === "USDC" ? "USD" : "ETH"}
+              />
+              {collateralType === "USDC" ? ` USDC` : ` WETH`}
+            </motion.p>
+          </RyskTooltip>
         </AnimatePresence>
       </span>
 
-      <span
-        className="flex pb-2 border-gray-600 border-b"
-      >
+      <span className="flex pb-2 border-gray-600 border-b">
         <p className="mr-auto">{`Liquidation Price:`}</p>
         <AnimatePresence mode="wait">
-          <motion.p
-            className="font-medium"
-            key={collateralFull ? "full-enabled" : "full-disabled"}
-            {...FadeInOutQuick}
+          <RyskTooltip
+            content="The price at which your position will be liquidated."
+            disabled={!tutorialMode}
+            placement="left"
           >
-            <RyskCountUp
-              fallback={collateralFull && quote ? "" : "-"}
-              value={collateralFull && quote ? 0 : liquidationPrice}
-            />
-            {collateralFull && quote ? `Unliquidatable` : ` USDC`}
-          </motion.p>
+            <motion.p
+              className="font-medium"
+              key={collateralFull ? "full-enabled" : "full-disabled"}
+              {...FadeInOutQuick}
+            >
+              <RyskCountUp
+                fallback={collateralFull && quote ? "" : "-"}
+                value={collateralFull && quote ? 0 : liquidationPrice}
+              />
+              {collateralFull && quote ? `Unliquidatable` : ` USDC`}
+            </motion.p>
+          </RyskTooltip>
         </AnimatePresence>
       </span>
 
       <div>
         <span className="flex pt-2">
           <p className="mr-auto">{`Premium:`}</p>
-          <p className="font-medium">
-            <RyskCountUp value={premium} />
-            {` USDC`}
-          </p>
+          <RyskTooltip
+            content="The amount of USDC required per contract."
+            disabled={!tutorialMode}
+            placement="left"
+          >
+            <p className="font-medium">
+              <RyskCountUp value={premium} />
+              {` USDC`}
+            </p>
+          </RyskTooltip>
         </span>
 
         <span className="flex">
           <p className="mr-auto">{`Fee:`}</p>
-          <p className="font-medium">
-            <RyskCountUp value={fee} />
-            {` USDC`}
-          </p>
+          <RyskTooltip
+            content="The total fee that Rysk collects per contract."
+            disabled={!tutorialMode}
+            placement="left"
+          >
+            <p className="font-medium">
+              <RyskCountUp value={fee} />
+              {` USDC`}
+            </p>
+          </RyskTooltip>
         </span>
 
         <span className="flex">
           <p className="mr-auto">{`Price impact:`}</p>
-          <p className="font-medium">
-            <RyskCountUp value={slippage} />
-            {` %`}
-          </p>
+          <RyskTooltip
+            content="The slippage of total premium based on trade size."
+            disabled={!tutorialMode}
+            placement="left"
+          >
+            <p className="font-medium">
+              <RyskCountUp value={slippage} />
+              {` %`}
+            </p>
+          </RyskTooltip>
         </span>
 
         <small className="block leading-6 text-gray-600 border-gray-600 border-b">
@@ -131,18 +162,30 @@ export const Pricing = ({ loading, positionData }: PricingProps) => {
 
       <span className="flex pt-2">
         <p className="mr-auto">{`Premium received:`}</p>
-        <p className="font-medium">
-          <RyskCountUp value={quote} />
-          {` USDC`}
-        </p>
+        <RyskTooltip
+          content="The total amount of USDC you will receive from selling this position."
+          disabled={!tutorialMode}
+          placement="left"
+        >
+          <p className="font-medium">
+            <RyskCountUp value={quote} />
+            {` USDC`}
+          </p>
+        </RyskTooltip>
       </span>
 
       <span className="flex">
         <p className="mr-auto">{`Break even:`}</p>
-        <p className="font-medium">
-          <RyskCountUp value={breakEven} />
-          {` USDC`}
-        </p>
+        <RyskTooltip
+          content="The price at which your position will break even if held to expiry."
+          disabled={!tutorialMode}
+          placement="left"
+        >
+          <p className="font-medium">
+            <RyskCountUp value={breakEven} />
+            {` USDC`}
+          </p>
+        </RyskTooltip>
       </span>
 
       <div>

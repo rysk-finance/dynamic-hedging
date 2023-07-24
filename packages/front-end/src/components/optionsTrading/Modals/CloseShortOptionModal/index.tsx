@@ -9,6 +9,7 @@ import FadeInOutQuick from "src/animation/FadeInOutQuick";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { toRysk, toUSDC } from "src/utils/conversion-helper";
 
+import { RyskTooltip } from "src/components/shared/RyskToolTip";
 import { approveAllowance } from "src/components/shared/utils/transactions/approveAllowance";
 import { closeShort } from "src/components/shared/utils/transactions/closeShort";
 import { getContractAddress } from "src/utils/helpers";
@@ -35,7 +36,7 @@ export const CloseShortOptionModal = () => {
     state: {
       geoData: { blocked },
       options: { refresh },
-      userTradingPreferences: { approvals },
+      userTradingPreferences: { approvals, tutorialMode },
     },
   } = useGlobalContext();
 
@@ -145,17 +146,22 @@ export const CloseShortOptionModal = () => {
           />
         </Label>
 
-        <Label
-          className="flex items-center justify-center select-none cursor-pointer w-min border-black border-r-2 px-2"
-          title="Select to close the entire position."
+        <RyskTooltip
+          content="Use this toggle to sell your entire position."
+          disabled={!tutorialMode}
+          placement="top"
         >
-          <Checkbox
-            checked={amountToSell === positionData.totalSize.toString()}
-            name="close-max"
-            onChange={handleCloseMax}
-          />
-          {`Max`}
-        </Label>
+          <span className="flex">
+            <Label className="flex items-center justify-center select-none cursor-pointer w-min border-black border-r-2 px-2">
+              <Checkbox
+                checked={amountToSell === positionData.totalSize.toString()}
+                name="close-max"
+                onChange={handleCloseMax}
+              />
+              {`Max`}
+            </Label>
+          </span>
+        </RyskTooltip>
 
         <AnimatePresence mode="wait">
           <Button

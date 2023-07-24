@@ -1,6 +1,7 @@
 import type { PropsWithChildren } from "react";
 
 import { Change, Close } from "src/Icons";
+import { RyskTooltip } from "src/components/shared/RyskToolTip";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType, OptionChainModalActions } from "src/state/types";
 
@@ -14,6 +15,7 @@ export const Header = ({ children, changeVisible = false }: HeaderProps) => {
     state: {
       options: { isOperator },
       selectedOption,
+      userTradingPreferences: { tutorialMode },
     },
   } = useGlobalContext();
 
@@ -37,11 +39,6 @@ export const Header = ({ children, changeVisible = false }: HeaderProps) => {
     });
   };
 
-  const changeTitle =
-    selectedOption?.buyOrSell === "buy"
-      ? "Click to change to selling."
-      : "Click to change to buying.";
-
   return (
     <span className="grid grid-cols-10 bg-black text-white bg-[url('./assets/circle-lines.png')] bg-no-repeat bg-contain">
       <h2 className="col-span-4 col-start-4 text-lg font-medium text-center py-3">
@@ -49,13 +46,18 @@ export const Header = ({ children, changeVisible = false }: HeaderProps) => {
       </h2>
 
       {changeVisible && (
-        <button
-          className={`col-start-9 col-span-1 mx-auto p-2`}
-          onClick={changeModal}
-          title={changeTitle}
+        <RyskTooltip
+          content="Use this button to quick switch between buying and selling this option."
+          disabled={!tutorialMode}
+          placement="bottom"
         >
-          <Change className="text-white h-8 w-8" />
-        </button>
+          <button
+            className={`col-start-9 col-span-1 mx-auto p-2`}
+            onClick={changeModal}
+          >
+            <Change className="text-white h-8 w-8" />
+          </button>
+        </RyskTooltip>
       )}
 
       <button

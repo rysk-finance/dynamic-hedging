@@ -1,17 +1,22 @@
 import type { PricingProps } from "../types";
 
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
+import { RyskTooltip } from "src/components/shared/RyskToolTip";
+import { useGlobalContext } from "src/state/GlobalContext";
 
 export const Pricing = ({ positionData }: PricingProps) => {
+  const {
+    state: {
+      userTradingPreferences: { tutorialMode },
+    },
+  } = useGlobalContext();
+
   const { fee, now, premium, quote, remainingBalance, slippage, title } =
     positionData;
 
   return (
     <div className="flex flex-col">
-      <p
-        className="text-center py-4 bg-white border-b-2 border-black font-dm-mono"
-
-      >
+      <p className="text-center py-4 bg-white border-b-2 border-black font-dm-mono">
         {title}
       </p>
 
@@ -19,26 +24,44 @@ export const Pricing = ({ positionData }: PricingProps) => {
         <div>
           <span className="flex">
             <p className="mr-auto">{`Premium:`}</p>
-            <p className="font-medium">
-              <RyskCountUp value={premium} />
-              {` USDC`}
-            </p>
+            <RyskTooltip
+              content="The amount of USDC received per contract."
+              disabled={!tutorialMode}
+              placement="left"
+            >
+              <p className="font-medium">
+                <RyskCountUp value={premium} />
+                {` USDC`}
+              </p>
+            </RyskTooltip>
           </span>
 
           <span className="flex">
             <p className="mr-auto">{`Fee:`}</p>
-            <p className="font-medium">
-              <RyskCountUp value={fee} />
-              {` USDC`}
-            </p>
+            <RyskTooltip
+              content="The total fee that Rysk collects per contract."
+              disabled={!tutorialMode}
+              placement="left"
+            >
+              <p className="font-medium">
+                <RyskCountUp value={fee} />
+                {` USDC`}
+              </p>
+            </RyskTooltip>
           </span>
 
           <span className="flex">
             <p className="mr-auto">{`Price impact:`}</p>
-            <p className="font-medium">
-              <RyskCountUp value={slippage} />
-              {` %`}
-            </p>
+            <RyskTooltip
+              content="The slippage of total premium based on trade size."
+              disabled={!tutorialMode}
+              placement="left"
+            >
+              <p className="font-medium">
+                <RyskCountUp value={slippage} />
+                {` %`}
+              </p>
+            </RyskTooltip>
           </span>
 
           <small className="block leading-6 text-gray-600 border-gray-600 border-b">
@@ -46,14 +69,18 @@ export const Pricing = ({ positionData }: PricingProps) => {
           </small>
         </div>
 
-        <span
-          className="flex py-2 border-gray-600 border-b"
-        >
+        <span className="flex py-2 border-gray-600 border-b">
           <p className="mr-auto">{`Premium received:`}</p>
-          <p className="font-medium">
-            <RyskCountUp value={quote} />
-            {` USDC`}
-          </p>
+          <RyskTooltip
+            content="The total amount of USDC you will receive from selling this position."
+            disabled={!tutorialMode}
+            placement="left"
+          >
+            <p className="font-medium">
+              <RyskCountUp value={quote} />
+              {` USDC`}
+            </p>
+          </RyskTooltip>
         </span>
 
         <span className="flex pt-2">
