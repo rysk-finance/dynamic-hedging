@@ -8,8 +8,8 @@ import { Close } from "src/Icons";
 import FadeInDown from "src/animation/FadeInDownDelayed";
 
 const links = [
-  { id: "header-vault", path: AppPaths.VAULT, label: "Vault" },
   { id: "header-options", path: AppPaths.TRADE, label: "Trade Options" },
+  { id: "header-vault", path: AppPaths.VAULT, label: "Vault" },
   { id: "header-dashboard", path: AppPaths.DASHBOARD, label: "Dashboard" },
 ];
 
