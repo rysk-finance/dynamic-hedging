@@ -5,7 +5,7 @@ on:
     paths:
       - "packages/contracts/**"
       - "package.json"
-      - ".github/workflows/hardhat.yml"
+      - ".github/workflows/foundry.yml"
 
   workflow_dispatch:
 
@@ -17,7 +17,7 @@ jobs:
   check:
     name: Foundry project
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       - name: Cancel old runs
         uses: styfle/cancel-workflow-action@0.9.1
