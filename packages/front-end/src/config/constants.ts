@@ -51,10 +51,3 @@ export const ORACLE_LOCKING_PERIOD = 300;
 export const DHV_NAME = "Rysk DHV ETH/USDC";
 
 export const GAS_MULTIPLIER = Number(process.env.REACT_APP_GAS_MULTIPLIER) || 1;
-
-/** Taken from: https://docs.chain.link/data-feeds/price-feeds/addresses?network=arbitrum#overview
- */
-export const ETH_USD_AGGREGATOR_ADDRESS =
-  process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
-    ? "0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612"
-    : "0x62CAe0FA2da220f43a51F86Db2EDb36DcA9A5A08";
