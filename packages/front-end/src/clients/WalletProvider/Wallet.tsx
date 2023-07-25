@@ -89,9 +89,13 @@ const providers = [
   publicProvider({ priority: 3 }),
 ];
 
-const { chains, provider } = configureChains(defaultChains, providers, {
-  stallTimeout: 500,
-});
+const { chains, provider, webSocketProvider } = configureChains(
+  defaultChains,
+  providers,
+  {
+    stallTimeout: 500,
+  }
+);
 
 const { wallets } = getDefaultWallets({
   appName: "Rysk Finance",
@@ -114,6 +118,7 @@ const wagmiClient = createClient({
   autoConnect: true,
   connectors,
   provider,
+  webSocketProvider,
   logger: {
     warn: null,
   },

@@ -24,7 +24,11 @@ cp \
 ../front-end/src/types/
 
 # Clean out the ABIs directory.
+mkdir -p ../front-end/tmp/abis
+mv ../front-end/src/abis/chainlink/ ../front-end/tmp/abis/chainlink
 rm -rf ../front-end/src/abis/*
+mv ../front-end/tmp/abis/chainlink/ ../front-end/src/abis/chainlink
+rm -rf ../front-end/tmp
 
 ### ABI ###
 
