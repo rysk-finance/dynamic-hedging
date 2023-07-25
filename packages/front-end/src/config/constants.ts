@@ -52,7 +52,7 @@ export const DHV_NAME = "Rysk DHV ETH/USDC";
 
 export const GAS_MULTIPLIER = Number(process.env.REACT_APP_GAS_MULTIPLIER) || 1;
 
-/** To get this got here: https://docs.chain.link/data-feeds/price-feeds/addresses?network=arbitrum#overview
+/** Taken from: https://docs.chain.link/data-feeds/price-feeds/addresses?network=arbitrum#overview
  */
 export const ETH_USD_AGGREGATOR_ADDRESS =
   process.env.REACT_APP_NETWORK === ETHNetwork.ARBITRUM_MAINNET
