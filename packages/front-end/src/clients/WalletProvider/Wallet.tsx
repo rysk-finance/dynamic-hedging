@@ -80,7 +80,7 @@ const blockPi = [
 const providers = [
   // priority
   ...alchemy,
-  // ...blastApi,
+  ...blastApi,
   ...infura,
   ...publicNode,
 
