@@ -23,7 +23,7 @@ export const Header = () => {
   return (
     <header className="sticky top-0 z-50 w-full bg-bone">
       <nav className="relative flex items-center px-16 justify-between border-b-2 border-black bg-bone z-50">
-        <Link to={AppPaths.VAULT}>
+        <Link to={AppPaths.HOME}>
           <img
             alt="Rysk logo"
             className="h-20 py-4"
