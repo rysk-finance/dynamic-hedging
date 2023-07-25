@@ -13,7 +13,7 @@ import { useEthUsdPriceChangeHandler } from "src/hooks/useEthUsdPriceChangeHandl
  * - Initialise user geo-blocking.
  * - Initialise user balances.
  * - Initialise state with graph and contract data.
- * - Initialise listener for Ether price change evebts from the aggregator.
+ * - Initialise listener for Ether price change events from the aggregator.
  *
  * @returns void
  */
