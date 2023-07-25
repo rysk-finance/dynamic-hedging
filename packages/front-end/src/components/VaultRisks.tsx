@@ -1,18 +1,12 @@
 import { DHV_NAME } from "../config/constants";
-// import { AlphaBanner } from "./shared/AlphaBanner";
-// import { Card } from "./shared/Card";
-// import { VaultRisksStats } from "./VaultRisksStats";
+import { VaultRisksStats } from "./VaultRisksStats";
 
 export const VaultRisks = () => {
   return (
     <div>
-      {/* <div className="px-8 mt-8">
-        <AlphaBanner />
-      </div> */}
+      <VaultRisksStats />
 
-      {/* <VaultRisksStats /> */}
-
-      {/* <hr /> */}
+      <hr />
 
       <div className="pb-8 py-12 px-8">
         <div className="grid grid-cols-2">
@@ -49,8 +43,8 @@ export const VaultRisks = () => {
               <ul className="list-disc px-8">
                 <li className="pb-2">
                   <b>Rysk prioritises security.</b> Our {DHV_NAME} smart
-                  contracts have been audited by Dedaub, Trust and Akira, however,
-                  smart contracts are an experimental technology and we
+                  contracts have been audited by Dedaub, Trust and Akira,
+                  however, smart contracts are an experimental technology and we
                   encourage caution, only risking funds you can afford to lose.{" "}
                 </li>
                 <li className="pb-2">
