@@ -13,7 +13,7 @@ import { useUserPosition } from "../../hooks/useUserPosition";
 import { VaultMechanism } from "../VaultMechanism";
 import { VaultRisks } from "../VaultRisks";
 import { VaultStrategy } from "../VaultStrategy";
-// import { VaultDeposit } from "./VaultDeposit";
+import { VaultDeposit } from "./VaultDeposit";
 import { VaultWithdraw } from "./VaultWithdraw";
 import { AppPaths } from "src/config/appPaths";
 
@@ -96,7 +96,15 @@ export const VaultContent = () => {
       </div>
 
       <div className="col-start-9 col-end-17 pt-16">
-        <Card tabs={[{ label: "Withdraw", content: <VaultWithdraw /> }]} />
+        <Card
+          tabs={[
+            {
+              label: "Deposit",
+              content: <VaultDeposit />,
+            },
+            { label: "Withdraw", content: <VaultWithdraw /> },
+          ]}
+        />
       </div>
 
       <section className="col-start-1 col-end-17 mt-16">
