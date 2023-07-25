@@ -44,6 +44,7 @@ export type RyskContractAddresses = {
 export type ExternalContractAddresses = {
   USDC: string;
   WETH: string;
+  ETHUSDAggregator: string;
 };
 
 export type RyskLensAddresses = {
