@@ -39,7 +39,7 @@ function App() {
               <div className="root-grid pb-16">
                 <Routes>
                   <Route path={AppPaths.VAULT} element={<Vault />} />
-                  <Route path={AppPaths.HOME} element={<Vault />} />
+                  <Route path={AppPaths.HOME} element={<OptionsTrading />} />
                   <Route path={AppPaths.TRADE} element={<OptionsTrading />} />
                   <Route path={AppPaths.DASHBOARD} element={<Dashboard />} />
                   <Route path={AppPaths.OTC} element={<OTC />} />

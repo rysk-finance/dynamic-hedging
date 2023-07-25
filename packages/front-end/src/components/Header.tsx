@@ -8,8 +8,8 @@ import { Close } from "src/Icons";
 import FadeInDown from "src/animation/FadeInDownDelayed";
 
 const links = [
-  { id: "header-vault", path: AppPaths.VAULT, label: "Vault" },
   { id: "header-options", path: AppPaths.TRADE, label: "Trade Options" },
+  { id: "header-vault", path: AppPaths.VAULT, label: "Vault" },
   { id: "header-dashboard", path: AppPaths.DASHBOARD, label: "Dashboard" },
 ];
 
@@ -23,7 +23,7 @@ export const Header = () => {
   return (
     <header className="sticky top-0 z-50 w-full bg-bone">
       <nav className="relative flex items-center px-16 justify-between border-b-2 border-black bg-bone z-50">
-        <Link to={AppPaths.VAULT}>
+        <Link to={AppPaths.HOME}>
           <img
             alt="Rysk logo"
             className="h-20 py-4"
