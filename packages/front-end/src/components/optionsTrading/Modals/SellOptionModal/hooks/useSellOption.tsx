@@ -31,7 +31,7 @@ export const useSellOption = (amountToSell: string) => {
       balances,
       collateralPreferences,
       ethPrice,
-      options: { activeExpiry, spotShock, timesToExpiry },
+      options: { activeExpiry, data, spotShock, timesToExpiry },
       selectedOption,
     },
   } = useGlobalContext();
@@ -41,9 +41,18 @@ export const useSellOption = (amountToSell: string) => {
 
   // Addresses.
   const { address } = useAccount();
+
   const USDCAddress = getContractAddress("USDC");
   const WETHAddress = getContractAddress("WETH");
   const collateralAddress = USDCCollateral ? USDCAddress : WETHAddress;
+
+  const callOrPut = selectedOption?.callOrPut;
+  const oTokenAddress =
+    callOrPut &&
+    selectedOption?.strikeOptions[callOrPut]?.exchangeAddresses[
+      collateralPreferences.type
+    ];
+
   const exchangeAddress = getContractAddress("optionExchange");
   const marginCalculatorAddress = getContractAddress("OpynNewCalculator");
 
@@ -235,8 +244,9 @@ export const useSellOption = (amountToSell: string) => {
   }, [amountToSell, allowance.amount, collateralPreferences, ethPrice]);
 
   const addresses: Addresses = {
+    collateral: collateralAddress,
     exchange: exchangeAddress,
-    token: collateralAddress,
+    token: oTokenAddress,
     user: address,
   };
 
