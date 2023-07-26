@@ -48,7 +48,7 @@ const infura = process.env.REACT_APP_INFURA_KEY
 
 const blastApi = [
   jsonRpcProvider({
-    priority: 1,
+    priority: 2,
     rpc: ({ testnet }) => {
       const network = testnet ? "arbitrum-goerli" : "arbitrum-one";
 
@@ -59,7 +59,7 @@ const blastApi = [
 
 const publicNode = [
   jsonRpcProvider({
-    priority: 1,
+    priority: 2,
     rpc: ({ testnet }) => {
       const network = testnet ? "arbitrum-goerli" : "arbitrum-one";
 
