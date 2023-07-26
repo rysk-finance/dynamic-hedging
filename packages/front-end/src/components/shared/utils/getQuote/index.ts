@@ -19,7 +19,7 @@ export const getQuotes = async (
           address: getContractAddress("portfolioValuesFeed"),
           functionName: "netDhvExposure",
           args: [getOptionHash(expiry, strike, isPut)],
-        } as const)
+        }) as const
     ),
   });
 
