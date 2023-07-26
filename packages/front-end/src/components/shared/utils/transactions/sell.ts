@@ -1,12 +1,7 @@
 import type { UserVaults } from "src/state/types";
 import type { OptionSeries } from "src/types";
 
-import {
-  getContract,
-  getProvider,
-  prepareWriteContract,
-  writeContract,
-} from "@wagmi/core";
+import { prepareWriteContract, writeContract } from "@wagmi/core";
 import { BigNumber, utils } from "ethers";
 
 import { OptionExchangeABI } from "src/abis/OptionExchange_ABI";
@@ -23,37 +18,19 @@ import {
 } from "src/enums/OpynActionType";
 import RyskActionType from "src/enums/RyskActionType";
 import { fromWeiToOpyn } from "src/utils/conversion-helper";
-import { getContractAddress } from "src/utils/helpers";
 
 export const sell = async (
   acceptablePremium: BigNumber,
   amount: BigNumber,
   collateral: BigNumber,
+  collateralAddress: HexString,
   exchangeAddress: HexString,
   optionSeries: OptionSeries,
+  oTokenAddress: HexString,
   refresh: () => void,
-  tokenAddress: HexString,
   userAddress: HexString,
   vaults: UserVaults
 ) => {
-  // Get oToken address.
-  const provider = getProvider();
-  const contract = getContract({
-    address: exchangeAddress,
-    abi: OptionExchangeABI,
-    signerOrProvider: provider,
-  });
-
-  // OptionExchangeABI is missing `callStatic` so the return type is wrong, hence the conversion to unknown.
-  const oTokenAddress = (await contract.callStatic.createOtoken({
-    strikeAsset: getContractAddress("USDC"),
-    collateral: tokenAddress,
-    underlying: getContractAddress("WETH"),
-    expiration: optionSeries.expiration,
-    strike: optionSeries.strike,
-    isPut: optionSeries.isPut,
-  })) as unknown as HexString;
-
   const vaultKey = oTokenAddress.toLowerCase() as HexString;
   const hasVault = Boolean(vaults[vaultKey]);
 
@@ -82,7 +59,7 @@ export const sell = async (
       actionType: BigNumber.from(OpynActionType.DepositCollateral),
       owner: userAddress,
       secondAddress: exchangeAddress,
-      asset: tokenAddress,
+      asset: collateralAddress,
       vaultId,
       amount: collateral,
       optionSeries: EMPTY_SERIES,
