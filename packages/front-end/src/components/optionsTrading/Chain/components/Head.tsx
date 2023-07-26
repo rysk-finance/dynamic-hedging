@@ -3,7 +3,7 @@ import type { HeadProps } from "./types";
 import dayjs from "dayjs";
 
 import { RyskTooltip } from "src/components/shared/RyskToolTip";
-import { DHV_ARTICLE, OPTIONS_101 } from "src/config/links";
+import { DHV_ARTICLE, IV_ARTICLE, OPTIONS_101 } from "src/config/links";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { useShowColumn } from "../hooks/useShowColumn";
 
@@ -20,8 +20,19 @@ export const Head = ({ expiry }: HeadProps) => {
   const columns = [
     {
       label: "IV (Sell)",
-      tutorial:
-        "The figures in this column represent the sell side implied volatility of the series.", // Learn more link?
+      tutorial: (
+        <div>
+          {`The figures in this column represent the sell side implied volatility of the series. `}
+          <a
+            className="text-cyan-dark-compliant underline"
+            href={IV_ARTICLE}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            {`Learn more about IV.`}
+          </a>
+        </div>
+      ),
       visible: showCol("iv sell"),
     },
     {
@@ -38,8 +49,19 @@ export const Head = ({ expiry }: HeadProps) => {
     },
     {
       label: "IV (Buy)",
-      tutorial:
-        "The figures in this column represent the buy side implied volatility of the series.", // Learn more link?
+      tutorial: (
+        <div>
+          {`The figures in this column represent the buy side implied volatility of the series. `}
+          <a
+            className="text-cyan-dark-compliant underline"
+            href={IV_ARTICLE}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            {`Learn more about IV.`}
+          </a>
+        </div>
+      ),
       visible: showCol("iv buy"),
     },
     {
