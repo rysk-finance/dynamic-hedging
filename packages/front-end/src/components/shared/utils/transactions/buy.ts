@@ -18,37 +18,37 @@ export const buy = async (
   refresh: () => void,
   userAddress: HexString
 ) => {
-  const operations = [];
-
-  if (optionSeries.collateral !== getContractAddress("WETH"))
-    operations.push({
-      actionType: BigNumber.from(RyskActionType.Issue),
-      owner: ZERO_ADDRESS,
-      secondAddress: ZERO_ADDRESS,
-      asset: ZERO_ADDRESS,
-      vaultId: BigNumber.from(0),
-      amount: BigNumber.from(0),
-      optionSeries,
-      indexOrAcceptablePremium: BigNumber.from(0),
-      data: ZERO_ADDRESS,
-    });
-
-  operations.push({
-    actionType: BigNumber.from(RyskActionType.BuyOption),
+  const baseOperation = {
     owner: ZERO_ADDRESS,
-    secondAddress: userAddress,
     asset: ZERO_ADDRESS,
     vaultId: BigNumber.from(0),
-    amount,
     optionSeries,
-    indexOrAcceptablePremium: acceptablePremium,
     data: ZERO_ADDRESS,
-  });
+  };
 
   const txData = [
     {
       operation: OperationType.RyskAction,
-      operationQueue: operations,
+      operationQueue: [
+        ...(optionSeries.collateral !== getContractAddress("WETH")
+          ? [
+              {
+                ...baseOperation,
+                actionType: BigNumber.from(RyskActionType.Issue),
+                secondAddress: ZERO_ADDRESS,
+                amount: BigNumber.from(0),
+                indexOrAcceptablePremium: BigNumber.from(0),
+              },
+            ]
+          : []),
+        {
+          ...baseOperation,
+          actionType: BigNumber.from(RyskActionType.BuyOption),
+          secondAddress: userAddress,
+          amount,
+          indexOrAcceptablePremium: acceptablePremium,
+        },
+      ],
     },
   ];
 

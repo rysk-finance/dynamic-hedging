@@ -4,14 +4,10 @@ import { BigNumber } from "ethers";
 import { useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 
-import { readContract } from "@wagmi/core";
-import { OptionExchangeABI } from "src/abis/OptionExchange_ABI";
-import { erc20ABI } from "src/abis/erc20_ABI";
 import { approveAllowance } from "src/components/shared/utils/transactions/approveAllowance";
 import { buy } from "src/components/shared/utils/transactions/buy";
-import { ZERO_ADDRESS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { toOpyn, toRysk, toUSDC, toWei } from "src/utils/conversion-helper";
+import { toRysk, toUSDC, toWei } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { useNotifications } from "../../hooks/useNotifications";
 import { Disclaimer } from "../Shared/components/Disclaimer";
@@ -83,40 +79,22 @@ export const BuyOptionModal = () => {
     setTransactionPending(true);
 
     try {
-      if (addresses.token && addresses.user && selectedOption) {
+      if (
+        addresses.collateral &&
+        addresses.token &&
+        addresses.user &&
+        selectedOption
+      ) {
         const amount = toRysk(amountToBuy);
+
         const optionSeries = {
           expiration: BigNumber.from(activeExpiry),
           strike: toWei(selectedOption.strikeOptions.strike.toString()),
           isPut: selectedOption.callOrPut === "put",
           strikeAsset: addresses.token,
           underlying: getContractAddress("WETH"),
-          collateral: addresses.token,
+          collateral: addresses.collateral,
         };
-
-        // check weth collateralised optionSeries
-        const optionDetails = await readContract({
-          address: addresses.exchange,
-          abi: OptionExchangeABI,
-          functionName: "getOptionDetails",
-          args: [
-            ZERO_ADDRESS,
-            { ...optionSeries, collateral: getContractAddress("WETH") },
-          ],
-        });
-
-        // check if exchange has optionSeries
-        const optionExchangeAmount = await readContract({
-          address: optionDetails[0],
-          abi: erc20ABI,
-          functionName: "balanceOf",
-          args: [addresses.exchange],
-        });
-
-        // if exchange optionSeries covers amount, use weth as collateral
-        if (BigNumber.from(optionExchangeAmount).gte(toOpyn(amountToBuy))) {
-          optionSeries.collateral = getContractAddress("WETH");
-        }
 
         const hash = await buy(
           positionData.acceptablePremium,

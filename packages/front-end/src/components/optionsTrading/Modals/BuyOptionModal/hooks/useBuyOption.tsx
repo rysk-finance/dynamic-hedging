@@ -8,7 +8,13 @@ import { useAccount } from "wagmi";
 import { BigNumber } from "ethers";
 import { getQuotes } from "src/components/shared/utils/getQuote";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { tFormatUSDC, toRysk, toUSDC } from "src/utils/conversion-helper";
+import {
+  fromOpyn,
+  tFormatUSDC,
+  toOpyn,
+  toRysk,
+  toUSDC,
+} from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
@@ -19,15 +25,27 @@ export const useBuyOption = (amountToBuy: string) => {
     state: {
       balances,
       ethPrice,
-      options: { activeExpiry },
+      options: { activeExpiry, data },
       selectedOption,
     },
   } = useGlobalContext();
 
   // Addresses.
   const { address } = useAccount();
+
   const USDCAddress = getContractAddress("USDC");
+  const WETHAddress = getContractAddress("WETH");
   const exchangeAddress = getContractAddress("optionExchange");
+
+  const optionExchangeBalance = BigNumber.from(
+    (activeExpiry &&
+      selectedOption &&
+      data[activeExpiry][selectedOption.strikeOptions.strike][
+        selectedOption.callOrPut
+      ]!.exchangeBalances.WETH) ||
+      0
+  );
+  const exchangeHasBalance = optionExchangeBalance.gte(toOpyn(amountToBuy));
 
   // User allowance state for USDC.
   const [allowance, setAllowance] = useAllowance(USDCAddress, address);
@@ -122,6 +140,7 @@ export const useBuyOption = (amountToBuy: string) => {
   }, [amountToBuy, allowance.amount, ethPrice]);
 
   const addresses: Addresses = {
+    collateral: exchangeHasBalance ? WETHAddress : USDCAddress,
     exchange: exchangeAddress,
     token: USDCAddress,
     user: address,
