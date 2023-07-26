@@ -1,10 +1,11 @@
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
-import { useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useMemo } from "react";
 
-import { useGlobalContext } from "src/state/GlobalContext";
 import FadeInOut from "src/animation/FadeInOut";
+import { useMinuteUpdate } from "src/hooks/useMinuteUpdate";
+import { useGlobalContext } from "src/state/GlobalContext";
 
 dayjs.extend(duration);
 
@@ -15,10 +16,11 @@ export const ActiveExpiryAlerts = () => {
     },
   } = useGlobalContext();
 
-  const datetime = dayjs.unix(Number(activeExpiry));
-  const duration = dayjs.duration(datetime.diff(dayjs()));
+  const [count] = useMinuteUpdate();
 
-  const getMessage = () => {
+  const message = useMemo(() => {
+    const datetime = dayjs.unix(Number(activeExpiry));
+    const duration = dayjs.duration(datetime.diff(dayjs()));
     const days = duration.asDays();
 
     switch (true) {
@@ -31,9 +33,7 @@ export const ActiveExpiryAlerts = () => {
       default:
         break;
     }
-  };
-
-  const message = useMemo(() => getMessage(), [activeExpiry, loading]);
+  }, [activeExpiry, count, loading]);
 
   return (
     <AnimatePresence mode="wait">
