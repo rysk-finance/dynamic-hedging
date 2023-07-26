@@ -56,7 +56,7 @@ export const SellOptionModal = () => {
     setTransactionPending(true);
 
     try {
-      if (addresses.token && addresses.user) {
+      if (addresses.collateral && addresses.user) {
         const amount =
           collateralPreferences.type === "USDC"
             ? toUSDC(positionData.requiredApproval)
@@ -64,7 +64,7 @@ export const SellOptionModal = () => {
 
         const hash = await approveAllowance(
           addresses.exchange,
-          addresses.token,
+          addresses.collateral,
           amount,
           approvals
         );
@@ -85,14 +85,19 @@ export const SellOptionModal = () => {
     setTransactionPending(true);
 
     try {
-      if (addresses.token && addresses.user && selectedOption) {
+      if (
+        addresses.collateral &&
+        addresses.token &&
+        addresses.user &&
+        selectedOption
+      ) {
         const optionSeries = {
           expiration: BigNumber.from(activeExpiry),
           strike: toWei(selectedOption.strikeOptions.strike.toString()),
           isPut: selectedOption.callOrPut === "put",
           strikeAsset: getContractAddress("USDC"),
           underlying: getContractAddress("WETH"),
-          collateral: addresses.token,
+          collateral: addresses.collateral,
         };
 
         const hash = await sell(
@@ -101,10 +106,11 @@ export const SellOptionModal = () => {
           collateralPreferences.type === "USDC"
             ? toUSDC(positionData.collateral.toString())
             : toRysk(positionData.collateral.toString()),
+          addresses.collateral,
           addresses.exchange,
           optionSeries,
-          refresh,
           addresses.token,
+          refresh,
           addresses.user,
           vaults
         );
