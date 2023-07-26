@@ -2,9 +2,10 @@ import type { HeadProps } from "./types";
 
 import dayjs from "dayjs";
 
-import { useShowColumn } from "../hooks/useShowColumn";
-import { useGlobalContext } from "src/state/GlobalContext";
 import { RyskTooltip } from "src/components/shared/RyskToolTip";
+import { DHV_ARTICLE, OPTIONS_101 } from "src/config/links";
+import { useGlobalContext } from "src/state/GlobalContext";
+import { useShowColumn } from "../hooks/useShowColumn";
 
 export const Head = ({ expiry }: HeadProps) => {
   const {
@@ -48,7 +49,7 @@ export const Head = ({ expiry }: HeadProps) => {
           {`The figures in this column represent the delta of the series. `}
           <a
             className="text-cyan-dark-compliant underline"
-            href="https://blog.rysk.finance/looking-under-the-hood-of-rysks-dynamic-hedging-vault-e059e1b87e41"
+            href={DHV_ARTICLE}
             rel="noopener noreferrer"
             target="_blank"
           >
@@ -79,7 +80,19 @@ export const Head = ({ expiry }: HeadProps) => {
         style={{ gridTemplateColumns: `repeat(${colSize}, minmax(0, 1fr))` }}
       >
         <RyskTooltip
-          content="The information on this side of the chain is for call options." // Learn more link?
+          content={
+            <div>
+              {`The information on this side of the chain is for call options. `}
+              <a
+                className="text-cyan-dark-compliant underline"
+                href={OPTIONS_101}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                {`Learn more about calls.`}
+              </a>
+            </div>
+          }
           disabled={!tutorialMode}
           placement="bottom"
         >
@@ -100,7 +113,19 @@ export const Head = ({ expiry }: HeadProps) => {
         </RyskTooltip>
 
         <RyskTooltip
-          content="The information on this side of the chain is for put options." // Learn more link?
+          content={
+            <div>
+              {`The information on this side of the chain is for put options. `}
+              <a
+                className="text-cyan-dark-compliant underline"
+                href={OPTIONS_101}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                {`Learn more about puts.`}
+              </a>
+            </div>
+          }
           disabled={!tutorialMode}
           placement="bottom"
         >
