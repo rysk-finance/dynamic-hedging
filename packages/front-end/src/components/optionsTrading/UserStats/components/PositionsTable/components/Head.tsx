@@ -2,6 +2,7 @@ import type { ActivePositionsSortType } from "src/state/types";
 
 import { ChevronUpDown } from "src/Icons";
 import { RyskTooltip } from "src/components/shared/RyskToolTip";
+import { DHV_ARTICLE } from "src/config/links";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActivePositionSort } from "src/state/constants";
 import {
@@ -37,7 +38,7 @@ const columns = [
         {`The total delta for the position based on size. `}
         <a
           className="text-cyan-dark-compliant underline"
-          href="https://blog.rysk.finance/looking-under-the-hood-of-rysks-dynamic-hedging-vault-e059e1b87e41"
+          href={DHV_ARTICLE}
           rel="noopener noreferrer"
           target="_blank"
         >
