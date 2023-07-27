@@ -4,7 +4,6 @@ import { ToastContainer } from "react-toastify";
 
 import ApolloProvider from "./clients/Apollo/Apollo";
 import WalletProvider from "./clients/WalletProvider/Wallet";
-import Favicon from "./components/Favicon";
 import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
 import { Init } from "./components/Init";
@@ -26,7 +25,6 @@ function App() {
         <ApolloProvider>
           <Init />
           <div className="bg-bone flex flex-col min-h-screen">
-            <Favicon />
             {process.env.REACT_APP_ENV !== "production" && (
               <Helmet>
                 <meta name="robots" content="noindex, nofollow" />
