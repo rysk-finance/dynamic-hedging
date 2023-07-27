@@ -2,6 +2,7 @@ import { AnimatePresence, LayoutGroup } from "framer-motion";
 
 import { OptionChainModalActions } from "src/state/types";
 
+import { useMinuteUpdate } from "src/components/optionsTrading/hooks/useMinuteUpdate";
 import { ActiveExpiryAlerts } from "./ActiveExpiryAlerts";
 import { AssetPriceInfo } from "./AssetPriceInfo";
 import { Chain } from "./Chain";
@@ -18,6 +19,8 @@ import { useModal } from "./hooks/useModal";
 
 export const OptionsTradingContent = () => {
   const [modalType] = useModal();
+
+  useMinuteUpdate();
 
   return (
     <>
