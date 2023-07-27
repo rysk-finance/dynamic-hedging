@@ -7,9 +7,10 @@ import type {
   GlobalContext,
   GlobalState,
   UserStats,
-  UserTradingPreferences
+  UserTradingPreferences,
 } from "./types";
 
+import dayjs from "dayjs";
 import {
   createContext,
   useCallback,
@@ -43,7 +44,7 @@ export const defaultGlobalState: GlobalState = {
   eth24hLow: null,
   ethPriceUpdateTime: null,
   ethPriceError: false,
-  ethLastUpdateTimestamp: 0,
+  ethLastUpdateTimestamp: dayjs().unix(),
   userPositionValue: null,
   positionBreakdown: {
     redeemedShares: null,
