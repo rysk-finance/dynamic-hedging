@@ -1,6 +1,7 @@
 import type { InitialDataQuery } from "./types";
 
 import { gql, useQuery } from "@apollo/client";
+import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useAccount } from "wagmi";
 
@@ -92,9 +93,13 @@ export const useInitialData = () => {
           liquidityPoolInfo,
           oracleHashMap,
         ]) => {
+          const firstAvailableExpiry = validExpiries.find(
+            (expiry) => parseFloat(expiry) > dayjs().add(1, "day").unix()
+          );
+
           dispatch({
             type: ActionType.SET_OPTIONS,
-            activeExpiry: activeExpiry || validExpiries[0],
+            activeExpiry: activeExpiry || firstAvailableExpiry,
             data: chainData,
             error,
             expiries: validExpiries,
