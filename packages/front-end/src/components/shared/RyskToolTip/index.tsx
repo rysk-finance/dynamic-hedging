@@ -1,6 +1,8 @@
 import type { RyskToolTipProps } from "./types";
 
 import Tippy from "@tippyjs/react";
+import { cloneElement } from "react";
+
 import "tippy.js/dist/tippy.css";
 
 import { Info } from "src/Icons";
@@ -29,7 +31,11 @@ export const RyskTooltip = ({
       theme="rysk"
     >
       {children ? (
-        children
+        cloneElement(children, {
+          class: `${children.props.className} ${
+            disabled ? "cursor-default" : "cursor-help"
+          }`,
+        })
       ) : (
         <span
           className={`p-3 ${disabled ? "cursor-not-allowed" : "cursor-help"}`}
