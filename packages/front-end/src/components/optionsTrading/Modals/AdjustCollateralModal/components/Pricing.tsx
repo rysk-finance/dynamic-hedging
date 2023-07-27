@@ -54,7 +54,7 @@ export const Pricing = ({ collateralData }: PricingProps) => {
                 fallback={!liquidationPrice ? "" : "-"}
                 value={liquidationPrice}
               />
-              {!liquidationPrice ? `Unliquidatable` : ` USDC`}
+              {!liquidationPrice ? `Fully Collateralised` : ` USDC`}
             </motion.p>
           </RyskTooltip>
         </AnimatePresence>
