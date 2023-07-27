@@ -43,16 +43,21 @@ export const Pricing = ({ collateralData }: PricingProps) => {
     <div className="w-3/5 mx-auto py-4">
       <span className="flex">
         <p className="mr-auto">{`Liquidation Price:`}</p>
-        <RyskTooltip
-          content="The price at which your position will be liquidated. You can deposit or withdraw more collateral to adjust this price."
-          disabled={!tutorialMode}
-          placement="left"
-        >
-          <p className="font-medium">
-            <RyskCountUp value={liquidationPrice} />
-            {` USDC`}
-          </p>
-        </RyskTooltip>
+        <AnimatePresence mode="wait">
+          <RyskTooltip
+            content="The price at which your position will be liquidated. You can deposit or withdraw more collateral to adjust this price."
+            disabled={!tutorialMode}
+            placement="left"
+          >
+            <motion.p className="font-medium" {...FadeInOutQuick}>
+              <RyskCountUp
+                fallback={!liquidationPrice ? "" : "-"}
+                value={liquidationPrice}
+              />
+              {!liquidationPrice ? `Unliquidatable` : ` USDC`}
+            </motion.p>
+          </RyskTooltip>
+        </AnimatePresence>
       </span>
 
       <span className="flex">
