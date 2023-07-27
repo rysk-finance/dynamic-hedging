@@ -58,8 +58,9 @@ export const getLiquidationPrices = async (
   // Get contract call args.
   const additionalProps = liquidationProps.map(
     ({ callOrPut, collateralAddress, expiry }) => {
-      const collateralType =
-        collateralAddress === USDC ? "USDC" : ("WETH" as CollateralType);
+      const collateralType = (
+        collateralAddress === USDC ? "USDC" : "WETH"
+      ) as CollateralType;
       const now = dayjs().unix();
 
       return {
@@ -87,12 +88,27 @@ export const getLiquidationPrices = async (
             additionalProps[index].isPut,
             BigNumber.from(additionalProps[index].timeToExpiry),
           ],
-        } as const)
+        }) as const
     ),
   });
 
   return liquidationProps.map(
-    ({ amount, callOrPut, collateral, strikePrice }, index) => {
+    (
+      { amount, callOrPut, collateral, collateralAddress, strikePrice },
+      index
+    ) => {
+      const fullyCollateralisedCall =
+        collateral >= amount &&
+        callOrPut === "call" &&
+        collateralAddress === WETH;
+      const fullyCollateralisedPut =
+        collateral >= strikePrice * amount &&
+        callOrPut === "put" &&
+        collateralAddress === USDC;
+
+      if (!collateral || fullyCollateralisedCall || fullyCollateralisedPut)
+        return 0;
+
       // get maxPrice as int.
       const maxPrice = fromE27toInt(getMaxPriceResponses[index]);
 
