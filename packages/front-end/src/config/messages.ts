@@ -1,5 +1,3 @@
-import { DHV_NAME } from "./constants";
-
 export const DEPOSIT_SHARES_EPOCH = `Your deposit will be deployed to the vault on Friday.
                                      You will start earning returns and initiate a withdraw from this time onwards.`;
 
