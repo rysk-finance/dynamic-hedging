@@ -1,18 +1,13 @@
-import dayjs from "dayjs";
 import { AnimatePresence, motion } from "framer-motion";
-import { useCallback } from "react";
 
 import { Ether, USDC } from "src/Icons";
 import FadeInOut from "src/animation/FadeInOut";
 import FadeInOutFixedDelay from "src/animation/FadeInOutFixedDelay";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { ActionType } from "src/state/types";
 import { CurrentPrice } from "./components/CurrentPrice";
 import { Error } from "./components/Error";
 import { OneDayChange } from "./components/OneDayChange";
 import { RyskTooltip } from "src/components/shared/RyskToolTip";
-
-const MANUAL_LIMIT_SECONDS = 30;
 
 export const AssetPriceInfo = () => {
   const {
@@ -23,33 +18,17 @@ export const AssetPriceInfo = () => {
       eth24hLow,
       eth24hChange,
       ethPriceError,
-      ethLastUpdateTimestamp,
       options: { refresh },
       userTradingPreferences: { tutorialMode },
     },
     dispatch,
   } = useGlobalContext();
 
-  const handleManualUpdate = useCallback(() => {
-    const now = dayjs().unix();
-
-    if (now >= ethLastUpdateTimestamp + MANUAL_LIMIT_SECONDS) {
-      refresh();
-      dispatch({
-        type: ActionType.SET_ETH_PRICE_LAST_UPDATED,
-        timestamp: dayjs().unix(),
-      });
-    }
-  }, [ethLastUpdateTimestamp]);
-
   const ready = Boolean(!ethPriceError && ethPrice && ethPriceUpdateTime);
 
   return (
     <motion.div className="flex" {...FadeInOut()}>
-      <button
-        className="w-full h-24 flex items-stretch"
-        onClick={handleManualUpdate}
-      >
+      <div className="w-full h-24 flex items-stretch">
         <RyskTooltip
           content="Ethereum is the underlying asset."
           disabled={!tutorialMode}
@@ -101,7 +80,7 @@ export const AssetPriceInfo = () => {
             <USDC aria-label="USDC logo" className="mx-auto w-16 h-16" />
           </span>
         </RyskTooltip>
-      </button>
+      </div>
     </motion.div>
   );
 };
