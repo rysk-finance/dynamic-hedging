@@ -106,7 +106,7 @@ export const Pricing = ({ loading, positionData }: PricingProps) => {
                 fallback={collateralFull && quote ? "" : "-"}
                 value={collateralFull && quote ? 0 : liquidationPrice}
               />
-              {collateralFull && quote ? `Unliquidatable` : ` USDC`}
+              {collateralFull && quote ? `Fully Collateralised` : ` USDC`}
             </motion.p>
           </RyskTooltip>
         </AnimatePresence>
