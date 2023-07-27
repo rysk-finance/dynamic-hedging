@@ -40,39 +40,44 @@ export const Liquidation = ({
       ? ethPrice < liquidationPrice * liquidationThreshold
       : ethPrice > liquidationPrice / liquidationThreshold
     : false;
-  const textColor = inDanger ? "text-red-900" : "text-black";
+  const textColor =
+    inDanger && liquidationPrice ? "text-red-900" : "text-black";
 
-  return (
-    <>
-      {asset && collateralAmount && vault ? (
-        <td className="col-span-2 font-dm-mono xl:!text-xs 2xl:!text-sm">
-          <button
-            className={`w-full h-full decoration-dotted underline ease-in-out duration-200 ${textColor}`}
-            onClick={handleCollateralClick({
-              address: id,
-              amount: Math.abs(amount),
-              asset,
-              collateralAmount,
-              expiryTimestamp,
-              isPut,
-              liquidationPrice,
-              series,
-              strike: Number(strike),
-              vault,
-            })}
-          >
-            <RyskCountUp prefix="$" value={collateral.liquidationPrice} />
-            {` (`}
-            <RyskCountUp
-              prefix={collateral.asset === "USDC" ? "$" : "Ξ"}
-              value={collateral.amount}
-            />
-            {`)`}
-          </button>
-        </td>
-      ) : (
-        <td className="col-span-2 font-dm-mono">{`N/A`}</td>
-      )}
-    </>
-  );
+  if (asset && collateralAmount && vault) {
+    return (
+      <td className="col-span-2 font-dm-mono xl:!text-xs 2xl:!text-sm">
+        <button
+          className={`w-full h-full decoration-dotted underline ease-in-out duration-200 ${textColor}`}
+          onClick={handleCollateralClick({
+            address: id,
+            amount: Math.abs(amount),
+            asset,
+            collateralAmount,
+            expiryTimestamp,
+            isPut,
+            liquidationPrice,
+            series,
+            strike: Number(strike),
+            vault,
+          })}
+        >
+          {liquidationPrice ? (
+            <>
+              <RyskCountUp prefix="$" value={collateral.liquidationPrice} />
+              {` (`}
+              <RyskCountUp
+                prefix={collateral.asset === "USDC" ? "$" : "Ξ"}
+                value={collateral.amount}
+              />
+              {`)`}
+            </>
+          ) : (
+            "Fully Collateralised"
+          )}
+        </button>
+      </td>
+    );
+  } else {
+    return <td className="col-span-2 font-dm-mono">{`N/A`}</td>;
+  }
 };
