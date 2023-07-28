@@ -94,7 +94,7 @@ let catalogue: OptionCatalogue
 // Date for option to expire on format yyyy-mm-dd
 // Will automatically convert to 08:00 UTC timestamp
 // First mined block will be timestamped 2022-02-27 19:05 UTC
-const expiryDate: string = "2022-04-05"
+const expiryDate: string = "2022-03-07"
 
 const invalidExpiryDateLong: string = "2023-04-22"
 const invalidExpiryDateShort: string = "2022-03-01"
@@ -546,6 +546,330 @@ describe("Gelato Delta settler", async () => {
 			tFormatEth(await liquidityPool.ephemeralLiabilities()) - tFormatUSDC(quote.sub(quoteResponse[2]))
 		).to.be.within(-0.01, 0.01)
 	})
+	it("user buys option 2", async () => {
+		const [sender] = signers
+		const amount = toWei("25")
+
+		const netDhvExposure = await getNetDhvExposure(
+			strikePrice,
+			usd.address,
+			catalogue,
+			portfolioValuesFeed,
+			expiration2,
+			PUT_FLAVOR
+		)
+		expect(netDhvExposure).to.eq(0)
+
+		proposedSeries = {
+			expiration: expiration2,
+			strike: BigNumber.from(strikePrice),
+			isPut: PUT_FLAVOR,
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+		let quote = quoteResponse[0].add(quoteResponse[2])
+		compareQuotes(
+			quoteResponse,
+			liquidityPool,
+			optionProtocol,
+			volFeed,
+			priceFeed,
+			proposedSeries,
+			amount,
+			false,
+			exchange,
+			optionRegistry,
+			usd,
+			pricer
+		)
+
+		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		const senderUSDBalanceBefore = await usd.balanceOf(senderAddress)
+		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
+		const expectedCollateralAllocated = await optionRegistry.getCollateral(
+			{
+				expiration: expiration2,
+				isPut: PUT_FLAVOR,
+				strike: strikePrice.div(10 ** 10), // convert to 1e8 for getCollateral
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			},
+			amount
+		)
+
+		await usd.approve(exchange.address, quote)
+		await exchange.operate([
+			{
+				operation: 1,
+				operationQueue: [
+					{
+						actionType: 0,
+						owner: ZERO_ADDRESS,
+						secondAddress: ZERO_ADDRESS,
+						asset: ZERO_ADDRESS,
+						vaultId: 0,
+						amount: 0,
+						optionSeries: proposedSeries,
+						indexOrAcceptablePremium: 0,
+						data: "0x"
+					},
+					{
+						actionType: 1,
+						owner: ZERO_ADDRESS,
+						secondAddress: senderAddress,
+						asset: ZERO_ADDRESS,
+						vaultId: 0,
+						amount: amount,
+						optionSeries: proposedSeries,
+						indexOrAcceptablePremium: amount,
+						data: "0x"
+					}
+				]
+			}
+		])
+		seriesAddress2 = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
+		putOptionToken = (await ethers.getContractAt("Otoken", seriesAddress2)) as Otoken
+		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
+		const senderPutBalance = await putOptionToken.balanceOf(senderAddress)
+		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
+		const collateralAllocatedDiff = collateralAllocatedAfter.sub(collateralAllocatedBefore)
+		const senderUSDBalanceAfter = await usd.balanceOf(senderAddress)
+		const opynAmount = toOpyn(fromWei(amount))
+		// check buyer's OToken balance is correct
+		expect(senderPutBalance).to.eq(opynAmount)
+		// ensure correct amount of USDC has been taken from buyer
+		expect(
+			tFormatUSDC(senderUSDBalanceBefore.sub(senderUSDBalanceAfter)) - tFormatUSDC(quote)
+		).to.be.within(-0.1, 0.1)
+
+		const poolUSDBalanceDiff = tFormatUSDC(poolBalanceAfter.sub(poolBalanceBefore))
+		const expectedUSDBalanceDiff = tFormatUSDC(quote) - tFormatUSDC(collateralAllocatedDiff)
+		// check LP USDC balance is changed
+		expect(poolUSDBalanceDiff - expectedUSDBalanceDiff).to.be.within(-0.0015, 0.0015)
+		// check collateral allocated is increased
+		expect(
+			tFormatUSDC(collateralAllocatedDiff) - tFormatUSDC(expectedCollateralAllocated)
+		).to.be.within(-0.001, 0.001)
+	})
+	it("user buys option 3", async () => {
+		const [sender] = signers
+		const amount = toWei("25")
+
+		const netDhvExposure = await getNetDhvExposure(
+			strikePrice,
+			usd.address,
+			catalogue,
+			portfolioValuesFeed,
+			expiration3,
+			CALL_FLAVOR
+		)
+		expect(netDhvExposure).to.eq(0)
+
+		proposedSeries = {
+			expiration: expiration3,
+			strike: BigNumber.from(strikePrice),
+			isPut: CALL_FLAVOR,
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+		let quote = quoteResponse[0].add(quoteResponse[2])
+		compareQuotes(
+			quoteResponse,
+			liquidityPool,
+			optionProtocol,
+			volFeed,
+			priceFeed,
+			proposedSeries,
+			amount,
+			false,
+			exchange,
+			optionRegistry,
+			usd,
+			pricer
+		)
+
+		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		const senderUSDBalanceBefore = await usd.balanceOf(senderAddress)
+		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
+		const expectedCollateralAllocated = await optionRegistry.getCollateral(
+			{
+				expiration: expiration3,
+				isPut: CALL_FLAVOR,
+				strike: strikePrice.div(10 ** 10), // convert to 1e8 for getCollateral
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			},
+			amount
+		)
+
+		await usd.approve(exchange.address, quote.mul(10001).div(10000))
+		await exchange.operate([
+			{
+				operation: 1,
+				operationQueue: [
+					{
+						actionType: 0,
+						owner: ZERO_ADDRESS,
+						secondAddress: ZERO_ADDRESS,
+						asset: ZERO_ADDRESS,
+						vaultId: 0,
+						amount: 0,
+						optionSeries: proposedSeries,
+						indexOrAcceptablePremium: 0,
+						data: "0x"
+					},
+					{
+						actionType: 1,
+						owner: ZERO_ADDRESS,
+						secondAddress: senderAddress,
+						asset: ZERO_ADDRESS,
+						vaultId: 0,
+						amount: amount,
+						optionSeries: proposedSeries,
+						indexOrAcceptablePremium: amount,
+						data: "0x"
+					}
+				]
+			}
+		])
+		seriesAddress3 = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
+		putOptionToken = (await ethers.getContractAt("Otoken", seriesAddress3)) as Otoken
+		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
+		const senderPutBalance = await putOptionToken.balanceOf(senderAddress)
+		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
+		const collateralAllocatedDiff = collateralAllocatedAfter.sub(collateralAllocatedBefore)
+		const senderUSDBalanceAfter = await usd.balanceOf(senderAddress)
+		const opynAmount = toOpyn(fromWei(amount))
+		// check buyer's OToken balance is correct
+		expect(senderPutBalance).to.eq(opynAmount)
+		// ensure correct amount of USDC has been taken from buyer
+		expect(
+			tFormatUSDC(senderUSDBalanceBefore.sub(senderUSDBalanceAfter)) - tFormatUSDC(quote)
+		).to.be.within(-0.1, 0.1)
+
+		const poolUSDBalanceDiff = tFormatUSDC(poolBalanceAfter.sub(poolBalanceBefore))
+		const expectedUSDBalanceDiff = tFormatUSDC(quote) - tFormatUSDC(collateralAllocatedDiff)
+		// check LP USDC balance is changed
+		expect(poolUSDBalanceDiff - expectedUSDBalanceDiff).to.be.within(-0.0015, 0.0015)
+		// check collateral allocated is increased
+		expect(
+			tFormatUSDC(collateralAllocatedDiff) - tFormatUSDC(expectedCollateralAllocated)
+		).to.be.within(-0.001, 0.001)
+	})
+	it("user buys option 4", async () => {
+		const [sender] = signers
+		const amount = toWei("25")
+
+		const netDhvExposure = await getNetDhvExposure(
+			strikePrice,
+			usd.address,
+			catalogue,
+			portfolioValuesFeed,
+			expiration4,
+			CALL_FLAVOR
+		)
+		expect(netDhvExposure).to.eq(0)
+
+		proposedSeries = {
+			expiration: expiration4,
+			strike: BigNumber.from(strikePrice),
+			isPut: CALL_FLAVOR,
+			strikeAsset: usd.address,
+			underlying: weth.address,
+			collateral: usd.address
+		}
+		let quoteResponse = await pricer.quoteOptionPrice(proposedSeries, amount, false, 0)
+		let quote = quoteResponse[0].add(quoteResponse[2])
+		compareQuotes(
+			quoteResponse,
+			liquidityPool,
+			optionProtocol,
+			volFeed,
+			priceFeed,
+			proposedSeries,
+			amount,
+			false,
+			exchange,
+			optionRegistry,
+			usd,
+			pricer
+		)
+
+		const poolBalanceBefore = await usd.balanceOf(liquidityPool.address)
+		const senderUSDBalanceBefore = await usd.balanceOf(senderAddress)
+		const collateralAllocatedBefore = await liquidityPool.collateralAllocated()
+		const expectedCollateralAllocated = await optionRegistry.getCollateral(
+			{
+				expiration: expiration4,
+				isPut: CALL_FLAVOR,
+				strike: strikePrice.div(10 ** 10), // convert to 1e8 for getCollateral
+				strikeAsset: usd.address,
+				underlying: weth.address,
+				collateral: usd.address
+			},
+			amount
+		)
+
+		await usd.approve(exchange.address, quote.mul(10001).div(10000))
+		await exchange.operate([
+			{
+				operation: 1,
+				operationQueue: [
+					{
+						actionType: 0,
+						owner: ZERO_ADDRESS,
+						secondAddress: ZERO_ADDRESS,
+						asset: ZERO_ADDRESS,
+						vaultId: 0,
+						amount: 0,
+						optionSeries: proposedSeries,
+						indexOrAcceptablePremium: 0,
+						data: "0x"
+					},
+					{
+						actionType: 1,
+						owner: ZERO_ADDRESS,
+						secondAddress: senderAddress,
+						asset: ZERO_ADDRESS,
+						vaultId: 0,
+						amount: amount,
+						optionSeries: proposedSeries,
+						indexOrAcceptablePremium: amount,
+						data: "0x"
+					}
+				]
+			}
+		])
+		seriesAddress4 = await getSeriesWithe18Strike(proposedSeries, optionRegistry)
+		putOptionToken = (await ethers.getContractAt("Otoken", seriesAddress4)) as Otoken
+		const poolBalanceAfter = await usd.balanceOf(liquidityPool.address)
+		const senderPutBalance = await putOptionToken.balanceOf(senderAddress)
+		const collateralAllocatedAfter = await liquidityPool.collateralAllocated()
+		const collateralAllocatedDiff = collateralAllocatedAfter.sub(collateralAllocatedBefore)
+		const senderUSDBalanceAfter = await usd.balanceOf(senderAddress)
+		const opynAmount = toOpyn(fromWei(amount))
+		// check buyer's OToken balance is correct
+		expect(senderPutBalance).to.eq(opynAmount)
+		// ensure correct amount of USDC has been taken from buyer
+		expect(
+			tFormatUSDC(senderUSDBalanceBefore.sub(senderUSDBalanceAfter)) - tFormatUSDC(quote)
+		).to.be.within(-0.1, 0.1)
+
+		const poolUSDBalanceDiff = tFormatUSDC(poolBalanceAfter.sub(poolBalanceBefore))
+		const expectedUSDBalanceDiff = tFormatUSDC(quote) - tFormatUSDC(collateralAllocatedDiff)
+		// check LP USDC balance is changed
+		expect(poolUSDBalanceDiff - expectedUSDBalanceDiff).to.be.within(-0.0015, 0.0015)
+		// check collateral allocated is increased
+		expect(
+			tFormatUSDC(collateralAllocatedDiff) - tFormatUSDC(expectedCollateralAllocated)
+		).to.be.within(-0.001, 0.001)
+	})
 })
 let multicall: DeltaSettlerMulticall
 let resolver: DeltaSettlerResolver
@@ -626,6 +950,53 @@ describe("executes bots runs", async () => {
 		expect(checkerResult.canExec).to.eq(true)
 
 		await multicall.settleVaults([seriesAddress1, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS])
+
+		const checkerResultAfter = await resolver.checker()
+		const decodedResultAfter = hexToUtf8(checkerResultAfter.execPayload)
+
+		expect(decodedResultAfter).to.eq("No vaults to settle")
+	})
+	it("Cleans all expired options", async () => {
+		const originalLength = await portfolioValuesFeed.addressSetLength()
+		await portfolioValuesFeed.syncLooper()
+		const newLength = await portfolioValuesFeed.addressSetLength()
+		expect(originalLength.sub(1)).to.equal(newLength)
+		console.log({ newLength })
+	})
+	it("shows 3 vaults to settle and settles them all", async () => {
+		const blockNumBefore2 = await ethers.provider.getBlockNumber()
+		const blockBefore2 = await ethers.provider.getBlock(blockNumBefore2)
+		const timestampBefore2 = blockBefore2.timestamp
+
+		const settlePrice = utils.parseUnits("2000", 8)
+		// fast forward to expiry
+		await ethers.provider.send("evm_increaseTime", [expiration2 - timestampBefore2])
+		await ethers.provider.send("evm_mine")
+		// set the option expiry price, make sure the option has now expired
+		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration2, settlePrice)
+
+		const blockNumBefore3 = await ethers.provider.getBlockNumber()
+		const blockBefore3 = await ethers.provider.getBlock(blockNumBefore3)
+		const timestampBefore3 = blockBefore3.timestamp
+		// fast forward to expiry
+		await ethers.provider.send("evm_increaseTime", [expiration3 - timestampBefore3])
+		await ethers.provider.send("evm_mine")
+		// set the option expiry price, make sure the option has now expired
+		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration3, settlePrice)
+
+		const blockNumBefore4 = await ethers.provider.getBlockNumber()
+		const blockBefore4 = await ethers.provider.getBlock(blockNumBefore4)
+		const timestampBefore4 = blockBefore4.timestamp
+		// fast forward to expiry
+		await ethers.provider.send("evm_increaseTime", [expiration4 - timestampBefore4])
+		await ethers.provider.send("evm_mine")
+		// set the option expiry price, make sure the option has now expired
+		await setOpynOracleExpiryPrice(WETH_ADDRESS[chainId], oracle, expiration4, settlePrice)
+
+		const checkerResult = await resolver.checker()
+		expect(checkerResult.canExec).to.eq(true)
+
+		await multicall.settleVaults([seriesAddress2, seriesAddress3, seriesAddress4])
 
 		const checkerResultAfter = await resolver.checker()
 		const decodedResultAfter = hexToUtf8(checkerResultAfter.execPayload)
