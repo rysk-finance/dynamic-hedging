@@ -511,6 +511,13 @@ export async function setupOracle(chainlinkPricer: string, signerAddress: string
 	const pricer = await ethers.getContractAt("ChainLinkPricer", chainlinkPricer)
 
 	await oracle.connect(oracleOwnerSigner).setAssetPricer(await pricer.asset(), chainlinkPricer)
+
+	await oracle
+		.connect(oracleOwnerSigner)
+		.setDisputePeriod("0xDEB8979D94268FcBA2059d6a5f2bF23f37b11607", ORACLE_DISPUTE_PERIOD)
+	await oracle.connect(oracleOwnerSigner).setDisputePeriod(chainlinkPricer, ORACLE_DISPUTE_PERIOD)
+
+	const disputePeriod = await oracle.getPricerDisputePeriod(pricer.address)
 	return oracle
 }
 
@@ -542,6 +549,8 @@ export async function setupTestOracle(signerAddress: string) {
 	)) as ChainLinkPricer
 	const price = await oracle.getPrice(WETH_ADDRESS[chainId])
 	await oracle.connect(oracleOwnerSigner).setAssetPricer(await pricer.asset(), pricer.address)
+	await oracle.connect(oracleOwnerSigner).setDisputePeriod(pricer.address, ORACLE_DISPUTE_PERIOD)
+
 	const forceSendContract = await ethers.getContractFactory("ForceSend")
 	const forceSend = await forceSendContract.deploy() // force Send is a contract that forces the sending of Ether to WBTC minter (which is a contract with no receive() function)
 	await forceSend.connect(signer).go(pricer.address, { value: parseEther("0.5") })
