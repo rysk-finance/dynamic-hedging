@@ -4,8 +4,7 @@ import { toast } from "react-toastify";
 
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
-import { logError } from "src/utils/logError";
-import { parseError } from "src/utils/parseRPCError";
+import { errorToast } from "src/utils/parseRPCError";
 
 export const useNotifications = () => {
   const addRecentTransaction = useAddRecentTransaction();
@@ -32,17 +31,7 @@ export const useNotifications = () => {
   );
 
   const notifyFailure = useCallback((error: unknown) => {
-    if (
-      !(
-        error &&
-        typeof error === "object" &&
-        "name" in error &&
-        error.name === "UserRejectedRequestError"
-      )
-    ) {
-      logError(error);
-      toast(parseError(error));
-    }
+    errorToast(error);
   }, []);
 
   return [
