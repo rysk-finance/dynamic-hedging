@@ -52,13 +52,19 @@ export const parseError = (error: any): string | undefined => {
     const message = error.error?.data.message;
 
     if (message) {
-      const opynCodes = Object.keys(OPYN_ERRORS) as Array<
-        keyof typeof OPYN_ERRORS
-      >;
-      const opynError = opynCodes.find((code) => message.includes(code));
+      try {
+        const opynCodes = Object.keys(OPYN_ERRORS) as Array<
+          keyof typeof OPYN_ERRORS
+        >;
+        const opynError = opynCodes.find((code) => message.includes(code));
 
-      if (opynError) {
-        return OPYN_ERRORS[opynError];
+        if (opynError) {
+          return OPYN_ERRORS[opynError];
+        } else {
+          throw new Error(`No key matching "${message}" in OPYN_ERRORS`);
+        }
+      } catch (opynKeyError) {
+        logError(opynKeyError);
       }
     } else {
       try {
@@ -70,10 +76,10 @@ export const parseError = (error: any): string | undefined => {
         if (msg) {
           return msg;
         } else {
-          throw new Error(`No key ${name} in RYSK_ERRORS`);
+          throw new Error(`No key "${name}" in RYSK_ERRORS`);
         }
-      } catch (e) {
-        logError(e);
+      } catch (ryskKeyError) {
+        logError(ryskKeyError);
       }
     }
   }
