@@ -30,13 +30,5 @@ export const useNotifications = () => {
     [addRecentTransaction, dispatch]
   );
 
-  const notifyFailure = useCallback((error: unknown) => {
-    errorToast(error);
-  }, []);
-
-  return [
-    notifyApprovalSuccess,
-    handleTransactionSuccess,
-    notifyFailure,
-  ] as const;
+  return [notifyApprovalSuccess, handleTransactionSuccess, errorToast] as const;
 };
