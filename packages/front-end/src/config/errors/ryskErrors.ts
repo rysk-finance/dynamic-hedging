@@ -1,8 +1,9 @@
 export const RYSK_ERRORS = {
   // OptionExchange.sol
+  NonExistentOtoken: "This series in untradeable at the moment",
   InvalidInput: "Invalid input",
-  UnapprovedSeries: "Series not tradeable",
-  SeriesNotBuyable: "Series not buyable",
+  UnapprovedSeries: "This series in untradeable at the moment",
+  SeriesNotBuyable: "This series cannot be purchased at the moment",
   CollateralAssetInvalid: "Invalid collateral asset", // issue
   MaxLiquidityBufferReached: "Max liquidity buffer reached", // cannot sell/close
   NonExistentOToken: "Non-existent oToken",
