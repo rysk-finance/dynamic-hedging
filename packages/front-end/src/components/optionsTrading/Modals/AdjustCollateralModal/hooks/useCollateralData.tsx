@@ -116,10 +116,11 @@ export const useCollateralData = (
               ).lte(allowance.amount)
             : true;
 
-          const disabled =
-            (adjustingOption.isPut && liquidationPrice > ethPrice) ||
-            (!adjustingOption.isPut && liquidationPrice < ethPrice) ||
-            Math.abs(liquidationPrice - ethPrice) < ethPrice * 0.03;
+          // const disabled =
+          //   (adjustingOption.isPut && liquidationPrice > ethPrice) ||
+          //   (!adjustingOption.isPut && liquidationPrice < ethPrice) ||
+          // Math.abs(liquidationPrice - ethPrice) < ethPrice * 0.03;
+          const disabled = false;
 
           setCollateralData({
             asset: USDCCollateral ? "USDC" : "WETH",

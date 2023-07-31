@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
 import { logError } from "src/utils/logError";
+import { parseError } from "src/utils/parseRPCError";
 
 export const useNotifications = () => {
   const addRecentTransaction = useAddRecentTransaction();
@@ -40,9 +41,7 @@ export const useNotifications = () => {
       )
     ) {
       logError(error);
-      toast(
-        "Sorry, but there was a problem completing your transaction. The team has been informed and we will be looking into it."
-      );
+      toast(parseError(error));
     }
   }, []);
 

@@ -1,12 +1,12 @@
 export const OPYN_ERRORS = {
-  // NewController.sol Error Codes
-  C4: "System is paused",
-  C5: "System is paused",
+  // NewController.sol
+  C4: "System is paused", // partially
+  C5: "System is paused", // fully
   C6: "You are not authorized to run this action",
   C9: "DHV is already set as operator", // this should never really happen but doesn't hurt to have it
   C12: "Can not run actions for different owners", // ❌ shouldn't happen in our app
   C13: "Can not run actions on different vaults",
-  C14: "Invalid final vault state",
+  C14: "Invalid final vault state.",
   C15: "Vault does not exist", // ❌ shouldn't happen in our app
   C16: "Cannot deposit long otoken from this address", // ❌ shouldn't happen in our app
   C17: "Otoken is not whitelisted to be used as collateral", // ❌ shouldn't happen in our app
@@ -28,7 +28,7 @@ export const OPYN_ERRORS = {
   C35: "Invalid vault id", // ❌ shouldn't happen in our app
   C37: "Collateral exceed naked margin cap", // ❌ shouldn't happen in our app
 
-  // MarginVault Error Codes
+  // MarginVault
   V1: "Invalid short otoken amount",
   V2: "Invalid short otoken index",
   V3: "Short otoken address mismatch",

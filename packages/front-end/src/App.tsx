@@ -51,7 +51,7 @@ function App() {
           <ToastContainer
             toastClassName="bg-bone rounded-none border-2 border-black font-dm-sans text-black max-w-xl w-fit"
             hideProgressBar
-            position="bottom-center"
+            position="bottom-right"
             autoClose={5000}
           />
         </ApolloProvider>
