@@ -1,27 +1,35 @@
 export const RYSK_ERRORS = {
   // OptionExchange.sol
-  NonExistentOtoken: "This series in untradeable at the moment",
-  InvalidInput: "Invalid input",
-  UnapprovedSeries: "This series in untradeable at the moment",
-  SeriesNotBuyable: "This series cannot be purchased at the moment",
-  CollateralAssetInvalid: "Invalid collateral asset", // issue
-  MaxLiquidityBufferReached: "Max liquidity buffer reached", // cannot sell/close
-  NonExistentOToken: "Non-existent oToken",
-  NonWhitelistedOToken: "Non-whitelisted oToken",
-  SeriesNotSellable: "Series not sellable",
-  StrikeAssetInvalid: "Invalid strike asset", // issue
-  UnderlyingAssetInvalid: "Invalid underlying asset", // issue,
-  OptionExpiryInvalid: "Invalid option expiry", // issue
-  OptionStrikeInvalid: "Invalid option strike", // issue
-  IssuanceFailed: "Issuance failed", // issue
-  InvalidExpiry: "Invalid expiry",
-  InvalidAmount: "Invalid amount", // deposit 0
-  InvalidShareAmount: "Invalid share amount", // redeem/withdraw 0
-  WithdrawExceedsLiquidity: "Buyback premium gretaer than balance", // buyback
-  TradingPaused: "Trading paused",
+  InvalidInput: "Invalid input.",
+  UnapprovedSeries: "Series not approved.",
+  SeriesNotBuyable: "Series not buyable.",
+  CollateralAssetInvalid: "Invalid collateral asset.",
+  MaxLiquidityBufferReached: "Max liquidity buffer reached.",
+  NonExistentOToken: "Non-existent oToken.",
+  NonWhitelistedOToken: "Non-whitelisted oToken.",
+  SeriesNotSellable: "Series not sellable.",
+  StrikeAssetInvalid: "Invalid strike asset.",
+  UnderlyingAssetInvalid: "Invalid underlying asset.",
+  OptionExpiryInvalid: "Invalid option expiry.",
+  OptionStrikeInvalid: "Invalid option strike.",
+  IssuanceFailed: "Issuance failed.",
+  InvalidExpiry: "Invalid expiry.",
+  InvalidAmount: "Invalid amount.",
+  InvalidShareAmount: "Invalid share amount.",
+  WithdrawExceedsLiquidity: "Required premium greater than balance.",
+  TradingPaused: "Trading paused.",
+  "Pausable: paused": "System paused.",
+
   // Accounting.sol
-  TotalSupplyReached: "Amount too large", // depositing too much collateral
-  InsufficientShareBalance: "You do not have that many shares",
-  NoExistingWithdrawal: "No pending withdrawal",
-  EpochNotClosed: "Epoch not closed",
+  TotalSupplyReached: "Amount too large.",
+  InsufficientShareBalance: "Insufficient share balance.",
+  NoExistingWithdrawal: "No pending withdrawal.",
+  EpochNotClosed: "Epoch not closed.",
+
+  // VolatilityFeed.sol
+  IVNotFound: "IV not found.",
+
+  // PriceFeed.sol
+  SequencerDown: "The sequencer is down.",
+  GracePeriodNotOver: "Grace period not over.",
 } as const;
