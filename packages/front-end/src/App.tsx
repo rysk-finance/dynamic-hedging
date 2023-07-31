@@ -50,7 +50,7 @@ function App() {
             toastClassName="bg-bone rounded-none border-2 border-black font-dm-sans text-black max-w-xl w-fit"
             hideProgressBar
             position="bottom-right"
-            autoClose={5000}
+            autoClose={10000}
           />
         </ApolloProvider>
       </WalletProvider>
