@@ -52,7 +52,7 @@ export const Header = ({ children, changeVisible = false }: HeaderProps) => {
           placement="bottom"
         >
           <button
-            className={`col-start-9 col-span-1 mx-auto p-2`}
+            className={`col-start-9 col-span-1 mx-auto p-2 cursor-pointer`}
             onClick={changeModal}
           >
             <Change className="text-white h-8 w-8" />

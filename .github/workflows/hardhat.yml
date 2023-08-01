@@ -3,8 +3,9 @@ name: Hardhat
 on:
   pull_request:
     paths:
-      - "packages/contracts/**"
+      - "packages/contracts/**/*.sol"
       - "package.json"
+      - "packages/contracts/hardhat.config.ts"
       - ".github/workflows/hardhat.yml"
 
   workflow_dispatch:
