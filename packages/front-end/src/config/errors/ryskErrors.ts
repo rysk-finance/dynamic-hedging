@@ -32,3 +32,41 @@ export const RYSK_ERRORS = {
   SequencerDown: "The sequencer is down.",
   GracePeriodNotOver: "Grace period not over.",
 } as const;
+
+export const RYSK_SIGHASH_ERRORS = {
+  "0xb4fa3fb3": "Invalid input.",
+  "0x6c845440": "Max liquidity buffer reached.",
+  "0x9e2708f2": "Non-existent oToken.",
+  "0xe85ee803": "Non-whitelisted oToken.",
+  "0x66bfac3d": "Invalid option expiry.",
+  "0x52a27806": "Token imbalance.",
+  "0x075fd2b1": "Unauthorised.",
+  "0xf1ece51c": "Series not approved.",
+  "0xec93f020": "UnauthorisedSender",
+  "0xbff9e445": "Invalid underlying asset.",
+  "0xe6c4247b": "Invalid address.",
+  "0x2c5211c6": "Invalid amount.",
+  "0x8c88122d": "Invalid share amount.",
+  "0xecdc6615": "Issuance failed.",
+  "0xe04ba975": "Invalid option strike.",
+  "0x02b874a6": "Trading paused.",
+  "0xb84beb5d": "Required premium greater than balance.",
+  "0xd15f73b5": "Grace period not over.",
+  "0x032b3d00": "The sequencer is down.",
+  "0xbb9f1668": "Exchange not paused",
+  "0x4485c2d0": "IV not found.",
+  "0x39c15699": "Epoch not closed.",
+  "0x0a73ab6c": "Existing withdrawal.",
+  "0xaf4e51c7": "Insufficient share balance.",
+  "0xe3c0287b": "No existing withdrawal.",
+  "0x7be9badb": "Total supply reached.",
+} as { [key: HexString]: string };
+
+export const RYSK_SIGHASH_NO_SUPPORT_ERRORS = {
+  "0x43a1bda9": "This series is not currently buyable. Please try again later.",
+  "0x4698cf4f":
+    "This series is not currently sellable. Please try again later.",
+  "0xfa6ad355": "Slippage is too high. Please try a smaller position size.",
+  "0x04213078": "This trade is too large. Please try a smaller position size.",
+  "0xeddee5b2": "This trade is too small. Please try a larger position size.",
+} as { [key: HexString]: string };
