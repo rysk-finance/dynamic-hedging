@@ -34,6 +34,8 @@ export const isRPCError = (err: any): err is RPCError => {
 
 export const DEFAULT_ERROR =
   "Sorry, but there was a problem completing your transaction.\n The team has been informed and will be looking into it.";
+const PAUSED_ERROR =
+  "The system is currently paused. Please try again shortly.";
 
 export const parseError = (error: any): string | undefined => {
   // Early return if the user manually rejected the tx.
@@ -49,38 +51,39 @@ export const parseError = (error: any): string | undefined => {
   logError(error);
 
   if (isRPCError(error)) {
-    const message = error.error?.data.message;
+    const opynMessage = error.error?.data.message;
+    const ryskMessage = error.message;
 
-    if (message) {
-      try {
+    if (opynMessage?.includes("paused") || ryskMessage.includes("paused")) {
+      return PAUSED_ERROR;
+    }
+
+    try {
+      if (opynMessage) {
         const opynCodes = Object.keys(OPYN_ERRORS) as Array<
           keyof typeof OPYN_ERRORS
         >;
-        const opynError = opynCodes.find((code) => message.includes(code));
+        const opynError = opynCodes.find((code) => opynMessage.includes(code));
 
         if (opynError) {
           return OPYN_ERRORS[opynError];
         } else {
-          throw new Error(`No key matching "${message}" in OPYN_ERRORS`);
+          throw new Error(`No key matching "${opynMessage}" in OPYN_ERRORS.`);
         }
-      } catch (opynKeyError) {
-        logError(opynKeyError);
       }
-    } else {
-      try {
-        const name = error.message
-          .match(/errorName="[a-zA-Z]+"/)?.[0]
-          .split(/"/)?.[1];
-        const msg = RYSK_ERRORS[name as keyof typeof RYSK_ERRORS];
 
-        if (msg) {
-          return msg;
-        } else {
-          throw new Error(`No key "${name}" in RYSK_ERRORS`);
-        }
-      } catch (ryskKeyError) {
-        logError(ryskKeyError);
+      const name = error.message
+        .match(/errorName="[a-zA-Z]+"/)?.[0]
+        .split(/"/)?.[1];
+      const msg = RYSK_ERRORS[name as keyof typeof RYSK_ERRORS];
+
+      if (msg) {
+        return msg;
+      } else {
+        throw new Error(`No key "${name}" in RYSK_ERRORS`);
       }
+    } catch (error) {
+      logError(error);
     }
   }
 
@@ -89,22 +92,25 @@ export const parseError = (error: any): string | undefined => {
 
 export const errorToast = (error: any) => {
   const message = parseError(error);
+  const showLink = message !== DEFAULT_ERROR && message !== PAUSED_ERROR;
 
   if (message) {
     toast(
       <>
         <em className="font-bold not-italic">{message}</em>
-        <p>
-          {`For more help on this issue, please raise a .`}
-          <a
-            className="text-cyan-dark-compliant underline"
-            href={DISCORD_SUPPORT_DESK}
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            {`support ticket via our Discord server.`}
-          </a>
-        </p>
+        {showLink && (
+          <p>
+            {`For more help on this issue, please raise a `}
+            <a
+              className="text-cyan-dark-compliant underline"
+              href={DISCORD_SUPPORT_DESK}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              {`support ticket via our Discord server.`}
+            </a>
+          </p>
+        )}
       </>,
       {
         className:

@@ -18,7 +18,6 @@ export const RYSK_ERRORS = {
   InvalidShareAmount: "Invalid share amount.",
   WithdrawExceedsLiquidity: "Required premium greater than balance.",
   TradingPaused: "Trading paused.",
-  "Pausable: paused": "System paused.",
 
   // Accounting.sol
   TotalSupplyReached: "Amount too large.",
