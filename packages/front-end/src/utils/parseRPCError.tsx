@@ -37,7 +37,14 @@ export const DEFAULT_ERROR =
 const PAUSED_ERROR =
   "The system is currently paused. Please try again shortly.";
 
-export const parseError = (error: any): string | undefined => {
+/**
+ * Returns a tuple containing:
+ * - A parsed error message from RPC requests or undefined.
+ * - A boolean representing whether a support link should be displayed.
+ *
+ * @param error - The raised network error from an RPC call.
+ */
+export const parseError = (error: any): [string | undefined, boolean] => {
   // Early return if the user manually rejected the tx.
   if (
     error &&
@@ -45,7 +52,7 @@ export const parseError = (error: any): string | undefined => {
     "code" in error &&
     error.code === ErrorCode.RPC_USER_DENIED
   ) {
-    return;
+    return [undefined, false];
   }
 
   logError(error);
@@ -55,7 +62,7 @@ export const parseError = (error: any): string | undefined => {
     const ryskMessage = error.message;
 
     if (opynMessage?.includes("paused") || ryskMessage.includes("paused")) {
-      return PAUSED_ERROR;
+      return [PAUSED_ERROR, false];
     }
 
     try {
@@ -66,7 +73,7 @@ export const parseError = (error: any): string | undefined => {
         const opynError = opynCodes.find((code) => opynMessage.includes(code));
 
         if (opynError) {
-          return OPYN_ERRORS[opynError];
+          return [OPYN_ERRORS[opynError], true];
         } else {
           throw new Error(`No key matching "${opynMessage}" in OPYN_ERRORS.`);
         }
@@ -78,7 +85,7 @@ export const parseError = (error: any): string | undefined => {
       const msg = RYSK_ERRORS[name as keyof typeof RYSK_ERRORS];
 
       if (msg) {
-        return msg;
+        return [msg, true];
       } else {
         throw new Error(`No key "${name}" in RYSK_ERRORS`);
       }
@@ -87,12 +94,11 @@ export const parseError = (error: any): string | undefined => {
     }
   }
 
-  return DEFAULT_ERROR;
+  return [DEFAULT_ERROR, false];
 };
 
 export const errorToast = (error: any) => {
-  const message = parseError(error);
-  const showLink = message !== DEFAULT_ERROR && message !== PAUSED_ERROR;
+  const [message, showLink] = parseError(error);
 
   if (message) {
     toast(
