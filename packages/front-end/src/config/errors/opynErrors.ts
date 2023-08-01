@@ -25,3 +25,7 @@ export const OPYN_ERRORS = {
   "MarginCalculator: collateral asset not marginable for short asset":
     "Collateral asset not marginable for short asset.",
 } as const;
+
+export const OPYN_CODES = Object.keys(OPYN_ERRORS) as Array<
+  keyof typeof OPYN_ERRORS
+>;

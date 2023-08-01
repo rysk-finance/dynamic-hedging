@@ -1,8 +1,12 @@
 import { toast } from "react-toastify";
 
 import { DISCORD_SUPPORT_DESK } from "src/config/links";
-import { OPYN_ERRORS } from "../config/errors/opynErrors";
-import { RYSK_ERRORS } from "../config/errors/ryskErrors";
+import { OPYN_CODES, OPYN_ERRORS } from "../config/errors/opynErrors";
+import {
+  RYSK_ERRORS,
+  RYSK_SIGHASH_ERRORS,
+  RYSK_SIGHASH_NO_SUPPORT_ERRORS,
+} from "../config/errors/ryskErrors";
 import { logError } from "./logError";
 
 export enum ErrorCode {
@@ -18,7 +22,7 @@ type RPCError = {
     code: number;
     data: {
       code: number;
-      data: string;
+      data: HexString;
       message: string;
     };
   };
@@ -34,8 +38,6 @@ export const isRPCError = (err: any): err is RPCError => {
 
 export const DEFAULT_ERROR =
   "Sorry, but there was a problem completing your transaction.\n The team has been informed and will be looking into it.";
-const PAUSED_ERROR =
-  "The system is currently paused. Please try again shortly.";
 
 /**
  * Returns a tuple containing:
@@ -58,37 +60,41 @@ export const parseError = (error: any): [string | undefined, boolean] => {
   logError(error);
 
   if (isRPCError(error)) {
-    const opynMessage = error.error?.data.message;
-    const ryskMessage = error.message;
+    const errorMessage = error.error?.data.message || error.message;
+    const opynError = OPYN_CODES.find((code) => errorMessage.includes(code));
+    const ryskError = errorMessage
+      .match(/errorName="[a-zA-Z]+"/)?.[0]
+      .split(/"/)?.[1] as keyof typeof RYSK_ERRORS | undefined;
 
-    if (opynMessage?.includes("paused") || ryskMessage.includes("paused")) {
-      return [PAUSED_ERROR, false];
+    const errorSigHash = error.error?.data.data;
+
+    if (errorMessage.includes("paused")) {
+      return [
+        "The system is currently paused. Please try again shortly.",
+        false,
+      ];
     }
 
     try {
-      if (opynMessage) {
-        const opynCodes = Object.keys(OPYN_ERRORS) as Array<
-          keyof typeof OPYN_ERRORS
-        >;
-        const opynError = opynCodes.find((code) => opynMessage.includes(code));
-
-        if (opynError) {
-          return [OPYN_ERRORS[opynError], true];
-        } else {
-          throw new Error(`No key matching "${opynMessage}" in OPYN_ERRORS.`);
-        }
+      if (opynError) {
+        return [OPYN_ERRORS[opynError], true];
       }
 
-      const name = error.message
-        .match(/errorName="[a-zA-Z]+"/)?.[0]
-        .split(/"/)?.[1];
-      const msg = RYSK_ERRORS[name as keyof typeof RYSK_ERRORS];
-
-      if (msg) {
-        return [msg, true];
-      } else {
-        throw new Error(`No key "${name}" in RYSK_ERRORS`);
+      if (ryskError) {
+        return [RYSK_ERRORS[ryskError], true];
       }
+
+      if (errorSigHash && errorSigHash in RYSK_SIGHASH_ERRORS) {
+        return [RYSK_SIGHASH_ERRORS[errorSigHash], true];
+      }
+
+      if (errorSigHash && errorSigHash in RYSK_SIGHASH_NO_SUPPORT_ERRORS) {
+        return [RYSK_SIGHASH_NO_SUPPORT_ERRORS[errorSigHash], false];
+      }
+
+      throw new Error(
+        `No match for "${errorMessage || errorSigHash}" found in error lists.`
+      );
     } catch (error) {
       logError(error);
     }
