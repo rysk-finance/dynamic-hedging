@@ -308,11 +308,13 @@ export const VaultDeposit = () => {
 
   const approveIsDisabled =
     !inputValue ||
+    !Number(inputValue) ||
     amountIsApproved ||
     listeningForApproval ||
     ethers.utils.parseUnits(inputValue)._hex === ZERO_UINT_256;
   const depositIsDisabled =
     !(inputValue && address && approveIsDisabled) ||
+    !Number(inputValue) ||
     listeningForDeposit ||
     geoData.blocked;
 
