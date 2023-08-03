@@ -8,6 +8,8 @@ import {
   RYSK_SIGHASH_NO_SUPPORT_ERRORS,
 } from "../config/errors/ryskErrors";
 import { logError } from "./logError";
+import { ERC20_ERRORS, ERC20_KEYS } from "src/config/errors/erc20Errors";
+import { UnhandledRPCError } from "./customErrors/UnhandledRPCError";
 
 export enum ErrorCode {
   RPC_PARSE = -32603,
@@ -61,12 +63,6 @@ export const parseError = (error: any): [string | undefined, boolean] => {
 
   if (isRPCError(error)) {
     const errorMessage = error.error?.data.message || error.message;
-    const opynError = OPYN_CODES.find((code) => errorMessage.includes(code));
-    const ryskError = errorMessage
-      .match(/errorName="[a-zA-Z]+"/)?.[0]
-      .split(/"/)?.[1] as keyof typeof RYSK_ERRORS | undefined;
-
-    const errorSigHash = error.error?.data.data;
 
     if (errorMessage.includes("paused")) {
       return [
@@ -76,14 +72,24 @@ export const parseError = (error: any): [string | undefined, boolean] => {
     }
 
     try {
+      const erc20Error = ERC20_KEYS.find((msg) => errorMessage.includes(msg));
+      if (erc20Error) {
+        return [ERC20_ERRORS[erc20Error], false];
+      }
+
+      const opynError = OPYN_CODES.find((code) => errorMessage.includes(code));
       if (opynError) {
         return [OPYN_ERRORS[opynError], true];
       }
 
+      const ryskError = errorMessage
+        .match(/errorName="[a-zA-Z]+"/)?.[0]
+        .split(/"/)?.[1] as keyof typeof RYSK_ERRORS | undefined;
       if (ryskError) {
         return [RYSK_ERRORS[ryskError], true];
       }
 
+      const errorSigHash = error.error?.data.data;
       if (errorSigHash && errorSigHash in RYSK_SIGHASH_ERRORS) {
         return [RYSK_SIGHASH_ERRORS[errorSigHash], true];
       }
@@ -92,7 +98,7 @@ export const parseError = (error: any): [string | undefined, boolean] => {
         return [RYSK_SIGHASH_NO_SUPPORT_ERRORS[errorSigHash], false];
       }
 
-      throw new Error(
+      throw new UnhandledRPCError(
         `No match for "${errorMessage || errorSigHash}" found in error lists.`
       );
     } catch (error) {
