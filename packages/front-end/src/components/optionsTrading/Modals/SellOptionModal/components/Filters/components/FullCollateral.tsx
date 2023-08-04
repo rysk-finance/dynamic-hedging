@@ -41,7 +41,7 @@ export const FullCollateral = () => {
 
   return (
     <label
-      className={`flex items-center justify-start select-none ${
+      className={`w-fit flex items-center justify-start select-none ${
         fullCollateralRequired
           ? "cursor-pointer"
           : "cursor-not-allowed opacity-50"
