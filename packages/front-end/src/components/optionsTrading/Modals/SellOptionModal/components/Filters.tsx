@@ -115,11 +115,11 @@ export const Filters = () => {
             {`USDC`}
           </span>
 
-          <div className="relative w-24 h-12 mx-4 p-1 bg-bone-dark rounded-full shadow-[inset_0_0_10px_rgba(0,0,0,0.2)]">
+          <div className="relative w-24 h-11 mx-4 p-1 bg-bone-dark rounded-full shadow-[inset_0_0_10px_rgba(0,0,0,0.2)]">
             <div
               className={`absolute ${
                 toggleIsUSDC ? "left-[0.25rem]" : "left-[3.25rem]"
-              } h-10 w-10 rounded-full ease-in-out duration-200`}
+              } h-9 w-9 rounded-full ease-in-out duration-200`}
             >
               <AnimatePresence mode="popLayout">
                 {toggleIsUSDC ? (
@@ -152,7 +152,7 @@ export const Filters = () => {
         <div className="relative mb-1">
           <ReactSlider
             ariaLabel="Adjust collateral"
-            className={`flex w-full h-12  ${
+            className={`flex w-full h-11  ${
               collateralPreferences.full
                 ? "cursor-not-allowed opacity-50"
                 : "cursor-pointer"
@@ -179,12 +179,11 @@ export const Filters = () => {
             }}
           />
 
-          <div className="absolute pointer-events-none flex justify-between w-full bottom-[-0.4rem]">
-            {[1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map((value) => (
-              <small
-                className="w-6 text-center"
-                key={value}
-              >{`${value}x`}</small>
+          <div className="absolute pointer-events-none flex justify-between w-full bottom-[-0.6rem]">
+            {["Min collateral", "Max collateral"].map((value) => (
+              <small className="w-fit text-center" key={value}>
+                {value}
+              </small>
             ))}
           </div>
         </div>
@@ -228,11 +227,7 @@ export const Filters = () => {
       </div>
 
       <small className="flex leading-6 text-gray-600 border-gray-600 border-b">
-        {`Using ${collateralPreferences.type} to supply ${
-          collateralPreferences.full
-            ? "full"
-            : `${collateralPreferences.amount}x`
-        } collateral.`}
+        {`Using ${collateralPreferences.type} to supply collateral.`}
       </small>
     </div>
   );

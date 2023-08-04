@@ -50,7 +50,7 @@ export const Pricing = ({ positionData }: PricingProps) => {
         {`ETH ${expiry} $${strike} ${callOrPut}`.toUpperCase()}
       </p>
 
-      <div className="w-3/5 mx-auto py-4">
+      <div className="w-4/5 xl:w-3/5 mx-auto py-4">
         <div>
           <span className="flex">
             <p className="mr-auto">{`Premium:`}</p>

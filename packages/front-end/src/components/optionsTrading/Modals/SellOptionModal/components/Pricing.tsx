@@ -64,7 +64,7 @@ export const Pricing = ({ loading, positionData }: PricingProps) => {
   }, [collateralType, positionData]);
 
   return (
-    <div className="w-3/5 mx-auto pt-2 pb-4">
+    <div className="w-4/5 xl:w-3/5 mx-auto pt-2 pb-4">
       <span className="flex">
         <p className="mr-auto">{`Collateral required:`}</p>
 
