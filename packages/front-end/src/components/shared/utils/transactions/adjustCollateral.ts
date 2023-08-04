@@ -50,7 +50,7 @@ export const adjustCollateral = async (
     args: [txData],
   });
   config.request.gasLimit = config.request.gasLimit
-    .mul(GAS_MULTIPLIER * 100)
+    .mul(Math.floor(GAS_MULTIPLIER * 100))
     .div(100);
 
   if (config.request.data) {
