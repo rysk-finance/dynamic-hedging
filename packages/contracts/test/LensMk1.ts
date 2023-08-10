@@ -71,6 +71,8 @@ let authority: string
 let catalogue: OptionCatalogue
 let lens: DHVLensMK1
 let userLens: UserPositionLensMK1
+let exposureLens: ExposureLensMK1
+let otoken: any
 
 /* --- variables to change --- */
 
@@ -282,6 +284,10 @@ describe("Lens", async () => {
 			const lensFactory = await ethers.getContractFactory("UserPositionLensMK1")
 			userLens = (await lensFactory.deploy(addressBook.address)) as UserPositionLensMK1
 		})
+		it("SETUP: deploy exposure lens contract", async () => {
+			const lensFactory = await ethers.getContractFactory("ExposureLensMK1")
+			exposureLens = (await lensFactory.deploy(optionProtocol.address)) as UserPositionLensMK1
+		})
 	})
 	describe("Purchase a bunch of random options", async () => {
 		it("SETUP: approve series", async () => {
@@ -418,7 +424,7 @@ describe("Lens", async () => {
 				"OtokenFactory",
 				await addressBook.getOtokenFactory()
 			)) as OtokenFactory
-			const otoken = await otokenFactory.callStatic.createOtoken(
+			otoken = await otokenFactory.callStatic.createOtoken(
 				proposedSeries.underlying,
 				proposedSeries.strikeAsset,
 				proposedSeries.collateral,
@@ -711,6 +717,12 @@ describe("Lens", async () => {
 		describe("Hit the Lens", async () => {
 			it("ping the lens contract", async () => {
 				const lensVals = await lens.getOptionChain()
+				// console.log({lensVals})
+			})
+		})
+		describe("Hit the exposure Lens", async () => {
+			it("ping the lens contract", async () => {
+				const lensVals = await exposureLens.getSeriesAddressDetails(otoken)
 				// console.log({lensVals})
 			})
 		})

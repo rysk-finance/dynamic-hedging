@@ -34,6 +34,7 @@
 		"execute-epoch:testnet": "npx hardhat run scripts/executeEpochTestnet.ts --network arbitrumGoerli",
 		"issue-series:testnet": "npx hardhat run scripts/issue-series.ts --network arbitrumGoerli",
 		"issue-series:mainnet": "npx hardhat run scripts/issue-series.ts --network arbitrum",
+		"change-dhv-pos:mainnet": "npx hardhat run scripts/change-dhv-pos.ts --network arbitrum",
 		"set-vals:testnet": "npx hardhat run scripts/set-vals.ts --network arbitrumGoerli",
 		"set-collat-params:testnet": "npx hardhat run scripts/set-collat-params.ts --network arbitrumGoerli",
 		"fulfill:testnet": "npx hardhat run scripts/fulfill.ts --network arbitrumGoerli",
