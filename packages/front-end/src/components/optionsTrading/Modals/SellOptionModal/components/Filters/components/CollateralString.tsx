@@ -10,7 +10,9 @@ export const CollateralString = () => {
       {`Using ${collateralPreferences.type} to ${
         collateralPreferences.full
           ? "fully collateralise your position."
-          : ` provide ${collateralPreferences.amount}x the minimum required collateral.`
+          : ` provide ${
+              collateralPreferences.amount || 0
+            }x the minimum required collateral.`
       }`}
     </small>
   );
