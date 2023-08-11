@@ -131,8 +131,8 @@ export const useSellOption = (amountToSell: string) => {
               }
             } else {
               const multipliedCollateral = requiredCollateral
-                .mul(collateralPreferences.amount * 10)
-                .div(10);
+                .mul(Math.round(collateralPreferences.amount * 100))
+                .div(100);
               const formatted = USDCCollateral
                 ? tFormatUSDC(multipliedCollateral)
                 : fromRyskToNumber(multipliedCollateral.toString());

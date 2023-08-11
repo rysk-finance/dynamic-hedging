@@ -21,7 +21,7 @@ export const Multiplier = () => {
     const decimals = amount.split(".");
     const rounded =
       decimals.length > 1
-        ? `${decimals[0]}.${decimals[1].slice(0, 1)}`
+        ? `${decimals[0]}.${decimals[1].slice(0, 2)}`
         : event.currentTarget.value;
 
     setMultiplier(parseFloat(rounded));
