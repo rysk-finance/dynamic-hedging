@@ -8,6 +8,8 @@ import { Ether } from "./Ether";
 import { Info } from "./Info";
 import { LeftArrow } from "./LeftArrow";
 import { Loading } from "./Loading";
+import { Minus } from "./Minus";
+import { Plus } from "./Plus";
 import { Podium } from "./Podium";
 import { Question } from "./Question";
 import { Refresh } from "./Refresh";
@@ -29,6 +31,8 @@ export {
   Info,
   LeftArrow,
   Loading,
+  Minus,
+  Plus,
   Podium,
   Question,
   Refresh,
