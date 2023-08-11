@@ -16,6 +16,7 @@ export const MAX_BPS = BigNumber.from(10000);
 export const CALL = false;
 export const PUT = true;
 export const SECONDS_IN_DAY = 86400;
+export const SECOND_IN_THIRTY_DAYS = SECONDS_IN_DAY * 30;
 export const SECONDS_IN_YEAR = SECONDS_IN_DAY * 365.25;
 export const genOptionTime = (now: Dayjs, future: Dayjs) =>
   (future.unix() - now.unix()) / SECONDS_IN_YEAR;
@@ -77,7 +78,7 @@ export type BlackScholesCalcArgs = [
   BigNumberish,
   BigNumberish,
   BigNumberish,
-  BigNumberish
+  BigNumberish,
 ];
 const sum = function (array: [number]) {
   let total = 0;
