@@ -20,7 +20,7 @@ export interface CustomTooltipProps {
     {
       value: string;
       payload: { epoch: string };
-    }
+    },
   ];
   label?: string;
 }
