@@ -25,7 +25,7 @@ export const VaultPerformance = () => {
           orderBy: "epoch"
           orderDirection: "asc"
           first: 1000
-          skip: 2
+          skip: 3
         ) {
           epoch
           growthSinceFirstEpoch
