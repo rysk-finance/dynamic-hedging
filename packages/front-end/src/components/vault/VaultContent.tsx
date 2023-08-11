@@ -109,6 +109,7 @@ export const VaultContent = () => {
 
       <section className="col-start-1 col-end-17 mt-16">
         <Card
+          initialTabIndex={2}
           tabs={[
             {
               label: "Overview",

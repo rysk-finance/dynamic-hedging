@@ -12,5 +12,7 @@ const FadeInOut = {
 };
 
 export const FadeWrapper = ({ children }: PropsWithChildren<unknown>) => (
-  <motion.div {...FadeInOut}>{children}</motion.div>
+  <motion.div className="flex" {...FadeInOut}>
+    {children}
+  </motion.div>
 );

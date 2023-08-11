@@ -25,7 +25,7 @@ export const VaultPerformance = () => {
           orderBy: "epoch"
           orderDirection: "asc"
           first: 1000
-          skip: 2
+          skip: 3
         ) {
           epoch
           growthSinceFirstEpoch
@@ -78,13 +78,14 @@ export const VaultPerformance = () => {
 
       {data && (
         <FadeWrapper key="data">
-          <Stats
-            cumulativeYield={
-              chartData[chartData.length - 1]?.growthSinceFirstEpoch
-            }
-          />
-          <Chart chartData={chartData} />
-          <Disclaimer />
+          <section className="flex flex-col w-1/4 xl:1/3">
+            <Stats chartData={chartData} />
+            <Disclaimer />
+          </section>
+
+          <section className="w-3/4 xl:2/3">
+            <Chart chartData={chartData} />
+          </section>
         </FadeWrapper>
       )}
     </AnimatePresence>
