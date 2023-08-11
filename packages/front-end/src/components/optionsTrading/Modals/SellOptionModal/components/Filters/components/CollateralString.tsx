@@ -6,7 +6,7 @@ export const CollateralString = () => {
   } = useGlobalContext();
 
   return (
-    <small className="flex leading-6 text-gray-600 border-gray-600 border-b">
+    <small className="flex leading-6 border-gray-600 border-b">
       {`Using ${collateralPreferences.type} to ${
         collateralPreferences.full
           ? "fully collateralise your position."
