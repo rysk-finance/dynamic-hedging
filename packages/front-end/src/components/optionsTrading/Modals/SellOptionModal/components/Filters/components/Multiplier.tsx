@@ -1,6 +1,6 @@
 import type { ChangeEvent } from "react";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 
 import { Close, Minus, Plus } from "src/Icons";
@@ -19,16 +19,22 @@ export const Multiplier = () => {
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const amount = event.currentTarget.value;
     const decimals = amount.split(".");
-    const rounded =
+    const rounded = parseFloat(
       decimals.length > 1
         ? `${decimals[0]}.${decimals[1].slice(0, 2)}`
-        : event.currentTarget.value;
+        : event.currentTarget.value
+    );
 
-    setMultiplier(parseFloat(rounded));
+    if (rounded > 100) {
+      setMultiplier(Math.floor(rounded / 10));
+    } else {
+      setMultiplier(rounded);
+    }
   };
 
   const handleInputBlur = () => {
     if (multiplier < 1.1) setMultiplier(1.1);
+    if (Number.isNaN(multiplier)) setMultiplier(2);
   };
 
   useEffect(() => {
@@ -53,6 +59,14 @@ export const Multiplier = () => {
     }
   };
 
+  const iconLeft = useMemo(() => {
+    const base = 2.6;
+    const gap = 0.3;
+    const len = multiplier.toString().length;
+
+    return `${base + (len - 1) * gap}rem`;
+  }, [multiplier]);
+
   return (
     <div className="flex h-11 bg-white border border-gray-600 w-fit rounded-full">
       <button
@@ -64,7 +78,7 @@ export const Multiplier = () => {
       </button>
       <span className="relative flex h-full">
         <input
-          className="w-16 h-full px-2 number-input-hide-arrows disabled:cursor-not-allowed font-dm-mono"
+          className="text-center w-20 h-full pr-2 number-input-hide-arrows disabled:cursor-not-allowed font-dm-mono"
           disabled={collateralPreferences.full}
           inputMode="numeric"
           onBlur={handleInputBlur}
@@ -74,14 +88,13 @@ export const Multiplier = () => {
           value={multiplier}
         />
         <Close
-          className={`absolute ${
-            multiplier % 1 ? "right-1" : "right-6"
-          } top-[0.9rem] h-4 w-4 pointer-events-none`}
+          className={`absolute top-[0.9rem] h-4 w-4 pointer-events-none`}
+          style={{ left: iconLeft }}
         />
       </span>
       <button
         className="w-11 border-l border-gray-600/40 rounded-r-full disabled:cursor-not-allowed disabled:bg-gray-600/10 "
-        disabled={collateralPreferences.full}
+        disabled={multiplier >= 99.99 || collateralPreferences.full}
         onClick={handleMultiplierChange("add")}
       >
         <Plus className="w-4 h-4 mx-auto" />
