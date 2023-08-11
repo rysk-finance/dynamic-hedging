@@ -3,6 +3,7 @@ import type { ChangeEvent } from "react";
 import { useEffect, useState } from "react";
 import { useDebounce } from "use-debounce";
 
+import { Close, Minus, Plus } from "src/Icons";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
 
@@ -55,28 +56,35 @@ export const Multiplier = () => {
   return (
     <div className="flex h-11 bg-white border border-gray-600 w-fit rounded-full">
       <button
-        className="py-2.5 px-4 w-11 border-r border-gray-600/40 rounded-l-full disabled:cursor-not-allowed disabled:bg-gray-600/10"
+        className="w-11 border-r border-gray-600/40 rounded-l-full disabled:cursor-not-allowed disabled:bg-gray-600/10"
         disabled={multiplier <= 1.1 || collateralPreferences.full}
         onClick={handleMultiplierChange("sub")}
       >
-        {`-`}
+        <Minus className="w-4 h-4 mx-auto" />
       </button>
-      <input
-        className="text-center py-2.5 px-2 w-16 number-input-hide-arrows disabled:cursor-not-allowed"
-        disabled={collateralPreferences.full}
-        inputMode="numeric"
-        onBlur={handleInputBlur}
-        onChange={handleInputChange}
-        step={0.1}
-        type="number"
-        value={multiplier}
-      />
+      <span className="relative flex h-full">
+        <input
+          className="w-16 h-full px-2 number-input-hide-arrows disabled:cursor-not-allowed font-dm-mono"
+          disabled={collateralPreferences.full}
+          inputMode="numeric"
+          onBlur={handleInputBlur}
+          onChange={handleInputChange}
+          step={0.1}
+          type="number"
+          value={multiplier}
+        />
+        <Close
+          className={`absolute ${
+            multiplier % 1 ? "right-1" : "right-6"
+          } top-[0.9rem] h-4 w-4 pointer-events-none`}
+        />
+      </span>
       <button
-        className="py-2.5 px-4 w-11 border-l border-gray-600/40 rounded-r-full disabled:cursor-not-allowed disabled:bg-gray-600/10 "
+        className="w-11 border-l border-gray-600/40 rounded-r-full disabled:cursor-not-allowed disabled:bg-gray-600/10 "
         disabled={collateralPreferences.full}
         onClick={handleMultiplierChange("add")}
       >
-        {`+`}
+        <Plus className="w-4 h-4 mx-auto" />
       </button>
     </div>
   );
