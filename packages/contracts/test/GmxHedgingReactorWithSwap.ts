@@ -1374,8 +1374,7 @@ describe("price moves between submitting and executing orders", async () => {
 			[true]
 		)
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("200000", 8))
-
-		await liquidityPool.rebalancePortfolioDelta(delta, 0)
+		await liquidityPool.rebalancePortfolioDelta(delta.mul(999999).div(1000000), 0)
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("199998", 8))
 
 		await executeDecreasePosition()
@@ -1461,7 +1460,7 @@ describe("price moves between submitting and executing orders", async () => {
 		const delta = 2
 		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta / 2}`), 0)
 		await executeDecreasePosition()
-		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta / 2}`), 0)
+		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${(delta * 10000) / 20001}`), 0)
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("1594", 8))
 
 		await executeDecreasePosition()
@@ -1569,7 +1568,7 @@ describe("price moves between submitting and executing orders", async () => {
 		const delta = 2
 		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta / 2}`), 0)
 		await executeDecreasePosition()
-		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta / 2}`), 0)
+		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${(delta * 10000) / 20001}`), 0)
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("1606", 8))
 
 		await executeDecreasePosition()
@@ -1664,7 +1663,7 @@ describe("price moves between submitting and executing orders", async () => {
 			utils.formatUnits(await usdcNative.balanceOf(liquidityPool.address), 6)
 		)
 
-		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta}`), 0)
+		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${(delta * 99999) / 100000}`), 0)
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("1805", 8))
 
 		await executeDecreasePosition()
@@ -1759,7 +1758,7 @@ describe("price moves between submitting and executing orders", async () => {
 			utils.formatUnits(await usdcNative.balanceOf(liquidityPool.address), 6)
 		)
 
-		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta}`), 0)
+		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${(delta * 99999) / 100000}`), 0)
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("1795", 8))
 
 		await executeDecreasePosition()
