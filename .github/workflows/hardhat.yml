@@ -1,0 +1,47 @@
+name: Hardhat
+
+on:
+  pull_request:
+    paths:
+      - "packages/contracts/**/*.sol"
+      - "package.json"
+      - "packages/contracts/hardhat.config.ts"
+      - ".github/workflows/hardhat.yml"
+
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: ./packages/contracts
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      ALCHEMY: ${{ secrets.ALCHEMY }}
+      TEST_MNEMONIC: ${{ secrets.TEST_MNEMONIC }}
+      ARBITRUM: ${{ secrets.ARBITRUM }}
+      ARBITRUM_GOERLI: ${{ secrets.ARBITRUM_GOERLI }}
+
+    steps:
+      - name: Cancel old runs
+        uses: styfle/cancel-workflow-action@0.9.1
+        with:
+          access_token: ${{ github.token }}
+
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18.15
+          cache: "yarn"
+
+      - name: Install modules
+        run: yarn
+
+      - name: Compile
+        run: yarn workspace contracts compile:ci
+
+      - name: Test
+        run: yarn workspace contracts test ./test/*.ts
