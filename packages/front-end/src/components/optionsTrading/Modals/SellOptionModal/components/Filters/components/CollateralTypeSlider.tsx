@@ -28,7 +28,7 @@ export const CollateralTypeSlider = () => {
 
   return (
     <RyskTooltip
-      content="Click to change the asset you wish to use to collateralize your position."
+      content="Click to change the asset you wish to use to collateralise your position."
       disabled={!tutorialMode}
       placement="top"
     >

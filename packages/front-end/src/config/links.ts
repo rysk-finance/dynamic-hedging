@@ -11,3 +11,5 @@ export const OPTIONS_101 =
 export const IV_ARTICLE = "https://www.investopedia.com/terms/i/iv.asp";
 export const DHV_ARTICLE =
   "https://blog.rysk.finance/looking-under-the-hood-of-rysks-dynamic-hedging-vault-e059e1b87e41";
+export const COLLATERAL_DOCS =
+  "https://docs.rysk.finance/quant/collateralisation";

@@ -4,13 +4,18 @@ import { useEffect, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 
 import { Close, Minus, Plus } from "src/Icons";
+import { RyskTooltip } from "src/components/shared/RyskToolTip";
+import { COLLATERAL_DOCS } from "src/config/links";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
 
 export const Multiplier = () => {
   const {
     dispatch,
-    state: { collateralPreferences },
+    state: {
+      collateralPreferences,
+      userTradingPreferences: { tutorialMode },
+    },
   } = useGlobalContext();
 
   const [multiplier, setMultiplier] = useState(collateralPreferences.amount);
@@ -68,37 +73,55 @@ export const Multiplier = () => {
   }, [multiplier]);
 
   return (
-    <div className="flex h-11 bg-white border border-gray-600 w-fit rounded-full">
-      <button
-        className="w-11 border-r border-gray-600/40 rounded-l-full disabled:cursor-not-allowed disabled:bg-gray-600/10"
-        disabled={multiplier <= 1.1 || collateralPreferences.full}
-        onClick={handleMultiplierChange("sub")}
-      >
-        <Minus className="w-4 h-4 mx-auto" />
-      </button>
-      <span className="relative flex h-full">
-        <input
-          className="text-center w-20 h-full pr-2 number-input-hide-arrows disabled:cursor-not-allowed font-dm-mono"
-          disabled={collateralPreferences.full}
-          inputMode="numeric"
-          onBlur={handleInputBlur}
-          onChange={handleInputChange}
-          step={0.1}
-          type="number"
-          value={multiplier}
-        />
-        <Close
-          className={`absolute top-[0.9rem] h-4 w-4 pointer-events-none`}
-          style={{ left: iconLeft }}
-        />
-      </span>
-      <button
-        className="w-11 border-l border-gray-600/40 rounded-r-full disabled:cursor-not-allowed disabled:bg-gray-600/10 "
-        disabled={multiplier >= 99.99 || collateralPreferences.full}
-        onClick={handleMultiplierChange("add")}
-      >
-        <Plus className="w-4 h-4 mx-auto" />
-      </button>
-    </div>
+    <RyskTooltip
+      content={
+        <div>
+          {`Use this input and the plus/minus buttons to set your base collateral multiplier. This is the amount of collateral you wish to provide on top of the minimum requirement. The number must be between 1.1 and 99.99x. `}
+          <a
+            className="text-cyan-dark-compliant underline"
+            href={COLLATERAL_DOCS}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            {`Learn more about Rysk collateralisation.`}
+          </a>
+        </div>
+      }
+      disabled={!tutorialMode}
+      placement="right"
+    >
+      <div className="flex h-11 bg-white border border-gray-600 w-fit rounded-full">
+        <button
+          className="w-11 border-r border-gray-600/40 rounded-l-full disabled:cursor-not-allowed disabled:bg-gray-600/10"
+          disabled={multiplier <= 1.1 || collateralPreferences.full}
+          onClick={handleMultiplierChange("sub")}
+        >
+          <Minus className="w-4 h-4 mx-auto" />
+        </button>
+        <span className="relative flex h-full">
+          <input
+            className="text-center w-20 h-full pr-2 number-input-hide-arrows disabled:cursor-not-allowed font-dm-mono"
+            disabled={collateralPreferences.full}
+            inputMode="numeric"
+            onBlur={handleInputBlur}
+            onChange={handleInputChange}
+            step={0.1}
+            type="number"
+            value={multiplier}
+          />
+          <Close
+            className={`absolute top-[0.9rem] h-4 w-4 pointer-events-none`}
+            style={{ left: iconLeft }}
+          />
+        </span>
+        <button
+          className="w-11 border-l border-gray-600/40 rounded-r-full disabled:cursor-not-allowed disabled:bg-gray-600/10 "
+          disabled={multiplier >= 99.99 || collateralPreferences.full}
+          onClick={handleMultiplierChange("add")}
+        >
+          <Plus className="w-4 h-4 mx-auto" />
+        </button>
+      </div>
+    </RyskTooltip>
   );
 };

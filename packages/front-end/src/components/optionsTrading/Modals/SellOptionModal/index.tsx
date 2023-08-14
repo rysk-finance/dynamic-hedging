@@ -191,7 +191,7 @@ export const SellOptionModal = () => {
       </Wrapper>
 
       <Disclaimer>
-        {`You are about to make a trade using your balance to collateralize the options and receive a USDC premium for the trade. Please ensure this is what you want because the action is irreversible.`}
+        {`You are about to make a trade using your balance to collateralise the options and receive a USDC premium for the trade. Please ensure this is what you want because the action is irreversible.`}
       </Disclaimer>
     </Modal>
   );

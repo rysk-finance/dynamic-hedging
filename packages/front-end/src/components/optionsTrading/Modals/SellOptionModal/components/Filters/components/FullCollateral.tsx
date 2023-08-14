@@ -2,13 +2,18 @@ import type { ChangeEvent } from "react";
 
 import { useEffect } from "react";
 
+import { RyskTooltip } from "src/components/shared/RyskToolTip";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
 
 export const FullCollateral = () => {
   const {
     dispatch,
-    state: { collateralPreferences, selectedOption },
+    state: {
+      collateralPreferences,
+      selectedOption,
+      userTradingPreferences: { tutorialMode },
+    },
   } = useGlobalContext();
 
   const fullCollateralRequired =
@@ -40,22 +45,28 @@ export const FullCollateral = () => {
   };
 
   return (
-    <label
-      className={`w-fit flex items-center justify-start select-none ${
-        fullCollateralRequired
-          ? "cursor-pointer"
-          : "cursor-not-allowed opacity-50"
-      }`}
+    <RyskTooltip
+      content="Fully collateralise your position with one click."
+      disabled={!tutorialMode || !fullCollateralRequired}
+      placement="right"
     >
-      {"Fully collateralised"}
-      <input
-        className="w-4 h-4 cursor-pointer ml-2 accent-bone-dark hover:accent-bone-light disabled:cursor-not-allowed"
-        disabled={!fullCollateralRequired}
-        name="full-collateral"
-        type="checkbox"
-        checked={collateralPreferences.full}
-        onChange={handleCheckboxChange}
-      />
-    </label>
+      <label
+        className={`w-fit flex items-center justify-start select-none ${
+          fullCollateralRequired
+            ? "cursor-pointer"
+            : "cursor-not-allowed opacity-50"
+        }`}
+      >
+        {"Fully collateralised"}
+        <input
+          className="w-4 h-4 cursor-pointer ml-2 accent-bone-dark hover:accent-bone-light disabled:cursor-not-allowed"
+          disabled={!fullCollateralRequired}
+          name="full-collateral"
+          type="checkbox"
+          checked={collateralPreferences.full}
+          onChange={handleCheckboxChange}
+        />
+      </label>
+    </RyskTooltip>
   );
 };
