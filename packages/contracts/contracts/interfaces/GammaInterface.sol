@@ -133,8 +133,9 @@ interface IController {
 		// amount of oTokens that is to be redeemed
 		uint256 amount;
 	}
+
 	function setOperator(address _operator, bool _isOperator) external;
-	
+
 	function getPayout(address _otoken, uint256 _amount) external view returns (uint256);
 
 	function operate(ActionArgs[] calldata _actions) external;
@@ -143,31 +144,21 @@ interface IController {
 
 	function oracle() external view returns (address);
 
-	function getVault(address _owner, uint256 _vaultId)
-		external
-		view
-		returns (GammaTypes.Vault memory);
+	function getVault(
+		address _owner,
+		uint256 _vaultId
+	) external view returns (GammaTypes.Vault memory);
 
 	function getProceed(address _owner, uint256 _vaultId) external view returns (uint256);
 
 	function isOperator(address _owner, address _operator) external view returns (bool);
-	
-	function isSettlementAllowed(
-		address _underlying,
-		address _strike,
-		address _collateral,
-		uint256 _expiry
-	) external view returns (bool);
+
+	function isSettlementAllowed(address _oToken) external view returns (bool);
 
 	function clearVaultLiquidationDetails(uint256 _vaultId) external;
 
-	function getVaultLiquidationDetails(address _owner, uint256 _vaultId)
-		external
-		view
-		returns (
-			address,
-			uint256,
-			uint256
-		);
-	
+	function getVaultLiquidationDetails(
+		address _owner,
+		uint256 _vaultId
+	) external view returns (address, uint256, uint256);
 }

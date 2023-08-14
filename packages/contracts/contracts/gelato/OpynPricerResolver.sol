@@ -10,16 +10,15 @@ contract OpynPricerResolver {
 	uint256 constant expiryHour = 8;
 	uint256 constant secondsPerHour = 3600;
 	uint256 constant secondsPerDay = secondsPerHour * 24;
-	address constant pricerAsset = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2; // WETH address mainnet
+	// address constant pricerAsset = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1; // WETH address arbitrum mainnet
 	// address constant chainlinkPriceFeedAddress = 0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612; // ETH/USD on arbitrum
+	address constant pricerAsset = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2; // WETH address etherum mainnet
 	address constant chainlinkPriceFeedAddress = 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419; // ETH/USD on ethereum mainnet
-
 	IChainlinkPricer chainlinkPricer;
 	IAddressBook addressBook;
 	AggregatorInterface priceFeed = AggregatorInterface(chainlinkPriceFeedAddress);
 
-	constructor(address _chainlinkPricer, address _addressBook) public {
-		chainlinkPricer = IChainlinkPricer(_chainlinkPricer);
+	constructor(address _addressBook) {
 		addressBook = IAddressBook(_addressBook);
 	}
 
@@ -50,8 +49,8 @@ contract OpynPricerResolver {
 		if (expiryPrice != 0 || !isLockingPeriodOver) {
 			return (false, bytes("Price already set"));
 		}
-
 		uint256 priceRoundId = priceFeed.latestRound();
+
 		uint256 priceRoundTimestamp = priceFeed.getTimestamp(priceRoundId);
 		// check if latest chainlink round timestamp is greater than otoken expiry timestamp
 		if (priceRoundTimestamp < expiryTimestamp) {

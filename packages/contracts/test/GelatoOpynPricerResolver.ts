@@ -114,7 +114,9 @@ describe("Gelato option registry tests", function () {
 		// deploy libraries
 		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
 		interactions = (await interactionsFactory.deploy()) as OpynInteractions
-		const computeFactory = await hre.ethers.getContractFactory("contracts/libraries/OptionsCompute.sol:OptionsCompute")
+		const computeFactory = await hre.ethers.getContractFactory(
+			"contracts/libraries/OptionsCompute.sol:OptionsCompute"
+		)
 		const compute = await computeFactory.deploy()
 		// deploy options registry
 		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
@@ -160,10 +162,7 @@ describe("Gelato option registry tests", function () {
 	})
 	it("deploys the Gelato Resolver and returns false due to incorrect time", async () => {
 		const resolverFactory = await ethers.getContractFactory("OpynPricerResolver")
-		resolver = (await resolverFactory.deploy(
-			CHAINLINK_WETH_PRICER[chainId],
-			addressBook.address
-		)) as OpynPricerResolver
+		resolver = (await resolverFactory.deploy(addressBook.address)) as OpynPricerResolver
 
 		const blockNum = await ethers.provider.getBlockNumber()
 		const timestamp = (await ethers.provider.getBlock(blockNum)).timestamp
@@ -188,7 +187,6 @@ describe("Gelato option registry tests", function () {
 		const checkerResult = await resolver.checker()
 		const decodedResult = hexToUtf8(checkerResult.execPayload)
 		expect(decodedResult).to.eq("latest chainlink price before expiry")
-
 	})
 	it("re-forks network at between 8am and 9am", async () => {
 		// fork network shortly after 8am when a price will have been set already
@@ -213,10 +211,7 @@ describe("Gelato option registry tests", function () {
 	})
 	it("deploys the Gelato Resolver and returns true when time is correct and price has not been set already", async () => {
 		const resolverFactory = await ethers.getContractFactory("OpynPricerResolver")
-		resolver = (await resolverFactory.deploy(
-			CHAINLINK_WETH_PRICER[chainId],
-			addressBook.address
-		)) as OpynPricerResolver
+		resolver = (await resolverFactory.deploy(addressBook.address)) as OpynPricerResolver
 
 		const checkerResult = await resolver.checker()
 		expect(checkerResult.canExec).to.eq(true)
@@ -230,7 +225,7 @@ describe("Gelato option registry tests", function () {
 		})
 
 		const oracleSigner = await ethers.getSigner(oracleOwner)
-		await oracle.connect(oracleSigner).setAssetPricer(weth.address, signers[0].getAddress())
+		await oracle.connect(oracleSigner).setAssetPricer(weth.address, await signers[0].getAddress())
 		// manually set price for this expiry timestamp before calling resovler
 		await oracle.setExpiryPrice(weth.address, 1646035200, utils.parseUnits("3000", 6))
 
