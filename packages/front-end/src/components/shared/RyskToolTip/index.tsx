@@ -32,7 +32,7 @@ export const RyskTooltip = ({
     >
       {children ? (
         cloneElement(children, {
-          class: `${children.props.className} ${
+          className: `${children.props.className} ${
             disabled ? "cursor-default" : "cursor-help"
           }`,
         })

@@ -73,7 +73,7 @@ export const Preferences = () => {
               </button>
             </span>
 
-            <ul className="w-3/5 mx-auto py-4">
+            <ul className="w-4/5 xl:w-3/5 mx-auto py-4">
               {preferencesList.map(
                 ({ explainer, isActive, label, preferencesKey }) => (
                   <li

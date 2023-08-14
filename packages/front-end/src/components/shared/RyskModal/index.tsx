@@ -2,7 +2,7 @@ import type { MouseEvent } from "react";
 
 import type { RyskModalProps } from "./types";
 
-import { motion } from "framer-motion";
+import { motion, LayoutGroup } from "framer-motion";
 import { useEffect, useRef } from "react";
 
 import FadeInOut from "src/animation/FadeInOut";
@@ -45,16 +45,19 @@ export const RyskModal = ({ children, lightBoxClickFn }: RyskModalProps) => {
       title="Click to close the modal."
       {...FadeInOut(0.1)}
     >
-      <motion.div
-        aria-modal="true"
-        className="flex flex-col col-span-8 col-start-3 lg:col-span-6 lg:col-start-4 my-auto border-black border-2 rounded-lg bg-bone-light bg-[url('./assets/white-ascii-50.png')] bg-center overflow-y-auto overflow-x-hidden cursor-default max-h-[90%] rysk-scrollbar"
-        onClick={handleModalClick}
-        ref={modalRef}
-        title=""
-        {...FadeInUpDelayed(0.3)}
-      >
-        {children}
-      </motion.div>
+      <LayoutGroup>
+        <motion.div
+          aria-modal="true"
+          className="flex flex-col col-span-8 col-start-3 lg:col-span-6 lg:col-start-4 my-auto border-black border-2 rounded-lg bg-bone-light bg-[url('./assets/white-ascii-50.png')] bg-center overflow-y-auto overflow-x-hidden cursor-default max-h-[90%] rysk-scrollbar"
+          layout="position"
+          onClick={handleModalClick}
+          ref={modalRef}
+          title=""
+          {...FadeInUpDelayed(0.3)}
+        >
+          {children}
+        </motion.div>
+      </LayoutGroup>
     </motion.div>
   );
 };

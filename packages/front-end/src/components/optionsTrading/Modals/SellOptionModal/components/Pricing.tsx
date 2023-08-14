@@ -11,7 +11,7 @@ import { useGlobalContext } from "src/state/GlobalContext";
 export const Pricing = ({ loading, positionData }: PricingProps) => {
   const {
     state: {
-      collateralPreferences: { full, type },
+      collateralPreferences: { amount, full, type },
       options: {
         liquidityPool: { utilisationHigh },
       },
@@ -49,6 +49,9 @@ export const Pricing = ({ loading, positionData }: PricingProps) => {
       (collateralType === "WETH" && remainingBalanceWETH <= 0);
 
     switch (true) {
+      case !full && amount < 1.1:
+        return "Collateral multiplier must be at least 1.1x.";
+
       case negativeBalance && Boolean(quote):
         return "Final balance cannot be negative.";
 
@@ -64,7 +67,7 @@ export const Pricing = ({ loading, positionData }: PricingProps) => {
   }, [collateralType, positionData]);
 
   return (
-    <div className="w-3/5 mx-auto pt-2 pb-4">
+    <div className="w-4/5 xl:w-3/5 mx-auto pt-2 pb-4">
       <span className="flex">
         <p className="mr-auto">{`Collateral required:`}</p>
 
