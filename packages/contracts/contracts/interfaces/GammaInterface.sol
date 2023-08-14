@@ -42,6 +42,10 @@ interface IOtoken {
 	function expiryTimestamp() external view returns (uint256);
 
 	function isPut() external view returns (bool);
+
+	function name() external view returns (string memory);
+
+	function symbol() external view returns (string memory);
 }
 
 interface IOtokenFactory {
