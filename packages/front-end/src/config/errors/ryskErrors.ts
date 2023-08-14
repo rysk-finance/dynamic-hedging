@@ -60,6 +60,7 @@ export const RYSK_SIGHASH_ERRORS = {
   "0xaf4e51c7": "Insufficient share balance.",
   "0xe3c0287b": "No existing withdrawal.",
   "0x7be9badb": "Total supply reached.",
+  "0x9d3b9e01": "Collateral asset invalid.",
 } as { [key: HexString]: string };
 
 export const RYSK_SIGHASH_NO_SUPPORT_ERRORS = {
