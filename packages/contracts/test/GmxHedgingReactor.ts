@@ -1284,7 +1284,7 @@ describe("price moves between submitting and executing orders", async () => {
 		)
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("200000", 8))
 
-		await liquidityPool.rebalancePortfolioDelta(delta.mul(999999).div(1000000), 2)
+		await liquidityPool.rebalancePortfolioDelta(delta.mul(9999999).div(10000000), 2)
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("199998", 8))
 
 		await executeDecreasePosition()
