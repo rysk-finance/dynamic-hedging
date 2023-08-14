@@ -76,7 +76,7 @@ export const Multiplier = () => {
     <RyskTooltip
       content={
         <div>
-          {`Use this input and the plus/minus buttons to set your base collateral multiplier. This is the amount of collateral you wish to provide on top of the minimum requirement. The number must be between 1.1 and 99.99x. `}
+          {`Set how much collateral to deposit by using the +/- buttons or this input. The value represents a multiplier of the minimum required collateral. The number must be between 1.1 and 99.99x. `}
           <a
             className="text-cyan-dark-compliant underline"
             href={COLLATERAL_DOCS}

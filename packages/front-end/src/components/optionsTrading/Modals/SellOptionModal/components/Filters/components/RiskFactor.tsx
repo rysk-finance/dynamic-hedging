@@ -40,7 +40,7 @@ export const RiskFactor = () => {
 
   return (
     <RyskTooltip
-      content="Quickly visualise the risk factor of your position. To decrease risk, try increasing the multiplier."
+      content="Your risk factor decreases when your collateral amount increases."
       disabled={!tutorialMode}
       placement="top"
     >
