@@ -3,7 +3,6 @@ pragma solidity >=0.8.9;
 
 import "../interfaces/IAlphaPortfolioValuesFeed.sol";
 import "./DeltaSettlerMulticall.sol";
-import "hardhat/console.sol";
 
 contract DeltaSettlerResolver {
 	uint256 constant expiryHour = 8;
@@ -20,7 +19,6 @@ contract DeltaSettlerResolver {
 
 	function checker() external view returns (bool canExec, bytes memory execPayload) {
 		uint256 currentTimestamp = block.timestamp;
-		console.log("current timestamp", currentTimestamp);
 		// if current time is not between 8 and 9am, do not execute.
 		if (
 			currentTimestamp % secondsPerDay < secondsPerHour * expiryHour ||
@@ -30,11 +28,9 @@ contract DeltaSettlerResolver {
 		}
 
 		address[] memory series = pvFeed.getAddressSet();
-		console.log("length:", series.length);
 		(address[] memory vaultsToSettle, bool needsToExecute) = deltaSettlerMulticall
 			.checkVaultsToSettle(series);
 		if (needsToExecute) {
-			console.log("vaults to settle length:", vaultsToSettle.length);
 			return (
 				true,
 				abi.encodeWithSelector(DeltaSettlerMulticall.settleVaults.selector, (vaultsToSettle))

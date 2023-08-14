@@ -4,7 +4,6 @@ pragma solidity >=0.8.9;
 import "../../contracts/LiquidityPool.sol";
 import { GammaTypes, IController } from "../interfaces/GammaInterface.sol";
 import "../OptionRegistry.sol";
-import "hardhat/console.sol";
 
 contract DeltaSettlerMulticall {
 	address public executorAddress;
@@ -47,18 +46,11 @@ contract DeltaSettlerMulticall {
 		bool needsToExecute = false;
 
 		for (i; i < length; i++) {
-			console.log(seriesAddresses[i]);
 			uint vaultId = optionRegistry.vaultIds(seriesAddresses[i]);
-			console.log("vault id", vaultId);
 			GammaTypes.Vault memory vault = controller.getVault(optionRegistryAddress, vaultId);
 			if (vault.shortAmounts.length == 0) {
 				continue;
 			}
-			console.log(
-				"is settle allowed:",
-				controller.isSettlementAllowed(seriesAddresses[i]),
-				vault.shortAmounts[0]
-			);
 			if ((controller.isSettlementAllowed(seriesAddresses[i])) && vault.shortAmounts[0] > 0) {
 				vaultsToSettle[i] = seriesAddresses[i];
 				needsToExecute = true;
