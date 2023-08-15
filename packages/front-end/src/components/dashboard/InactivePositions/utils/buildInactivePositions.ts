@@ -29,22 +29,27 @@ export const buildInactivePositions = (
         settleActions,
         symbol,
         totalPremium,
+        totalPremiumBought,
+        totalPremiumSold,
         netAmount,
         liquidateActions,
       }) => {
         const [, ...series] = symbol.split("-");
         const isShort = Boolean(collateralAsset && "symbol" in collateralAsset);
         const amount = fromWeiToInt(buyAmount || sellAmount || netAmount);
-        const liquidated = liquidateActions && liquidateActions.length;
-        const redeemed = redeemActions && redeemActions.length;
-        const settled = settleActions && settleActions.length;
+        const entryPremium = isShort ? totalPremiumSold : totalPremiumBought;
+        const closePremium = isShort ? totalPremiumBought : totalPremiumSold;
+        const liquidated = Boolean(liquidateActions && liquidateActions.length);
+        const redeemed = Boolean(redeemActions && redeemActions.length);
+        const settled = Boolean(settleActions && settleActions.length);
         const oraclePrice =
-          liquidated || redeemed || settled
+          liquidated || (!redeemed && !settled)
             ? 0
             : truncate(wethOracleHashMap[expiryTimestamp] || 0);
 
         return {
-          entry: Math.abs(truncate(totalPremium / amount)),
+          close: Math.abs(truncate(closePremium / amount)),
+          entry: Math.abs(truncate(entryPremium / amount)),
           id: `${id}-${totalPremium}`,
           isShort,
           oraclePrice,
