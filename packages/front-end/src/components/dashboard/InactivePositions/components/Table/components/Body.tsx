@@ -30,7 +30,16 @@ export const Body = () => {
         >
           {inactivePositions.map(
             (
-              { entry, id, isShort, oraclePrice, profitLoss, series, size },
+              {
+                close,
+                entry,
+                id,
+                isShort,
+                oraclePrice,
+                profitLoss,
+                series,
+                size,
+              },
               index
             ) => {
               const dynamicSeriesClasses = isShort
@@ -45,7 +54,7 @@ export const Body = () => {
 
               return (
                 <motion.tr
-                  className="h-11 grid grid-cols-5 items-center text-center capitalize [&_td]:border-l-2 first:[&_td]:border-0 [&_td]:border-gray-500 [&_td]:border-dashed [&_td]:py-2.5 [&_td]:text-2xs [&_td]:xl:text-sm [&_td]:h-full [&_td]:flex [&_td]:items-center [&_td]:justify-center"
+                  className="h-11 grid grid-cols-6 items-center text-center capitalize [&_td]:border-l-2 first:[&_td]:border-0 [&_td]:border-gray-500 [&_td]:border-dashed [&_td]:py-2.5 [&_td]:text-2xs [&_td]:xl:text-sm [&_td]:h-full [&_td]:flex [&_td]:items-center [&_td]:justify-center"
                   key={id}
                   layout="position"
                   {...FadeInUpDelayed(Math.min(index * 0.1, 2))}
@@ -69,6 +78,12 @@ export const Body = () => {
                   <td className="font-dm-mono">
                     {<RyskCountUp value={size} />}
                   </td>
+                  <td className="font-dm-mono">
+                    <RyskCountUp value={entry} />
+                  </td>
+                  <td className="font-dm-mono">
+                    <RyskCountUp value={close} />
+                  </td>
                   <td className={`font-dm-mono ${dynamicPnLClasses}`}>
                     {profitLoss !== undefined ? (
                       <RyskCountUp value={profitLoss} />
@@ -77,10 +92,7 @@ export const Body = () => {
                     )}
                   </td>
                   <td className="font-dm-mono">
-                    <RyskCountUp value={entry} />
-                  </td>
-                  <td className="font-dm-mono">
-                    <RyskCountUp value={oraclePrice} />
+                    {close ? `N/A` : <RyskCountUp value={oraclePrice} />}
                   </td>
                 </motion.tr>
               );
