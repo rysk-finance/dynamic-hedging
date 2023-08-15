@@ -27,6 +27,8 @@ export interface UserPositionToken extends PositionOToken {
   id: HexString;
   netAmount: BigNumberish;
   totalPremium: number;
+  totalPremiumBought: number;
+  totalPremiumSold: number;
   liquidateActions?: LiquidateActions[];
   realizedPnl: BigNumberish;
   redeemActions?: RedeemActions[];
@@ -153,6 +155,7 @@ export interface ActivePositions {
 }
 
 export interface InactivePositions {
+  close: number;
   entry: number;
   id: string;
   isShort: boolean;

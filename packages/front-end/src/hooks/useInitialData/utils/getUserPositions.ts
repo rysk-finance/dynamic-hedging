@@ -1,7 +1,7 @@
 import type { UserPositions } from "src/state/types";
 import type { OptionsTransaction, Position } from "../types";
 
-import { tFormatUSDC } from "src/utils/conversion-helper";
+import { tFormatUSDC, truncate } from "src/utils/conversion-helper";
 
 export const getUserPositions = (positions: Position[]): UserPositions => {
   return positions.reduce(
@@ -32,10 +32,12 @@ export const getUserPositions = (positions: Position[]): UserPositions => {
         plusFee: boolean
       ) => {
         return transactions.reduce((acc, { fee, premium }) => {
+          const formattedFee = tFormatUSDC(fee);
+          const formattedPremium = tFormatUSDC(premium);
           const paid = plusFee
-            ? Number(premium) + Number(fee)
-            : Number(premium) - Number(fee);
-          const total = tFormatUSDC(paid, 2) + acc;
+            ? formattedPremium + formattedFee
+            : formattedPremium - formattedFee;
+          const total = truncate(paid) + acc;
 
           return total;
         }, 0);
@@ -57,6 +59,8 @@ export const getUserPositions = (positions: Position[]): UserPositions => {
         sellAmount,
         settleActions,
         totalPremium,
+        totalPremiumBought,
+        totalPremiumSold,
         vault,
       };
 
