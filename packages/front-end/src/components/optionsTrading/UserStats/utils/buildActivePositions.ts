@@ -142,15 +142,18 @@ export const buildActivePositions = async (
   return positions.map(
     (
       {
+        buyAmount,
         collateralAsset,
-        netAmount,
+        expiryTimestamp,
         id,
         isPut,
-        strikePrice,
-        expiryTimestamp,
+        netAmount,
         realizedPnl,
+        sellAmount,
+        strikePrice,
         symbol,
-        totalPremium,
+        totalPremiumBought,
+        totalPremiumSold,
         vault,
       },
       index
@@ -159,8 +162,9 @@ export const buildActivePositions = async (
       const isOpen = parseInt(expiryTimestamp) > nowToUnix;
       const isShort = Boolean(collateralAsset && "symbol" in collateralAsset);
       const amount = fromWeiToInt(netAmount);
-      const absAmount = Math.abs(amount);
-      const entry = totalPremium / amount;
+      const entry = isShort
+        ? totalPremiumSold / fromWeiToInt(sellAmount || 0)
+        : totalPremiumBought / fromWeiToInt(buyAmount || 0);
       const side = isPut ? "put" : "call";
       const strike = fromOpynToNumber(strikePrice);
       const chainSideData = chainData[expiryTimestamp]?.[strike][side];
