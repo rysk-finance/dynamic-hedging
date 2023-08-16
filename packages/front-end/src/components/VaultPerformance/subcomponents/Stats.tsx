@@ -11,11 +11,11 @@ export const Stats = ({ chartData }: { chartData: ChartData[] }) => {
   if (!chartData.length) return null;
 
   const firstEpoch = chartData[0];
-  const latestEpoch = chartData[chartData.length - 1];
+  const latestEpoch = chartData[chartData.length - 2];
   const totalEpochTime =
     parseInt(latestEpoch.timestamp) - parseInt(firstEpoch.timestamp);
 
-  const historical = latestEpoch?.growthSinceFirstEpoch;
+  const historical = latestEpoch.growthSinceFirstEpoch;
   const annualised = toTwoDecimalPlaces(
     (Math.pow(1 + historical / 100, SECONDS_IN_YEAR / totalEpochTime) - 1) * 100
   );

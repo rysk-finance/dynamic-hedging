@@ -1,6 +1,7 @@
 interface PricePerShareEpoch {
   epoch: string;
   growthSinceFirstEpoch: string;
+  predictedGrowthSinceFirstEpoch?: string;
   timestamp: string;
   __typename: string;
 }
@@ -10,20 +11,34 @@ export interface QueryData {
 }
 
 export interface ChartData
-  extends Omit<PricePerShareEpoch, "growthSinceFirstEpoch"> {
+  extends Omit<
+    PricePerShareEpoch,
+    "growthSinceFirstEpoch" | "predictedGrowthSinceFirstEpoch"
+  > {
   growthSinceFirstEpoch: number;
+  predictedGrowthSinceFirstEpoch: number | null;
 }
 
 export interface CustomTooltipProps {
   active?: boolean;
   payload?: [
     {
-      value: string;
-      payload: { epoch: string };
+      payload: {
+        epoch: string;
+      };
+      value: number;
     },
     {
-      value: string;
-      payload: { epoch: string };
+      value: number;
+    },
+    {
+      payload: {
+        epoch: string;
+      };
+      value: number;
+    },
+    {
+      value: number;
     },
   ];
   label?: string;
