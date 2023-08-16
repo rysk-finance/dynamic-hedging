@@ -3,6 +3,7 @@ import type { CollateralDataState } from "../types";
 
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
+import { useDebounce } from "use-debounce";
 import { useAccount } from "wagmi";
 
 import { getLiquidationPrices } from "src/components/shared/utils/getLiquidationPrice";
@@ -55,6 +56,7 @@ export const useCollateralData = (
   });
 
   const [loading, setLoading] = useState(false);
+  const [debouncedLoading] = useDebounce(loading, 300);
 
   // Get user position collateral data.
   useEffect(() => {
@@ -170,5 +172,11 @@ export const useCollateralData = (
     user: address,
   };
 
-  return [addresses, allowance, setAllowance, collateralData, loading] as const;
+  return [
+    addresses,
+    allowance,
+    setAllowance,
+    collateralData,
+    debouncedLoading,
+  ] as const;
 };

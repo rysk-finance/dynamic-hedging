@@ -3,6 +3,7 @@ import type { PositionDataState } from "../types";
 
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
+import { useDebounce } from "use-debounce";
 import { useAccount } from "wagmi";
 
 import { BigNumber } from "ethers";
@@ -32,6 +33,7 @@ export const useShortPositionData = (amountToClose: string) => {
   const exchangeAddress = getContractAddress("optionExchange");
 
   const [loading, setLoading] = useState(false);
+  const [debouncedLoading] = useDebounce(loading, 300);
 
   // User position state.
   const [positionData, setPositionData] = useState<PositionDataState>({
@@ -203,6 +205,6 @@ export const useShortPositionData = (amountToClose: string) => {
     setAllowance,
     positionData,
     vaultId,
-    loading,
+    debouncedLoading,
   ] as const;
 };

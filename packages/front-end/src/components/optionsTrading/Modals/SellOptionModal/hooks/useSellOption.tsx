@@ -5,6 +5,7 @@ import { readContract } from "@wagmi/core";
 import dayjs from "dayjs";
 import { BigNumber } from "ethers";
 import { useEffect, useState } from "react";
+import { useDebounce } from "use-debounce";
 import { useAccount } from "wagmi";
 
 import { NewMarginCalculatorABI } from "src/abis/NewMarginCalculator_ABI";
@@ -21,8 +22,8 @@ import {
 } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
-import { useAllowance } from "../../Shared/hooks/useAllowance";
 import { getLiquidationPrices } from "../../../../shared/utils/getLiquidationPrice";
+import { useAllowance } from "../../Shared/hooks/useAllowance";
 
 export const useSellOption = (amountToSell: string) => {
   // Global state.
@@ -31,7 +32,7 @@ export const useSellOption = (amountToSell: string) => {
       balances,
       collateralPreferences,
       ethPrice,
-      options: { activeExpiry, data, spotShock, timesToExpiry },
+      options: { activeExpiry, spotShock, timesToExpiry },
       selectedOption,
     },
   } = useGlobalContext();
@@ -80,6 +81,7 @@ export const useSellOption = (amountToSell: string) => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [debouncedLoading] = useDebounce(loading, 300);
 
   // Get user position price data.
   useEffect(() => {
@@ -250,5 +252,11 @@ export const useSellOption = (amountToSell: string) => {
     user: address,
   };
 
-  return [addresses, allowance, setAllowance, purchaseData, loading] as const;
+  return [
+    addresses,
+    allowance,
+    setAllowance,
+    purchaseData,
+    debouncedLoading,
+  ] as const;
 };

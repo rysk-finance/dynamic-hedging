@@ -34,8 +34,8 @@ export const Toggle = ({
         </span>
         <span
           className={`absolute flex self-center justify-center text-white bg-black ${
-            isDepositing ? "left-[0.25rem]" : "left-[5.75rem]"
-          } h-10 w-24 rounded-md ease-in-out duration-200`}
+            isDepositing ? "left-1" : "left-24"
+          } h-10 w-[5.75rem] rounded-md ease-in-out duration-200`}
         />
         <span
           className={`${

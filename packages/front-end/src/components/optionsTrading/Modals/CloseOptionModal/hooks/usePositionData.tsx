@@ -4,6 +4,7 @@ import type { PositionDataState } from "../types";
 import dayjs from "dayjs";
 import { BigNumber } from "ethers";
 import { useEffect, useState } from "react";
+import { useDebounce } from "use-debounce";
 import { useAccount } from "wagmi";
 
 import { getQuotes } from "src/components/shared/utils/getQuote";
@@ -46,6 +47,7 @@ export const usePositionData = (amountToClose: string) => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [debouncedLoading] = useDebounce(loading, 300);
 
   // Get user position data.
   useEffect(() => {
@@ -122,5 +124,11 @@ export const usePositionData = (amountToClose: string) => {
     user: address,
   };
 
-  return [addresses, allowance, setAllowance, positionData, loading] as const;
+  return [
+    addresses,
+    allowance,
+    setAllowance,
+    positionData,
+    debouncedLoading,
+  ] as const;
 };

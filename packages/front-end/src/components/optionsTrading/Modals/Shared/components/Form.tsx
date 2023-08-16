@@ -3,6 +3,7 @@ import type { HTMLProps } from "react";
 import type { ButtonProps } from "src/components/shared/Button";
 
 import { AnimatePresence } from "framer-motion";
+import { useDebounce } from "use-debounce";
 
 import FadeInOutQuick from "src/animation/FadeInOutQuick";
 import { Button as ConnectButton } from "src/components/shared/Button";
@@ -33,17 +34,24 @@ export const Input = ({ ...props }: HTMLProps<HTMLInputElement>) => (
   />
 );
 
-export const Button = ({ ...props }: ButtonProps) => (
-  <AnimatePresence mode="wait">
-    <ConnectButton
-      className="w-1/3 !border-0"
-      requiresConnection
-      type="submit"
-      {...FadeInOutQuick}
-      {...props}
-    />
-  </AnimatePresence>
-);
+export const Button = ({ ...props }: ButtonProps) => {
+  const [debouncedDisabled] = useDebounce(props.disabled, 300, {
+    leading: !props.disabled,
+  });
+
+  return (
+    <AnimatePresence mode="wait">
+      <ConnectButton
+        className="w-1/3 !border-0"
+        requiresConnection
+        type="submit"
+        {...FadeInOutQuick}
+        {...props}
+        disabled={debouncedDisabled}
+      />
+    </AnimatePresence>
+  );
+};
 
 export const Checkbox = ({ ...props }: HTMLProps<HTMLInputElement>) => (
   <input

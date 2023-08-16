@@ -3,6 +3,7 @@ import type { PositionDataState } from "../types";
 
 import dayjs from "dayjs";
 import { useEffect, useState } from "react";
+import { useDebounce } from "use-debounce";
 import { useAccount } from "wagmi";
 
 import { BigNumber } from "ethers";
@@ -50,6 +51,7 @@ export const useBuyOption = (amountToBuy: string) => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [debouncedLoading] = useDebounce(loading, 300);
 
   // Get user position price data.
   useEffect(() => {
@@ -129,5 +131,11 @@ export const useBuyOption = (amountToBuy: string) => {
     user: address,
   };
 
-  return [addresses, allowance, setAllowance, purchaseData, loading] as const;
+  return [
+    addresses,
+    allowance,
+    setAllowance,
+    purchaseData,
+    debouncedLoading,
+  ] as const;
 };
