@@ -446,12 +446,14 @@ export enum OptionChainModalActions {
   ADJUST_COLLATERAL = "adjustCollateral",
   BUY = "buy",
   CLOSE_LONG = "closeLong",
+  CLOSE_SHORT = "closeShort",
+  LONG_STRADDLE = "longStraddle",
+  LONG_STRANGE = "longStrangle",
   OPERATOR = "operator",
   SELL = "sell",
-  CLOSE_SHORT = "closeShort",
 }
 
-type OptionChainModal =
+export type OptionChainModal =
   (typeof OptionChainModalActions)[keyof typeof OptionChainModalActions];
 
 export enum OptionType {
