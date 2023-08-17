@@ -104,7 +104,7 @@ export const buildActivePositions = async (
   chainData: ChainData,
   positions: UserPositionToken[] = [],
   quotes: QuoteData[],
-  ethPrice: number | null,
+  ethPrice: number,
   spotShock: SpotShock,
   timesToExpiry: TimesToExpiry,
   wethOracleHashMap: WethOracleHashMap
