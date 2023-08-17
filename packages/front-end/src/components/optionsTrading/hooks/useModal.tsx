@@ -11,6 +11,7 @@ import { ActionType, OptionChainModalActions } from "src/state/types";
  * The buy/sell modals are keyed from the `selectedOption` state variable.
  * The closing modals are keyed from the `closingOption` state variable.
  * The collateral adjustment modal is keyed from the `adjustingOption` state variable.
+ * Strategy modals are not triggered from here as they have no preset state.
  *
  * Returns a boolean value for the modal state.
  *
