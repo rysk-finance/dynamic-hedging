@@ -14,6 +14,7 @@ import { CloseOptionModal } from "./Modals/CloseOptionModal";
 import { CloseShortOptionModal } from "./Modals/CloseShortOptionModal";
 import { OperatorModal } from "./Modals/OperatorModal";
 import { SellOptionModal } from "./Modals/SellOptionModal";
+import { Strategies } from "./Strategies";
 import { UserStats } from "./UserStats";
 import { useModal } from "./hooks/useModal";
 
@@ -31,6 +32,7 @@ export const OptionsTradingContent = () => {
           <div className="relative border-2 border-black">
             <ExpiryDatePicker />
             <Filters />
+            <Strategies />
             <ActiveExpiryAlerts />
             <Chain />
           </div>
@@ -49,6 +51,14 @@ export const OptionsTradingContent = () => {
           {modalType === OptionChainModalActions.CLOSE_SHORT && (
             <CloseShortOptionModal key="close-short" />
           )}
+          {
+            modalType === OptionChainModalActions.LONG_STRADDLE && <></>
+            // Modal here.
+          }
+          {
+            modalType === OptionChainModalActions.LONG_STRANGE && <></>
+            // Modal here.
+          }
           {modalType === OptionChainModalActions.OPERATOR && (
             <OperatorModal key="operator" />
           )}
