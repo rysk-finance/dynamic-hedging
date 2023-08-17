@@ -195,7 +195,7 @@ export interface UserTradingPreferences {
 
 // Global context
 export type GlobalState = {
-  ethPrice: number | null;
+  ethPrice: number;
   eth24hChange: number;
   eth24hHigh: number | null;
   eth24hLow: number | null;

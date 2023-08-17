@@ -38,7 +38,7 @@ export const defaultTimesToExpiry = [
 ];
 
 export const defaultGlobalState: GlobalState = {
-  ethPrice: null,
+  ethPrice: 0,
   eth24hChange: 0,
   eth24hHigh: null,
   eth24hLow: null,
