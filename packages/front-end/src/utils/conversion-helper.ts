@@ -5,7 +5,9 @@ import { BIG_NUMBER_DECIMALS } from "../config/constants";
 
 export const formatEth = (x: BigNumberish) => Number(utils.formatEther(x));
 export function truncate(num: number, places: number = 3): number {
-  return Math.trunc(Math.round(num * Math.pow(10, places))) / Math.pow(10, places);
+  return (
+    Math.trunc(Math.round(num * Math.pow(10, places))) / Math.pow(10, places)
+  );
 }
 export const tFormatEth = (x: BigNumberish, places: number = 3): number =>
   truncate(formatEth(x), places);
@@ -16,7 +18,7 @@ export const MAX_BPS = BigNumber.from(10000);
 export const CALL = false;
 export const PUT = true;
 export const SECONDS_IN_DAY = 86400;
-export const SECOND_IN_THIRTY_DAYS = SECONDS_IN_DAY * 30;
+export const SECONDS_IN_SIXTY_DAYS = SECONDS_IN_DAY * 60;
 export const SECONDS_IN_YEAR = SECONDS_IN_DAY * 365.25;
 export const genOptionTime = (now: Dayjs, future: Dayjs) =>
   (future.unix() - now.unix()) / SECONDS_IN_YEAR;
