@@ -925,7 +925,7 @@ contract GmxHedgingReactorWithSwap is IHedgingReactor, AccessControl {
 		uint256 posSizeDelta = _size.mul(_positionSize).div(_isLong ? openLongDelta : openShortDelta);
 		if ((int(posSizeDelta) - int(_positionSize)).abs() < minPositionSizeUsd) {
 			// if position size delta is within minPositionSize of the exisiting position size, they can be made equal to avoid rounding errors
-			// note that this makes the assumption that $1 has negligible delta value.
+			// note that this makes the assumption that minPositionSize has negligible delta value.
 			return _positionSize;
 		}
 		return _size.mul(_positionSize).div(_isLong ? openLongDelta : openShortDelta);
