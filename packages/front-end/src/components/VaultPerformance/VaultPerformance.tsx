@@ -46,7 +46,10 @@ export const VaultPerformance = () => {
         ? parseFloat(pricePerShares[0].growthSinceFirstEpoch)
         : 0;
 
-      const adjustedChartData = pricePerShares.map((pricePoint) => {
+      // Values need replacing with API/Chain data.
+      const ethPrices = [1892.21, 1877.3, 1845.48, 1842.73, 1653.45];
+
+      const adjustedChartData = pricePerShares.map((pricePoint, index) => {
         const pricePointGrowth = parseFloat(pricePoint.growthSinceFirstEpoch);
         const growthSinceFirstEpoch = toTwoDecimalPlaces(
           pricePointGrowth - publicLaunchOffset
@@ -54,6 +57,9 @@ export const VaultPerformance = () => {
 
         return {
           ...pricePoint,
+          ethPrice: toTwoDecimalPlaces(
+            (ethPrices[index] / ethPrices[0] - 1) * 100
+          ),
           growthSinceFirstEpoch,
         };
       });
