@@ -1,3 +1,5 @@
+import { Bearish } from "./Bearish";
+import { Bullish } from "./Bullish";
 import { Change } from "./Change";
 import { ChevronUpDown } from "./ChevronUpDown";
 import { Close } from "./Close";
@@ -21,6 +23,8 @@ import { UpChevron } from "./UpChevron";
 import { WETH } from "./WETH";
 
 export {
+  Bearish,
+  Bullish,
   Change,
   ChevronUpDown,
   Close,

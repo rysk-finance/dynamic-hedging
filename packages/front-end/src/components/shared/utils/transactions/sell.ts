@@ -18,6 +18,12 @@ import {
 } from "src/enums/OpynActionType";
 import RyskActionType from "src/enums/RyskActionType";
 import { fromWeiToOpyn } from "src/utils/conversion-helper";
+import {
+  depositCollateral,
+  mintShortOption,
+  openVault,
+  sellOption,
+} from "./operateBlocks";
 
 export const sell = async (
   acceptablePremium: BigNumber,
@@ -39,44 +45,21 @@ export const sell = async (
     ? BigNumber.from(vaults[vaultKey])
     : BigNumber.from(vaults.length + 1);
 
-  const openVaultData = {
-    actionType: BigNumber.from(OpynActionType.OpenVault),
-    owner: userAddress,
-    secondAddress: userAddress,
-    asset: ZERO_ADDRESS,
-    vaultId,
-    amount: BigNumber.from(0),
-    optionSeries: EMPTY_SERIES,
-    indexOrAcceptablePremium: BigNumber.from(0),
-    data: utils.hexZeroPad(
-      utils.hexlify([OpenVaultCollateralType.Partially]),
-      32
-    ) as HexString,
-  };
-
   const requiredData = [
-    {
-      actionType: BigNumber.from(OpynActionType.DepositCollateral),
-      owner: userAddress,
-      secondAddress: exchangeAddress,
-      asset: collateralAddress,
-      vaultId,
-      amount: collateral,
-      optionSeries: EMPTY_SERIES,
-      indexOrAcceptablePremium: BigNumber.from(0),
-      data: ZERO_ADDRESS,
-    },
-    {
-      actionType: BigNumber.from(OpynActionType.MintShortOption),
-      owner: userAddress,
-      secondAddress: exchangeAddress,
-      asset: oTokenAddress,
-      vaultId,
-      amount: fromWeiToOpyn(amount),
-      optionSeries: EMPTY_SERIES,
-      indexOrAcceptablePremium: BigNumber.from(0),
-      data: ZERO_ADDRESS,
-    },
+    depositCollateral(
+      collateral,
+      collateralAddress,
+      exchangeAddress,
+      userAddress,
+      vaultId
+    ),
+    mintShortOption(
+      amount,
+      exchangeAddress,
+      oTokenAddress,
+      userAddress,
+      vaultId
+    ),
   ];
 
   const txData = [
@@ -84,22 +67,12 @@ export const sell = async (
       operation: OperationType.OpynAction,
       operationQueue: hasVault
         ? requiredData
-        : [openVaultData, ...requiredData],
+        : [openVault(userAddress, vaultId), ...requiredData],
     },
     {
       operation: OperationType.RyskAction,
       operationQueue: [
-        {
-          actionType: BigNumber.from(RyskActionType.SellOption),
-          owner: ZERO_ADDRESS,
-          secondAddress: userAddress,
-          asset: ZERO_ADDRESS,
-          vaultId: BigNumber.from(0),
-          amount,
-          optionSeries,
-          indexOrAcceptablePremium: acceptablePremium,
-          data: ZERO_ADDRESS,
-        },
+        sellOption(acceptablePremium, amount, optionSeries, userAddress),
       ],
     },
   ];

@@ -38,7 +38,7 @@ export const DateList = ({
   } = useGlobalContext();
 
   return (
-    <ol className="grid grid-cols-6 col-span-10">
+    <ol className="grid grid-cols-4 col-span-10">
       <AnimatePresence initial={false} mode="popLayout">
         {expiries.map((timestamp, index) => {
           const datetime = dayjs.unix(Number(timestamp));
