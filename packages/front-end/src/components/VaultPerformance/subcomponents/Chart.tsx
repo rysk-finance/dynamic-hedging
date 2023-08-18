@@ -8,14 +8,20 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
+  Legend,
 } from "recharts";
 
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (label && active && payload && payload.length) {
+    const [dhv, eth] = payload;
+
     return (
-      <div className="bg-white rounded-lg shadow-lg font-dm-mono text-center">
-        <p className="px-4 pt-4 pb-2 border-b-2 border-bone text-xl font-medium after:content-['_%']">
-          {payload[0].value}
+      <div className="bg-white rounded-lg shadow-lg font-dm-mono text-center w-60">
+        <p className="px-4 pt-4 pb-2 text-xl font-medium after:content-['_%']">
+          {`DHV: ${dhv.value}`}
+        </p>
+        <p className="px-4 pb-2 border-b-2 border-bone text-xl font-medium after:content-['_%']">
+          {`ETH: ${eth.value}`}
         </p>
         <p className="p-2 text-sm">
           {dayjs.unix(parseInt(label)).format("DD MMM YY")}
@@ -35,7 +41,17 @@ export const Chart = ({ chartData }: ChartProps) => (
           activeDot={{ fill: "#00FEFD", stroke: "#00FEFD" }}
           dataKey="growthSinceFirstEpoch"
           dot={{ r: 4, fill: "black", stroke: "black" }}
+          name="DHV"
           stroke="black"
+          strokeWidth={2}
+          type="linear"
+        />
+        <Line
+          activeDot={{ fill: "#343434", stroke: "#343434" }}
+          dataKey="ethPrice"
+          dot={{ r: 4, fill: "#626890", stroke: "#626890" }}
+          name="Ethereum"
+          stroke="#626890"
           strokeWidth={2}
           type="linear"
         />
@@ -60,6 +76,7 @@ export const Chart = ({ chartData }: ChartProps) => (
           tickFormatter={(value: string) => `${value}%`}
         />
         <Tooltip content={<CustomTooltip />} cursor={false} />
+        <Legend iconType="circle" />
       </LineChart>
     </ResponsiveContainer>
   </div>
