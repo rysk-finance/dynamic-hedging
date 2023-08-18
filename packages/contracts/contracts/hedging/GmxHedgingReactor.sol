@@ -75,6 +75,8 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	uint256 public positionPriceTolerance = 5e15; // 0.5%
 	/// @notice tolerance on collateral to remove on full closures
 	int256 public collateralRemovalPercentage = 9900; // 99%
+	/// @notice if a position is decreased to the point its size is less than this, the whole position is closed. GMX e30 decimal
+	int256 minPositionSizeUsd = 100e30; // $100
 	/// @notice address of the price feed used for getting asset prices
 	address public priceFeed;
 	/// @notice the GMX position router contract
@@ -188,6 +190,11 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	function setCollateralRemovalPercentage(int256 _collateralRemovalPercentage) external {
 		_onlyGovernor();
 		collateralRemovalPercentage = _collateralRemovalPercentage;
+	}
+
+	function setMinPositionSize(int256 _minPositionSizeUsd) external {
+		_onlyGovernor();
+		minPositionSizeUsd = _minPositionSizeUsd;
 	}
 
 	function resetPendingPositionCallbacks() external {
@@ -910,8 +917,8 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 		bool _isLong
 	) private view returns (uint256) {
 		uint256 posSizeDelta = _size.mul(_positionSize).div(_isLong ? openLongDelta : openShortDelta);
-		if ((int(posSizeDelta) - int(_positionSize)).abs() < 1e30) {
-			// if position size delta is within 1 dollar of the exisiting position size, they can be made equal to avoid rounding errors
+		if ((int(posSizeDelta) - int(_positionSize)).abs() < minPositionSizeUsd) {
+			// if position size delta is within minPositionSize of the exisiting position size, they can be made equal to avoid rounding errors
 			// note that this makes the assumption that $1 has negligible delta value.
 			return _positionSize;
 		}
