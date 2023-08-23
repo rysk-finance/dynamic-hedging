@@ -5,6 +5,7 @@ import type { CallOrPut } from "src/state/types";
 interface SymbolProps extends PropsWithChildren {
   callOrPut?: CallOrPut;
   expiry: string;
+  strategyName?: string;
   strike?: number;
 }
 
@@ -12,10 +13,11 @@ export const Symbol = ({
   callOrPut,
   children,
   expiry,
+  strategyName,
   strike,
 }: SymbolProps) => {
   const strikeFormatted = strike ? `$${strike}` : "";
-  const callOrPutFormatted = callOrPut || "";
+  const callOrPutFormatted = callOrPut || strategyName || "";
   const divPadding = children ? "pt-3" : "py-3";
 
   return (
