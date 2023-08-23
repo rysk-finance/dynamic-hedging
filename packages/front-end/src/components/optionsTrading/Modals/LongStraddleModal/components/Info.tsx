@@ -10,7 +10,7 @@ export const Info = ({ positionData }: InfoProps) => (
     className="w-4/5 border-r-2"
     strategyName="Long Straddle"
   >
-    <p className="flex text-center text-sm justify-center">
+    <p className="flex text-center text-xs xl:text-sm justify-center">
       {`Outlook: Neutral | Profit: Unlimited | Risk: Defined`}
     </p>
 
