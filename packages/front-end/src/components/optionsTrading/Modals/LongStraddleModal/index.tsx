@@ -16,6 +16,7 @@ import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
 import { getButtonProps } from "../Shared/utils/getButtonProps";
 import { roundInputValue } from "../Shared/utils/roundNumberValue";
+import { Icon } from "./components/Icon";
 import { Info } from "./components/Info";
 import { Pricing } from "./components/Pricing";
 import { useLongStraddle } from "./hooks/useLongStraddle";
@@ -111,7 +112,10 @@ export const LongStraddleModal = () => {
     <Modal>
       <Header>{`Long Straddle`}</Header>
 
-      <Info positionData={positionData} />
+      <div className="flex">
+        <Info positionData={positionData} />
+        <Icon />
+      </div>
 
       <Pricing
         amount={debouncedAmountToOpen}

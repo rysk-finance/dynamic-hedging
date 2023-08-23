@@ -5,7 +5,11 @@ import { STRATEGY_LINKS } from "src/config/links";
 import { Symbol } from "../../Shared/components/Symbol";
 
 export const Info = ({ positionData }: InfoProps) => (
-  <Symbol {...positionData} strategyName="Long Straddle">
+  <Symbol
+    {...positionData}
+    className="w-4/5 border-r-2"
+    strategyName="Long Straddle"
+  >
     <p className="flex text-center text-sm justify-center">
       {`Outlook: Neutral | Profit: Unlimited | Risk: Defined`}
     </p>
