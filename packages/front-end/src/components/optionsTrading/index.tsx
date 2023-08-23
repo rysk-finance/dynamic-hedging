@@ -12,6 +12,7 @@ import { AdjustCollateralModal } from "./Modals/AdjustCollateralModal";
 import { BuyOptionModal } from "./Modals/BuyOptionModal";
 import { CloseOptionModal } from "./Modals/CloseOptionModal";
 import { CloseShortOptionModal } from "./Modals/CloseShortOptionModal";
+import { LongStraddleModal } from "./Modals/LongStraddleModal";
 import { OperatorModal } from "./Modals/OperatorModal";
 import { SellOptionModal } from "./Modals/SellOptionModal";
 import { Strategies } from "./Strategies";
@@ -51,10 +52,9 @@ export const OptionsTradingContent = () => {
           {modalType === OptionChainModalActions.CLOSE_SHORT && (
             <CloseShortOptionModal key="close-short" />
           )}
-          {
-            modalType === OptionChainModalActions.LONG_STRADDLE && <></>
-            // Modal here.
-          }
+          {modalType === OptionChainModalActions.LONG_STRADDLE && (
+            <LongStraddleModal key="long-straddle" />
+          )}
           {
             modalType === OptionChainModalActions.LONG_STRANGE && <></>
             // Modal here.
