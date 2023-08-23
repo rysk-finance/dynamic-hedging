@@ -14,6 +14,11 @@ export const Modal = ({ children }: PropsWithChildren) => {
   };
 
   return (
-    <RyskModal lightBoxClickFn={handleLightBoxClick}>{children}</RyskModal>
+    <RyskModal
+      lightBoxClickFn={handleLightBoxClick}
+      modalClasses="group/strategy-icon"
+    >
+      {children}
+    </RyskModal>
   );
 };
