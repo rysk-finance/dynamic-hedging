@@ -5,14 +5,12 @@ import { PricingProps } from "../types";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo } from "react";
 
-import { DownChevron, Link } from "src/Icons";
+import { DownChevron } from "src/Icons";
 import FadeInOutQuick from "src/animation/FadeInOutQuick";
 import FadeInUpDelayed from "src/animation/FadeInUpDelayed";
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
 import { RyskTooltip } from "src/components/shared/RyskToolTip";
-import { STRATEGY_LINKS } from "src/config/links";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { Symbol } from "../../Shared/components/Symbol";
 
 export const Pricing = ({
   amount,
@@ -77,24 +75,6 @@ export const Pricing = ({
 
   return (
     <div className="flex flex-col">
-      <Symbol {...positionData}>
-        <p className="flex text-center text-sm justify-center">
-          {`Outlook: Neutral | Profit: Unlimited | Risk: Defined`}
-        </p>
-
-        <p className="flex text-center text-sm justify-center">
-          <a
-            className="flex !text-cyan-dark-compliant py-3"
-            href={STRATEGY_LINKS.LONG_STRADDLE}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Link className="w-4 h-4 mr-2 my-0.5" />
-            {`Learn more about long straddles.`}
-          </a>
-        </p>
-      </Symbol>
-
       <div className="w-4/5 xl:w-3/5 mx-auto py-3">
         <span className="flex pb-2 border-gray-600 border-b">
           <p className="mr-auto">{`Strike:`}</p>

@@ -15,6 +15,10 @@ export interface PositionDataState {
   strike?: number;
 }
 
+export interface InfoProps {
+  positionData: PositionDataState;
+}
+
 export interface PricingProps {
   amount: string;
   positionData: PositionDataState;
