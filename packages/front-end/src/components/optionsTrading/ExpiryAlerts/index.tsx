@@ -1,3 +1,5 @@
+import type { ExpiryAlertsProps } from "./types";
+
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
 import { useMemo } from "react";
@@ -8,14 +10,14 @@ import FadeInOut from "src/animation/FadeInOut";
 
 dayjs.extend(duration);
 
-export const ActiveExpiryAlerts = () => {
+export const ActiveExpiryAlerts = ({ expiry }: ExpiryAlertsProps) => {
   const {
     state: {
-      options: { activeExpiry, loading },
+      options: { loading },
     },
   } = useGlobalContext();
 
-  const datetime = dayjs.unix(Number(activeExpiry));
+  const datetime = dayjs.unix(Number(expiry));
   const duration = dayjs.duration(datetime.diff(dayjs()));
 
   const getMessage = () => {
@@ -33,14 +35,14 @@ export const ActiveExpiryAlerts = () => {
     }
   };
 
-  const message = useMemo(() => getMessage(), [activeExpiry, loading]);
+  const message = useMemo(() => getMessage(), [loading]);
 
   return (
     <AnimatePresence mode="wait">
       {message ? (
         <motion.span
           className="block text-center py-3 border-t-2 border-black"
-          key={activeExpiry}
+          key={expiry}
           {...FadeInOut()}
         >
           {message}

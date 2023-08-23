@@ -3,7 +3,6 @@ import { AnimatePresence, LayoutGroup } from "framer-motion";
 import { OptionChainModalActions } from "src/state/types";
 
 import { useMinuteUpdate } from "src/components/optionsTrading/hooks/useMinuteUpdate";
-import { ActiveExpiryAlerts } from "./ActiveExpiryAlerts";
 import { AssetPriceInfo } from "./AssetPriceInfo";
 import { Chain } from "./Chain";
 import { ExpiryDatePicker } from "./ExpiryDatePicker";
@@ -34,7 +33,6 @@ export const OptionsTradingContent = () => {
             <ExpiryDatePicker />
             <Filters />
             <Strategies />
-            <ActiveExpiryAlerts />
             <Chain />
           </div>
         </LayoutGroup>

@@ -4,6 +4,7 @@ import { Fragment } from "react";
 import FadeInOut from "src/animation/FadeInOut";
 import LoadingOrError from "src/components/shared/LoadingOrError";
 import { useGlobalContext } from "src/state/GlobalContext";
+import { ActiveExpiryAlerts } from "../ExpiryAlerts";
 import { Body } from "./components/Body";
 import { Head } from "./components/Head";
 
@@ -30,6 +31,7 @@ export const Chain = () => {
 
             return (
               <Fragment key={expiry}>
+                <ActiveExpiryAlerts expiry={expiry} />
                 <Head expiry={expiry} />
                 <Body chainRows={Object.values(strikeData)} expiry={expiry} />
               </Fragment>
