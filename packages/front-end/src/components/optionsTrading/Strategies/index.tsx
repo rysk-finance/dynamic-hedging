@@ -5,13 +5,20 @@ import { ActionType } from "src/state/types";
 import { strategyList } from "./strategyList";
 
 export const Strategies = () => {
-  const { dispatch } = useGlobalContext();
+  const {
+    dispatch,
+    state: {
+      options: { activeExpiry },
+    },
+  } = useGlobalContext();
 
   const handleClick = (modal: OptionChainModal) => () => {
-    dispatch({
-      type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
-      visible: modal,
-    });
+    if (activeExpiry) {
+      dispatch({
+        type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
+        visible: modal,
+      });
+    }
   };
 
   return (
@@ -25,7 +32,7 @@ export const Strategies = () => {
           >
             <Icon className="h-12 mr-1" />
             <span className="w-32">
-              <p className="font-dm-mono text-sm">{label}</p>
+              <p className="font-dm-mono text-sm font-medium">{label}</p>
               <small className="block text-2xs !leading-1">{description}</small>
             </span>
           </button>
