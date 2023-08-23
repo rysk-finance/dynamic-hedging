@@ -98,21 +98,27 @@ export const Pricing = ({
       <div className="w-4/5 xl:w-3/5 mx-auto py-3">
         <span className="flex pb-2 border-gray-600 border-b">
           <p className="mr-auto">{`Strike:`}</p>
-          <div className="relative flex w-1/3">
-            <DownChevron className="h-6 w-6 absolute pointer-events-none" />
-            <select
-              className="bg-transparent	text-right appearance-none w-full cursor-pointer"
-              value={selectedStrike}
-              onChange={handleSelect}
-            >
-              <option disabled value="">{`Select strike`}</option>
-              {availableStrikes.map((strike) => (
-                <option key={strike} value={strike}>
-                  {`$ ${strike}`}
-                </option>
-              ))}
-            </select>
-          </div>
+          <RyskTooltip
+            content="Use this to select the strike price for the straddle."
+            disabled={!tutorialMode}
+            placement="left"
+          >
+            <div className="relative flex w-1/3">
+              <DownChevron className="h-6 w-6 absolute pointer-events-none" />
+              <select
+                className="bg-transparent	text-right appearance-none w-full cursor-pointer"
+                value={selectedStrike}
+                onChange={handleSelect}
+              >
+                <option disabled value="">{`Select strike`}</option>
+                {availableStrikes.map((strike) => (
+                  <option key={strike} value={strike}>
+                    {`$ ${strike}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </RyskTooltip>
         </span>
 
         <AnimatePresence>
@@ -167,7 +173,7 @@ export const Pricing = ({
               <span className="flex pt-2">
                 <p className="mr-auto">{`Break even:`}</p>
                 <RyskTooltip
-                  content="The price at which your position will break even if held to expiry."
+                  content="The price at which your position will break even if held to expiry. The first value is for the CALL and the second is for the PUT."
                   disabled={!tutorialMode}
                   placement="left"
                 >
