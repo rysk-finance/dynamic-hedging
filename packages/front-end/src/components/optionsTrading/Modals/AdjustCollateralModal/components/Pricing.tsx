@@ -40,7 +40,7 @@ export const Pricing = ({ collateralData }: PricingProps) => {
   }, [disabled, hasRequiredCapital]);
 
   return (
-    <div className="w-4/5 xl:w-3/5 mx-auto py-4">
+    <div className="w-4/5 xl:w-3/5 mx-auto py-3">
       <span className="flex">
         <p className="mr-auto">{`Liquidation Price:`}</p>
         <AnimatePresence mode="wait">

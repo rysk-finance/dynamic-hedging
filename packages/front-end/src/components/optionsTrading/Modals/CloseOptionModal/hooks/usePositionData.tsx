@@ -36,6 +36,8 @@ export const usePositionData = (amountToClose: string) => {
   // User position state.
   const [positionData, setPositionData] = useState<PositionDataState>({
     acceptablePremium: BigNumber.from(0),
+    callOrPut: closingOption?.isPut ? "put" : "call",
+    expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
     fee: 0,
     now: dayjs().format("MMM DD, YYYY HH:mm A"),
     premium: 0,
@@ -43,7 +45,7 @@ export const usePositionData = (amountToClose: string) => {
     remainingBalance: 0,
     slippage: 0,
     totalSize: 0,
-    title: null,
+    strike: closingOption?.strike ? parseInt(closingOption.strike) : undefined,
   });
 
   const [loading, setLoading] = useState(false);
@@ -79,6 +81,8 @@ export const usePositionData = (amountToClose: string) => {
 
             setPositionData({
               acceptablePremium,
+              callOrPut: closingOption.isPut ? "put" : "call",
+              expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
               fee,
               now,
               premium,
@@ -86,12 +90,14 @@ export const usePositionData = (amountToClose: string) => {
               remainingBalance,
               slippage,
               totalSize,
-              title,
+              strike: parseInt(closingOption.strike),
             });
             setAllowance((currentState) => ({ ...currentState, approved }));
           } else {
             setPositionData({
               acceptablePremium: BigNumber.from(0),
+              callOrPut: closingOption?.isPut ? "put" : "call",
+              expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
               fee: 0,
               now,
               premium: 0,
@@ -99,7 +105,9 @@ export const usePositionData = (amountToClose: string) => {
               remainingBalance: balances.USDC,
               slippage: 0,
               totalSize,
-              title,
+              strike: closingOption?.strike
+                ? parseInt(closingOption.strike)
+                : undefined,
             });
             setAllowance((currentState) => ({
               ...currentState,

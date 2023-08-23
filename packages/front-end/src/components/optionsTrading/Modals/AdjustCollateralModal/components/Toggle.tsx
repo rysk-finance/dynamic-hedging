@@ -22,7 +22,7 @@ export const Toggle = ({
       placement="top"
     >
       <span
-        className="flex cursor-pointer select-none relative w-48 h-12 p-1 mx-auto my-4 bg-bone-dark rounded-md shadow-[inset_0_0_10px_rgba(0,0,0,0.2)]"
+        className="flex cursor-pointer select-none relative w-48 h-12 p-1 mx-auto my-3 bg-bone-dark rounded-md shadow-[inset_0_0_10px_rgba(0,0,0,0.2)]"
         onClick={handleToggleClick}
       >
         <span

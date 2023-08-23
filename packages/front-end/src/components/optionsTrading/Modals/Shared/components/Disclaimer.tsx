@@ -13,7 +13,7 @@ export const Disclaimer = ({ children }: PropsWithChildren) => {
   const color = blocked ? "text-red-500" : "text-gray-600";
 
   return (
-    <small className={`block text-center p-4 ${color}`}>
+    <small className={`block text-center p-3 ${color}`}>
       {blocked ? (
         <>
           {`Trading is not available for people or entities in ${
