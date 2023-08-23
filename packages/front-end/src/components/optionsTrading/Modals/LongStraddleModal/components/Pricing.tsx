@@ -203,7 +203,7 @@ export const Pricing = ({
         </AnimatePresence>
       </div>
 
-      <small className="flex flex-col pb-4 text-center leading-6 text-gray-600">
+      <small className="flex flex-col pb-3 text-center leading-6 text-gray-600">
         {`Last updated: ${now}`}
       </small>
     </div>
