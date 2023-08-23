@@ -32,7 +32,7 @@ export const Strategies = () => {
         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 col-span-9 lg:col-span-10 h-14 overflow-hidden">
           {strategyList.map(({ description, Icon, label, modal }) => (
             <button
-              className="flex justify-center py-1 group/icon"
+              className="flex justify-center py-1 group/strategy-icon"
               key={label}
               onClick={handleClick(modal)}
             >
