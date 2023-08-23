@@ -25,6 +25,25 @@ export const Body = () => {
     },
   } = useGlobalContext();
 
+  const [, strategyTimestamps] = useMemo(
+    () =>
+      activePositions.reduce(
+        ([unique, duplicates], { firstCreated }) => {
+          if (firstCreated) {
+            if (unique.includes(firstCreated)) {
+              duplicates.push(firstCreated);
+            } else {
+              unique.push(firstCreated);
+            }
+          }
+
+          return [unique, duplicates] as [string[], string[]];
+        },
+        [[], []] as [string[], string[]]
+      ),
+    [activePositions]
+  );
+
   const sortedActivePositions = useMemo(() => {
     return activePositions
       .sort((first, second) => {
@@ -71,6 +90,7 @@ export const Body = () => {
               breakEven,
               delta,
               entry,
+              firstCreated,
               id,
               isShort,
               mark,
@@ -78,14 +98,22 @@ export const Body = () => {
               series,
             } = activePosition;
 
+            const strategyTimestampIndex = firstCreated
+              ? strategyTimestamps.indexOf(firstCreated)
+              : -1;
+
             return (
               <motion.tr
                 className="h-11 grid grid-cols-12 items-center text-center capitalize [&_td]:border-l-2 first:[&_td]:border-0 [&_td]:border-gray-500 [&_td]:border-dashed [&_td]:text-2xs [&_td]:xl:text-sm [&_td]:h-full [&_td]:flex [&_td]:items-center [&_td]:justify-center"
-                key={`${id}-${isShort ? "SHORT" : "LONG"}`}
+                key={`${id}-${isShort ? "SHORT" : "LONG"}-${firstCreated}`}
                 layout="position"
                 {...FadeInUpDelayed(Math.min(index * 0.1, 2))}
               >
-                <Series isShort={isShort} series={series} />
+                <Series
+                  isShort={isShort}
+                  series={series}
+                  strategyTimestampIndex={strategyTimestampIndex}
+                />
                 <Size amount={amount} />
                 <Delta delta={delta} />
                 <ProfitLoss profitLoss={profitLoss} />

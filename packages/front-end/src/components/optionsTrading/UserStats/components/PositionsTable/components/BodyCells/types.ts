@@ -3,6 +3,7 @@ import type { ActivePositions } from "src/state/types";
 export interface SeriesProps {
   isShort: boolean;
   series: string;
+  strategyTimestampIndex: number;
 }
 
 export interface SizeProps {
