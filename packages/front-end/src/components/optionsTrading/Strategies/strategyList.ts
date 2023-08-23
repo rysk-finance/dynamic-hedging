@@ -13,12 +13,12 @@ export const strategyList = [
   //   Icon: ShortStraddle,
   //   label: "Short Straddle",
   // },
-  {
-    description: "Works when price moves up or down.",
-    Icon: LongStrangle,
-    label: "Long Strangle",
-    modal: OptionChainModalActions.LONG_STRANGE,
-  },
+  // {
+  //   description: "Works when price moves up or down.",
+  //   Icon: LongStrangle,
+  //   label: "Long Strangle",
+  //   modal: OptionChainModalActions.LONG_STRANGE,
+  // },
   // {
   //   description: "Works best when price trades in a defined range.",
   //   Icon: ShortStrangle,
