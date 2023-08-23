@@ -13,8 +13,8 @@ export const getUserPositions = (positions: Position[]): UserPositions => {
         liquidateActions,
         netAmount,
         oToken,
-        optionsBoughtTransactions,
-        optionsSoldTransactions,
+        optionsBoughtTransactions: bought,
+        optionsSoldTransactions: sold,
         realizedPnl,
         redeemActions,
         sellAmount,
@@ -24,8 +24,8 @@ export const getUserPositions = (positions: Position[]): UserPositions => {
     ) => {
       const { expiryTimestamp } = oToken;
 
-      const isLong = Number(netAmount) > 0;
-      const isShort = Number(netAmount) < 0;
+      const isLong = !vault;
+      const isShort = Boolean(vault);
 
       const _getPremium = (
         transactions: OptionsTransaction[],
@@ -43,22 +43,22 @@ export const getUserPositions = (positions: Position[]): UserPositions => {
         }, 0);
       };
 
-      const totalPremiumBought = _getPremium(optionsBoughtTransactions, true);
-      const totalPremiumSold = _getPremium(optionsSoldTransactions, false);
-      // This figure is only relevant to net long positions so we can display their value.
-      const totalPremium = totalPremiumBought - totalPremiumSold;
+      const totalPremiumBought = _getPremium(bought, true);
+      const totalPremiumSold = _getPremium(sold, false);
+
+      const firstCreated = isShort ? sold[0].timestamp : bought[0].timestamp;
 
       const token = {
         ...oToken,
         active,
         buyAmount,
+        firstCreated,
         liquidateActions,
         netAmount,
         realizedPnl,
         redeemActions,
         sellAmount,
         settleActions,
-        totalPremium,
         totalPremiumBought,
         totalPremiumSold,
         vault,

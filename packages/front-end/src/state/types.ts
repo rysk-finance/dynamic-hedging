@@ -24,9 +24,9 @@ export type Expiries = string[];
 export interface UserPositionToken extends PositionOToken {
   active: boolean;
   buyAmount?: BigNumberish;
+  firstCreated?: string;
   id: HexString;
   netAmount: BigNumberish;
-  totalPremium: number;
   totalPremiumBought: number;
   totalPremiumSold: number;
   liquidateActions?: LiquidateActions[];
@@ -144,6 +144,7 @@ export interface ActivePositions {
   delta: number;
   entry: number;
   expiryTimestamp: string;
+  firstCreated?: string;
   id: HexString;
   isOpen: boolean;
   isPut: boolean;

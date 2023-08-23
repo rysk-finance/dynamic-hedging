@@ -28,7 +28,6 @@ export const buildInactivePositions = (
         sellAmount,
         settleActions,
         symbol,
-        totalPremium,
         totalPremiumBought,
         totalPremiumSold,
         netAmount,
@@ -50,7 +49,7 @@ export const buildInactivePositions = (
         return {
           close: Math.abs(truncate(closePremium / amount)),
           entry: Math.abs(truncate(entryPremium / amount)),
-          id: `${id}-${totalPremium}`,
+          id: `${id}-${isShort ? totalPremiumSold : totalPremiumBought}`,
           isShort,
           oraclePrice,
           profitLoss: liquidated ? undefined : tFormatUSDC(realizedPnl),

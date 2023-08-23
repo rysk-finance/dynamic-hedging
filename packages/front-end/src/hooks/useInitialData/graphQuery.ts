@@ -26,6 +26,7 @@ query ${QueriesEnum.INITIAL_DATA} (
     optionsBoughtTransactions {
       fee
       premium
+      timestamp
     }
     optionsSoldTransactions {
       fee
@@ -59,6 +60,7 @@ query ${QueriesEnum.INITIAL_DATA} (
     optionsSoldTransactions {
       fee
       premium
+      timestamp
     }
     liquidateActions {
       collateralPayout
