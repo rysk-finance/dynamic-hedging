@@ -9,6 +9,7 @@ import { DownChevron } from "./DownChevron";
 import { Ether } from "./Ether";
 import { Info } from "./Info";
 import { LeftArrow } from "./LeftArrow";
+import { Link } from "./Link";
 import { Loading } from "./Loading";
 import { Minus } from "./Minus";
 import { Plus } from "./Plus";
@@ -34,6 +35,7 @@ export {
   Ether,
   Info,
   LeftArrow,
+  Link,
   Loading,
   Minus,
   Plus,
