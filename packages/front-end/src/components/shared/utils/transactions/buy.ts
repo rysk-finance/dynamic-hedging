@@ -17,14 +17,6 @@ export const buy = async (
   refresh: () => void,
   userAddress: HexString
 ) => {
-  const baseOperation = {
-    owner: ZERO_ADDRESS,
-    asset: ZERO_ADDRESS,
-    vaultId: BigNumber.from(0),
-    optionSeries,
-    data: ZERO_ADDRESS,
-  };
-
   const txData = [
     {
       operation: OperationType.RyskAction,
