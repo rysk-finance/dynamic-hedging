@@ -3,6 +3,7 @@ import type { PricingProps } from "../types";
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
 import { RyskTooltip } from "src/components/shared/RyskToolTip";
 import { useGlobalContext } from "src/state/GlobalContext";
+import { Symbol } from "../../Shared/components/Symbol";
 
 export const Pricing = ({ positionData }: PricingProps) => {
   const {
@@ -11,16 +12,13 @@ export const Pricing = ({ positionData }: PricingProps) => {
     },
   } = useGlobalContext();
 
-  const { fee, now, premium, quote, remainingBalance, slippage, title } =
-    positionData;
+  const { fee, now, premium, quote, remainingBalance, slippage } = positionData;
 
   return (
     <div className="flex flex-col">
-      <p className="text-center py-4 bg-white border-b-2 border-black font-dm-mono">
-        {title}
-      </p>
+      <Symbol {...positionData} />
 
-      <div className="w-4/5 xl:w-3/5 mx-auto py-4">
+      <div className="w-4/5 xl:w-3/5 mx-auto py-3">
         <div>
           <span className="flex">
             <p className="mr-auto">{`Premium:`}</p>

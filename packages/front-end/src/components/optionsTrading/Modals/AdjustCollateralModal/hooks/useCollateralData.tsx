@@ -29,7 +29,7 @@ export const useCollateralData = (
       adjustingOption,
       balances,
       ethPrice,
-      options: { spotShock, timesToExpiry },
+      options: { activeExpiry, spotShock, timesToExpiry },
     },
   } = useGlobalContext();
 
@@ -44,15 +44,17 @@ export const useCollateralData = (
   // User position state.
   const [collateralData, setCollateralData] = useState<CollateralDataState>({
     asset: "USDC",
+    callOrPut: adjustingOption?.isPut ? "put" : "call",
     collateral: adjustingOption?.collateralAmount || 0,
     disabled: false,
+    expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
     hasRequiredCapital: true,
     liquidationPrice: adjustingOption?.liquidationPrice || 0,
     now: dayjs().format("MMM DD, YYYY HH:mm A"),
     remainingBalanceUSDC: 0,
     remainingBalanceWETH: 0,
     requiredApproval: "",
-    series: "",
+    strike: adjustingOption?.strike,
   });
 
   const [loading, setLoading] = useState(false);
@@ -75,11 +77,13 @@ export const useCollateralData = (
             ? currentCollateral + amount
             : currentCollateral - amount;
 
+          const callOrPut = adjustingOption.isPut ? "put" : "call";
+
           const [liquidationPrice] = await getLiquidationPrices(
             [
               {
                 amount: adjustingOption.amount,
-                callOrPut: adjustingOption.isPut ? "put" : "call",
+                callOrPut,
                 collateral: newCollateral,
                 collateralAddress,
                 expiry: Number(adjustingOption.expiryTimestamp),
@@ -125,29 +129,33 @@ export const useCollateralData = (
 
           setCollateralData({
             asset: USDCCollateral ? "USDC" : "WETH",
+            callOrPut,
             collateral: newCollateral,
             disabled,
+            expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
             hasRequiredCapital,
             liquidationPrice,
             now: dayjs().format("MMM DD, YYYY HH:mm A"),
             remainingBalanceUSDC,
             remainingBalanceWETH,
             requiredApproval,
-            series: adjustingOption.series,
+            strike: adjustingOption.strike,
           });
           setAllowance((currentState) => ({ ...currentState, approved }));
         } else {
           setCollateralData({
             asset: USDCCollateral ? "USDC" : "WETH",
+            callOrPut: adjustingOption?.isPut ? "put" : "call",
             collateral: adjustingOption?.collateralAmount || 0,
             disabled: false,
+            expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
             hasRequiredCapital: true,
             liquidationPrice: adjustingOption?.liquidationPrice || 0,
             now: dayjs().format("MMM DD, YYYY HH:mm A"),
             remainingBalanceUSDC: balanceUSDC,
             remainingBalanceWETH: balanceWETH,
             requiredApproval: "",
-            series: adjustingOption?.series,
+            strike: adjustingOption?.strike,
           });
           setAllowance((currentState) => ({
             ...currentState,

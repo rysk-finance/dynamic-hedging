@@ -18,7 +18,7 @@ import { getButtonProps } from "../Shared/utils/getButtonProps";
 import { roundInputValue } from "../Shared/utils/roundNumberValue";
 import { Filters } from "./components/Filters";
 import { Pricing } from "./components/Pricing";
-import { Symbol } from "./components/Symbol";
+import { Symbol } from "../Shared/components/Symbol";
 import { useSellOption } from "./hooks/useSellOption";
 
 export const SellOptionModal = () => {
@@ -145,7 +145,7 @@ export const SellOptionModal = () => {
       <Header changeVisible={!disableChangeButton}>{`Sell Position`}</Header>
 
       <div className="flex flex-col">
-        <Symbol positionData={positionData} />
+        <Symbol {...positionData} />
 
         <Filters />
 

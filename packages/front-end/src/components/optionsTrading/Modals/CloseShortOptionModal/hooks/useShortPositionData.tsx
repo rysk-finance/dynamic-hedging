@@ -38,9 +38,11 @@ export const useShortPositionData = (amountToClose: string) => {
   // User position state.
   const [positionData, setPositionData] = useState<PositionDataState>({
     acceptablePremium: BigNumber.from(0),
+    callOrPut: closingOption?.isPut ? "put" : "call",
     collateralReleased: 0,
     collateralToRemove: BigNumber.from(0),
     collateralType: undefined,
+    expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
     fee: 0,
     hasRequiredCapital: false,
     now: dayjs().format("MMM DD, YYYY HH:mm A"),
@@ -51,8 +53,8 @@ export const useShortPositionData = (amountToClose: string) => {
     remainingCollateral: 0,
     slippage: 0,
     totalSize: 0,
-    title: null,
     requiredApproval: "",
+    strike: closingOption?.strike ? parseInt(closingOption.strike) : undefined,
   });
 
   const vault = closingOption?.vault;
@@ -139,9 +141,11 @@ export const useShortPositionData = (amountToClose: string) => {
 
             setPositionData({
               acceptablePremium,
+              callOrPut: closingOption.isPut ? "put" : "call",
               collateralReleased,
               collateralToRemove,
               collateralType,
+              expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
               fee,
               hasRequiredCapital,
               now,
@@ -152,16 +156,18 @@ export const useShortPositionData = (amountToClose: string) => {
               remainingCollateral,
               slippage,
               totalSize: Math.abs(totalSize),
-              title,
               requiredApproval,
+              strike: parseInt(closingOption.strike),
             });
             setAllowance((currentState) => ({ ...currentState, approved }));
           } else {
             setPositionData({
               acceptablePremium: BigNumber.from(0),
+              callOrPut: closingOption?.isPut ? "put" : "call",
               collateralReleased: 0,
               collateralToRemove: BigNumber.from(0),
               collateralType,
+              expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
               fee: 0,
               hasRequiredCapital: false,
               now,
@@ -172,8 +178,10 @@ export const useShortPositionData = (amountToClose: string) => {
               remainingCollateral: 0,
               slippage: 0,
               totalSize: Math.abs(totalSize),
-              title,
               requiredApproval: "",
+              strike: closingOption?.strike
+                ? parseInt(closingOption.strike)
+                : undefined,
             });
             setAllowance((currentState) => ({
               ...currentState,
