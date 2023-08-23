@@ -40,13 +40,15 @@ export const ActiveExpiryAlerts = ({ expiry }: ExpiryAlertsProps) => {
   return (
     <AnimatePresence mode="wait">
       {message ? (
-        <motion.span
+        <motion.thead
           className="block text-center py-3 border-t-2 border-black"
           key={expiry}
           {...FadeInOut()}
         >
-          {message}
-        </motion.span>
+          <tr className="block">
+            <th className="block text-center font-normal">{message}</th>
+          </tr>
+        </motion.thead>
       ) : null}
     </AnimatePresence>
   );
