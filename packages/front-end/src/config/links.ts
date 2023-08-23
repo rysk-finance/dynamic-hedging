@@ -13,3 +13,7 @@ export const DHV_ARTICLE =
   "https://blog.rysk.finance/looking-under-the-hood-of-rysks-dynamic-hedging-vault-e059e1b87e41";
 export const COLLATERAL_DOCS =
   "https://docs.rysk.finance/quant/collateralisation";
+
+export const STRATEGY_LINKS = {
+  LONG_STRADDLE: "https://optionalpha.com/strategies/long-straddle",
+};
