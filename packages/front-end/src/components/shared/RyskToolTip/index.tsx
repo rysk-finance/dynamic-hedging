@@ -15,7 +15,7 @@ export const RyskTooltip = ({
 }: RyskToolTipProps) => {
   const formattedContent =
     typeof content === "string" ? (
-      <span className="block text-center">{content}</span>
+      <span className="block text-center normal-case">{content}</span>
     ) : (
       content
     );
@@ -32,7 +32,7 @@ export const RyskTooltip = ({
     >
       {children ? (
         cloneElement(children, {
-          className: `${children.props.className} ${
+          className: `${children.props.className || ""} ${
             disabled ? "cursor-default" : "cursor-help"
           }`,
         })
