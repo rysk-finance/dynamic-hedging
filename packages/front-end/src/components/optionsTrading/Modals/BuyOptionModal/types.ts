@@ -7,6 +7,7 @@ export interface PositionDataState {
   breakEven: number;
   callOrPut?: CallOrPut;
   expiry: string;
+  exposure: number;
   fee: number;
   now: string;
   premium: number;

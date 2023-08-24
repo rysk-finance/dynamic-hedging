@@ -15,11 +15,14 @@ export const openLongStraddle = async (
   acceptablePremium: BigNumber,
   amount: BigNumber,
   exchangeAddress: HexString,
+  exposure: [number, number],
   optionSeries: Omit<OptionSeries, "isPut" | "strike">,
   refresh: () => void,
   selectedStrikes: StrategyStrikesTuple,
   userAddress: HexString
 ) => {
+  const [callExposure, putExposure] = exposure;
+
   const callSeries: OptionSeries = {
     ...optionSeries,
     isPut: false,
@@ -35,9 +38,9 @@ export const openLongStraddle = async (
     {
       operation: OperationType.RyskAction,
       operationQueue: [
-        ...issue(optionSeries.collateral, callSeries),
+        ...issue(optionSeries.collateral, callExposure, callSeries),
         buyOption(acceptablePremium, amount, callSeries, userAddress),
-        ...issue(optionSeries.collateral, putSeries),
+        ...issue(optionSeries.collateral, putExposure, putSeries),
         buyOption(acceptablePremium, amount, putSeries, userAddress),
       ],
     },

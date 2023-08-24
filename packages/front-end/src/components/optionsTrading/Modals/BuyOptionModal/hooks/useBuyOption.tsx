@@ -20,7 +20,7 @@ export const useBuyOption = (amountToBuy: string) => {
     state: {
       balances,
       ethPrice,
-      options: { activeExpiry },
+      options: { activeExpiry, data },
       selectedOption,
     },
   } = useGlobalContext();
@@ -40,6 +40,7 @@ export const useBuyOption = (amountToBuy: string) => {
     breakEven: 0,
     callOrPut: selectedOption?.callOrPut,
     expiry: formatExpiry(activeExpiry),
+    exposure: 0,
     fee: 0,
     now: dateTimeNow,
     premium: 0,
@@ -78,11 +79,17 @@ export const useBuyOption = (amountToBuy: string) => {
           const requiredApproval = String(tFormatUSDC(acceptablePremium, 4));
           const approved = toUSDC(requiredApproval).lte(allowance.amount);
 
+          const exposure =
+            data[activeExpiry!][selectedOption.strikeOptions.strike][
+              selectedOption.callOrPut
+            ]?.exposure || 0;
+
           setPurchaseData({
             acceptablePremium,
             breakEven,
             callOrPut: selectedOption.callOrPut,
             expiry: formatExpiry(activeExpiry),
+            exposure,
             fee,
             now: dateTimeNow,
             premium,
@@ -99,6 +106,7 @@ export const useBuyOption = (amountToBuy: string) => {
             breakEven: 0,
             callOrPut: selectedOption?.callOrPut,
             expiry: formatExpiry(activeExpiry),
+            exposure: 0,
             fee: 0,
             now: dateTimeNow,
             premium: 0,

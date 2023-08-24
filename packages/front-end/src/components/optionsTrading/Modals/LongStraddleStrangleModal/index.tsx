@@ -96,6 +96,7 @@ export const LongStraddleStrangleModal = ({ strategy }: ModalProps) => {
           positionData.acceptablePremium,
           amount,
           addresses.exchange,
+          positionData.exposure,
           optionSeries,
           refresh,
           selectedStrikes,
