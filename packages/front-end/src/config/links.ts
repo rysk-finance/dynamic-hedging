@@ -16,4 +16,5 @@ export const COLLATERAL_DOCS =
 
 export const STRATEGY_LINKS = {
   LONG_STRADDLE: "https://optionalpha.com/strategies/long-straddle",
+  LONG_STRANGLE: "https://optionalpha.com/strategies/long-strangle"
 };
