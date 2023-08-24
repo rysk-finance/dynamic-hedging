@@ -21,7 +21,7 @@ import { Info } from "./components/Info";
 import { Pricing } from "./components/Pricing";
 import { useLongStraddle } from "./hooks/useLongStraddle";
 
-export const LongStraddleModal = () => {
+export const LongStraddleStrangleModal = () => {
   const {
     state: {
       geoData: { blocked },
