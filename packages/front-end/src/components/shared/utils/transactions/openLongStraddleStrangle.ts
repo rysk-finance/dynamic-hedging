@@ -37,11 +37,6 @@ export const openLongStraddle = async (
       operationQueue: [
         ...issue(optionSeries.collateral, callSeries),
         buyOption(acceptablePremium, amount, callSeries, userAddress),
-      ],
-    },
-    {
-      operation: OperationType.RyskAction,
-      operationQueue: [
         ...issue(optionSeries.collateral, putSeries),
         buyOption(acceptablePremium, amount, putSeries, userAddress),
       ],
