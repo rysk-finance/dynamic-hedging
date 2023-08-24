@@ -21,16 +21,16 @@ export const openLongStraddle = async (
   selectedStrikes: StrategyStrikesTuple,
   userAddress: HexString
 ) => {
-  const [callExposure, putExposure] = exposure;
+  const [putExposure, callExposure] = exposure;
 
   const callSeries: OptionSeries = {
     ...optionSeries,
-    isPut: false,
+    isPut: true,
     strike: toWei(selectedStrikes[0]),
   };
   const putSeries: OptionSeries = {
     ...optionSeries,
-    isPut: true,
+    isPut: false,
     strike: toWei(selectedStrikes[1]),
   };
 
@@ -38,10 +38,10 @@ export const openLongStraddle = async (
     {
       operation: OperationType.RyskAction,
       operationQueue: [
-        ...issue(optionSeries.collateral, callExposure, callSeries),
-        buyOption(acceptablePremium, amount, callSeries, userAddress),
         ...issue(optionSeries.collateral, putExposure, putSeries),
         buyOption(acceptablePremium, amount, putSeries, userAddress),
+        ...issue(optionSeries.collateral, callExposure, callSeries),
+        buyOption(acceptablePremium, amount, callSeries, userAddress),
       ],
     },
   ];

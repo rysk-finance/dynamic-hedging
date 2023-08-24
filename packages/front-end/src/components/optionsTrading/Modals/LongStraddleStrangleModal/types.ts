@@ -3,7 +3,7 @@ import type { Dispatch, SetStateAction } from "react";
 
 import { OptionChainModalActions } from "src/state/types";
 
-// [CALL, PUT]
+// [PUT, CALL]
 export type StrategyStrikesTuple = [string, string];
 
 export interface PositionDataState {
