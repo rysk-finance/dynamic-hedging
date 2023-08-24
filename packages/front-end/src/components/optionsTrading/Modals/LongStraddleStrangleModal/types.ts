@@ -1,6 +1,8 @@
 import type { BigNumber } from "ethers";
 import type { Dispatch, SetStateAction } from "react";
 
+import { OptionChainModalActions } from "src/state/types";
+
 export interface PositionDataState {
   acceptablePremium: BigNumber;
   breakEven: [number, number];
@@ -17,6 +19,12 @@ export interface PositionDataState {
 
 export interface InfoProps {
   positionData: PositionDataState;
+}
+
+export interface ModalProps {
+  strategy:
+    | OptionChainModalActions.LONG_STRADDLE
+    | OptionChainModalActions.LONG_STRANGLE;
 }
 
 export interface PricingProps {

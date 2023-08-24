@@ -31,7 +31,7 @@ export const OptionsTradingContent = () => {
       CLOSE_LONG,
       CLOSE_SHORT,
       LONG_STRADDLE,
-      LONG_STRANGE,
+      LONG_STRANGLE,
       OPERATOR,
       SELL,
     } = OptionChainModalActions;
@@ -50,10 +50,14 @@ export const OptionsTradingContent = () => {
         return <CloseShortOptionModal key={modalType} />;
 
       case LONG_STRADDLE:
-        return <LongStraddleStrangleModal key={modalType} />;
+        return (
+          <LongStraddleStrangleModal key={modalType} strategy={LONG_STRADDLE} />
+        );
 
-      case LONG_STRANGE:
-        return <LongStraddleStrangleModal key={modalType} />;
+      case LONG_STRANGLE:
+        return (
+          <LongStraddleStrangleModal key={modalType} strategy={LONG_STRANGLE} />
+        );
 
       case OPERATOR:
         return <OperatorModal key={modalType} />;
