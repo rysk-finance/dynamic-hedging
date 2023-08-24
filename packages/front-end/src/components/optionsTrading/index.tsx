@@ -1,4 +1,5 @@
 import { AnimatePresence, LayoutGroup } from "framer-motion";
+import { useMemo } from "react";
 
 import { OptionChainModalActions } from "src/state/types";
 
@@ -23,6 +24,48 @@ export const OptionsTradingContent = () => {
 
   useMinuteUpdate();
 
+  const visibleModal = useMemo(() => {
+    const {
+      ADJUST_COLLATERAL,
+      BUY,
+      CLOSE_LONG,
+      CLOSE_SHORT,
+      LONG_STRADDLE,
+      LONG_STRANGE,
+      OPERATOR,
+      SELL,
+    } = OptionChainModalActions;
+
+    switch (modalType) {
+      case ADJUST_COLLATERAL:
+        return <AdjustCollateralModal key={modalType} />;
+
+      case BUY:
+        return <BuyOptionModal key={modalType} />;
+
+      case CLOSE_LONG:
+        return <CloseOptionModal key={modalType} />;
+
+      case CLOSE_SHORT:
+        return <CloseShortOptionModal key={modalType} />;
+
+      case LONG_STRADDLE:
+        return <LongStraddleModal key={modalType} />;
+
+      case LONG_STRANGE:
+        return <LongStraddleModal key={modalType} />;
+
+      case OPERATOR:
+        return <OperatorModal key={modalType} />;
+
+      case SELL:
+        return <SellOptionModal key={modalType} />;
+
+      default:
+        return null;
+    }
+  }, [modalType]);
+
   return (
     <>
       <section className="col-start-1 col-end-17">
@@ -37,33 +80,7 @@ export const OptionsTradingContent = () => {
           </div>
         </LayoutGroup>
 
-        <AnimatePresence mode="wait">
-          {modalType === OptionChainModalActions.ADJUST_COLLATERAL && (
-            <AdjustCollateralModal key="adjust-collateral" />
-          )}
-          {modalType === OptionChainModalActions.BUY && (
-            <BuyOptionModal key="buy" />
-          )}
-          {modalType === OptionChainModalActions.CLOSE_LONG && (
-            <CloseOptionModal key="close-long" />
-          )}
-          {modalType === OptionChainModalActions.CLOSE_SHORT && (
-            <CloseShortOptionModal key="close-short" />
-          )}
-          {modalType === OptionChainModalActions.LONG_STRADDLE && (
-            <LongStraddleModal key="long-straddle" />
-          )}
-          {
-            modalType === OptionChainModalActions.LONG_STRANGE && <></>
-            // Modal here.
-          }
-          {modalType === OptionChainModalActions.OPERATOR && (
-            <OperatorModal key="operator" />
-          )}
-          {modalType === OptionChainModalActions.SELL && (
-            <SellOptionModal key="sell" />
-          )}
-        </AnimatePresence>
+        <AnimatePresence mode="wait">{visibleModal}</AnimatePresence>
       </section>
 
       <UserStats />
