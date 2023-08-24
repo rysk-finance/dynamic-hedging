@@ -1,3 +1,5 @@
+import type { ModalProps } from "./types";
+
 import { ChangeEvent } from "react";
 
 import { BigNumber } from "ethers";
@@ -21,7 +23,7 @@ import { Info } from "./components/Info";
 import { Pricing } from "./components/Pricing";
 import { useLongStraddle } from "./hooks/useLongStraddle";
 
-export const LongStraddleStrangleModal = () => {
+export const LongStraddleStrangleModal = ({ strategy }: ModalProps) => {
   const {
     state: {
       geoData: { blocked },

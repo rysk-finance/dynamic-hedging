@@ -449,7 +449,7 @@ export enum OptionChainModalActions {
   CLOSE_LONG = "closeLong",
   CLOSE_SHORT = "closeShort",
   LONG_STRADDLE = "longStraddle",
-  LONG_STRANGE = "longStrangle",
+  LONG_STRANGLE = "longStrangle",
   OPERATOR = "operator",
   SELL = "sell",
 }

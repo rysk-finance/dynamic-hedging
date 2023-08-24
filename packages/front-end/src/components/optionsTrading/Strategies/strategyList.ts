@@ -17,7 +17,7 @@ export const strategyList = [
     description: "Works when price moves up or down.",
     Icon: LongStrangle,
     label: "Long Strangle",
-    modal: OptionChainModalActions.LONG_STRANGE,
+    modal: OptionChainModalActions.LONG_STRANGLE,
   },
   // {
   //   description: "Works best when price trades in a defined range.",
