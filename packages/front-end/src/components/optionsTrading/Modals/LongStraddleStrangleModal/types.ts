@@ -10,6 +10,7 @@ export interface PositionDataState {
   acceptablePremium: BigNumber;
   breakEven: [number, number];
   expiry: string;
+  exposure: [number, number];
   fee: number;
   now: string;
   premium: number;

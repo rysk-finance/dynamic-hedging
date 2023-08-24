@@ -5,7 +5,7 @@ import { BigNumber } from "ethers";
 
 import { OptionExchangeABI } from "src/abis/OptionExchange_ABI";
 import { waitForTransactionOrTimer } from "src/components/shared/utils/waitForTransaction";
-import { GAS_MULTIPLIER, ZERO_ADDRESS } from "src/config/constants";
+import { GAS_MULTIPLIER } from "src/config/constants";
 import OperationType from "src/enums/OperationType";
 import { buyOption, issue } from "./operateBlocks";
 
@@ -13,6 +13,7 @@ export const buy = async (
   acceptablePremium: BigNumber,
   amount: BigNumber,
   exchangeAddress: HexString,
+  exposure: number,
   optionSeries: OptionSeries,
   refresh: () => void,
   userAddress: HexString
@@ -21,7 +22,7 @@ export const buy = async (
     {
       operation: OperationType.RyskAction,
       operationQueue: [
-        ...issue(optionSeries.collateral, optionSeries),
+        ...issue(optionSeries.collateral, exposure, optionSeries),
         buyOption(acceptablePremium, amount, optionSeries, userAddress),
       ],
     },

@@ -96,6 +96,7 @@ export const BuyOptionModal = () => {
           positionData.acceptablePremium,
           amount,
           addresses.exchange,
+          positionData.exposure,
           optionSeries,
           refresh,
           addresses.user

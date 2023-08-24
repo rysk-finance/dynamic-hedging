@@ -23,7 +23,7 @@ export const useLongStraddleStrangle = (
     state: {
       balances,
       ethPrice,
-      options: { activeExpiry },
+      options: { activeExpiry, data },
     },
   } = useGlobalContext();
 
@@ -41,6 +41,7 @@ export const useLongStraddleStrangle = (
     acceptablePremium: BigNumber.from(0),
     breakEven: [0, 0],
     expiry: formatExpiry(activeExpiry),
+    exposure: [0, 0],
     fee: 0,
     now: dateTimeNow,
     premium: 0,
@@ -102,10 +103,16 @@ export const useLongStraddleStrangle = (
             putQuote.breakEven - (callQuote.breakEven - parseInt(strikes[0])),
           ];
 
+          const callExposure =
+            data[activeExpiry!][Number(strikes[0])].call?.exposure || 0;
+          const putExposure =
+            data[activeExpiry!][Number(strikes[1])].put?.exposure || 0;
+
           setPositionData({
             acceptablePremium: totalAcceptablePremium,
             breakEven,
             expiry: formatExpiry(activeExpiry),
+            exposure: [callExposure, putExposure],
             fee: callQuote.fee + putQuote.fee,
             now: dateTimeNow,
             premium: callQuote.premium + putQuote.premium,
@@ -121,6 +128,7 @@ export const useLongStraddleStrangle = (
             acceptablePremium: BigNumber.from(0),
             breakEven: [0, 0],
             expiry: formatExpiry(activeExpiry),
+            exposure: [0, 0],
             fee: 0,
             now: dateTimeNow,
             premium: 0,

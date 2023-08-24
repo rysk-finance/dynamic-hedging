@@ -16,9 +16,10 @@ import { getContractAddress } from "src/utils/helpers";
 // This is due to the queue not filtering out empty objects.
 export const issue = (
   collateralAddress: HexString,
+  exposure: number,
   optionSeries: OptionSeries
 ) => {
-  if (collateralAddress !== getContractAddress("WETH")) {
+  if (collateralAddress !== getContractAddress("WETH") && exposure >= 0) {
     return [
       {
         actionType: BigNumber.from(RyskActionType.Issue),
