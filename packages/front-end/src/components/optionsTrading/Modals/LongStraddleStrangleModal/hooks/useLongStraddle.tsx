@@ -65,18 +65,18 @@ export const useLongStraddleStrangle = (
 
       try {
         if (amount > 0 && strikes[0] && strikes[1]) {
-          const [callQuote, putQuote] = await getQuotes([
+          const [putQuote, callQuote] = await getQuotes([
             {
               expiry: Number(activeExpiry),
               strike: toRysk(strikes[0]),
-              isPut: false,
+              isPut: true,
               orderSize: amount,
               isSell: false,
             },
             {
               expiry: Number(activeExpiry),
               strike: toRysk(strikes[1]),
-              isPut: true,
+              isPut: false,
               orderSize: amount,
               isSell: false,
             },
@@ -99,8 +99,8 @@ export const useLongStraddleStrangle = (
           const approved = toUSDC(requiredApproval).lte(allowance.amount);
 
           const breakEven: [number, number] = [
-            callQuote.breakEven + (parseInt(strikes[1]) - putQuote.breakEven),
             putQuote.breakEven - (callQuote.breakEven - parseInt(strikes[0])),
+            callQuote.breakEven + (parseInt(strikes[1]) - putQuote.breakEven),
           ];
 
           const callExposure =
@@ -112,7 +112,7 @@ export const useLongStraddleStrangle = (
             acceptablePremium: totalAcceptablePremium,
             breakEven,
             expiry: formatExpiry(activeExpiry),
-            exposure: [callExposure, putExposure],
+            exposure: [putExposure, callExposure],
             fee: callQuote.fee + putQuote.fee,
             now: dateTimeNow,
             premium: callQuote.premium + putQuote.premium,

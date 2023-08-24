@@ -6,19 +6,11 @@ export const determineStrikes = (
   strikes: [string, StrikeOptions][]
 ) => {
   return strikes.reduce(
-    ([calls, puts]: [string[], string[]], [strike, strikeOptions]) => {
+    ([puts, calls]: [string[], string[]], [strike, strikeOptions]) => {
       const strikeInt = parseInt(strike);
 
       if (isStrangle) {
-        const { call, put } = strikeOptions;
-
-        if (
-          strikeInt >= ethPrice &&
-          !call?.buy.disabled &&
-          call?.buy.quote.quote
-        ) {
-          calls.push(strike);
-        }
+        const { put, call } = strikeOptions;
 
         if (
           strikeInt <= ethPrice &&
@@ -26,6 +18,14 @@ export const determineStrikes = (
           put?.buy.quote.quote
         ) {
           puts.push(strike);
+        }
+
+        if (
+          strikeInt >= ethPrice &&
+          !call?.buy.disabled &&
+          call?.buy.quote.quote
+        ) {
+          calls.push(strike);
         }
       } else {
         // Determine strike density and ether filter by $100 or $50 on straddles.
@@ -41,7 +41,7 @@ export const determineStrikes = (
         }
       }
 
-      return [calls, puts] as [string[], string[]];
+      return [puts, calls] as [string[], string[]];
     },
     [[], []]
   );

@@ -95,7 +95,7 @@ export const Pricing = ({
       <div className="w-4/5 xl:w-3/5 mx-auto py-3">
         <span className="flex">
           <p className="mr-auto my-auto">
-            {isStrangle ? `Call strike:` : `Strike:`}
+            {isStrangle ? `Put strike:` : `Strike:`}
           </p>
           <RyskTooltip
             content={`Use this to select the strike price for the ${strategy.toLowerCase()}.`}
@@ -122,7 +122,7 @@ export const Pricing = ({
 
         {isStrangle && (
           <span className="flex pb-2 border-gray-600 border-b">
-            <p className="mr-auto my-auto">{`Put strike:`}</p>
+            <p className="mr-auto my-auto">{`Call strike:`}</p>
             <RyskTooltip
               content={`Use this to select the strike price for the ${strategy.toLowerCase()}.`}
               disabled={!tutorialMode}
