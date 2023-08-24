@@ -21,7 +21,7 @@ import { roundInputValue } from "../Shared/utils/roundNumberValue";
 import { Icon } from "./components/Icon";
 import { Info } from "./components/Info";
 import { Pricing } from "./components/Pricing";
-import { useLongStraddle } from "./hooks/useLongStraddle";
+import { useLongStraddleStrangle } from "./hooks/useLongStraddle";
 
 export const LongStraddleStrangleModal = ({ strategy }: ModalProps) => {
   const {
@@ -41,7 +41,7 @@ export const LongStraddleStrangleModal = ({ strategy }: ModalProps) => {
   const [transactionPending, setTransactionPending] = useState(false);
 
   const [addresses, allowance, setAllowance, positionData, loading] =
-    useLongStraddle(debouncedAmountToOpen, selectedStrikes);
+    useLongStraddleStrangle(debouncedAmountToOpen, selectedStrikes);
 
   const [notifyApprovalSuccess, handleTransactionSuccess, notifyFailure] =
     useNotifications();
