@@ -444,14 +444,14 @@ export type OptionsTradingState = {
 };
 
 export enum OptionChainModalActions {
-  ADJUST_COLLATERAL = "adjustCollateral",
-  BUY = "buy",
-  CLOSE_LONG = "closeLong",
-  CLOSE_SHORT = "closeShort",
-  LONG_STRADDLE = "longStraddle",
-  LONG_STRANGLE = "longStrangle",
-  OPERATOR = "operator",
-  SELL = "sell",
+  ADJUST_COLLATERAL = "Adjust Collateral",
+  BUY = "Buy",
+  CLOSE_LONG = "Close Long",
+  CLOSE_SHORT = "Close Short",
+  LONG_STRADDLE = "Long Straddle",
+  LONG_STRANGLE = "Long Strangle",
+  OPERATOR = "Operator",
+  SELL = "Sell",
 }
 
 export type OptionChainModal =
