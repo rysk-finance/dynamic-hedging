@@ -1,7 +1,6 @@
 import type { Addresses } from "../../Shared/types";
 import type { PositionDataState } from "../types";
 
-import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useDebounce } from "use-debounce";
 import { useAccount } from "wagmi";
@@ -14,6 +13,7 @@ import { tFormatEth, tFormatUSDC, toRysk } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
+import { dateTimeNow, formatExpiry } from "../../Shared/utils/datetime";
 
 export const useShortPositionData = (amountToClose: string) => {
   // Context state.
@@ -42,10 +42,10 @@ export const useShortPositionData = (amountToClose: string) => {
     collateralReleased: 0,
     collateralToRemove: BigNumber.from(0),
     collateralType: undefined,
-    expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
+    expiry: formatExpiry(activeExpiry),
     fee: 0,
     hasRequiredCapital: false,
-    now: dayjs().format("MMM DD, YYYY HH:mm A"),
+    now: dateTimeNow,
     premium: 0,
     quote: 0,
     remainingBalanceUSDC: 0,
@@ -78,7 +78,7 @@ export const useShortPositionData = (amountToClose: string) => {
 
       try {
         if (activeExpiry && tokenAddress && closingOption) {
-          const now = dayjs().format("MMM DD, YYYY HH:mm A");
+          const now = dateTimeNow;
 
           const totalSize = closingOption.amount;
           const title = closingOption.series;
@@ -145,7 +145,7 @@ export const useShortPositionData = (amountToClose: string) => {
               collateralReleased,
               collateralToRemove,
               collateralType,
-              expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
+              expiry: formatExpiry(activeExpiry),
               fee,
               hasRequiredCapital,
               now,
@@ -167,7 +167,7 @@ export const useShortPositionData = (amountToClose: string) => {
               collateralReleased: 0,
               collateralToRemove: BigNumber.from(0),
               collateralType,
-              expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
+              expiry: formatExpiry(activeExpiry),
               fee: 0,
               hasRequiredCapital: false,
               now,

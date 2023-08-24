@@ -1,7 +1,6 @@
 import type { Addresses } from "../../Shared/types";
 import type { CollateralDataState } from "../types";
 
-import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useDebounce } from "use-debounce";
 import { useAccount } from "wagmi";
@@ -18,6 +17,7 @@ import {
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
+import { dateTimeNow, formatExpiry } from "../../Shared/utils/datetime";
 
 export const useCollateralData = (
   amountToAdjust: string,
@@ -47,10 +47,10 @@ export const useCollateralData = (
     callOrPut: adjustingOption?.isPut ? "put" : "call",
     collateral: adjustingOption?.collateralAmount || 0,
     disabled: false,
-    expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
+    expiry: formatExpiry(activeExpiry),
     hasRequiredCapital: true,
     liquidationPrice: adjustingOption?.liquidationPrice || 0,
-    now: dayjs().format("MMM DD, YYYY HH:mm A"),
+    now: dateTimeNow,
     remainingBalanceUSDC: 0,
     remainingBalanceWETH: 0,
     requiredApproval: "",
@@ -132,10 +132,10 @@ export const useCollateralData = (
             callOrPut,
             collateral: newCollateral,
             disabled,
-            expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
+            expiry: formatExpiry(activeExpiry),
             hasRequiredCapital,
             liquidationPrice,
-            now: dayjs().format("MMM DD, YYYY HH:mm A"),
+            now: dateTimeNow,
             remainingBalanceUSDC,
             remainingBalanceWETH,
             requiredApproval,
@@ -148,10 +148,10 @@ export const useCollateralData = (
             callOrPut: adjustingOption?.isPut ? "put" : "call",
             collateral: adjustingOption?.collateralAmount || 0,
             disabled: false,
-            expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
+            expiry: formatExpiry(activeExpiry),
             hasRequiredCapital: true,
             liquidationPrice: adjustingOption?.liquidationPrice || 0,
-            now: dayjs().format("MMM DD, YYYY HH:mm A"),
+            now: dateTimeNow,
             remainingBalanceUSDC: balanceUSDC,
             remainingBalanceWETH: balanceWETH,
             requiredApproval: "",
