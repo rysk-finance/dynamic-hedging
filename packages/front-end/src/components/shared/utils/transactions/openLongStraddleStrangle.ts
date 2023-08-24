@@ -1,3 +1,4 @@
+import type { StrategyStrikesTuple } from "src/components/optionsTrading/Modals/LongStraddleStrangleModal/types";
 import type { OptionSeries } from "src/types";
 
 import { prepareWriteContract, writeContract } from "@wagmi/core";
@@ -7,18 +8,28 @@ import { OptionExchangeABI } from "src/abis/OptionExchange_ABI";
 import { waitForTransactionOrTimer } from "src/components/shared/utils/waitForTransaction";
 import { GAS_MULTIPLIER } from "src/config/constants";
 import OperationType from "src/enums/OperationType";
+import { toWei } from "src/utils/conversion-helper";
 import { buyOption, issue } from "./operateBlocks";
 
 export const openLongStraddle = async (
   acceptablePremium: BigNumber,
   amount: BigNumber,
   exchangeAddress: HexString,
-  optionSeries: Omit<OptionSeries, "isPut">,
+  optionSeries: Omit<OptionSeries, "isPut" | "strike">,
   refresh: () => void,
+  selectedStrikes: StrategyStrikesTuple,
   userAddress: HexString
 ) => {
-  const callSeries = { ...optionSeries, isPut: false };
-  const putSeries = { ...optionSeries, isPut: true };
+  const callSeries: OptionSeries = {
+    ...optionSeries,
+    isPut: false,
+    strike: toWei(selectedStrikes[0]),
+  };
+  const putSeries: OptionSeries = {
+    ...optionSeries,
+    isPut: true,
+    strike: toWei(selectedStrikes[1]),
+  };
 
   const txData = [
     {
