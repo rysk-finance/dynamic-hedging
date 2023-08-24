@@ -1,7 +1,6 @@
 import type { Addresses } from "../../Shared/types";
-import type { PositionDataState } from "../types";
+import type { PositionDataState, StrategyStrikesTuple } from "../types";
 
-import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useDebounce } from "use-debounce";
 import { useAccount } from "wagmi";
@@ -13,8 +12,12 @@ import { tFormatUSDC, toRysk, toUSDC } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
+import { dateTimeNow, formatExpiry } from "../../Shared/utils/datetime";
 
-export const useLongStraddle = (amountToOpen: string, strike: string) => {
+export const useLongStraddle = (
+  amountToOpen: string,
+  strikes: StrategyStrikesTuple
+) => {
   // Global state.
   const {
     state: {
@@ -37,15 +40,15 @@ export const useLongStraddle = (amountToOpen: string, strike: string) => {
   const [positionData, setPositionData] = useState<PositionDataState>({
     acceptablePremium: BigNumber.from(0),
     breakEven: [0, 0],
-    expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
+    expiry: formatExpiry(activeExpiry),
     fee: 0,
-    now: dayjs().format("MMM DD, YYYY HH:mm A"),
+    now: dateTimeNow,
     premium: 0,
     quote: 0,
     remainingBalance: 0,
     requiredApproval: "",
     slippage: 0,
-    strike: parseInt(strike),
+    strikes: strikes.map(Number) as [number, number],
   });
 
   const [loading, setLoading] = useState(false);
@@ -53,22 +56,25 @@ export const useLongStraddle = (amountToOpen: string, strike: string) => {
 
   // Get user position price data.
   useEffect(() => {
-    const setPriceData = async (amount: number, strike: string) => {
+    const setPriceData = async (
+      amount: number,
+      strikes: StrategyStrikesTuple
+    ) => {
       setLoading(true);
 
       try {
-        if (amount > 0 && strike) {
+        if (amount > 0 && strikes[0] && strikes[1]) {
           const [callQuote, putQuote] = await getQuotes([
             {
               expiry: Number(activeExpiry),
-              strike: toRysk(strike),
+              strike: toRysk(strikes[0]),
               isPut: false,
               orderSize: amount,
               isSell: false,
             },
             {
               expiry: Number(activeExpiry),
-              strike: toRysk(strike),
+              strike: toRysk(strikes[1]),
               isPut: true,
               orderSize: amount,
               isSell: false,
@@ -92,37 +98,37 @@ export const useLongStraddle = (amountToOpen: string, strike: string) => {
           const approved = toUSDC(requiredApproval).lte(allowance.amount);
 
           const breakEven: [number, number] = [
-            callQuote.breakEven + (parseInt(strike) - putQuote.breakEven),
-            putQuote.breakEven - (callQuote.breakEven - parseInt(strike)),
+            callQuote.breakEven + (parseInt(strikes[1]) - putQuote.breakEven),
+            putQuote.breakEven - (callQuote.breakEven - parseInt(strikes[0])),
           ];
 
           setPositionData({
             acceptablePremium: totalAcceptablePremium,
             breakEven,
-            expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
+            expiry: formatExpiry(activeExpiry),
             fee: callQuote.fee + putQuote.fee,
-            now: dayjs().format("MMM DD, YYYY HH:mm A"),
+            now: dateTimeNow,
             premium: callQuote.premium + putQuote.premium,
             quote: callQuote.quote + putQuote.quote,
             remainingBalance,
             requiredApproval,
             slippage: callQuote.slippage + putQuote.slippage,
-            strike: parseFloat(strike),
+            strikes: strikes.map(Number) as [number, number],
           });
           setAllowance((currentState) => ({ ...currentState, approved }));
         } else {
           setPositionData({
             acceptablePremium: BigNumber.from(0),
             breakEven: [0, 0],
-            expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
+            expiry: formatExpiry(activeExpiry),
             fee: 0,
-            now: dayjs().format("MMM DD, YYYY HH:mm A"),
+            now: dateTimeNow,
             premium: 0,
             quote: 0,
             remainingBalance: balances.USDC,
             requiredApproval: "",
             slippage: 0,
-            strike: parseFloat(strike),
+            strikes: strikes.map(Number) as [number, number],
           });
           setAllowance((currentState) => ({
             ...currentState,
@@ -137,8 +143,8 @@ export const useLongStraddle = (amountToOpen: string, strike: string) => {
       }
     };
 
-    setPriceData(Number(amountToOpen), strike);
-  }, [amountToOpen, allowance.amount, ethPrice, strike]);
+    setPriceData(Number(amountToOpen), strikes);
+  }, [amountToOpen, allowance.amount, ethPrice, strikes]);
 
   const addresses: Addresses = {
     collateral: USDCAddress,

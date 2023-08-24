@@ -1,4 +1,4 @@
-import type { ModalProps } from "./types";
+import type { ModalProps, StrategyStrikesTuple } from "./types";
 
 import { ChangeEvent } from "react";
 
@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useDebounce } from "use-debounce";
 
 import { approveAllowance } from "src/components/shared/utils/transactions/approveAllowance";
-import { openLongStraddle } from "src/components/shared/utils/transactions/openLongStraddle";
+import { openLongStraddle } from "src/components/shared/utils/transactions/openLongStraddleStrangle";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { toUSDC, toWei } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
@@ -33,12 +33,15 @@ export const LongStraddleStrangleModal = ({ strategy }: ModalProps) => {
   } = useGlobalContext();
 
   const [amountToOpen, setAmountToOpen] = useState("");
-  const [selectedStrike, setSelectedStrike] = useState("");
+  const [selectedStrikes, setSelectedStrikes] = useState<StrategyStrikesTuple>([
+    "",
+    "",
+  ]);
   const [debouncedAmountToOpen] = useDebounce(amountToOpen, 300);
   const [transactionPending, setTransactionPending] = useState(false);
 
   const [addresses, allowance, setAllowance, positionData, loading] =
-    useLongStraddle(debouncedAmountToOpen, selectedStrike);
+    useLongStraddle(debouncedAmountToOpen, selectedStrikes);
 
   const [notifyApprovalSuccess, handleTransactionSuccess, notifyFailure] =
     useNotifications();
@@ -84,7 +87,6 @@ export const LongStraddleStrangleModal = ({ strategy }: ModalProps) => {
 
         const optionSeries = {
           expiration: BigNumber.from(activeExpiry),
-          strike: toWei(selectedStrike),
           strikeAsset: addresses.token,
           underlying: getContractAddress("WETH"),
           collateral: addresses.collateral,
@@ -96,12 +98,13 @@ export const LongStraddleStrangleModal = ({ strategy }: ModalProps) => {
           addresses.exchange,
           optionSeries,
           refresh,
+          selectedStrikes,
           addresses.user
         );
 
         if (hash) {
           setTransactionPending(false);
-          handleTransactionSuccess(hash, "Purchase");
+          handleTransactionSuccess(hash, strategy);
         }
       }
     } catch (error) {
@@ -112,23 +115,27 @@ export const LongStraddleStrangleModal = ({ strategy }: ModalProps) => {
 
   return (
     <Modal>
-      <Header>{`Long Straddle`}</Header>
+      <Header>{strategy}</Header>
 
       <div className="flex">
-        <Info positionData={positionData} />
-        <Icon />
+        <Info positionData={positionData} strategy={strategy} />
+        <Icon strategy={strategy} />
       </div>
 
       <Pricing
         amount={debouncedAmountToOpen}
         positionData={positionData}
-        strikeState={{ selectedStrike, setSelectedStrike }}
+        strategy={strategy}
+        strikeState={{
+          selectedStrike: selectedStrikes,
+          setSelectedStrike: setSelectedStrikes,
+        }}
       />
 
       <Wrapper>
         <Label title="Enter how many positions would like to open.">
           <Input
-            name="long-straddle"
+            name={strategy}
             onChange={handleChange}
             placeholder="How many would you like to open?"
             value={amountToOpen}
@@ -156,7 +163,7 @@ export const LongStraddleStrangleModal = ({ strategy }: ModalProps) => {
       </Wrapper>
 
       <Disclaimer>
-        {`You are about to make a trade using your USDC balance to pay for the options premium and fees. This strategy will open one PUT and one CALL for each position. Please ensure this is what you want because the action is irreversible.`}
+        {`You are about to make a trade using your USDC balance to pay for the options premium and fees. This strategy will open one CALL and one PUT for each position. Please ensure this is what you want because the action is irreversible.`}
       </Disclaimer>
     </Modal>
   );

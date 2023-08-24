@@ -3,6 +3,9 @@ import type { Dispatch, SetStateAction } from "react";
 
 import { OptionChainModalActions } from "src/state/types";
 
+// [CALL, PUT]
+export type StrategyStrikesTuple = [string, string];
+
 export interface PositionDataState {
   acceptablePremium: BigNumber;
   breakEven: [number, number];
@@ -14,11 +17,7 @@ export interface PositionDataState {
   remainingBalance: number;
   requiredApproval: string;
   slippage: number;
-  strike?: number;
-}
-
-export interface InfoProps {
-  positionData: PositionDataState;
+  strikes?: [number, number];
 }
 
 export interface ModalProps {
@@ -27,11 +26,15 @@ export interface ModalProps {
     | OptionChainModalActions.LONG_STRANGLE;
 }
 
-export interface PricingProps {
+export interface InfoProps extends ModalProps {
+  positionData: PositionDataState;
+}
+
+export interface PricingProps extends ModalProps {
   amount: string;
   positionData: PositionDataState;
   strikeState: {
-    selectedStrike: string;
-    setSelectedStrike: Dispatch<SetStateAction<string>>;
+    selectedStrike: StrategyStrikesTuple;
+    setSelectedStrike: Dispatch<SetStateAction<StrategyStrikesTuple>>;
   };
 }

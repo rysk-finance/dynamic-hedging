@@ -11,10 +11,13 @@ import FadeInUpDelayed from "src/animation/FadeInUpDelayed";
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
 import { RyskTooltip } from "src/components/shared/RyskToolTip";
 import { useGlobalContext } from "src/state/GlobalContext";
+import { OptionChainModalActions } from "src/state/types";
+import { determineStrikes } from "../utils/determineStrikes";
 
 export const Pricing = ({
   amount,
   positionData,
+  strategy,
   strikeState: { selectedStrike, setSelectedStrike },
 }: PricingProps) => {
   const {
@@ -37,12 +40,18 @@ export const Pricing = ({
     quote,
     remainingBalance,
     slippage,
-    strike,
+    strikes,
   } = positionData;
+
+  const isStrangle = strategy === OptionChainModalActions.LONG_STRANGLE;
+  const strikesSelected = strikes && strikes[0] && strikes[1];
 
   const errorMessage = useMemo(() => {
     switch (true) {
-      case amount && !strike:
+      case amount && !strikesSelected && isStrangle:
+        return "Please select your strikes.";
+
+      case amount && !strikesSelected:
         return "Please select a strike.";
 
       case remainingBalance <= 0 && Boolean(quote):
@@ -56,42 +65,52 @@ export const Pricing = ({
     }
   }, [positionData]);
 
-  const availableStrikes = useMemo(() => {
-    const strikes = Object.keys(data[activeExpiry!]);
-    const range = strikes.some((strike) => parseFloat(strike) % 100) ? 50 : 100;
-
-    return strikes.filter((strike) => {
-      const strikeInt = parseFloat(strike);
-      const lowerBound = ethPrice - range;
-      const upperBound = ethPrice + range;
-
-      return strikeInt >= lowerBound && strikeInt <= upperBound;
-    });
+  const [callStrikes, putStrikes] = useMemo(() => {
+    return determineStrikes(
+      ethPrice,
+      isStrangle,
+      Object.entries(data[activeExpiry!])
+    );
   }, [data]);
 
-  const handleSelect = (event: ChangeEvent<HTMLSelectElement>) => {
-    setSelectedStrike(event.currentTarget.value);
-  };
+  const handleSelect =
+    (index: number) => (event: ChangeEvent<HTMLSelectElement>) => {
+      const selectedStrike = event.currentTarget.value;
+
+      if (isStrangle) {
+        setSelectedStrike((currentStrikes) => {
+          if (index) {
+            return [currentStrikes[0], selectedStrike];
+          } else {
+            return [selectedStrike, currentStrikes[1]];
+          }
+        });
+      } else {
+        setSelectedStrike([selectedStrike, selectedStrike]);
+      }
+    };
 
   return (
     <div className="flex flex-col">
       <div className="w-4/5 xl:w-3/5 mx-auto py-3">
-        <span className="flex pb-2 border-gray-600 border-b">
-          <p className="mr-auto">{`Strike:`}</p>
+        <span className="flex">
+          <p className="mr-auto my-auto">
+            {isStrangle ? `Call strike:` : `Strike:`}
+          </p>
           <RyskTooltip
-            content="Use this to select the strike price for the straddle."
+            content={`Use this to select the strike price for the ${strategy.toLowerCase()}.`}
             disabled={!tutorialMode}
             placement="left"
           >
-            <div className="relative flex w-1/3">
-              <DownChevron className="h-6 w-6 absolute pointer-events-none" />
+            <div className="relative flex w-2/5">
+              <DownChevron className="h-6 w-6 absolute top-2.5 pointer-events-none" />
               <select
-                className="bg-transparent	text-right appearance-none w-full cursor-pointer"
-                value={selectedStrike}
-                onChange={handleSelect}
+                className="bg-transparent	text-right appearance-none w-full cursor-pointer py-2.5 font-dm-mono"
+                value={selectedStrike[0]}
+                onChange={handleSelect(0)}
               >
                 <option disabled value="">{`Select strike`}</option>
-                {availableStrikes.map((strike) => (
+                {callStrikes.map((strike) => (
                   <option key={strike} value={strike}>
                     {`$ ${strike}`}
                   </option>
@@ -101,8 +120,35 @@ export const Pricing = ({
           </RyskTooltip>
         </span>
 
+        {isStrangle && (
+          <span className="flex pb-2 border-gray-600 border-b">
+            <p className="mr-auto my-auto">{`Put strike:`}</p>
+            <RyskTooltip
+              content={`Use this to select the strike price for the ${strategy.toLowerCase()}.`}
+              disabled={!tutorialMode}
+              placement="left"
+            >
+              <div className="relative flex w-2/5">
+                <DownChevron className="h-6 w-6 absolute top-2.5 pointer-events-none" />
+                <select
+                  className="bg-transparent	text-right appearance-none w-full cursor-pointer py-2.5 font-dm-mono"
+                  value={selectedStrike[1]}
+                  onChange={handleSelect(1)}
+                >
+                  <option disabled value="">{`Select strike`}</option>
+                  {putStrikes.map((strike) => (
+                    <option key={strike} value={strike}>
+                      {`$ ${strike}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </RyskTooltip>
+          </span>
+        )}
+
         <AnimatePresence>
-          {strike && (
+          {strikesSelected && (
             <motion.div layout="position" {...FadeInUpDelayed(0.05)}>
               <span className="flex pt-2">
                 <p className="mr-auto">{`Premium:`}</p>
@@ -203,9 +249,7 @@ export const Pricing = ({
         </AnimatePresence>
       </div>
 
-      <small className="flex flex-col pb-3 text-center leading-6 text-gray-600">
-        {`Last updated: ${now}`}
-      </small>
+      <small className="flex flex-col pb-3 text-center leading-6 text-gray-600">{`Last updated: ${now}`}</small>
     </div>
   );
 };
