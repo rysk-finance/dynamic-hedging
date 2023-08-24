@@ -12,6 +12,8 @@ import { OptionSeries } from "src/types";
 import { fromWeiToOpyn } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 
+// The return value must be spread into the queue.
+// This is due to the queue not filtering out empty objects.
 export const issue = (
   collateralAddress: HexString,
   optionSeries: OptionSeries
