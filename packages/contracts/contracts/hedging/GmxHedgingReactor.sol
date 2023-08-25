@@ -308,7 +308,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 			uint collateralToRemoveShort;
 			if (_internalDelta >= 0) {
 				// we are net long/neutral. close shorts
-				uint256[] memory shortPosition = _getPosition(false);
 				collateralToRemoveShort = _getCollateralSizeDeltaUsd(false, false, openShortDelta, false);
 				(bytes32 key1, int deltaChange1) = _decreasePosition(
 					openShortDelta,
@@ -326,7 +325,6 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 				decreaseOrderDeltaChange[key2] += deltaChange2;
 			} else {
 				// we are net short
-				uint256[] memory longPosition = _getPosition(true);
 				collateralToRemoveLong = _getCollateralSizeDeltaUsd(false, false, openLongDelta, true);
 				(bytes32 key1, int deltaChange1) = _decreasePosition(
 					openLongDelta,

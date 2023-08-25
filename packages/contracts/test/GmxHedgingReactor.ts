@@ -1260,7 +1260,6 @@ describe("change to 4x leverage factor", async () => {
 			params: [funderAddress]
 		})
 		const funder = await ethers.getSigner(funderAddress)
-		console.log(await weth.balanceOf(funderAddress))
 		weth.connect(funder).transfer(gmxReactor.address, utils.parseEther("1.5"))
 
 		const contractTokenBalanceBefore = await weth.balanceOf(gmxReactor.address)
@@ -1909,7 +1908,6 @@ describe("griefing attack", async () => {
 
 		await gmxPositionRouter.connect(deployer).executeDecreasePosition(positionKey, deployerAddress)
 
-		console.log({ positionKey })
 		expect(await gmxReactor.pendingDecreaseCallback()).to.eq(1)
 		expect(await gmxReactor.internalDelta()).to.eq(utils.parseEther("10"))
 	})
