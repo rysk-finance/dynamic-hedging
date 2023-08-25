@@ -47,7 +47,7 @@ export const VaultPerformance = () => {
         : 0;
 
       // Values need replacing with API/Chain data.
-      const ethPrices = [1892.21, 1877.3, 1845.48, 1842.73, 1653.45, 1657.41];
+      const ethPrices = [1892.21, 1877.3, 1845.48, 1842.73, 1653.45, 1647.60];
 
       const adjustedChartData = pricePerShares.map((pricePoint, index) => {
         const pricePointGrowth = parseFloat(pricePoint.growthSinceFirstEpoch);
