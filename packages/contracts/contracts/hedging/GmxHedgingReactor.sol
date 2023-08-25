@@ -207,10 +207,18 @@ contract GmxHedgingReactor is IHedgingReactor, AccessControl {
 	/// access-controlled external functions ///
 	////////////////////////////////////////////
 
-	function sweepFunds(uint256 _amount, address _receiver) external {
+	function sweepFunds(uint256 _amount, address _receiver, address tokenAddress) external {
 		_onlyGovernor();
-		uint256 balance = address(this).balance;
-		SafeTransferLib.safeTransferETH(_receiver, _amount > balance ? balance : _amount);
+		if (_amount > 0) {
+			uint256 ethBalance = address(this).balance;
+			SafeTransferLib.safeTransferETH(_receiver, _amount > ethBalance ? ethBalance : _amount);
+		}
+		if (tokenAddress != address(0)) {
+			uint256 tokenBalance = ERC20(tokenAddress).balanceOf(address(this));
+			if (tokenBalance > 0) {
+				SafeTransferLib.safeTransfer(ERC20(tokenAddress), _receiver, tokenBalance);
+			}
+		}
 	}
 
 	/// @inheritdoc IHedgingReactor
