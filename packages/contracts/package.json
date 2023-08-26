@@ -30,8 +30,6 @@
 		"deployRangeOrderReactor:arbitrumGoerli": "npx hardhat run deploy/arbitrum/DeployRangeOrderReactor.ts --network arbitrumGoerli",
 		"deployLens:arbitrum": "npx hardhat run deploy/arbitrum/deployDHVLensMK1.ts --network arbitrum",
 		"deployLens:arbitrumGoerli": "npx hardhat run deploy/arbitrum/deployDHVLensMK1.ts --network arbitrumGoerli",
-		"deployPPSLens:arbitrum": "npx hardhat run deploy/arbitrum/deployPPSLensMK1.ts --network arbitrum",
-		"deployPPSLens:arbitrumGoerli": "npx hardhat run deploy/arbitrum/deployPPSLensMK1.ts --network arbitrumGoerli",
 		"deployUserLens:arbitrumGoerli": "npx hardhat run deploy/arbitrum-goerli/deployUserLens.ts --network arbitrumGoerli",
 		"execute-epoch:testnet": "npx hardhat run scripts/executeEpochTestnet.ts --network arbitrumGoerli",
 		"issue-series:testnet": "npx hardhat run scripts/issue-series.ts --network arbitrumGoerli",

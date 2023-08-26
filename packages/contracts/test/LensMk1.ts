@@ -42,6 +42,7 @@ import { deployLiquidityPool, deploySystem } from "../utils/generic-system-deplo
 import { deployOpyn } from "../utils/opyn-deployer"
 import { CHAINLINK_WETH_PRICER, MARGIN_POOL, WETH_ADDRESS } from "./constants"
 import { compareQuotes, setOpynOracleExpiryPrice, setupOracle, setupTestOracle } from "./helpers"
+import { libraries } from "@ragetrade/sdk/dist/typechain/uniswap-periphery"
 dayjs.extend(utc)
 let usd: MintableERC20
 let weth: WETH
@@ -268,7 +269,24 @@ describe("Lens", async () => {
 			expect(delta).to.equal(0)
 		})
 		it("SETUP: deploy lens contract", async () => {
-			const lensFactory = await ethers.getContractFactory("DHVLensMK1")
+			const normDistFactory = await ethers.getContractFactory(
+				"contracts/libraries/NormalDist.sol:NormalDist",
+				{
+					libraries: {}
+				}
+			)
+			const normDist = await normDistFactory.deploy()
+			const blackScholesFactory = await ethers.getContractFactory(
+				"contracts/libraries/BlackScholes.sol:BlackScholes",
+				{
+					libraries: {
+						NormalDist: normDist.address
+					}
+				}
+			)
+			const blackScholesDeploy = await blackScholesFactory.deploy()
+			const lensFactory = await ethers.getContractFactory("DHVLensMK1",
+			{libraries: {BlackScholes: blackScholesDeploy.address}})
 			lens = (await lensFactory.deploy(
 				optionProtocol.address,
 				catalogue.address,
@@ -276,7 +294,8 @@ describe("Lens", async () => {
 				usd.address,
 				weth.address,
 				usd.address,
-				exchange.address
+				exchange.address,
+				liquidityPool.address
 			)) as DHVLensMK1
 		})
 
@@ -718,6 +737,10 @@ describe("Lens", async () => {
 			it("ping the lens contract", async () => {
 				const lensVals = await lens.getOptionChain()
 				// console.log({lensVals})
+			})
+			it("ping the lens pps", async () => {
+				const lensVals = await lens.getCurrentPricePerShare()
+				console.log({lensVals})
 			})
 		})
 		describe("Hit the exposure Lens", async () => {

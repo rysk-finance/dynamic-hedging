@@ -10,20 +10,34 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
 	const addresses = getAddresses(hre.network.name)
 	const { deploy } = deployments
 	const { deployer } = await getNamedAccounts()
-
-	const deployResult = await deploy("DHVLensMK1", {
-		from: deployer,
-		args: [
-			addresses.protocol,
-			addresses.catalogue,
-			addresses.pricer,
-			addresses.usdc,
-			addresses.weth,
-			addresses.usdc,
-			addresses.exchange
-		],
-		log: true
-	})
+	const normDistFactory = await ethers.getContractFactory(
+		"contracts/libraries/NormalDist.sol:NormalDist",
+		{
+			libraries: {}
+		}
+	)
+	const normDist = await normDistFactory.deploy()
+	const blackScholesFactory = await ethers.getContractFactory(
+		"contracts/libraries/BlackScholes.sol:BlackScholes",
+		{
+			libraries: {
+				NormalDist: normDist.address
+			}
+		}
+	)
+	const blackScholesDeploy = await blackScholesFactory.deploy()
+	const lensFactory = await ethers.getContractFactory("DHVLensMK1",
+		{ libraries: { BlackScholes: blackScholesDeploy.address } })
+	const deployResult = (await lensFactory.deploy(
+		addresses.protocol,
+		addresses.catalogue,
+		addresses.pricer,
+		addresses.usdc,
+		addresses.weth,
+		addresses.usdc,
+		addresses.exchange,
+		addresses.liquidityPool
+	)) as DHVLensMK1
 
 	console.log(`DHVLensMK1 deployed to: ${deployResult.address}`)
 
@@ -37,12 +51,13 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
 				addresses.usdc,
 				addresses.weth,
 				addresses.usdc,
-				addresses.exchange
+				addresses.exchange,
+				addresses.liquidityPool
 			]
 		})
 		console.log("DHV lens verified")
 	} catch (verificationError) {
-		console.log({verificationError})
+		console.log({ verificationError })
 	}
 }
 
