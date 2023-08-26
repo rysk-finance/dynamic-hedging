@@ -740,7 +740,7 @@ describe("Lens", async () => {
 			})
 			it("ping the lens pps", async () => {
 				const lensVals = await lens.getCurrentPricePerShare()
-				console.log({lensVals})
+				// console.log({lensVals})
 			})
 		})
 		describe("Hit the exposure Lens", async () => {
