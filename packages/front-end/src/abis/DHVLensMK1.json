@@ -35,10 +35,42 @@
 				"internalType": "address",
 				"name": "_exchange",
 				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_liquidityPool",
+				"type": "address"
 			}
 		],
 		"stateMutability": "nonpayable",
 		"type": "constructor"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "prod1",
+				"type": "uint256"
+			}
+		],
+		"name": "PRBMath__MulDivFixedPointOverflow",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "prod1",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "denominator",
+				"type": "uint256"
+			}
+		],
+		"name": "PRBMath__MulDivOverflow",
+		"type": "error"
 	},
 	{
 		"inputs": [],
@@ -68,12 +100,80 @@
 	},
 	{
 		"inputs": [],
+		"name": "computeOptionsValues",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "int256",
+						"name": "delta",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "gamma",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "vega",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "theta",
+						"type": "int256"
+					},
+					{
+						"internalType": "int256",
+						"name": "callPutsValue",
+						"type": "int256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "timestamp",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "spotPrice",
+						"type": "uint256"
+					}
+				],
+				"internalType": "struct Types.PortfolioValues",
+				"name": "",
+				"type": "tuple"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
 		"name": "exchange",
 		"outputs": [
 			{
 				"internalType": "address",
 				"name": "",
 				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getCurrentPricePerShare",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
 			}
 		],
 		"stateMutability": "view",
@@ -655,6 +755,19 @@
 				"internalType": "struct DHVLensMK1.OptionExpirationDrill",
 				"name": "",
 				"type": "tuple"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "liquidityPool",
+		"outputs": [
+			{
+				"internalType": "contract ILiquidityPool",
+				"name": "",
+				"type": "address"
 			}
 		],
 		"stateMutability": "view",

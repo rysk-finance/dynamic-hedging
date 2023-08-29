@@ -20,6 +20,36 @@ import type {
   OnEvent,
 } from "./common";
 
+export declare namespace Types {
+  export type PortfolioValuesStruct = {
+    delta: BigNumberish;
+    gamma: BigNumberish;
+    vega: BigNumberish;
+    theta: BigNumberish;
+    callPutsValue: BigNumberish;
+    timestamp: BigNumberish;
+    spotPrice: BigNumberish;
+  };
+
+  export type PortfolioValuesStructOutput = [
+    BigNumber,
+    BigNumber,
+    BigNumber,
+    BigNumber,
+    BigNumber,
+    BigNumber,
+    BigNumber
+  ] & {
+    delta: BigNumber;
+    gamma: BigNumber;
+    vega: BigNumber;
+    theta: BigNumber;
+    callPutsValue: BigNumber;
+    timestamp: BigNumber;
+    spotPrice: BigNumber;
+  };
+}
+
 export declare namespace DHVLensMK1 {
   export type TradingSpecStruct = {
     iv: BigNumberish;
@@ -125,10 +155,13 @@ export interface DHVLensMK1Interface extends utils.Interface {
   functions: {
     "catalogue()": FunctionFragment;
     "collateralAsset()": FunctionFragment;
+    "computeOptionsValues()": FunctionFragment;
     "exchange()": FunctionFragment;
+    "getCurrentPricePerShare()": FunctionFragment;
     "getExpirations()": FunctionFragment;
     "getOptionChain()": FunctionFragment;
     "getOptionExpirationDrill(uint64)": FunctionFragment;
+    "liquidityPool()": FunctionFragment;
     "pricer()": FunctionFragment;
     "protocol()": FunctionFragment;
     "strikeAsset()": FunctionFragment;
@@ -140,7 +173,15 @@ export interface DHVLensMK1Interface extends utils.Interface {
     functionFragment: "collateralAsset",
     values?: undefined
   ): string;
+  encodeFunctionData(
+    functionFragment: "computeOptionsValues",
+    values?: undefined
+  ): string;
   encodeFunctionData(functionFragment: "exchange", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "getCurrentPricePerShare",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "getExpirations",
     values?: undefined
@@ -152,6 +193,10 @@ export interface DHVLensMK1Interface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "getOptionExpirationDrill",
     values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "liquidityPool",
+    values?: undefined
   ): string;
   encodeFunctionData(functionFragment: "pricer", values?: undefined): string;
   encodeFunctionData(functionFragment: "protocol", values?: undefined): string;
@@ -169,7 +214,15 @@ export interface DHVLensMK1Interface extends utils.Interface {
     functionFragment: "collateralAsset",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "computeOptionsValues",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "exchange", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "getCurrentPricePerShare",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "getExpirations",
     data: BytesLike
@@ -180,6 +233,10 @@ export interface DHVLensMK1Interface extends utils.Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "getOptionExpirationDrill",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "liquidityPool",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "pricer", data: BytesLike): Result;
@@ -228,7 +285,15 @@ export interface DHVLensMK1 extends BaseContract {
 
     collateralAsset(overrides?: CallOverrides): Promise<[string]>;
 
+    computeOptionsValues(
+      overrides?: CallOverrides
+    ): Promise<[Types.PortfolioValuesStructOutput]>;
+
     exchange(overrides?: CallOverrides): Promise<[string]>;
+
+    getCurrentPricePerShare(
+      overrides?: CallOverrides
+    ): Promise<[BigNumber, BigNumber]>;
 
     getExpirations(overrides?: CallOverrides): Promise<[BigNumber[]]>;
 
@@ -240,6 +305,8 @@ export interface DHVLensMK1 extends BaseContract {
       expiration: BigNumberish,
       overrides?: CallOverrides
     ): Promise<[DHVLensMK1.OptionExpirationDrillStructOutput]>;
+
+    liquidityPool(overrides?: CallOverrides): Promise<[string]>;
 
     pricer(overrides?: CallOverrides): Promise<[string]>;
 
@@ -254,7 +321,15 @@ export interface DHVLensMK1 extends BaseContract {
 
   collateralAsset(overrides?: CallOverrides): Promise<string>;
 
+  computeOptionsValues(
+    overrides?: CallOverrides
+  ): Promise<Types.PortfolioValuesStructOutput>;
+
   exchange(overrides?: CallOverrides): Promise<string>;
+
+  getCurrentPricePerShare(
+    overrides?: CallOverrides
+  ): Promise<[BigNumber, BigNumber]>;
 
   getExpirations(overrides?: CallOverrides): Promise<BigNumber[]>;
 
@@ -266,6 +341,8 @@ export interface DHVLensMK1 extends BaseContract {
     expiration: BigNumberish,
     overrides?: CallOverrides
   ): Promise<DHVLensMK1.OptionExpirationDrillStructOutput>;
+
+  liquidityPool(overrides?: CallOverrides): Promise<string>;
 
   pricer(overrides?: CallOverrides): Promise<string>;
 
@@ -280,7 +357,15 @@ export interface DHVLensMK1 extends BaseContract {
 
     collateralAsset(overrides?: CallOverrides): Promise<string>;
 
+    computeOptionsValues(
+      overrides?: CallOverrides
+    ): Promise<Types.PortfolioValuesStructOutput>;
+
     exchange(overrides?: CallOverrides): Promise<string>;
+
+    getCurrentPricePerShare(
+      overrides?: CallOverrides
+    ): Promise<[BigNumber, BigNumber]>;
 
     getExpirations(overrides?: CallOverrides): Promise<BigNumber[]>;
 
@@ -292,6 +377,8 @@ export interface DHVLensMK1 extends BaseContract {
       expiration: BigNumberish,
       overrides?: CallOverrides
     ): Promise<DHVLensMK1.OptionExpirationDrillStructOutput>;
+
+    liquidityPool(overrides?: CallOverrides): Promise<string>;
 
     pricer(overrides?: CallOverrides): Promise<string>;
 
@@ -309,7 +396,11 @@ export interface DHVLensMK1 extends BaseContract {
 
     collateralAsset(overrides?: CallOverrides): Promise<BigNumber>;
 
+    computeOptionsValues(overrides?: CallOverrides): Promise<BigNumber>;
+
     exchange(overrides?: CallOverrides): Promise<BigNumber>;
+
+    getCurrentPricePerShare(overrides?: CallOverrides): Promise<BigNumber>;
 
     getExpirations(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -319,6 +410,8 @@ export interface DHVLensMK1 extends BaseContract {
       expiration: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
+
+    liquidityPool(overrides?: CallOverrides): Promise<BigNumber>;
 
     pricer(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -334,7 +427,15 @@ export interface DHVLensMK1 extends BaseContract {
 
     collateralAsset(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
+    computeOptionsValues(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
     exchange(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    getCurrentPricePerShare(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
 
     getExpirations(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
@@ -344,6 +445,8 @@ export interface DHVLensMK1 extends BaseContract {
       expiration: BigNumberish,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
+
+    liquidityPool(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     pricer(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 

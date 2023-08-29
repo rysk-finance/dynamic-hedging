@@ -7,16 +7,21 @@ import "../BeyondPricer.sol";
 import "../VolatilityFeed.sol";
 import "../OptionCatalogue.sol";
 import "../libraries/Types.sol";
-import "../interfaces/IAlphaPortfolioValuesFeed.sol";
+import "../AlphaPortfolioValuesFeed.sol";
 import "../interfaces/IOptionRegistry.sol";
+
+import "prb-math/contracts/PRBMathUD60x18.sol";
+
 /**
  *  @title Lens contract to view parameters of the protocol that require too much computation for a frontend
  */
 contract DHVLensMK1 {
+	using PRBMathUD60x18 for uint256;
 	// Protocol contracts
 	Protocol public protocol;
 	OptionCatalogue public catalogue;
 	BeyondPricer public pricer;
+	ILiquidityPool public liquidityPool;
 	address public exchange;
 	// asset that denominates the strike price
 	address public strikeAsset;
@@ -27,6 +32,7 @@ contract DHVLensMK1 {
 
 	// BIPS
 	uint256 private constant MAX_BPS = 10_000;
+	int256 private constant SCALE = 1e18;
 
 	///////////////
 	/// structs ///
@@ -76,7 +82,8 @@ contract DHVLensMK1 {
 		address _collateralAsset,
 		address _underlyingAsset,
 		address _strikeAsset,
-		address _exchange
+		address _exchange,
+		address _liquidityPool
 	) {
 		protocol = Protocol(_protocol);
 		collateralAsset = _collateralAsset;
@@ -85,6 +92,7 @@ contract DHVLensMK1 {
 		catalogue = OptionCatalogue(_catalogue);
 		pricer = BeyondPricer(_pricer);
 		exchange = _exchange;
+		liquidityPool = ILiquidityPool(_liquidityPool);
 	}
 
 	function getOptionChain() external view returns (OptionChain memory) {
@@ -192,7 +200,9 @@ contract DHVLensMK1 {
 		OptionStrikeDrill[] memory optionStrikeDrills = new OptionStrikeDrill[](strikes.length);
 		for (uint j; j < strikes.length; j++) {
 			// get the hash of the option (how the option is stored on the books)
-			int256 netDhvExposure = getPortfolioValuesFeed().netDhvExposure(keccak256(abi.encodePacked(expiration, strikes[j], isPut)));
+			int256 netDhvExposure = getPortfolioValuesFeed().netDhvExposure(
+				keccak256(abi.encodePacked(expiration, strikes[j], isPut))
+			);
 			(TradingSpec memory sellTradingSpec, int256 delta) = _constructTradingSpec(
 				expiration,
 				strikes[j],
@@ -209,7 +219,7 @@ contract DHVLensMK1 {
 				false,
 				underlyingPrice
 			);
-			
+
 			OptionStrikeDrill memory optionStrikeDrill = OptionStrikeDrill(
 				strikes[j],
 				sellTradingSpec,
@@ -220,7 +230,6 @@ contract DHVLensMK1 {
 				_getSeriesExchangeBalance(expiration, isPut, strikes[j], underlyingAsset)
 			);
 			optionStrikeDrills[j] = optionStrikeDrill;
-
 		}
 		return optionStrikeDrills;
 	}
@@ -290,12 +299,24 @@ contract DHVLensMK1 {
 		}
 	}
 
-	function _getSeriesExchangeBalance(uint64 expiration, bool isPut, uint128 strike, address collateral) internal view returns (SeriesExchangeBalance memory) {
-			IOptionRegistry optionRegistry = getOptionRegistry();
-			address series = optionRegistry.getOtoken(underlyingAsset, strikeAsset, expiration, isPut, strike, collateral);
-			uint256 balance = series != address(0) ? ERC20(series).balanceOf(exchange) : 0;
-			SeriesExchangeBalance memory seriesExchangeBalance = SeriesExchangeBalance(series, balance);
-			return seriesExchangeBalance;
+	function _getSeriesExchangeBalance(
+		uint64 expiration,
+		bool isPut,
+		uint128 strike,
+		address collateral
+	) internal view returns (SeriesExchangeBalance memory) {
+		IOptionRegistry optionRegistry = getOptionRegistry();
+		address series = optionRegistry.getOtoken(
+			underlyingAsset,
+			strikeAsset,
+			expiration,
+			isPut,
+			strike,
+			collateral
+		);
+		uint256 balance = series != address(0) ? ERC20(series).balanceOf(exchange) : 0;
+		SeriesExchangeBalance memory seriesExchangeBalance = SeriesExchangeBalance(series, balance);
+		return seriesExchangeBalance;
 	}
 
 	///////////////////////////
@@ -306,8 +327,8 @@ contract DHVLensMK1 {
 	 * @notice get the portfolio values feed used by the liquidity pool
 	 * @return the portfolio values feed contract
 	 */
-	function getPortfolioValuesFeed() internal view returns (IAlphaPortfolioValuesFeed) {
-		return IAlphaPortfolioValuesFeed(protocol.portfolioValuesFeed());
+	function getPortfolioValuesFeed() internal view returns (AlphaPortfolioValuesFeed) {
+		return AlphaPortfolioValuesFeed(protocol.portfolioValuesFeed());
 	}
 
 	/**
@@ -337,5 +358,81 @@ contract DHVLensMK1 {
 	 */
 	function _getVolatilityFeed() internal view returns (VolatilityFeed) {
 		return VolatilityFeed(protocol.volatilityFeed());
+	}
+
+	/////////////////////////////////
+	// PPS LOGIC ////////////////////
+	/////////////////////////////////
+
+	function getCurrentPricePerShare() external view returns (uint256, uint256) {
+		// get the total supply of shares
+		uint256 totalSupply = liquidityPool.totalSupply();
+		// get the assets
+		int256 assets = int256(liquidityPool.getAssets());
+		// get the liabilities
+		Types.PortfolioValues memory portfolioValues = computeOptionsValues();
+		int256 liabilities = portfolioValues.callPutsValue;
+		// compute the price per share
+		uint256 nav = uint256(assets - liabilities);
+		uint256 pricePerShare = (1e18 *
+			(nav - OptionsCompute.convertFromDecimals(liquidityPool.pendingDeposits(), 6))) / totalSupply;
+		return (pricePerShare, block.timestamp);
+	}
+
+	function computeOptionsValues() public view returns (Types.PortfolioValues memory) {
+		AlphaPortfolioValuesFeed pv = getPortfolioValuesFeed();
+		int256 delta;
+		int256 callPutsValue;
+		// get the length of the address set here to save gas on the for loop
+		address[] memory seriesAddresses = pv.getAddressSet();
+		uint256 lengthAddy = seriesAddresses.length;
+		// get the spot price
+		uint256 spotPrice = _getUnderlyingPrice(underlyingAsset, strikeAsset);
+		VolatilityFeed volFeed = _getVolatilityFeed();
+		for (uint256 i = 0; i < lengthAddy; i++) {
+			// get series
+			(Types.OptionSeries memory optionSeries, int256 shortExposure, int256 longExposure) = pv
+				.storesForAddress(seriesAddresses[i]);
+			// check if the series has expired, if it has then flag this,
+			// before retrying, settle all expired options and then clean the looper
+			if (optionSeries.expiration < block.timestamp) {
+				continue;
+			}
+			// get the vol
+			(uint256 vol, uint256 forward) = volFeed.getImpliedVolatilityWithForward(
+				optionSeries.isPut,
+				spotPrice,
+				optionSeries.strike,
+				optionSeries.expiration
+			);
+			// compute the delta and the price
+			(uint256 _callPutsValue, int256 _delta) = BlackScholes.blackScholesCalcGreeks(
+				forward,
+				optionSeries.strike,
+				optionSeries.expiration,
+				vol,
+				0,
+				optionSeries.isPut
+			);
+			_callPutsValue = _callPutsValue.mul(spotPrice).div(forward);
+			// calculate the net exposure
+			int256 netExposure = shortExposure - longExposure;
+			// increment the deltas by adding if the option is long and subtracting if the option is short
+			delta -= (_delta * netExposure) / SCALE;
+			// increment the values by subtracting if the option is long (as this represents liabilities in the liquidity pool) and adding if the option is short as this value
+			// represents liabilities
+			callPutsValue += (int256(_callPutsValue) * netExposure) / SCALE;
+		}
+		// update the portfolio values
+		Types.PortfolioValues memory portfolioValue = Types.PortfolioValues({
+			delta: delta,
+			gamma: 0,
+			vega: 0,
+			theta: 0,
+			callPutsValue: callPutsValue,
+			spotPrice: spotPrice,
+			timestamp: block.timestamp
+		});
+		return portfolioValue;
 	}
 }
