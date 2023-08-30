@@ -11,7 +11,7 @@ import OperationType from "src/enums/OperationType";
 import { toWei } from "src/utils/conversion-helper";
 import { buyOption, issue } from "./operateBlocks";
 
-export const openLongStraddle = async (
+export const openLongStraddleStrangle = async (
   acceptablePremium: BigNumber,
   amount: BigNumber,
   exchangeAddress: HexString,
