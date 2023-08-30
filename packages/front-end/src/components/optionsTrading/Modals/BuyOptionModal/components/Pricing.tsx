@@ -7,6 +7,7 @@ import FadeInOutQuick from "src/animation/FadeInOutQuick";
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
 import { RyskTooltip } from "src/components/shared/RyskToolTip";
 import { useGlobalContext } from "src/state/GlobalContext";
+import { Symbol } from "../../Shared/components/Symbol";
 
 export const Pricing = ({ positionData }: PricingProps) => {
   const {
@@ -18,18 +19,8 @@ export const Pricing = ({ positionData }: PricingProps) => {
     },
   } = useGlobalContext();
 
-  const {
-    breakEven,
-    callOrPut,
-    expiry,
-    fee,
-    now,
-    premium,
-    quote,
-    remainingBalance,
-    slippage,
-    strike,
-  } = positionData;
+  const { breakEven, fee, now, premium, quote, remainingBalance, slippage } =
+    positionData;
 
   const errorMessage = useMemo(() => {
     switch (true) {
@@ -46,11 +37,9 @@ export const Pricing = ({ positionData }: PricingProps) => {
 
   return (
     <div className="flex flex-col">
-      <p className="text-center py-4 bg-white border-b-2 border-black font-dm-mono">
-        {`ETH ${expiry} $${strike} ${callOrPut}`.toUpperCase()}
-      </p>
+      <Symbol {...positionData} />
 
-      <div className="w-4/5 xl:w-3/5 mx-auto py-4">
+      <div className="w-4/5 xl:w-3/5 mx-auto py-3">
         <div>
           <span className="flex">
             <p className="mr-auto">{`Premium:`}</p>
@@ -147,7 +136,7 @@ export const Pricing = ({ positionData }: PricingProps) => {
         </AnimatePresence>
       </div>
 
-      <small className="flex flex-col pb-4 text-center leading-6 text-gray-600">
+      <small className="flex flex-col pb-3 text-center leading-6 text-gray-600">
         {`Last updated: ${now}`}
       </small>
     </div>

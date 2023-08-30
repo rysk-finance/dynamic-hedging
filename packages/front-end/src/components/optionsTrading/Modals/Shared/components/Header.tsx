@@ -52,7 +52,7 @@ export const Header = ({ children, changeVisible = false }: HeaderProps) => {
           placement="bottom"
         >
           <button
-            className={`col-start-9 col-span-1 mx-auto p-2 cursor-pointer`}
+            className={`col-start-9 col-span-1 mx-auto p-1.5 cursor-pointer`}
             onClick={changeModal}
           >
             <Change className="text-white h-8 w-8" />
@@ -61,7 +61,7 @@ export const Header = ({ children, changeVisible = false }: HeaderProps) => {
       )}
 
       <button
-        className={`col-span-1 col-start-10 mx-auto p-2`}
+        className={`col-span-1 col-start-10 mx-auto p-1.5`}
         onClick={closeModal}
         title="Click to close the modal."
       >

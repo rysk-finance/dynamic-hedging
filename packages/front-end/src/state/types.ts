@@ -24,9 +24,9 @@ export type Expiries = string[];
 export interface UserPositionToken extends PositionOToken {
   active: boolean;
   buyAmount?: BigNumberish;
+  firstCreated?: string;
   id: HexString;
   netAmount: BigNumberish;
-  totalPremium: number;
   totalPremiumBought: number;
   totalPremiumSold: number;
   liquidateActions?: LiquidateActions[];
@@ -144,6 +144,7 @@ export interface ActivePositions {
   delta: number;
   entry: number;
   expiryTimestamp: string;
+  firstCreated?: string;
   id: HexString;
   isOpen: boolean;
   isPut: boolean;
@@ -195,7 +196,7 @@ export interface UserTradingPreferences {
 
 // Global context
 export type GlobalState = {
-  ethPrice: number | null;
+  ethPrice: number;
   eth24hChange: number;
   eth24hHigh: number | null;
   eth24hLow: number | null;
@@ -443,15 +444,17 @@ export type OptionsTradingState = {
 };
 
 export enum OptionChainModalActions {
-  ADJUST_COLLATERAL = "adjustCollateral",
-  BUY = "buy",
-  CLOSE_LONG = "closeLong",
-  OPERATOR = "operator",
-  SELL = "sell",
-  CLOSE_SHORT = "closeShort",
+  ADJUST_COLLATERAL = "Adjust Collateral",
+  BUY = "Buy",
+  CLOSE_LONG = "Close Long",
+  CLOSE_SHORT = "Close Short",
+  LONG_STRADDLE = "Long Straddle",
+  LONG_STRANGLE = "Long Strangle",
+  OPERATOR = "Operator",
+  SELL = "Sell",
 }
 
-type OptionChainModal =
+export type OptionChainModal =
   (typeof OptionChainModalActions)[keyof typeof OptionChainModalActions];
 
 export enum OptionType {

@@ -1,7 +1,11 @@
 import type { BigNumber } from "ethers";
 
+import type { CallOrPut } from "src/state/types";
+
 export interface PositionDataState {
   acceptablePremium: BigNumber;
+  callOrPut?: CallOrPut;
+  expiry: string;
   fee: number;
   now: string;
   premium: number;
@@ -9,7 +13,7 @@ export interface PositionDataState {
   remainingBalance: number;
   slippage: number;
   totalSize: number;
-  title: string | null;
+  strike?: number;
 }
 
 export interface PricingProps {

@@ -25,7 +25,7 @@ import {
  * @returns Promise<[number, number]>
  */
 export const calculatePnL = async (
-  ethPrice: number | null,
+  ethPrice: number,
   activePositions: UserPositionToken[] = [],
   longPositions: UserPositionToken[] = [],
   shortPositions: UserPositionToken[] = [],

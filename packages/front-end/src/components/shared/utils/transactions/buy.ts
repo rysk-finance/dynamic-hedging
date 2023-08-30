@@ -5,49 +5,25 @@ import { BigNumber } from "ethers";
 
 import { OptionExchangeABI } from "src/abis/OptionExchange_ABI";
 import { waitForTransactionOrTimer } from "src/components/shared/utils/waitForTransaction";
-import { GAS_MULTIPLIER, ZERO_ADDRESS } from "src/config/constants";
+import { GAS_MULTIPLIER } from "src/config/constants";
 import OperationType from "src/enums/OperationType";
-import RyskActionType from "src/enums/RyskActionType";
-import { getContractAddress } from "src/utils/helpers";
+import { buyOption, issue } from "./operateBlocks";
 
 export const buy = async (
   acceptablePremium: BigNumber,
   amount: BigNumber,
   exchangeAddress: HexString,
+  exposure: number,
   optionSeries: OptionSeries,
   refresh: () => void,
   userAddress: HexString
 ) => {
-  const baseOperation = {
-    owner: ZERO_ADDRESS,
-    asset: ZERO_ADDRESS,
-    vaultId: BigNumber.from(0),
-    optionSeries,
-    data: ZERO_ADDRESS,
-  };
-
   const txData = [
     {
       operation: OperationType.RyskAction,
       operationQueue: [
-        ...(optionSeries.collateral !== getContractAddress("WETH")
-          ? [
-              {
-                ...baseOperation,
-                actionType: BigNumber.from(RyskActionType.Issue),
-                secondAddress: ZERO_ADDRESS,
-                amount: BigNumber.from(0),
-                indexOrAcceptablePremium: BigNumber.from(0),
-              },
-            ]
-          : []),
-        {
-          ...baseOperation,
-          actionType: BigNumber.from(RyskActionType.BuyOption),
-          secondAddress: userAddress,
-          amount,
-          indexOrAcceptablePremium: acceptablePremium,
-        },
+        ...issue(optionSeries.collateral, exposure, optionSeries),
+        buyOption(acceptablePremium, amount, optionSeries, userAddress),
       ],
     },
   ];

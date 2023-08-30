@@ -15,6 +15,7 @@ import { Button, Input, Label, Wrapper } from "../Shared/components/Form";
 import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
 import { getButtonProps } from "../Shared/utils/getButtonProps";
+import { roundInputValue } from "../Shared/utils/roundNumberValue";
 import { Pricing } from "./components/Pricing";
 import { useBuyOption } from "./hooks/useBuyOption";
 
@@ -39,12 +40,7 @@ export const BuyOptionModal = () => {
     useNotifications();
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const amount = event.currentTarget.value;
-    const decimals = amount.split(".");
-    const rounded =
-      decimals.length > 1
-        ? `${decimals[0]}.${decimals[1].slice(0, 2)}`
-        : event.currentTarget.value;
+    const rounded = roundInputValue(event);
 
     setAmountToBuy(rounded);
   };
@@ -100,6 +96,7 @@ export const BuyOptionModal = () => {
           positionData.acceptablePremium,
           amount,
           addresses.exchange,
+          positionData.exposure,
           optionSeries,
           refresh,
           addresses.user

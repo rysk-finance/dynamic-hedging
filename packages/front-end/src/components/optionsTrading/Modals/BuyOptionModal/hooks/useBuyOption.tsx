@@ -1,7 +1,6 @@
 import type { Addresses } from "../../Shared/types";
 import type { PositionDataState } from "../types";
 
-import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useDebounce } from "use-debounce";
 import { useAccount } from "wagmi";
@@ -13,6 +12,7 @@ import { tFormatUSDC, toRysk, toUSDC } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
+import { dateTimeNow, formatExpiry } from "../../Shared/utils/datetime";
 
 export const useBuyOption = (amountToBuy: string) => {
   // Global state.
@@ -20,7 +20,7 @@ export const useBuyOption = (amountToBuy: string) => {
     state: {
       balances,
       ethPrice,
-      options: { activeExpiry },
+      options: { activeExpiry, data },
       selectedOption,
     },
   } = useGlobalContext();
@@ -39,9 +39,10 @@ export const useBuyOption = (amountToBuy: string) => {
     acceptablePremium: BigNumber.from(0),
     breakEven: 0,
     callOrPut: selectedOption?.callOrPut,
-    expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
+    expiry: formatExpiry(activeExpiry),
+    exposure: 0,
     fee: 0,
-    now: dayjs().format("MMM DD, YYYY HH:mm A"),
+    now: dateTimeNow(),
     premium: 0,
     quote: 0,
     remainingBalance: 0,
@@ -78,13 +79,19 @@ export const useBuyOption = (amountToBuy: string) => {
           const requiredApproval = String(tFormatUSDC(acceptablePremium, 4));
           const approved = toUSDC(requiredApproval).lte(allowance.amount);
 
+          const exposure =
+            data[activeExpiry!][selectedOption.strikeOptions.strike][
+              selectedOption.callOrPut
+            ]?.exposure || 0;
+
           setPurchaseData({
             acceptablePremium,
             breakEven,
             callOrPut: selectedOption.callOrPut,
-            expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
+            expiry: formatExpiry(activeExpiry),
+            exposure,
             fee,
-            now: dayjs().format("MMM DD, YYYY HH:mm A"),
+            now: dateTimeNow(),
             premium,
             quote,
             remainingBalance,
@@ -98,9 +105,10 @@ export const useBuyOption = (amountToBuy: string) => {
             acceptablePremium: BigNumber.from(0),
             breakEven: 0,
             callOrPut: selectedOption?.callOrPut,
-            expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
+            expiry: formatExpiry(activeExpiry),
+            exposure: 0,
             fee: 0,
-            now: dayjs().format("MMM DD, YYYY HH:mm A"),
+            now: dateTimeNow(),
             premium: 0,
             quote: 0,
             remainingBalance: balances.USDC,

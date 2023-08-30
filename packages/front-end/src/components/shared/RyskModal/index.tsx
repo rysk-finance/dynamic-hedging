@@ -8,7 +8,11 @@ import { useEffect, useRef } from "react";
 import FadeInOut from "src/animation/FadeInOut";
 import FadeInUpDelayed from "src/animation/FadeInUpDelayed";
 
-export const RyskModal = ({ children, lightBoxClickFn }: RyskModalProps) => {
+export const RyskModal = ({
+  children,
+  lightBoxClickFn,
+  modalClasses,
+}: RyskModalProps) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -48,7 +52,7 @@ export const RyskModal = ({ children, lightBoxClickFn }: RyskModalProps) => {
       <LayoutGroup>
         <motion.div
           aria-modal="true"
-          className="flex flex-col col-span-8 col-start-3 lg:col-span-6 lg:col-start-4 my-auto border-black border-2 rounded-lg bg-bone-light bg-[url('./assets/white-ascii-50.png')] bg-center overflow-y-auto overflow-x-hidden cursor-default max-h-[90%] rysk-scrollbar"
+          className={`flex flex-col col-span-8 col-start-3 lg:col-span-6 lg:col-start-4 my-auto border-black border-2 rounded-lg bg-bone-light bg-[url('./assets/white-ascii-50.png')] bg-center overflow-y-auto overflow-x-hidden cursor-default max-h-[90%] xl:max-h-[75%] rysk-scrollbar ${modalClasses}`}
           layout="position"
           onClick={handleModalClick}
           ref={modalRef}

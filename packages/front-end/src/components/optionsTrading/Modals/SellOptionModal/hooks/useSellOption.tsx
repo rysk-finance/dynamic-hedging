@@ -2,7 +2,6 @@ import type { Addresses } from "../../Shared/types";
 import type { PositionDataState } from "../types";
 
 import { readContract } from "@wagmi/core";
-import dayjs from "dayjs";
 import { BigNumber } from "ethers";
 import { useEffect, useState } from "react";
 import { useDebounce } from "use-debounce";
@@ -24,6 +23,7 @@ import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { getLiquidationPrices } from "../../../../shared/utils/getLiquidationPrice";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
+import { dateTimeNow, formatExpiry } from "../../Shared/utils/datetime";
 
 export const useSellOption = (amountToSell: string) => {
   // Global state.
@@ -66,11 +66,11 @@ export const useSellOption = (amountToSell: string) => {
     breakEven: 0,
     callOrPut: selectedOption?.callOrPut,
     collateral: 0,
-    expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
+    expiry: formatExpiry(activeExpiry),
     fee: 0,
     hasRequiredCapital: false,
     liquidationPrice: 0,
-    now: dayjs().format("MMM DD, YYYY HH:mm A"),
+    now: dateTimeNow(),
     premium: 0,
     quote: 0,
     remainingBalanceUSDC: 0,
@@ -196,11 +196,11 @@ export const useSellOption = (amountToSell: string) => {
             breakEven,
             callOrPut: selectedOption.callOrPut,
             collateral,
-            expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
+            expiry: formatExpiry(activeExpiry),
             fee,
             hasRequiredCapital,
             liquidationPrice,
-            now: dayjs().format("MMM DD, YYYY HH:mm A"),
+            now: dateTimeNow(),
             premium,
             quote,
             remainingBalanceUSDC,
@@ -216,11 +216,11 @@ export const useSellOption = (amountToSell: string) => {
             breakEven: 0,
             callOrPut: selectedOption?.callOrPut,
             collateral: 0,
-            expiry: dayjs.unix(Number(activeExpiry)).format("DDMMMYY"),
+            expiry: formatExpiry(activeExpiry),
             fee: 0,
             hasRequiredCapital: false,
             liquidationPrice: 0,
-            now: dayjs().format("MMM DD, YYYY HH:mm A"),
+            now: dateTimeNow(),
             premium: 0,
             quote: 0,
             remainingBalanceUSDC: balanceUSDC,

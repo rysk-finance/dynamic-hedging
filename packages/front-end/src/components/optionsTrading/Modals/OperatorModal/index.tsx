@@ -46,8 +46,8 @@ export const OperatorModal = () => {
     <Modal>
       <Header>{`Sell Position`}</Header>
 
-      <div className="w-4/5 xl:w-3/5 mx-auto py-4">
-        <p className="text-center pb-4 leading-6">
+      <div className="w-4/5 xl:w-3/5 mx-auto py-3">
+        <p className="text-center pb-3 leading-6">
           {`It looks like you're new here. Before you can sell an option we'll need you to complete a one-time approval. This allows our exchange to interact with the option contracts on your behalf.`}
         </p>
 

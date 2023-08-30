@@ -17,6 +17,7 @@ export interface PositionOToken {
 export interface OptionsTransaction {
   fee: string;
   premium: string;
+  timestamp?: string;
 }
 
 export interface RedeemActions {

@@ -16,8 +16,6 @@ export const ExpiryDatePicker = () => {
   const [visibleRange, handleExpirySelection, scrollExpiries] =
     useExpiryDates();
 
-  if (calendarMode) return null;
-
   return (
     <RyskTooltip
       content="Use this section to select the expiries you wish to view. You can also use the arrows at the sides to scroll through other expiries when there are more than six available."

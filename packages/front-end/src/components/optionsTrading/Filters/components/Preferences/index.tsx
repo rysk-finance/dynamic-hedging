@@ -50,7 +50,7 @@ export const Preferences = () => {
   return (
     <>
       <button
-        className="ml-auto px-8 py-3 border-black border-l-2 ease-in-out duration-100 hover:bg-bone-light"
+        className="ml-auto px-8 py-2 border-black border-l-2 ease-in-out duration-100 hover:bg-bone-light"
         onClick={toggleModal}
       >
         <Cog className="h-7 w-7" />
@@ -73,7 +73,7 @@ export const Preferences = () => {
               </button>
             </span>
 
-            <ul className="w-4/5 xl:w-3/5 mx-auto py-4">
+            <ul className="w-4/5 xl:w-3/5 mx-auto py-3">
               {preferencesList.map(
                 ({ explainer, isActive, label, preferencesKey }) => (
                   <li

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useDebounce } from "use-debounce";
 
 import { Close, Minus, Plus } from "src/Icons";
+import { roundInputValue } from "src/components/optionsTrading/Modals/Shared/utils/roundNumberValue";
 import { RyskTooltip } from "src/components/shared/RyskToolTip";
 import { COLLATERAL_DOCS } from "src/config/links";
 import { useGlobalContext } from "src/state/GlobalContext";
@@ -22,13 +23,7 @@ export const Multiplier = () => {
   const [debouncedMultiplier] = useDebounce(multiplier, 300);
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const amount = event.currentTarget.value;
-    const decimals = amount.split(".");
-    const rounded = parseFloat(
-      decimals.length > 1
-        ? `${decimals[0]}.${decimals[1].slice(0, 2)}`
-        : event.currentTarget.value
-    );
+    const rounded = parseFloat(roundInputValue(event));
 
     if (rounded > 100) {
       setMultiplier(Math.floor(rounded / 10));

@@ -1,3 +1,5 @@
+import { Bearish } from "./Bearish";
+import { Bullish } from "./Bullish";
 import { Change } from "./Change";
 import { ChevronUpDown } from "./ChevronUpDown";
 import { Close } from "./Close";
@@ -7,6 +9,7 @@ import { DownChevron } from "./DownChevron";
 import { Ether } from "./Ether";
 import { Info } from "./Info";
 import { LeftArrow } from "./LeftArrow";
+import { Link } from "./Link";
 import { Loading } from "./Loading";
 import { Minus } from "./Minus";
 import { Plus } from "./Plus";
@@ -21,6 +24,8 @@ import { UpChevron } from "./UpChevron";
 import { WETH } from "./WETH";
 
 export {
+  Bearish,
+  Bullish,
   Change,
   ChevronUpDown,
   Close,
@@ -30,6 +35,7 @@ export {
   Ether,
   Info,
   LeftArrow,
+  Link,
   Loading,
   Minus,
   Plus,

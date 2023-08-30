@@ -1,7 +1,6 @@
 import type { Addresses } from "../../Shared/types";
 import type { PositionDataState } from "../types";
 
-import dayjs from "dayjs";
 import { useEffect, useState } from "react";
 import { useDebounce } from "use-debounce";
 import { useAccount } from "wagmi";
@@ -14,6 +13,7 @@ import { tFormatEth, tFormatUSDC, toRysk } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
+import { dateTimeNow, formatExpiry } from "../../Shared/utils/datetime";
 
 export const useShortPositionData = (amountToClose: string) => {
   // Context state.
@@ -38,12 +38,14 @@ export const useShortPositionData = (amountToClose: string) => {
   // User position state.
   const [positionData, setPositionData] = useState<PositionDataState>({
     acceptablePremium: BigNumber.from(0),
+    callOrPut: closingOption?.isPut ? "put" : "call",
     collateralReleased: 0,
     collateralToRemove: BigNumber.from(0),
     collateralType: undefined,
+    expiry: formatExpiry(activeExpiry),
     fee: 0,
     hasRequiredCapital: false,
-    now: dayjs().format("MMM DD, YYYY HH:mm A"),
+    now: dateTimeNow(),
     premium: 0,
     quote: 0,
     remainingBalanceUSDC: 0,
@@ -51,8 +53,8 @@ export const useShortPositionData = (amountToClose: string) => {
     remainingCollateral: 0,
     slippage: 0,
     totalSize: 0,
-    title: null,
     requiredApproval: "",
+    strike: closingOption?.strike ? parseInt(closingOption.strike) : undefined,
   });
 
   const vault = closingOption?.vault;
@@ -76,7 +78,7 @@ export const useShortPositionData = (amountToClose: string) => {
 
       try {
         if (activeExpiry && tokenAddress && closingOption) {
-          const now = dayjs().format("MMM DD, YYYY HH:mm A");
+          const now = dateTimeNow();
 
           const totalSize = closingOption.amount;
           const title = closingOption.series;
@@ -139,9 +141,11 @@ export const useShortPositionData = (amountToClose: string) => {
 
             setPositionData({
               acceptablePremium,
+              callOrPut: closingOption.isPut ? "put" : "call",
               collateralReleased,
               collateralToRemove,
               collateralType,
+              expiry: formatExpiry(activeExpiry),
               fee,
               hasRequiredCapital,
               now,
@@ -152,16 +156,18 @@ export const useShortPositionData = (amountToClose: string) => {
               remainingCollateral,
               slippage,
               totalSize: Math.abs(totalSize),
-              title,
               requiredApproval,
+              strike: parseInt(closingOption.strike),
             });
             setAllowance((currentState) => ({ ...currentState, approved }));
           } else {
             setPositionData({
               acceptablePremium: BigNumber.from(0),
+              callOrPut: closingOption?.isPut ? "put" : "call",
               collateralReleased: 0,
               collateralToRemove: BigNumber.from(0),
               collateralType,
+              expiry: formatExpiry(activeExpiry),
               fee: 0,
               hasRequiredCapital: false,
               now,
@@ -172,8 +178,10 @@ export const useShortPositionData = (amountToClose: string) => {
               remainingCollateral: 0,
               slippage: 0,
               totalSize: Math.abs(totalSize),
-              title,
               requiredApproval: "",
+              strike: closingOption?.strike
+                ? parseInt(closingOption.strike)
+                : undefined,
             });
             setAllowance((currentState) => ({
               ...currentState,

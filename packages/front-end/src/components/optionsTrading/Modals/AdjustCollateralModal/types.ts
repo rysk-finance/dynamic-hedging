@@ -1,18 +1,20 @@
 import type { Dispatch, SetStateAction } from "react";
 
-import type { CollateralType } from "src/state/types";
+import type { CallOrPut, CollateralType } from "src/state/types";
 
 export interface CollateralDataState {
   asset: CollateralType;
+  callOrPut?: CallOrPut;
   collateral: number;
   disabled: boolean;
+  expiry: string;
   hasRequiredCapital: boolean;
   liquidationPrice: number;
   now: string;
   remainingBalanceUSDC: number;
   remainingBalanceWETH: number;
   requiredApproval: string;
-  series?: string;
+  strike?: number;
 }
 
 export interface PricingProps {

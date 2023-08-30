@@ -1,7 +1,6 @@
 import type { Addresses } from "../../Shared/types";
 import type { PositionDataState } from "../types";
 
-import dayjs from "dayjs";
 import { BigNumber } from "ethers";
 import { useEffect, useState } from "react";
 import { useDebounce } from "use-debounce";
@@ -13,6 +12,7 @@ import { toOpyn, toRysk } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
+import { dateTimeNow, formatExpiry } from "../../Shared/utils/datetime";
 
 export const usePositionData = (amountToClose: string) => {
   // Global state.
@@ -36,14 +36,16 @@ export const usePositionData = (amountToClose: string) => {
   // User position state.
   const [positionData, setPositionData] = useState<PositionDataState>({
     acceptablePremium: BigNumber.from(0),
+    callOrPut: closingOption?.isPut ? "put" : "call",
+    expiry: formatExpiry(activeExpiry),
     fee: 0,
-    now: dayjs().format("MMM DD, YYYY HH:mm A"),
+    now: dateTimeNow(),
     premium: 0,
     quote: 0,
     remainingBalance: 0,
     slippage: 0,
     totalSize: 0,
-    title: null,
+    strike: closingOption?.strike ? parseInt(closingOption.strike) : undefined,
   });
 
   const [loading, setLoading] = useState(false);
@@ -56,7 +58,7 @@ export const usePositionData = (amountToClose: string) => {
 
       try {
         if (activeExpiry && tokenAddress && closingOption) {
-          const now = dayjs().format("MMM DD, YYYY HH:mm A");
+          const now = dateTimeNow();
 
           const totalSize = closingOption.amount;
           const title = closingOption.series;
@@ -79,6 +81,8 @@ export const usePositionData = (amountToClose: string) => {
 
             setPositionData({
               acceptablePremium,
+              callOrPut: closingOption.isPut ? "put" : "call",
+              expiry: formatExpiry(activeExpiry),
               fee,
               now,
               premium,
@@ -86,12 +90,14 @@ export const usePositionData = (amountToClose: string) => {
               remainingBalance,
               slippage,
               totalSize,
-              title,
+              strike: parseInt(closingOption.strike),
             });
             setAllowance((currentState) => ({ ...currentState, approved }));
           } else {
             setPositionData({
               acceptablePremium: BigNumber.from(0),
+              callOrPut: closingOption?.isPut ? "put" : "call",
+              expiry: formatExpiry(activeExpiry),
               fee: 0,
               now,
               premium: 0,
@@ -99,7 +105,9 @@ export const usePositionData = (amountToClose: string) => {
               remainingBalance: balances.USDC,
               slippage: 0,
               totalSize,
-              title,
+              strike: closingOption?.strike
+                ? parseInt(closingOption.strike)
+                : undefined,
             });
             setAllowance((currentState) => ({
               ...currentState,

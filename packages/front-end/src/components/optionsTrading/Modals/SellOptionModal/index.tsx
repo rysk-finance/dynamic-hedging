@@ -15,9 +15,10 @@ import { Button, Input, Label, Wrapper } from "../Shared/components/Form";
 import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
 import { getButtonProps } from "../Shared/utils/getButtonProps";
+import { roundInputValue } from "../Shared/utils/roundNumberValue";
 import { Filters } from "./components/Filters";
 import { Pricing } from "./components/Pricing";
-import { Symbol } from "./components/Symbol";
+import { Symbol } from "../Shared/components/Symbol";
 import { useSellOption } from "./hooks/useSellOption";
 
 export const SellOptionModal = () => {
@@ -42,12 +43,7 @@ export const SellOptionModal = () => {
     useNotifications();
 
   const handleAmountChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const amount = event.currentTarget.value;
-    const decimals = amount.split(".");
-    const rounded =
-      decimals.length > 1
-        ? `${decimals[0]}.${decimals[1].slice(0, 2)}`
-        : event.currentTarget.value;
+    const rounded = roundInputValue(event);
 
     setAmountToSell(rounded);
   };
@@ -149,7 +145,7 @@ export const SellOptionModal = () => {
       <Header changeVisible={!disableChangeButton}>{`Sell Position`}</Header>
 
       <div className="flex flex-col">
-        <Symbol positionData={positionData} />
+        <Symbol {...positionData} />
 
         <Filters />
 

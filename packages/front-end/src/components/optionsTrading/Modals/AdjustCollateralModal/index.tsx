@@ -12,9 +12,10 @@ import { Disclaimer } from "../Shared/components/Disclaimer";
 import { Button, Input, Label, Wrapper } from "../Shared/components/Form";
 import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
+import { Symbol } from "../Shared/components/Symbol";
 import { getButtonProps } from "../Shared/utils/getButtonProps";
+import { roundInputValue } from "../Shared/utils/roundNumberValue";
 import { Pricing } from "./components/Pricing";
-import { Symbol } from "./components/Symbol";
 import { Toggle } from "./components/Toggle";
 import { useCollateralData } from "./hooks/useCollateralData";
 
@@ -39,12 +40,7 @@ export const AdjustCollateralModal = () => {
     useNotifications();
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const amount = event.currentTarget.value;
-    const decimals = amount.split(".");
-    const rounded =
-      decimals.length > 1
-        ? `${decimals[0]}.${decimals[1].slice(0, 2)}`
-        : event.currentTarget.value;
+    const rounded = roundInputValue(event);
 
     setAmountToAdjust(rounded);
   };
@@ -114,7 +110,7 @@ export const AdjustCollateralModal = () => {
       <Header>{`Adjust Collateral`}</Header>
 
       <div className="flex flex-col">
-        <Symbol series={collateralData.series} />
+        <Symbol {...collateralData} />
 
         <Toggle depositToggleState={{ isDepositing, setIsDepositing }} />
 
