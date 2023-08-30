@@ -39,7 +39,7 @@ export const usePositionData = (amountToClose: string) => {
     callOrPut: closingOption?.isPut ? "put" : "call",
     expiry: formatExpiry(activeExpiry),
     fee: 0,
-    now: dateTimeNow,
+    now: dateTimeNow(),
     premium: 0,
     quote: 0,
     remainingBalance: 0,
@@ -58,7 +58,7 @@ export const usePositionData = (amountToClose: string) => {
 
       try {
         if (activeExpiry && tokenAddress && closingOption) {
-          const now = dateTimeNow;
+          const now = dateTimeNow();
 
           const totalSize = closingOption.amount;
           const title = closingOption.series;
