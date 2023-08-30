@@ -139,11 +139,15 @@ export const getChainData = async (
     };
 
     if (data.length && data.length === expiries.length) {
-      return data.reduce(
-        (
-          chainData,
-          { callOptionDrill, expiration, putOptionDrill, underlyingPrice }
-        ) => {
+      return data.reduce((chainData, currentExpiry) => {
+        if (currentExpiry.callOptionDrill && currentExpiry.putOptionDrill) {
+          const {
+            callOptionDrill,
+            expiration,
+            putOptionDrill,
+            underlyingPrice,
+          } = currentExpiry;
+
           const expiry = expiration.toNumber();
           const ethPrice = Number(fromWei(underlyingPrice));
           const calls = createSide(callOptionDrill, "call", ethPrice, expiry);
@@ -168,11 +172,10 @@ export const getChainData = async (
               [strike: number]: StrikeOptions;
             }
           );
+        }
 
-          return chainData;
-        },
-        {} as ChainData
-      );
+        return chainData;
+      }, {} as ChainData);
     } else {
       return {};
     }
