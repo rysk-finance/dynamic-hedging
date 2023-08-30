@@ -6,4 +6,5 @@ export interface RyskToolTipProps {
   disabled?: boolean;
   content: ReactNode;
   placement?: Placement;
+  theme?: "rysk" | "rysk-light";
 }
