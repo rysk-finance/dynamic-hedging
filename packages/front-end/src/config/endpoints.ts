@@ -6,3 +6,5 @@ export const endpoints = {
   ethPrice:
     "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=ethereum",
 };
+
+export const SUBGRAPH_STATUS = `https://api.rysk.finance/subgraph-status`;
