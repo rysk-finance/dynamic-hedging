@@ -45,7 +45,7 @@ export const useShortPositionData = (amountToClose: string) => {
     expiry: formatExpiry(activeExpiry),
     fee: 0,
     hasRequiredCapital: false,
-    now: dateTimeNow,
+    now: dateTimeNow(),
     premium: 0,
     quote: 0,
     remainingBalanceUSDC: 0,
@@ -78,7 +78,7 @@ export const useShortPositionData = (amountToClose: string) => {
 
       try {
         if (activeExpiry && tokenAddress && closingOption) {
-          const now = dateTimeNow;
+          const now = dateTimeNow();
 
           const totalSize = closingOption.amount;
           const title = closingOption.series;
