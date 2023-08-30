@@ -3,7 +3,7 @@ import { OptionChainModalActions } from "src/state/types";
 
 export const strategyList = [
   {
-    description: "Works when price moves up or down.",
+    description: "Works best when volatility is expected to increase.",
     Icon: LongStraddle,
     label: "Long Straddle",
     modal: OptionChainModalActions.LONG_STRADDLE,
@@ -14,7 +14,7 @@ export const strategyList = [
   //   label: "Short Straddle",
   // },
   {
-    description: "Works when price moves up or down.",
+    description: "Works best when volatility is expected to increase.",
     Icon: LongStrangle,
     label: "Long Strangle",
     modal: OptionChainModalActions.LONG_STRANGLE,
