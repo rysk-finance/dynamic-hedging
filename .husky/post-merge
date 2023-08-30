@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+IFS=$'\n'
+
+LOCK_FILE=("$(git diff --name-only HEAD@{1} HEAD | grep -E "yarn.lock")")
+
+if [[ -n "$LOCK_FILE" ]]; then
+  echo "Lock file changes detected. Running yarn to update your dependencies..."
+  yarn -D
+fi
+
