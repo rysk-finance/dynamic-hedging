@@ -15,6 +15,6 @@ export const COLLATERAL_DOCS =
   "https://docs.rysk.finance/quant/collateralisation";
 
 export const STRATEGY_LINKS = {
-  LONG_STRADDLE: "https://optionalpha.com/strategies/long-straddle",
+  LONG_STRADDLE: "https://docs.rysk.finance/getting-started/dynamic-hedging-vault-dhv/bespoke-strategy-construction#long-straddle",
   LONG_STRANGLE: "https://optionalpha.com/strategies/long-strangle"
 };
