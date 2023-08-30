@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useDebounce } from "use-debounce";
 
 import { approveAllowance } from "src/components/shared/utils/transactions/approveAllowance";
-import { openLongStraddle } from "src/components/shared/utils/transactions/openLongStraddleStrangle";
+import { openLongStraddleStrangle } from "src/components/shared/utils/transactions/openLongStraddleStrangle";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { toUSDC, toWei } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
@@ -92,7 +92,7 @@ export const LongStraddleStrangleModal = ({ strategy }: ModalProps) => {
           collateral: addresses.collateral,
         };
 
-        const hash = await openLongStraddle(
+        const hash = await openLongStraddleStrangle(
           positionData.acceptablePremium,
           amount,
           addresses.exchange,
