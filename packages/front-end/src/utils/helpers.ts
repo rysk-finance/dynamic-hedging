@@ -23,6 +23,9 @@ export const getContractAddress = (contractName: keyof ContractAddresses) => {
   return typedAddresses[network][contractName].toLowerCase() as `0x${string}`;
 };
 
+export const shorthandContractAddress = (address: HexString) =>
+  `${address.slice(0, 4)}...${address.slice(-4)}`;
+
 export const calculateOptionDeltaLocally = async (
   optionSeries: {
     expiration: BigNumber;
