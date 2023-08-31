@@ -5,8 +5,6 @@ import { copyright, footerData, missionStatement, socials } from "./footerData";
 import { RyskTooltip } from "../shared/RyskToolTip";
 import { useBlockSyncStatus } from "./hooks/useBlockSyncStatus";
 
-// T&Cs page
-
 export const Footer = () => {
   const [height, offset, synced] = useBlockSyncStatus();
 
