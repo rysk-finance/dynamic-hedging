@@ -9,13 +9,13 @@ export const Strategies = () => {
   const {
     dispatch,
     state: {
-      options: { activeExpiry },
+      options: { activeExpiry, data },
       userTradingPreferences: { tutorialMode },
     },
   } = useGlobalContext();
 
   const handleClick = (modal: OptionChainModal) => () => {
-    if (activeExpiry) {
+    if (activeExpiry && data[activeExpiry]) {
       dispatch({
         type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
         visible: modal,
