@@ -23,15 +23,15 @@ export const openLongStraddleStrangle = async (
 ) => {
   const [putExposure, callExposure] = exposure;
 
-  const callSeries: OptionSeries = {
-    ...optionSeries,
-    isPut: true,
-    strike: toWei(selectedStrikes[0]),
-  };
   const putSeries: OptionSeries = {
     ...optionSeries,
-    isPut: false,
+    isPut: true,
     strike: toWei(selectedStrikes[1]),
+  };
+  const callSeries: OptionSeries = {
+    ...optionSeries,
+    isPut: false,
+    strike: toWei(selectedStrikes[0]),
   };
 
   const txData = [
