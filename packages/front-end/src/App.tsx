@@ -16,11 +16,14 @@ import { PrivacyPolicy } from "./pages/PrivacyPolicy";
 import { TermsOfService } from "./pages/TermsOfService";
 import { Vault } from "./pages/Vault";
 import { GlobalContextProvider } from "./state/GlobalContext";
+import { useScrollToTop } from "./hooks/useScrollToTop";
 
 import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
 
 function App() {
+  useScrollToTop();
+
   return (
     <GlobalContextProvider>
       <WalletProvider>
