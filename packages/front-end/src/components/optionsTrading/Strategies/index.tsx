@@ -1,5 +1,7 @@
 import type { OptionChainModal } from "src/state/types";
 
+import { useMemo } from "react";
+
 import { RyskTooltip } from "src/components/shared/RyskToolTip";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
@@ -14,14 +16,26 @@ export const Strategies = () => {
     },
   } = useGlobalContext();
 
+  const hasRequiredState = useMemo(
+    () => Boolean(activeExpiry && data[activeExpiry]),
+    [activeExpiry, data]
+  );
+
   const handleClick = (modal: OptionChainModal) => () => {
-    if (activeExpiry && data[activeExpiry]) {
+    if (hasRequiredState) {
       dispatch({
         type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
         visible: modal,
       });
     }
   };
+
+  if (!hasRequiredState)
+    return (
+      <div className="p-4 text-center font-medium">
+        {`Apologies, but there was an issue loading Rysk strategies. Please refresh and try again.`}
+      </div>
+    );
 
   return (
     <div className="grid grid-cols-12">
