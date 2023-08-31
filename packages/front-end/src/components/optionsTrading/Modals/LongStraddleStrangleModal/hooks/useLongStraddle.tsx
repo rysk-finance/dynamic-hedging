@@ -16,7 +16,7 @@ import { dateTimeNow, formatExpiry } from "../../Shared/utils/datetime";
 
 export const useLongStraddleStrangle = (
   amountToOpen: string,
-  strikes: StrategyStrikesTuple
+  strikes: StrategyStrikesTuple // [PUT, CALL]
 ) => {
   // Global state.
   const {
@@ -59,23 +59,23 @@ export const useLongStraddleStrangle = (
   useEffect(() => {
     const setPriceData = async (
       amount: number,
-      strikes: StrategyStrikesTuple
+      [put, call]: StrategyStrikesTuple
     ) => {
       setLoading(true);
 
       try {
-        if (amount > 0 && strikes[0] && strikes[1]) {
+        if (amount > 0 && put && call) {
           const [putQuote, callQuote] = await getQuotes([
             {
               expiry: Number(activeExpiry),
-              strike: toRysk(strikes[0]),
+              strike: toRysk(put),
               isPut: true,
               orderSize: amount,
               isSell: false,
             },
             {
               expiry: Number(activeExpiry),
-              strike: toRysk(strikes[1]),
+              strike: toRysk(call),
               isPut: false,
               orderSize: amount,
               isSell: false,
@@ -99,14 +99,14 @@ export const useLongStraddleStrangle = (
           const approved = toUSDC(requiredApproval).lte(allowance.amount);
 
           const breakEven: [number, number] = [
-            putQuote.breakEven - (callQuote.breakEven - parseInt(strikes[0])),
-            callQuote.breakEven + (parseInt(strikes[1]) - putQuote.breakEven),
+            putQuote.breakEven - (callQuote.breakEven - parseInt(put)),
+            callQuote.breakEven + (parseInt(call) - putQuote.breakEven),
           ];
 
-          const callExposure =
-            data[activeExpiry!][Number(strikes[0])].call?.exposure || 0;
           const putExposure =
-            data[activeExpiry!][Number(strikes[1])].put?.exposure || 0;
+            data[activeExpiry!][Number(put)].put?.exposure || 0;
+          const callExposure =
+            data[activeExpiry!][Number(call)].call?.exposure || 0;
 
           setPositionData({
             acceptablePremium: totalAcceptablePremium,
@@ -120,7 +120,7 @@ export const useLongStraddleStrangle = (
             remainingBalance,
             requiredApproval,
             slippage: callQuote.slippage + putQuote.slippage,
-            strikes: strikes.map(Number) as [number, number],
+            strikes: [Number(put), Number(call)],
           });
           setAllowance((currentState) => ({ ...currentState, approved }));
         } else {

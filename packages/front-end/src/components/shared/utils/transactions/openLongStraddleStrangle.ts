@@ -18,7 +18,7 @@ export const openLongStraddleStrangle = async (
   exposure: [number, number],
   optionSeries: Omit<OptionSeries, "isPut" | "strike">,
   refresh: () => void,
-  selectedStrikes: StrategyStrikesTuple,
+  [put, call]: StrategyStrikesTuple,
   userAddress: HexString
 ) => {
   const [putExposure, callExposure] = exposure;
@@ -26,12 +26,12 @@ export const openLongStraddleStrangle = async (
   const putSeries: OptionSeries = {
     ...optionSeries,
     isPut: true,
-    strike: toWei(selectedStrikes[1]),
+    strike: toWei(put),
   };
   const callSeries: OptionSeries = {
     ...optionSeries,
     isPut: false,
-    strike: toWei(selectedStrikes[0]),
+    strike: toWei(call),
   };
 
   const txData = [
