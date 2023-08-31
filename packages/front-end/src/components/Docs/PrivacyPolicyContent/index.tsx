@@ -15,13 +15,13 @@ export const PrivacyPolicyContent = () => {
 
       <LastUpdated lastUpdated={lastUpdated} />
 
-      <section className="my-8">
+      <section className="my-16">
         {intro.map((para) => (
           <Paragraph key={para}>{para}</Paragraph>
         ))}
       </section>
 
-      <section className="font-dm-mono mt-8">
+      <section className="font-dm-mono my-8">
         <Heading2 className="!mb-2.5">{`Table of contents`}</Heading2>
         <OrderedList>
           {contents.map(({ key, label }) => (
