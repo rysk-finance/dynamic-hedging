@@ -10,8 +10,10 @@ import { Init } from "./components/Init";
 import { MobileWarning } from "./components/MobileWarning";
 import { AppPaths } from "./config/appPaths";
 import { Dashboard } from "./pages/Dashboard";
-import { OptionsTrading } from "./pages/OptionsTrading";
 import { OTC } from "./pages/OTC";
+import { OptionsTrading } from "./pages/OptionsTrading";
+import { PrivacyPolicy } from "./pages/PrivacyPolicy";
+import { TermsOfService } from "./pages/TermsOfService";
 import { Vault } from "./pages/Vault";
 import { GlobalContextProvider } from "./state/GlobalContext";
 
@@ -36,11 +38,19 @@ function App() {
             <div className="px-16 overflow-hidden">
               <div className="root-grid pb-16">
                 <Routes>
-                  <Route path={AppPaths.VAULT} element={<Vault />} />
-                  <Route path={AppPaths.HOME} element={<OptionsTrading />} />
-                  <Route path={AppPaths.TRADE} element={<OptionsTrading />} />
                   <Route path={AppPaths.DASHBOARD} element={<Dashboard />} />
+                  <Route path={AppPaths.HOME} element={<OptionsTrading />} />
                   <Route path={AppPaths.OTC} element={<OTC />} />
+                  <Route
+                    path={AppPaths.PRIVACY_POLICY}
+                    element={<PrivacyPolicy />}
+                  />
+                  <Route
+                    path={AppPaths.TERMS_OF_SERVICE}
+                    element={<TermsOfService />}
+                  />
+                  <Route path={AppPaths.TRADE} element={<OptionsTrading />} />
+                  <Route path={AppPaths.VAULT} element={<Vault />} />
                 </Routes>
               </div>
             </div>
