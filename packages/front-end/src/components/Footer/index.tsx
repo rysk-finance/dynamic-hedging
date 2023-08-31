@@ -1,9 +1,10 @@
+import { Link } from "react-router-dom";
+
 import { RyskCountUp } from "../shared/RyskCountUp";
 import { copyright, footerData, missionStatement, socials } from "./footerData";
 import { RyskTooltip } from "../shared/RyskToolTip";
 import { useBlockSyncStatus } from "./hooks/useBlockSyncStatus";
 
-// Privacy policy page
 // T&Cs page
 
 export const Footer = () => {
@@ -36,14 +37,14 @@ export const Footer = () => {
           <ul className="col-span-2 pr-8 text-xs lg:text-sm">
             {section.links.map(({ href, label }) => (
               <li key={label}>
-                <a
+                <Link
                   className="block py-3.5 lg:py-2.5 hover:text-bone-dark ease-in-out duration-200"
-                  href={href}
+                  to={href}
                   rel="noopener noreferrer"
                   target={href.includes("http") ? "_blank" : "_self"}
                 >
                   {label}
-                </a>
+                </Link>
               </li>
             ))}
           </ul>
