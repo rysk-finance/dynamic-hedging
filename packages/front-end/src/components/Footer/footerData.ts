@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 
 import { Discord, Github, Twitter } from "src/Icons";
+import { AppPaths } from "src/config/appPaths";
 import { DISCORD_LINK, GITHUB_LINK, TWITTER_LINK } from "src/config/links";
 import {
   getContractAddress,
@@ -79,11 +80,11 @@ export const footerData = [
       },
       {
         label: "Privacy policy",
-        href: "/privacy-policy",
+        href: AppPaths.PRIVACY_POLICY,
       },
       {
         label: "Terms and conditions",
-        href: "/term-and-conditions",
+        href: AppPaths.TERMS_OF_SERVICE,
       },
     ],
   },
