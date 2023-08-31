@@ -252,6 +252,9 @@ export type GlobalState = {
 
   // User stats
   userStats: UserStats;
+
+  // Native USDC banner
+  nativeUSDCBannerVisible: boolean;
 };
 
 export enum ActionType {
@@ -286,6 +289,9 @@ export enum ActionType {
 
   // User stats
   SET_USER_STATS,
+
+  // Native USDC banner
+  SET_NATIVE_USDC_BANNER_VISIBLE,
 }
 
 export type GlobalAction =
@@ -407,6 +413,10 @@ export type GlobalAction =
   | {
       type: ActionType.SET_USER_TRADING_PREFERENCES;
       userTradingPreferences: UserTradingPreferences;
+    }
+  | {
+      type: ActionType.SET_NATIVE_USDC_BANNER_VISIBLE;
+      visible: boolean;
     };
 
 export type GlobalContext = {

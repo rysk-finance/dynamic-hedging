@@ -213,6 +213,11 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
           ...action.userTradingPreferences,
         },
       };
+    case ActionType.SET_NATIVE_USDC_BANNER_VISIBLE:
+      return {
+        ...state,
+        nativeUSDCBannerVisible: action.visible,
+      };
   }
 };
 

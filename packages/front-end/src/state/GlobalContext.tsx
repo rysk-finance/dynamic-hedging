@@ -27,6 +27,7 @@ import { ActionType } from "./types";
 // Trading preferences
 import { ActivePositionSort } from "./constants";
 import {
+  getLocalStorageBoolean,
   getLocalStorageObject,
   getLocalStorageSet,
   LocalStorageKeys,
@@ -174,6 +175,12 @@ export const defaultGlobalState: GlobalState = {
     >(LocalStorageKeys.INACTIVE_POSITIONS_FILTERS_COMPACT, { compact: true }),
     loading: true,
   },
+
+  // Native USDC banner
+  nativeUSDCBannerVisible: getLocalStorageBoolean(
+    LocalStorageKeys.NATIVE_USDC_BANNER_VISIBLE,
+    true
+  ),
 };
 
 export const GlobalReactContext = createContext<GlobalContext>({
