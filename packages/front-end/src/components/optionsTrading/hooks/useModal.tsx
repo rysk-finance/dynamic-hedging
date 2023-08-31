@@ -23,7 +23,7 @@ export const useModal = () => {
       adjustingOption,
       closingOption,
       optionChainModalOpen,
-      options: { activeExpiry, isOperator },
+      options: { activeExpiry, data, isOperator },
       selectedOption,
     },
     dispatch,
@@ -50,7 +50,7 @@ export const useModal = () => {
 
   // Dispatcher for opening modals.
   useEffect(() => {
-    if (activeExpiry) {
+    if (activeExpiry && data[activeExpiry]) {
       if (adjustingOption) {
         dispatch({
           type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,

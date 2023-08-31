@@ -140,7 +140,11 @@ export const getChainData = async (
 
     if (data.length && data.length === expiries.length) {
       return data.reduce((chainData, currentExpiry) => {
-        if (currentExpiry.callOptionDrill && currentExpiry.putOptionDrill) {
+        if (
+          currentExpiry &&
+          currentExpiry.callOptionDrill &&
+          currentExpiry.putOptionDrill
+        ) {
           const {
             callOptionDrill,
             expiration,
