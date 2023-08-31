@@ -4,9 +4,11 @@ pragma solidity >=0.8.9;
 import "../../contracts/LiquidityPool.sol";
 import { GammaTypes, IController } from "../interfaces/GammaInterface.sol";
 import "../OptionRegistry.sol";
+import "../libraries/AccessControl.sol";
 
-contract DeltaSettlerMulticall {
-	address public executorAddress;
+contract DeltaSettlerMulticall is AccessControl {
+	/// @notice address of the keeper of this pool
+	mapping(address => bool) public keeper;
 	address public immutable optionRegistryAddress;
 	OptionRegistry public immutable optionRegistry;
 	IController public immutable controller;
@@ -15,23 +17,21 @@ contract DeltaSettlerMulticall {
 	error invalidMsgSender();
 
 	constructor(
-		address _executorAddress,
+		address _authority,
 		address _optionRegistryAddress,
 		address _controllerAddres,
 		address _liquidityPoolAddress
-	) {
-		executorAddress = _executorAddress;
+	) AccessControl(IAuthority(_authority)) {
 		optionRegistryAddress = _optionRegistryAddress;
 		optionRegistry = OptionRegistry(_optionRegistryAddress);
 		controller = IController(_controllerAddres);
 		liquidityPool = LiquidityPool(_liquidityPoolAddress);
 	}
 
-	function setExecutor(address _executorAddress) external {
-		if (msg.sender != executorAddress) {
-			revert invalidMsgSender();
-		}
-		executorAddress = _executorAddress;
+	/// @notice update the keepers
+	function setKeeper(address _keeper, bool _auth) external {
+		_onlyGovernor();
+		keeper[_keeper] = _auth;
 	}
 
 	function checkVaultsToSettle(
@@ -62,14 +62,21 @@ contract DeltaSettlerMulticall {
 	}
 
 	function settleVaults(address[] calldata seriesAddresses) external {
-		if (msg.sender != executorAddress) {
-			revert invalidMsgSender();
-		}
+		_isKeeper();
 
 		uint256 i = 0;
 		uint256 length = seriesAddresses.length;
 		for (i; i < length; i++) {
 			try liquidityPool.settleVault(seriesAddresses[i]) {} catch {}
+		}
+	}
+
+	/// @dev keepers, managers or governors can access
+	function _isKeeper() internal view {
+		if (
+			!keeper[msg.sender] && msg.sender != authority.governor() && msg.sender != authority.manager()
+		) {
+			revert CustomErrors.NotKeeper();
 		}
 	}
 }

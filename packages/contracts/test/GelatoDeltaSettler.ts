@@ -61,6 +61,7 @@ import {
 	setupOracle,
 	setupTestOracle
 } from "./helpers"
+import exp from "constants"
 
 dayjs.extend(utc)
 
@@ -877,7 +878,7 @@ describe("deploy resolver and multicall", async () => {
 	it("deploys multicall", async () => {
 		const multicallFactory = await ethers.getContractFactory("DeltaSettlerMulticall")
 		multicall = (await multicallFactory.deploy(
-			senderAddress,
+			authority,
 			optionRegistry.address,
 			controller.address,
 			liquidityPool.address
@@ -926,7 +927,7 @@ describe("executes bots runs", async () => {
 
 		expect(decodedResult).to.eq("No vaults to settle")
 	})
-	it("shows 1 vault to settle and settles it", async () => {
+	it("shows 1 vault to settle and settles it with keeper", async () => {
 		const blockNumBefore = await ethers.provider.getBlockNumber()
 		const blockBefore = await ethers.provider.getBlock(blockNumBefore)
 		const timestampBefore = blockBefore.timestamp
@@ -949,7 +950,21 @@ describe("executes bots runs", async () => {
 
 		expect(checkerResult.canExec).to.eq(true)
 
-		await multicall.settleVaults([seriesAddress1, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS])
+		// Check keeper system works
+		const keeperAddress = "0x55fe002aeff02f77364de339a1292923a15844b8"
+		// user is not keeper. Tx should fail
+		await expect(
+			multicall
+				.connect(await ethers.getSigner(keeperAddress))
+				.settleVaults([seriesAddress1, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS])
+		).to.be.revertedWithCustomError(multicall, "NotKeeper")
+
+		// set address as keeper
+		await multicall.setKeeper(keeperAddress, true)
+		// tx now passes
+		await multicall
+			.connect(await ethers.getSigner(keeperAddress))
+			.settleVaults([seriesAddress1, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS])
 
 		const checkerResultAfter = await resolver.checker()
 		const decodedResultAfter = hexToUtf8(checkerResultAfter.execPayload)
