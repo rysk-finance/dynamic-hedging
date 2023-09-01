@@ -3,10 +3,11 @@
 
 IFS=$'\n'
 
-LOCK_FILE=("$(git diff --name-only HEAD@{1} HEAD | grep -E "yarn.lock")")
+LOCK_FILE=("$(git diff --name-only HEAD@{1} HEAD | grep -E "yarn.lock" | xargs)")
 
 if [[ -n "$LOCK_FILE" ]]; then
   echo "Lock file changes detected. Running yarn to update your dependencies..."
   yarn -D
 fi
 
+exit 0
