@@ -1,36 +1,66 @@
-import type { ChartProps, CustomTooltipProps } from "../VaultPerformance.types";
+import type {
+  ChartProps,
+  CustomLegendProps,
+  CustomTooltipProps,
+} from "../VaultPerformance.types";
 
 import dayjs from "dayjs";
 import {
-  LineChart,
+  Legend,
   Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
 } from "recharts";
 
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (label && active && payload && payload.length) {
-    const [dhvReal, dhvPredicted, ethReal, ethPredicted] = payload;
-
-    const useReal = dhvReal.value >= 0 && ethReal.value >= 0;
+    const isHistoricalDataPoint = payload.length === 2;
 
     return (
       <div className="bg-white rounded-lg shadow-lg font-dm-mono text-center w-60">
         <p className="px-4 pt-4 pb-2 text-xl font-medium after:content-['_%']">
-          {`DHV: ${useReal ? dhvReal.value : dhvPredicted.value}`}
+          {`DHV: ${
+            isHistoricalDataPoint ? payload[0].value : payload[1].value
+          }`}
         </p>
 
         <p className="px-4 pb-2 border-b-2 border-bone text-xl font-medium after:content-['_%']">
-          {`ETH: ${useReal ? ethReal.value : ethPredicted.value}`}
+          {`ETH: ${
+            isHistoricalDataPoint ? payload[1].value : payload[3].value
+          }`}
         </p>
 
         <p className="p-2 text-sm">
           {dayjs.unix(parseInt(label)).format("DD MMM YY")}
-          {useReal ? ` (epoch ${dhvReal.payload.epoch})` : " (predicted)"}
+          {isHistoricalDataPoint
+            ? ` (epoch ${payload[0].payload.epoch})`
+            : " (predicted)"}
         </p>
+      </div>
+    );
+  }
+
+  return null;
+};
+
+const CustomLegend = ({ payload }: CustomLegendProps) => {
+  if (payload && payload.length) {
+    return (
+      <div className="flex justify-center">
+        {payload.map(({ color, value }) => {
+          return value.includes("predicted") ? null : (
+            <>
+              <span
+                className="w-2 h-2 bg-black rounded-full my-2"
+                style={{ background: color }}
+              />
+              <p className="ml-2 mr-8">{value}</p>
+            </>
+          );
+        })}
       </div>
     );
   }
@@ -81,7 +111,7 @@ export const Chart = ({ chartData }: ChartProps) => (
           animationBegin={1000}
           animationDuration={1000}
           animationEasing="ease"
-          dataKey="ethPrice"
+          dataKey="predictedEthPrice"
           dot={{ r: 4, fill: "#626890", stroke: "#626890" }}
           stroke="#626890"
           strokeDasharray="8 8"
@@ -109,7 +139,7 @@ export const Chart = ({ chartData }: ChartProps) => (
           tickFormatter={(value: string) => `${value}%`}
         />
         <Tooltip content={<CustomTooltip />} cursor={false} />
-        <Legend iconType="circle" />
+        <Legend content={<CustomLegend />} iconType="circle" />
       </LineChart>
     </ResponsiveContainer>
   </div>

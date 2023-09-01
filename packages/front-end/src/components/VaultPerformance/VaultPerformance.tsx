@@ -4,7 +4,6 @@ import { gql, useQuery } from "@apollo/client";
 import { AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 
-
 import { QueriesEnum } from "src/clients/Apollo/Queries";
 import { logError } from "src/utils/logError";
 import { Chart } from "./subcomponents/Chart";
@@ -30,6 +29,7 @@ export const VaultPerformance = () => {
           epoch
           growthSinceFirstEpoch
           timestamp
+          value
         }
       }
     `,
@@ -42,6 +42,10 @@ export const VaultPerformance = () => {
     parseData(data).then((parsedData) => {
       if (parsedData) setChartData(parsedData);
     });
+
+    return () => {
+      setChartData([]);
+    };
   }, [data]);
 
   return (
