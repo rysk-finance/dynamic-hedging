@@ -4,7 +4,11 @@ import { readContracts } from "@wagmi/core";
 
 import { DHVLensMK1ABI } from "src/abis/DHVLensMK1_ABI";
 import { PriceFeedABI } from "src/abis/PriceFeed_ABI";
-import { fromWeiToInt, fromOpynToNumber } from "src/utils/conversion-helper";
+import {
+  SECONDS_IN_WEEK,
+  fromOpynToNumber,
+  fromWeiToInt,
+} from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { toTwoDecimalPlaces } from "src/utils/rounding";
 
@@ -43,7 +47,7 @@ export const parseData = async (
         epoch: (parseFloat(lastIndex.epoch) + 1).toString(),
         growthSinceFirstEpoch: "",
         predictedGrowthSinceFirstEpoch,
-        timestamp: currentPricePerShare[1].toString(),
+        timestamp: String(parseInt(lastIndex.timestamp) + SECONDS_IN_WEEK),
         value: currentPricePerShare.toString(),
         __typename: "",
       },

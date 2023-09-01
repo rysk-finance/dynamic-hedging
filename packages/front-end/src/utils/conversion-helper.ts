@@ -18,6 +18,7 @@ export const MAX_BPS = BigNumber.from(10000);
 export const CALL = false;
 export const PUT = true;
 export const SECONDS_IN_DAY = 86400;
+export const SECONDS_IN_WEEK = SECONDS_IN_DAY * 7;
 export const SECONDS_IN_SIXTY_DAYS = SECONDS_IN_DAY * 60;
 export const SECONDS_IN_YEAR = SECONDS_IN_DAY * 365.25;
 export const genOptionTime = (now: Dayjs, future: Dayjs) =>
