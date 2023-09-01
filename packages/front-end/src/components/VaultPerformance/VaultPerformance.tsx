@@ -4,8 +4,6 @@ import { gql, useQuery } from "@apollo/client";
 import { AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 
-import { toTwoDecimalPlaces } from "src/utils/rounding";
-
 import { QueriesEnum } from "src/clients/Apollo/Queries";
 import { logError } from "src/utils/logError";
 import { Chart } from "./subcomponents/Chart";
@@ -14,6 +12,7 @@ import { Error } from "./subcomponents/Error";
 import { FadeWrapper } from "./subcomponents/FadeWrapper";
 import { Loading } from "./subcomponents/Loading";
 import { Stats } from "./subcomponents/Stats";
+import { parseData } from "./utils/parseData";
 
 export const VaultPerformance = () => {
   const [chartData, setChartData] = useState<ChartData[]>([]);
@@ -30,6 +29,7 @@ export const VaultPerformance = () => {
           epoch
           growthSinceFirstEpoch
           timestamp
+          value
         }
       }
     `,
@@ -39,35 +39,13 @@ export const VaultPerformance = () => {
   );
 
   useEffect(() => {
-    if (data) {
-      const { pricePerShares } = data;
+    parseData(data).then((parsedData) => {
+      if (parsedData) setChartData(parsedData);
+    });
 
-      const publicLaunchOffset = pricePerShares.length
-        ? parseFloat(pricePerShares[0].growthSinceFirstEpoch)
-        : 0;
-
-      // Values need replacing with API/Chain data.
-      const ethPrices = [
-        1892.21, 1877.3, 1845.48, 1842.73, 1653.45, 1647.6, 1633.62,
-      ];
-
-      const adjustedChartData = pricePerShares.map((pricePoint, index) => {
-        const pricePointGrowth = parseFloat(pricePoint.growthSinceFirstEpoch);
-        const growthSinceFirstEpoch = toTwoDecimalPlaces(
-          pricePointGrowth - publicLaunchOffset
-        );
-
-        return {
-          ...pricePoint,
-          ethPrice: toTwoDecimalPlaces(
-            (ethPrices[index] / ethPrices[0] - 1) * 100
-          ),
-          growthSinceFirstEpoch,
-        };
-      });
-
-      setChartData(adjustedChartData);
-    }
+    return () => {
+      setChartData([]);
+    };
   }, [data]);
 
   return (

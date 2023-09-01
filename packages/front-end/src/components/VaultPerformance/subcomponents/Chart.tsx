@@ -1,31 +1,66 @@
-import type { ChartProps, CustomTooltipProps } from "../VaultPerformance.types";
+import type {
+  ChartProps,
+  CustomLegendProps,
+  CustomTooltipProps,
+} from "../VaultPerformance.types";
 
 import dayjs from "dayjs";
 import {
-  LineChart,
+  Legend,
   Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
 } from "recharts";
 
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (label && active && payload && payload.length) {
-    const [dhv, eth] = payload;
+    const isHistoricalDataPoint = payload.length === 2;
 
     return (
       <div className="bg-white rounded-lg shadow-lg font-dm-mono text-center w-60">
         <p className="px-4 pt-4 pb-2 text-xl font-medium after:content-['_%']">
-          {`DHV: ${dhv.value}`}
+          {`DHV: ${
+            isHistoricalDataPoint ? payload[0].value : payload[1].value
+          }`}
         </p>
+
         <p className="px-4 pb-2 border-b-2 border-bone text-xl font-medium after:content-['_%']">
-          {`ETH: ${eth.value}`}
+          {`ETH: ${
+            isHistoricalDataPoint ? payload[1].value : payload[3].value
+          }`}
         </p>
+
         <p className="p-2 text-sm">
           {dayjs.unix(parseInt(label)).format("DD MMM YY")}
+          {isHistoricalDataPoint
+            ? ` (epoch ${payload[0].payload.epoch})`
+            : " (predicted)"}
         </p>
+      </div>
+    );
+  }
+
+  return null;
+};
+
+const CustomLegend = ({ payload }: CustomLegendProps) => {
+  if (payload && payload.length) {
+    return (
+      <div className="flex justify-center">
+        {payload.map(({ color, value }) => {
+          return value.includes("predicted") ? null : (
+            <>
+              <span
+                className="w-2 h-2 bg-black rounded-full my-2"
+                style={{ background: color }}
+              />
+              <p className="ml-2 mr-8">{value}</p>
+            </>
+          );
+        })}
       </div>
     );
   }
@@ -39,6 +74,8 @@ export const Chart = ({ chartData }: ChartProps) => (
       <LineChart data={chartData}>
         <Line
           activeDot={{ fill: "#00FEFD", stroke: "#00FEFD" }}
+          animationDuration={1000}
+          animationEasing="ease-in"
           dataKey="growthSinceFirstEpoch"
           dot={{ r: 4, fill: "black", stroke: "black" }}
           name="DHV"
@@ -47,11 +84,37 @@ export const Chart = ({ chartData }: ChartProps) => (
           type="linear"
         />
         <Line
+          activeDot={{ fill: "#00FEFD", stroke: "#00FEFD" }}
+          animationBegin={1000}
+          animationDuration={1000}
+          animationEasing="ease"
+          dataKey="predictedGrowthSinceFirstEpoch"
+          dot={{ r: 4, fill: "black", stroke: "black" }}
+          stroke="black"
+          strokeDasharray="8 8"
+          strokeWidth={2}
+          type="linear"
+        />
+        <Line
           activeDot={{ fill: "#343434", stroke: "#343434" }}
+          animationDuration={1000}
+          animationEasing="ease-in"
           dataKey="ethPrice"
           dot={{ r: 4, fill: "#626890", stroke: "#626890" }}
           name="Ethereum"
           stroke="#626890"
+          strokeWidth={2}
+          type="linear"
+        />
+        <Line
+          activeDot={{ fill: "#343434", stroke: "#343434" }}
+          animationBegin={1000}
+          animationDuration={1000}
+          animationEasing="ease"
+          dataKey="predictedEthPrice"
+          dot={{ r: 4, fill: "#626890", stroke: "#626890" }}
+          stroke="#626890"
+          strokeDasharray="8 8"
           strokeWidth={2}
           type="linear"
         />
@@ -76,7 +139,7 @@ export const Chart = ({ chartData }: ChartProps) => (
           tickFormatter={(value: string) => `${value}%`}
         />
         <Tooltip content={<CustomTooltip />} cursor={false} />
-        <Legend iconType="circle" />
+        <Legend content={<CustomLegend />} iconType="circle" />
       </LineChart>
     </ResponsiveContainer>
   </div>
