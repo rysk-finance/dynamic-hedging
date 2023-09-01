@@ -2,25 +2,25 @@
 pragma solidity >=0.8.9;
 
 import "../../contracts/OptionRegistry.sol";
+import "../libraries/AccessControl.sol";
 
-contract VaultCollateralMulticall {
-	address public executorAddress;
+contract VaultCollateralMulticall is AccessControl {
+	/// @notice address of the keeper of this pool
+	mapping(address => bool) public keeper;
 	OptionRegistry public optionRegistry;
 	uint256 private constant UPPER_HF_BUFFER = 11_000;
 	uint256 private constant MAX_BPS = 10_000;
 
 	error invalidMsgSender();
 
-	constructor(address _executorAddress, address _optionRegistry) {
-		executorAddress = _executorAddress;
+	constructor(address _authority, address _optionRegistry) AccessControl(IAuthority(_authority)) {
 		optionRegistry = OptionRegistry(_optionRegistry);
 	}
 
-	function setExecutor(address _executorAddress) external {
-		if (msg.sender != executorAddress) {
-			revert invalidMsgSender();
-		}
-		executorAddress = _executorAddress;
+	/// @notice update the keepers
+	function setKeeper(address _keeper, bool _auth) external {
+		_onlyGovernor();
+		keeper[_keeper] = _auth;
 	}
 
 	function checkVaults(uint256[] calldata vaultIds) external view returns (uint256[] memory) {
@@ -54,14 +54,21 @@ contract VaultCollateralMulticall {
 	}
 
 	function adjustVaults(uint256[] calldata vaultIds) external {
-		if (msg.sender != executorAddress) {
-			revert invalidMsgSender();
-		}
+		_isKeeper();
 
 		uint256 i = 0;
 		uint256 length = vaultIds.length;
 		for (i; i < length; i++) {
 			try optionRegistry.adjustCollateral(vaultIds[i]) {} catch {}
+		}
+	}
+
+	/// @dev keepers, managers or governors can access
+	function _isKeeper() internal view {
+		if (
+			!keeper[msg.sender] && msg.sender != authority.governor() && msg.sender != authority.manager()
+		) {
+			revert CustomErrors.NotKeeper();
 		}
 	}
 }
