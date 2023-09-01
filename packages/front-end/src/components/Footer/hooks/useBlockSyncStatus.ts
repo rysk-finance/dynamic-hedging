@@ -14,7 +14,7 @@ export const useBlockSyncStatus = () => {
   const [count, setCount] = useState(0);
   const [blockState, setBlockState] = useState<BlockState>({
     offset: 0,
-    synced: false,
+    synced: true,
   });
 
   const { data: blockHeight } = useBlockNumber({
@@ -29,7 +29,7 @@ export const useBlockSyncStatus = () => {
     if (!(count % SUBGRAPH_INTERVAL)) {
       typedFetch<SubgraphStatusResponse>(SUBGRAPH_STATUS).then(
         ({ block, synced }) => {
-          const offset = block - (blockHeight || 0);
+          const offset = blockHeight ? block - blockHeight : 0;
 
           setBlockState({
             offset,
