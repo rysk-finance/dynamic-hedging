@@ -1,8 +1,8 @@
 import hre, { ethers } from "hardhat"
 
-const executorAddress = "0x40466D74cC36E70273f8127D035E51E5684160ef"
+const authorityAddress = "0x74948DAf8Beb3d14ddca66d205bE3bc58Df39aC9"
 const optionRegistryAddress = "0x8Bc23878981a207860bA4B185fD065f4fd3c7725"
-const controllerAddress = "0xC820739fEdF9A28bE29f73c29E167f0c14F1FE2a"
+const controllerAddress = "0x594bD4eC29F7900AE29549c140Ac53b5240d4019"
 const liquidityPoolAddress = "0x217749d9017cB87712654422a1F5856AAA147b80"
 
 const main = async () => {
@@ -11,7 +11,7 @@ const main = async () => {
 
 	const multicallFactory = await ethers.getContractFactory("DeltaSettlerMulticall")
 	const multicall = await multicallFactory.deploy(
-		executorAddress,
+		authorityAddress,
 		optionRegistryAddress,
 		controllerAddress,
 		liquidityPoolAddress
@@ -21,7 +21,7 @@ const main = async () => {
 		await hre.run("verify:verify", {
 			address: multicall.address,
 			constructorArguments: [
-				executorAddress,
+				authorityAddress,
 				optionRegistryAddress,
 				controllerAddress,
 				liquidityPoolAddress
