@@ -12,6 +12,7 @@ export const RyskTooltip = ({
   disabled = false,
   content,
   placement = "auto",
+  theme = "rysk",
 }: RyskToolTipProps) => {
   const formattedContent =
     typeof content === "string" ? (
@@ -28,7 +29,7 @@ export const RyskTooltip = ({
       hideOnClick="toggle"
       interactive
       placement={placement}
-      theme="rysk"
+      theme={theme}
     >
       {children ? (
         cloneElement(children, {

@@ -1,7 +1,9 @@
 export enum AppPaths {
-  HOME = "/",
-  VAULT = "/vault",
-  TRADE = "/options",
   DASHBOARD = "/dashboard",
+  HOME = "/",
   OTC = "/otc",
+  PRIVACY_POLICY = "/privacy-policy",
+  TERMS_OF_SERVICE = "/terms-of-service",
+  TRADE = "/options",
+  VAULT = "/vault",
 }

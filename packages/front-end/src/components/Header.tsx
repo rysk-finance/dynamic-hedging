@@ -1,11 +1,16 @@
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
-import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
-import { Connect } from "src/clients/WalletProvider/components/Connect";
-import { AppPaths } from "../config/appPaths";
 import { Close } from "src/Icons";
 import FadeInDown from "src/animation/FadeInDownDelayed";
+import { Connect } from "src/clients/WalletProvider/components/Connect";
+import { useGlobalContext } from "src/state/GlobalContext";
+import {
+  LocalStorageKeys,
+  setLocalStorageBoolean,
+} from "src/state/localStorage";
+import { ActionType } from "src/state/types";
+import { AppPaths } from "../config/appPaths";
 
 const links = [
   { id: "header-options", path: AppPaths.TRADE, label: "Trade Options" },
@@ -16,9 +21,19 @@ const links = [
 export const Header = () => {
   const { pathname } = useLocation();
 
-  const [visible, setVisible] = useState(true);
+  const {
+    dispatch,
+    state: { nativeUSDCBannerVisible },
+  } = useGlobalContext();
 
-  const handleClose = () => setVisible(false);
+  const handleClose = () => {
+    setLocalStorageBoolean(LocalStorageKeys.NATIVE_USDC_BANNER_VISIBLE, 0);
+
+    dispatch({
+      type: ActionType.SET_NATIVE_USDC_BANNER_VISIBLE,
+      visible: false,
+    });
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full bg-bone">
@@ -55,7 +70,7 @@ export const Header = () => {
       </nav>
 
       <AnimatePresence mode="wait">
-        {visible && (
+        {nativeUSDCBannerVisible && (
           <motion.b
             className="relative flex justify-center px-16 border-b-2 border-black"
             {...FadeInDown(0.3)}
