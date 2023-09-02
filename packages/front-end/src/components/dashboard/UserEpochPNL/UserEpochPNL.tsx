@@ -28,7 +28,7 @@ import { useAccount } from "wagmi";
 import { QueriesEnum } from "src/clients/Apollo/Queries";
 import { toTwoDecimalPlaces } from "src/utils/rounding";
 import { BIG_NUMBER_DECIMALS, DECIMALS } from "../../../config/constants";
-import { baseRyskToUsdc } from "../../../utils/conversion-helper";
+import { fromWeiToUSDC } from "../../../utils/conversion-helper";
 import { Card } from "../../shared/Card";
 
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
@@ -194,7 +194,7 @@ export const UserEpochPNL = () => {
               const sharesWithdraw =
                 amountsByEpoch[ppsEpoch.id]?.sharesWithdraw || "0";
 
-              const sharesWithdrawAsCollateral = baseRyskToUsdc(
+              const sharesWithdrawAsCollateral = fromWeiToUSDC(
                 BigNumber.from(sharesWithdraw)
                   .mul(ppsEpoch.value) // withdrawalEpochPricePerShare
                   .div(BIG_NUMBER_DECIMALS.RYSK) // back to RYSK (18) based
@@ -214,7 +214,7 @@ export const UserEpochPNL = () => {
                 .sub(BigNumber.from(sharesWithdraw))
                 .add(BigNumber.from(tempPNL[i - 1]?.shares || 0));
 
-              const pnl = baseRyskToUsdc(
+              const pnl = fromWeiToUSDC(
                 BigNumber.from(ppsEpoch.value) // current epoch PPS
                   .sub(BigNumber.from(values[i - 1]?.value || 0)) // previous epoch PPS
                   .mul(BigNumber.from(tempPNL[i - 1]?.shares || 0)) // previous epoch Shares
