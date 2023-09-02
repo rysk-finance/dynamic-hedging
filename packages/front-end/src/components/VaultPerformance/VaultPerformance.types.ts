@@ -22,6 +22,7 @@ export interface ChartData
   predictedEthPrice: number | null;
   growthSinceFirstEpoch: number;
   predictedGrowthSinceFirstEpoch: number | null;
+  isPrediction: boolean;
 }
 
 export interface CustomTooltipProps {
@@ -29,6 +30,7 @@ export interface CustomTooltipProps {
   payload?: {
     payload: {
       epoch: string;
+      isPrediction: boolean;
     };
     value: number;
   }[];

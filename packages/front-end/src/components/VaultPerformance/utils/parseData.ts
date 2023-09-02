@@ -91,6 +91,7 @@ export const parseData = async (
           predictedGrowthSinceFirstEpoch: toTwoDecimalPlaces(
             predictedPricePointGrowth - publicLaunchOffset
           ),
+          isPrediction: true,
         };
       }
 
@@ -101,6 +102,7 @@ export const parseData = async (
           predictedEthPrice: ethPrice,
           growthSinceFirstEpoch,
           predictedGrowthSinceFirstEpoch: growthSinceFirstEpoch,
+          isPrediction: false,
         };
       }
 
@@ -110,6 +112,7 @@ export const parseData = async (
         predictedEthPrice: null,
         growthSinceFirstEpoch,
         predictedGrowthSinceFirstEpoch: null,
+        isPrediction: false,
       };
     });
   }

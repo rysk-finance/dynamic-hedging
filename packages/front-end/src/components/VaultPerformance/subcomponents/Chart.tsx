@@ -18,6 +18,7 @@ import {
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (label && active && payload && payload.length) {
     const isHistoricalDataPoint = payload.length === 2;
+    const isPredictedPrice = payload[0].payload.isPrediction;
 
     return (
       <div className="bg-white rounded-lg shadow-lg font-dm-mono text-center w-60">
@@ -35,9 +36,9 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
 
         <p className="p-2 text-sm">
           {dayjs.unix(parseInt(label)).format("DD MMM YY")}
-          {isHistoricalDataPoint
-            ? ` (epoch ${payload[0].payload.epoch})`
-            : " (predicted)"}
+          {isPredictedPrice
+            ? " (predicted)"
+            : ` (epoch ${payload[0].payload.epoch})`}
         </p>
       </div>
     );
