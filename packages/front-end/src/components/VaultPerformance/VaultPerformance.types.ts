@@ -2,6 +2,7 @@ import type { BigNumberish } from "ethers";
 
 interface PricePerShareEpoch {
   epoch: string;
+  ethPrice: BigNumberish;
   growthSinceFirstEpoch: string;
   predictedGrowthSinceFirstEpoch?: string;
   timestamp: string;
@@ -16,7 +17,10 @@ export interface QueryData {
 export interface ChartData
   extends Omit<
     PricePerShareEpoch,
-    "growthSinceFirstEpoch" | "predictedGrowthSinceFirstEpoch" | "value"
+    | "growthSinceFirstEpoch"
+    | "predictedGrowthSinceFirstEpoch"
+    | "value"
+    | "ethPrice"
   > {
   ethPrice: number;
   predictedEthPrice: number | null;
