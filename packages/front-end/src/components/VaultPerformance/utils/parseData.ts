@@ -45,6 +45,7 @@ export const parseData = async (
       ...pricePerShares,
       {
         epoch: (parseFloat(lastIndex.epoch) + 1).toString(),
+        ethPrice: currentEthPrice,
         growthSinceFirstEpoch: "",
         predictedGrowthSinceFirstEpoch,
         timestamp: String(parseInt(lastIndex.timestamp) + SECONDS_IN_WEEK),
@@ -56,26 +57,18 @@ export const parseData = async (
     const publicLaunchOffset = pricePerSharesWithPrediction.length
       ? parseFloat(pricePerSharesWithPrediction[0].growthSinceFirstEpoch)
       : 0;
-
-    // Values need replacing with API/Chain data.
-    const ethPrices = [
-      1892.21,
-      1877.3,
-      1845.48,
-      1842.73,
-      1653.45,
-      1647.6,
-      1633.62,
-      fromOpynToNumber(currentEthPrice),
-    ];
+    const publicLaunchEthPrice = pricePerSharesWithPrediction.length
+      ? fromOpynToNumber(pricePerSharesWithPrediction[0].ethPrice)
+      : 0;
 
     return pricePerSharesWithPrediction.map((pricePoint, index, array) => {
       const pricePointGrowth = parseFloat(pricePoint.growthSinceFirstEpoch);
       const growthSinceFirstEpoch = toTwoDecimalPlaces(
         pricePointGrowth - publicLaunchOffset
       );
-      const ethPrice = toTwoDecimalPlaces(
-        (ethPrices[index] / ethPrices[0] - 1) * 100
+      const ethPrice = fromOpynToNumber(pricePoint.ethPrice);
+      const ethPriceGrowth = toTwoDecimalPlaces(
+        (ethPrice / publicLaunchEthPrice - 1) * 100
       );
 
       if (pricePoint.predictedGrowthSinceFirstEpoch) {
@@ -86,7 +79,7 @@ export const parseData = async (
         return {
           ...pricePoint,
           ethPrice: NaN,
-          predictedEthPrice: ethPrice,
+          predictedEthPrice: ethPriceGrowth,
           growthSinceFirstEpoch: NaN,
           predictedGrowthSinceFirstEpoch: toTwoDecimalPlaces(
             predictedPricePointGrowth - publicLaunchOffset
@@ -98,8 +91,8 @@ export const parseData = async (
       if (index === array.length - 2) {
         return {
           ...pricePoint,
-          ethPrice,
-          predictedEthPrice: ethPrice,
+          ethPrice: ethPriceGrowth,
+          predictedEthPrice: ethPriceGrowth,
           growthSinceFirstEpoch,
           predictedGrowthSinceFirstEpoch: growthSinceFirstEpoch,
           isPrediction: false,
@@ -108,7 +101,7 @@ export const parseData = async (
 
       return {
         ...pricePoint,
-        ethPrice,
+        ethPrice: ethPriceGrowth,
         predictedEthPrice: null,
         growthSinceFirstEpoch,
         predictedGrowthSinceFirstEpoch: null,
