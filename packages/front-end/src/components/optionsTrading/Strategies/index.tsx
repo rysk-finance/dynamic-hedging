@@ -1,7 +1,9 @@
 import type { OptionChainModal } from "src/state/types";
 
+import { AnimatePresence, motion } from "framer-motion";
 import { useMemo } from "react";
 
+import FadeInOut from "src/animation/FadeInOut";
 import { RyskTooltip } from "src/components/shared/RyskToolTip";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
@@ -11,7 +13,7 @@ export const Strategies = () => {
   const {
     dispatch,
     state: {
-      options: { activeExpiry, data },
+      options: { activeExpiry, data, loading },
       userTradingPreferences: { tutorialMode },
     },
   } = useGlobalContext();
@@ -30,7 +32,7 @@ export const Strategies = () => {
     }
   };
 
-  if (!hasRequiredState)
+  if (!hasRequiredState && !loading)
     return (
       <div className="p-4 text-center font-medium">
         {`Apologies, but there was an issue loading Rysk strategies. Please refresh and try again.`}
@@ -44,21 +46,25 @@ export const Strategies = () => {
         disabled={!tutorialMode}
       >
         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 col-span-9 lg:col-span-10 h-14 overflow-hidden">
-          {strategyList.map(({ description, Icon, label, modal }) => (
-            <button
-              className="flex justify-center py-1 group/strategy-icon"
-              key={label}
-              onClick={handleClick(modal)}
-            >
-              <Icon className="h-12 mr-1" />
-              <span className="w-32">
-                <p className="font-dm-mono text-sm font-medium">{label}</p>
-                <small className="block text-2xs !leading-1">
-                  {description}
-                </small>
-              </span>
-            </button>
-          ))}
+          <AnimatePresence>
+            {!loading &&
+              strategyList.map(({ description, Icon, label, modal }) => (
+                <motion.button
+                  className="flex justify-center py-1 group/strategy-icon"
+                  key={label}
+                  onClick={handleClick(modal)}
+                  {...FadeInOut()}
+                >
+                  <Icon className="h-12 mr-1" />
+                  <span className="w-32">
+                    <p className="font-dm-mono text-sm font-medium">{label}</p>
+                    <small className="block text-2xs !leading-1">
+                      {description}
+                    </small>
+                  </span>
+                </motion.button>
+              ))}
+          </AnimatePresence>
         </div>
       </RyskTooltip>
 
