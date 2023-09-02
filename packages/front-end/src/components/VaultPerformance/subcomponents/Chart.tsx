@@ -5,6 +5,7 @@ import type {
 } from "../VaultPerformance.types";
 
 import dayjs from "dayjs";
+import { Fragment } from "react";
 import {
   Legend,
   Line,
@@ -53,13 +54,13 @@ const CustomLegend = ({ payload }: CustomLegendProps) => {
       <div className="flex justify-center">
         {payload.map(({ color, value }) => {
           return value.includes("predicted") ? null : (
-            <>
+            <Fragment key={value}>
               <span
                 className="w-2 h-2 bg-black rounded-full my-2"
                 style={{ background: color }}
               />
               <p className="ml-2 mr-8">{value}</p>
-            </>
+            </Fragment>
           );
         })}
       </div>
