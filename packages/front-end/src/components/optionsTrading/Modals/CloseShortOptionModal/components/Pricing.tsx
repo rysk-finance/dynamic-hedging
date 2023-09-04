@@ -153,7 +153,10 @@ export const Pricing = ({
             placement="left"
           >
             <p className="font-medium">
-              <RyskCountUp value={remainingCollateral} />
+              <RyskCountUp
+                format={collateralType === "USDC" ? "USD" : "ETH"}
+                value={remainingCollateral}
+              />
               {isWeth ? " WETH" : " USDC"}
             </p>
           </RyskTooltip>
