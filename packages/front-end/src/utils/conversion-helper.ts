@@ -1,10 +1,5 @@
 import { BigNumberish, utils } from "ethers";
 
-const SECONDS_IN_DAY = 86400;
-export const SECONDS_IN_WEEK = SECONDS_IN_DAY * 7;
-export const SECONDS_IN_SIXTY_DAYS = SECONDS_IN_DAY * 60;
-export const SECONDS_IN_YEAR = SECONDS_IN_DAY * 365.25;
-
 const formatEth = (x: BigNumberish = 0) => Number(utils.formatEther(x));
 export function truncate(num: number, places: number = 3): number {
   return (

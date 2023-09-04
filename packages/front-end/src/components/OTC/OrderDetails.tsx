@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { Currency, Order } from "../../types";
-import { parseTimestamp } from "../../utils/parseTimestamp";
+import { parseTimestamp } from "../../utils/time";
 import { BigNumberDisplay } from "../BigNumberDisplay";
 import { AddressDisplay } from "../shared/AddressDisplay";
 import { OptionSeriesInfo } from "../shared/OptionSeriesInfo";

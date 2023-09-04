@@ -16,7 +16,6 @@ import { getImpliedVolatility } from "implied-volatility";
 import { DHVLensMK1ABI } from "src/abis/DHVLensMK1_ABI";
 import { Convert } from "src/utils/Convert";
 import {
-  SECONDS_IN_YEAR,
   fromUSDC,
   fromWei,
   fromWeiToInt,
@@ -24,6 +23,7 @@ import {
 } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
+import { SECONDS_IN_YEAR } from "src/utils/time";
 
 export const getChainData = async (
   expiries: string[],

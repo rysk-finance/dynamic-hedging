@@ -1,11 +1,8 @@
 import type { ChartData } from "../VaultPerformance.types";
 
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
-import {
-  SECONDS_IN_YEAR,
-  SECONDS_IN_SIXTY_DAYS,
-} from "src/utils/conversion-helper";
 import { Convert } from "src/utils/Convert";
+import { SECONDS_IN_SIXTY_DAYS, SECONDS_IN_YEAR } from "src/utils/time";
 
 export const Stats = ({ chartData }: { chartData: ChartData[] }) => {
   if (!chartData.length) return null;

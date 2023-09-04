@@ -5,12 +5,9 @@ import { readContracts } from "@wagmi/core";
 import { DHVLensMK1ABI } from "src/abis/DHVLensMK1_ABI";
 import { PriceFeedABI } from "src/abis/PriceFeed_ABI";
 import { Convert } from "src/utils/Convert";
-import {
-  SECONDS_IN_WEEK,
-  fromOpynToNumber,
-  fromWeiToInt,
-} from "src/utils/conversion-helper";
+import { fromOpynToNumber, fromWeiToInt } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
+import { SECONDS_IN_WEEK } from "src/utils/time";
 
 export const parseData = async (
   graphData?: QueryData
