@@ -21,10 +21,6 @@ export interface PricingProps {
   collateralData: CollateralDataState;
 }
 
-export interface SymbolProps {
-  series?: string;
-}
-
 export interface ToggleProps {
   depositToggleState: {
     isDepositing: boolean;

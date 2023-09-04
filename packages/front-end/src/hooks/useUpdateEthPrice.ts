@@ -17,7 +17,7 @@ interface EthPriceResponse {
   low_24h: number;
 }
 
-export const priceFeedGetRate = async () => {
+const priceFeedGetRate = async () => {
   const ethPrice = await readContract({
     address: getContractAddress("priceFeed"),
     abi: PriceFeedABI,

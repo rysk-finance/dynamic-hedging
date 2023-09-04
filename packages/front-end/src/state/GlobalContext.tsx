@@ -183,7 +183,7 @@ export const defaultGlobalState: GlobalState = {
   ),
 };
 
-export const GlobalReactContext = createContext<GlobalContext>({
+const GlobalReactContext = createContext<GlobalContext>({
   state: defaultGlobalState,
   dispatch: () => {},
 });

@@ -25,7 +25,3 @@ export interface PricingProps {
   loading: boolean;
   positionData: PositionDataState;
 }
-
-export interface SymbolProps {
-  positionData: PositionDataState;
-}

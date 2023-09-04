@@ -34,8 +34,6 @@ export const BIG_NUMBER_DECIMALS: Record<Token, BigNumber> = {
   OPYN: BigNumber.from("100000000"),
   RYSK: BigNumber.from("1000000000000000000"),
 };
-// Ethers event polling interval
-export const DEFAULT_POLLING_INTERVAL = 20000;
 
 // Storing as percent to avoid BigNumber issues.
 export const GAS_LIMIT_MULTIPLIER_PERCENTAGE = BigNumber.from(120);
@@ -44,9 +42,6 @@ export enum CHAINID {
   ARBITRUM_GOERLI = 421613,
   ARBITRUM_MAINNET = 42161,
 }
-
-export const ORACLE_DISPUTE_PERIOD = 7200;
-export const ORACLE_LOCKING_PERIOD = 300;
 
 export const DHV_NAME = "Rysk DHV ETH/USDC";
 

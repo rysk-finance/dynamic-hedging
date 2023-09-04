@@ -11,7 +11,7 @@ import { logError } from "./logError";
 import { ERC20_ERRORS, ERC20_KEYS } from "src/config/errors/erc20Errors";
 import { UnhandledRPCError } from "./customErrors/UnhandledRPCError";
 
-export enum ErrorCode {
+enum ErrorCode {
   RPC_PARSE = -32603,
   RPC_USER_DENIED = 4001,
   CALL_EXCEPTION = "CALL_EXCEPTION",
@@ -30,7 +30,7 @@ type RPCError = {
   };
 };
 
-export const isRPCError = (err: any): err is RPCError => {
+const isRPCError = (err: any): err is RPCError => {
   const stringifiedError = `${err}`;
   return (
     stringifiedError.includes("Internal JSON-RPC error.") ||
@@ -38,7 +38,7 @@ export const isRPCError = (err: any): err is RPCError => {
   );
 };
 
-export const DEFAULT_ERROR =
+const DEFAULT_ERROR =
   "Sorry, but there was a problem completing your transaction.\n The team has been informed and will be looking into it.";
 
 /**
@@ -48,7 +48,7 @@ export const DEFAULT_ERROR =
  *
  * @param error - The raised network error from an RPC call.
  */
-export const parseError = (error: any): [string | undefined, boolean] => {
+const parseError = (error: any): [string | undefined, boolean] => {
   // Early return if the user manually rejected the tx.
   if (
     error &&
