@@ -13,14 +13,15 @@ export class Convert {
    * @param places - Optional number of decimal places for rounding.
    */
   constructor(value: string = "0", decimals: number = 0) {
-    const rounded = Convert.round(value, decimals).toString();
+    const { rounded, e27Rounded, opynRounded, usdcRounded, weiRounded } =
+      this.adjustedRounded(value, decimals);
 
-    this.toE27 = utils.parseUnits(rounded, 27);
+    this.toE27 = utils.parseUnits(e27Rounded, Convert.E27);
     this.toInt = parseFloat(rounded);
-    this.toOpyn = utils.parseUnits(rounded, 8);
+    this.toOpyn = utils.parseUnits(opynRounded, Convert.OPYN);
     this.toStr = rounded;
-    this.toUSDC = utils.parseUnits(rounded, 6);
-    this.toWei = utils.parseEther(rounded);
+    this.toUSDC = utils.parseUnits(usdcRounded, Convert.USDC);
+    this.toWei = utils.parseUnits(weiRounded, Convert.WEI);
 
     Object.freeze(this);
   }
@@ -31,6 +32,39 @@ export class Convert {
   toStr: string;
   toUSDC: BigNumber;
   toWei: BigNumber;
+
+  /**
+   * Private method to adjust rounding based on the incoming value.
+   * This is required as `utils.parseUnits` throws if the decimals exceed
+   * the number of units to parse too. We mitigate this by ensuring we always
+   * round to the maximum available units.
+   *
+   * @param value - A numeric value to convert.
+   * @param places - The number of decimal places for rounding.
+   * @returns
+   */
+  private adjustedRounded = (value: string, decimals: number) => {
+    const rounded = Convert.round(value, decimals).toString();
+
+    const e27Rounded =
+      decimals > Convert.E27
+        ? Convert.round(value, Convert.E27).toString()
+        : rounded;
+    const opynRounded =
+      decimals > Convert.OPYN
+        ? Convert.round(value, Convert.OPYN).toString()
+        : rounded;
+    const usdcRounded =
+      decimals > Convert.USDC
+        ? Convert.round(value, Convert.USDC).toString()
+        : rounded;
+    const weiRounded =
+      decimals > Convert.WEI
+        ? Convert.round(value, Convert.WEI).toString()
+        : rounded;
+
+    return { rounded, e27Rounded, opynRounded, usdcRounded, weiRounded };
+  };
 
   public static USDC = 6;
   public static OPYN = 8;
@@ -107,6 +141,9 @@ export class Convert {
    */
   public static round = (value: string | number, decimals: number = 2) => {
     const asFloat = typeof value === "string" ? parseFloat(value) : value;
+
+    if (!decimals) return asFloat;
+
     const exponent = Math.pow(10, decimals);
     const rounded = Math.trunc(Math.round(asFloat * exponent)) / exponent;
 
