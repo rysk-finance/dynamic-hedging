@@ -27,6 +27,7 @@ export const VaultPerformance = () => {
           skip: 3
         ) {
           epoch
+          ethPrice
           growthSinceFirstEpoch
           timestamp
           value
