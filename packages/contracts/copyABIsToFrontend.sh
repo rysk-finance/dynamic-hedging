@@ -34,7 +34,7 @@ rm -rf ../front-end/tmp
 
 # Copy only the required ABIs from artifacts dir.
 # Copy them as JSON and as TS variables.
-for FILE_NAME in 'LiquidityPool' 'AlphaOptionHandler' 'OptionRegistry' 'AlphaPortfolioValuesFeed' 'PriceFeed' 'OptionExchange' 'OptionCatalogue' 'BeyondPricer'
+for FILE_NAME in 'LiquidityPool' 'AlphaOptionHandler' 'OptionRegistry' 'AlphaPortfolioValuesFeed' 'PriceFeed' 'OptionExchange' 'BeyondPricer'
 do
     ABI=$(jq --indent 4 --tab '.abi' ./artifacts/contracts/$FILE_NAME.sol/$FILE_NAME.json)
 
@@ -67,7 +67,7 @@ do
 done
 
 # Copy Opyn package ABIs from artifacts dir.
-for ABI_PATH in 'new/NewController/NewController' 'core/Oracle/Oracle' 'new/NewCalculator/NewMarginCalculator'
+for ABI_PATH in 'new/NewController/NewController' 'new/NewCalculator/NewMarginCalculator'
 do
     IFS='/'
 

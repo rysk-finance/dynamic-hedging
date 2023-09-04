@@ -21,7 +21,7 @@ import type {
   OnEvent,
 } from "./common";
 
-interface PriceFeedInterface extends utils.Interface {
+export interface PriceFeedInterface extends utils.Interface {
   contractName: "PriceFeed";
   functions: {
     "addPriceFeed(address,address,address)": FunctionFragment;
