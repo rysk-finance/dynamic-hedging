@@ -7,7 +7,8 @@ import { useDebounce } from "use-debounce";
 import { approveAllowance } from "src/components/shared/utils/transactions/approveAllowance";
 import { sell } from "src/components/shared/utils/transactions/sell";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { toRysk, toUSDC, toWei } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
+import { toUSDC, toWei } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { useNotifications } from "../../hooks/useNotifications";
 import { Disclaimer } from "../Shared/components/Disclaimer";
@@ -57,7 +58,7 @@ export const SellOptionModal = () => {
         const amount =
           collateralPreferences.type === "USDC"
             ? toUSDC(positionData.requiredApproval)
-            : toRysk(positionData.requiredApproval);
+            : Convert.fromStr(positionData.requiredApproval).toWei;
 
         const hash = await approveAllowance(
           addresses.exchange,
@@ -99,10 +100,10 @@ export const SellOptionModal = () => {
 
         const hash = await sell(
           positionData.acceptablePremium,
-          toRysk(amountToSell),
+          Convert.fromStr(amountToSell).toWei,
           collateralPreferences.type === "USDC"
             ? toUSDC(positionData.collateral.toString())
-            : toRysk(positionData.collateral.toString()),
+            : Convert.fromInt(positionData.collateral).toWei,
           addresses.collateral,
           addresses.exchange,
           optionSeries,

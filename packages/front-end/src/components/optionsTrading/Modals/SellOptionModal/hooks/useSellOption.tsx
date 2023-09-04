@@ -13,10 +13,8 @@ import { DECIMALS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { Convert } from "src/utils/Convert";
 import {
-  
   tFormatUSDC,
   toOpyn,
-  toRysk,
   toUSDC,
   truncate,
 } from "src/utils/conversion-helper";
@@ -100,7 +98,7 @@ export const useSellOption = (amountToSell: string) => {
           ] = await getQuotes([
             {
               expiry: Number(activeExpiry),
-              strike: toRysk(strike.toString()),
+              strike: Convert.fromInt(strike).toWei,
               isPut: selectedOption.callOrPut === "put",
               orderSize: amount,
               isSell: selectedOption.buyOrSell === "sell",
@@ -171,7 +169,9 @@ export const useSellOption = (amountToSell: string) => {
             truncate(collateral * approvalBuffer, 4)
           );
           const approved = (
-            USDCCollateral ? toUSDC(requiredApproval) : toRysk(requiredApproval)
+            USDCCollateral
+              ? toUSDC(requiredApproval)
+              : Convert.fromStr(requiredApproval).toWei
           ).lte(allowance.amount);
 
           const [liquidationPrice] = collateralPreferences.full

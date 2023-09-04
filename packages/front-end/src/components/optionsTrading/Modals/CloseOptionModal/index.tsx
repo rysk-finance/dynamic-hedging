@@ -11,7 +11,8 @@ import { RyskTooltip } from "src/components/shared/RyskToolTip";
 import { approveAllowance } from "src/components/shared/utils/transactions/approveAllowance";
 import { closeLong } from "src/components/shared/utils/transactions/closeLong";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { toOpyn, toRysk } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
+import { toOpyn } from "src/utils/conversion-helper";
 import { useNotifications } from "../../hooks/useNotifications";
 import { Disclaimer } from "../Shared/components/Disclaimer";
 import {
@@ -99,7 +100,7 @@ export const CloseOptionModal = () => {
 
     try {
       if (addresses.token && addresses.user) {
-        const amount = toRysk(amountToClose);
+        const amount = Convert.fromStr(amountToClose).toWei;
 
         const hash = await closeLong(
           positionData.acceptablePremium,

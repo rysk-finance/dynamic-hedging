@@ -7,7 +7,8 @@ import { useDebounce } from "use-debounce";
 import { approveAllowance } from "src/components/shared/utils/transactions/approveAllowance";
 import { buy } from "src/components/shared/utils/transactions/buy";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { toRysk, toUSDC, toWei } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
+import { toUSDC, toWei } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { useNotifications } from "../../hooks/useNotifications";
 import { Disclaimer } from "../Shared/components/Disclaimer";
@@ -82,7 +83,7 @@ export const BuyOptionModal = () => {
         addresses.user &&
         selectedOption
       ) {
-        const amount = toRysk(amountToBuy);
+        const amount = Convert.fromStr(amountToBuy).toWei;
 
         const optionSeries = {
           expiration: BigNumber.from(activeExpiry),

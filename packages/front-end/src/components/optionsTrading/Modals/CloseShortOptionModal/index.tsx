@@ -6,12 +6,12 @@ import { AnimatePresence } from "framer-motion";
 import { useState } from "react";
 
 import FadeInOutQuick from "src/animation/FadeInOutQuick";
-import { useGlobalContext } from "src/state/GlobalContext";
-import { toRysk, toUSDC } from "src/utils/conversion-helper";
-
 import { RyskTooltip } from "src/components/shared/RyskToolTip";
 import { approveAllowance } from "src/components/shared/utils/transactions/approveAllowance";
 import { closeShort } from "src/components/shared/utils/transactions/closeShort";
+import { useGlobalContext } from "src/state/GlobalContext";
+import { Convert } from "src/utils/Convert";
+import { toUSDC } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { useDebounce } from "use-debounce";
 import { useNotifications } from "../../hooks/useNotifications";
@@ -102,7 +102,7 @@ export const CloseShortOptionModal = () => {
 
     try {
       if (addresses.token && addresses.user && vaultId) {
-        const amount = toRysk(amountToSell);
+        const amount = Convert.fromStr(amountToSell).toWei;
 
         const hash = await closeShort(
           positionData.acceptablePremium,

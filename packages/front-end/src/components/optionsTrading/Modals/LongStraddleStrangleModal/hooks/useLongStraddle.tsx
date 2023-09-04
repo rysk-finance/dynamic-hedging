@@ -8,7 +8,8 @@ import { useAccount } from "wagmi";
 import { BigNumber } from "ethers";
 import { getQuotes } from "src/components/shared/utils/getQuote";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { tFormatUSDC, toRysk, toUSDC } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
+import { tFormatUSDC, toUSDC } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
@@ -68,14 +69,14 @@ export const useLongStraddleStrangle = (
           const [putQuote, callQuote] = await getQuotes([
             {
               expiry: Number(activeExpiry),
-              strike: toRysk(put),
+              strike: Convert.fromStr(put).toWei,
               isPut: true,
               orderSize: amount,
               isSell: false,
             },
             {
               expiry: Number(activeExpiry),
-              strike: toRysk(call),
+              strike: Convert.fromStr(call).toWei,
               isPut: false,
               orderSize: amount,
               isSell: false,

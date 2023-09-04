@@ -9,7 +9,8 @@ import { BigNumber } from "ethers";
 import { getQuotes } from "src/components/shared/utils/getQuote";
 import { BIG_NUMBER_DECIMALS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { tFormatEth, tFormatUSDC, toRysk } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
+import { tFormatEth, tFormatUSDC } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
@@ -88,7 +89,7 @@ export const useShortPositionData = (amountToClose: string) => {
               await getQuotes([
                 {
                   expiry: Number(activeExpiry),
-                  strike: toRysk(closingOption.strike),
+                  strike: Convert.fromStr(closingOption.strike).toWei,
                   isPut: closingOption.isPut,
                   orderSize: amount,
                   isSell: false,
