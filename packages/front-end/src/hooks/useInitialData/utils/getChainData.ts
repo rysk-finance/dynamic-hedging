@@ -17,7 +17,6 @@ import { DHVLensMK1ABI } from "src/abis/DHVLensMK1_ABI";
 import { Convert } from "src/utils/Convert";
 import {
   fromUSDC,
-  fromWei,
   fromWeiToInt,
   fromWeiToOpyn,
 } from "src/utils/conversion-helper";
@@ -60,7 +59,7 @@ export const getChainData = async (
             wethCollatseriesExchangeBalance,
           }: DHVLensMK1.OptionStrikeDrillStruct
         ) => {
-          const strikeUSDC = Number(fromWei(strike));
+          const strikeUSDC = Convert.fromWei(strike as string).toInt;
 
           const _getQuote = (
             buyOrSell: DHVLensMK1.TradingSpecStruct,
@@ -111,7 +110,7 @@ export const getChainData = async (
                 IV: _getIV(Number(fromUSDC(buy.quote))),
                 quote: _getQuote(buy, false),
               },
-              delta: Convert.round(fromWei(delta)),
+              delta: Convert.fromWei(delta as string).toInt,
               exchangeAddresses: {
                 USDC: usdCollatseriesExchangeBalance.seriesAddress,
                 WETH: wethCollatseriesExchangeBalance.seriesAddress,
@@ -120,7 +119,7 @@ export const getChainData = async (
                 USDC: usdCollatseriesExchangeBalance.optionExchangeBalance,
                 WETH: wethCollatseriesExchangeBalance.optionExchangeBalance,
               },
-              exposure: Number(fromWei(exposure)),
+              exposure: Convert.fromWei(exposure as string).toInt,
               pos: positions.netAmount,
               sell: {
                 disabled: sell.disabled || sell.premiumTooSmall,
@@ -153,7 +152,7 @@ export const getChainData = async (
           } = currentExpiry;
 
           const expiry = expiration.toNumber();
-          const ethPrice = Number(fromWei(underlyingPrice));
+          const ethPrice = Convert.fromWei(underlyingPrice).toInt;
           const calls = createSide(callOptionDrill, "call", ethPrice, expiry);
           const puts = createSide(putOptionDrill, "put", ethPrice, expiry);
           const strikes = Array.from(
