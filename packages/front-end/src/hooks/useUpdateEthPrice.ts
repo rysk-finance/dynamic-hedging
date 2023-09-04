@@ -25,7 +25,7 @@ const priceFeedGetRate = async () => {
     args: [getContractAddress("WETH"), getContractAddress("USDC")],
   });
 
-  return Convert.fromOpyn(ethPrice).toInt;
+  return Convert.fromOpyn(ethPrice, 2).toInt;
 };
 
 /**
