@@ -16,6 +16,8 @@ import {
 	USDT_ADDRESS
 } from "./constants"
 import { PriceFeed } from "../types/PriceFeed"
+import { Manager } from "../types/Manager"
+import { Authority } from "../types/Authority"
 import { MintEvent } from "../types/IUniswapV3PoolEvents"
 import { deployMockContract, MockContract } from "@ethereum-waffle/mock-contract"
 import AggregatorV3Interface from "../artifacts/contracts/interfaces/AggregatorV3Interface.sol/AggregatorV3Interface.json"
@@ -63,6 +65,7 @@ let uniswapConversions: UniswapConversionsTest
 let uniswapRouter: Contract
 let bigSignerAddress: string
 let authority: string
+let manager: Manager
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 const POOL_FEE = 3000
 const SWAP_ROUTER_ADDRESS = "0xE592427A0AEce92De3Edee1F18E0157C05861564"
@@ -1129,7 +1132,7 @@ describe("UniswapV3RangeOrderReactor Arbitrum Integration Tests", () => {
 				{
 					forking: {
 						jsonRpcUrl: `https://arb-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY}`,
-						blockNumber: 65181534,
+						blockNumber: 127117974,
 						chainId: arbitrumChainId
 					}
 				}
@@ -1239,7 +1242,7 @@ describe("UniswapV3RangeOrderReactor Arbitrum Integration Tests", () => {
 		uniswapRouter = new ethers.Contract(SWAP_ROUTER_ADDRESS, ISwapRouterABI, funder)
 
 		let poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
-		const amountToSwap = toWei("100")
+		const amountToSwap = toWei("50")
 		await wethContract.connect(funder).deposit({ value: amountToSwap })
 		await wethContract.connect(funder).approve(uniswapRouter.address, amountToSwap)
 		// setup swap trade params
@@ -1367,5 +1370,162 @@ describe("UniswapV3RangeOrderReactor Arbitrum Integration Tests", () => {
 		expect(activeUpperTick).to.eq(upperTickAfter)
 		expect(mintEvent.tickLower).to.eq(lowerTickAfer)
 		expect(mintEvent.tickUpper).to.eq(upperTickAfter)
+	})
+
+	// setting up for next series of tests using latest addresses at block height
+	const governorAddress = "0xFBdE2e477Ed031f54ed5Ad52f35eE43CD82cF2A6"
+	const keeperAddress = "0xC249e74480aEd4F9219b0617Ae09DCeb748571F7"
+	const authorityAddress = "0x74948DAf8Beb3d14ddca66d205bE3bc58Df39aC9"
+	const nativeUSDC = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831"
+	const nativeUSDCWhaleAddress = "0x3dd1d15b3c78d6acfd75a254e857cbe5b9ff0af2"
+	let governor: Signer
+	let keeper: Signer
+	let nativeUSDCWhale: Signer
+	it("Allows keeper via Manager contract to exit range order before being filled - Arbitrum", async () => {
+		let authorityContract = (await ethers.getContractAt(
+			"Authority",
+			authorityAddress,
+			deployer
+		)) as Authority
+
+		// deploy new manager contract using same params as current manager at block height
+		const managerFactory = await ethers.getContractFactory("Manager")
+		manager = (await managerFactory.deploy(
+			authorityAddress,
+			"0x217749d9017cb87712654422a1f5856aaa147b80",
+			"0xc63717c4436043781a63c8c64b02ff774350e8f8",
+			"0x44227dc2a1d71fc07dc254dfd42b1c44aff12168",
+			"0xc117bf3103bd09552f9a721f0b8bce9843aae1fa",
+			"0xea5fb118862876f249ff0b3e7fb25feb38158def"
+		)) as Manager
+
+		// impersonate governor
+		await network.provider.request({
+			method: "hardhat_impersonateAccount",
+			params: [governorAddress]
+		})
+		governor = await ethers.getSigner(governorAddress)
+		authorityContract.connect(governor)
+		manager = manager.connect(governor)
+		await manager.setKeeper(keeperAddress, true)
+		const managerPushTx = await authorityContract.pushManager(manager.address)
+		const managerPushReceipt = await managerPushTx.wait()
+		const newManager = await authorityContract.newManager()
+		expect(newManager).to.eq(manager.address)
+		// impersonate manager
+		await network.provider.request({
+			method: "hardhat_impersonateAccount",
+			params: [manager.address]
+		})
+		const managerSigner = await ethers.getSigner(manager.address)
+		const ONE_HUNDRED_THOUSAND_HEX = "0x152D02C7E14AF6800000"
+		await hre.network.provider.request({
+			method: "hardhat_setBalance",
+			params: [manager.address, ONE_HUNDRED_THOUSAND_HEX]
+		})
+		authorityContract = authorityContract.connect(managerSigner)
+		const pullManagerTx = await authorityContract.pullManager()
+		const pullManagerReceipt = await pullManagerTx.wait()
+		const authorityManager = await authorityContract.manager()
+		expect(authorityManager).to.eq(manager.address)
+
+		await network.provider.request({
+			method: "hardhat_impersonateAccount",
+			params: [keeperAddress]
+		})
+		keeper = await ethers.getSigner(keeperAddress)
+		// use latest reactor as of block number
+		uniswapV3RangeOrderReactor = (await ethers.getContractAt(
+			"UniswapV3RangeOrderReactor",
+			"0x5250F9ab6a6a7CB447dc96cb218cE9E796905852",
+			deployer
+		)) as UniswapV3RangeOrderReactor
+
+		let { activeLowerTick, activeUpperTick } = await uniswapV3RangeOrderReactor.currentPosition()
+		// should already be in active range position
+		expect(activeLowerTick).to.not.eq(activeUpperTick)
+		// fulfill should fail
+		const fullExitAttempt = uniswapV3RangeOrderReactor.fulfillActiveRangeOrder()
+		expect(fullExitAttempt).to.be.revertedWithCustomError(
+			uniswapV3RangeOrderReactor,
+			"RangeOrderNotFilled"
+		)
+
+		manager = manager.connect(keeper)
+		const deltaLimitBefore = await manager.deltaLimit(keeperAddress)
+		await manager.exitActiveRangeOrder(3)
+		const deltaLimitAfter = await manager.deltaLimit(keeperAddress)
+		let currentPosition = await uniswapV3RangeOrderReactor.currentPosition()
+		expect(currentPosition.activeLowerTick).to.eq(0)
+		expect(currentPosition.activeUpperTick).to.eq(0)
+		// Delta limit should be untouched
+		expect(deltaLimitBefore).to.eq(deltaLimitAfter)
+	})
+
+	it("Allows a keeper via Manager contract to exit paritally filled range order and reclaim delta - Arbitrum", async () => {
+		// give delta allowance to keeper
+		manager = manager.connect(governor)
+		const deltaLimitBefore = await manager.deltaLimit(keeperAddress)
+		const deltaLimitAmount = toWei("50")
+		await manager.setDeltaLimit([deltaLimitAmount], [keeperAddress])
+		const deltaLimitAfterDeltaGrant = await manager.deltaLimit(keeperAddress)
+		expect(deltaLimitBefore).to.eq(deltaLimitAfterDeltaGrant.sub(deltaLimitAmount))
+		// impersonate keeper
+		manager = manager.connect(keeper)
+		// enter a new range order
+		const deltaAmount = toWei("1")
+		const hedgeDeltaTx = await manager.rebalancePortfolioDelta(deltaAmount, 3)
+		const receipt = await hedgeDeltaTx.wait()
+		const [mintEvent] = getMatchingEvents(receipt, UNISWAP_POOL_MINT) as unknown as [MintEvent]
+		const { activeLowerTick, activeUpperTick } = await uniswapV3RangeOrderReactor.currentPosition()
+		const parentPoolAddress = await uniswapV3RangeOrderReactor.pool()
+		uniswapUSDCWETHPool = uniswapUSDCWETHPool.attach(parentPoolAddress)
+		expect(activeLowerTick).to.not.eq(activeUpperTick)
+		expect(mintEvent.tickLower).to.eq(activeLowerTick)
+		expect(mintEvent.tickUpper).to.eq(activeUpperTick)
+		// move parent pool price in to partial fill of range
+		let poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
+		const amountToSwap = toUSDC("100000")
+		// needs to be swaping usdc for weth
+		usdcContract = usdcContract.attach(nativeUSDC)
+		// impersonate whale
+		await network.provider.request({
+			method: "hardhat_impersonateAccount",
+			params: [nativeUSDCWhaleAddress]
+		})
+		nativeUSDCWhale = await ethers.getSigner(nativeUSDCWhaleAddress)
+		await usdcContract.connect(nativeUSDCWhale).approve(uniswapRouter.address, amountToSwap)
+		uniswapRouter = uniswapRouter.connect(nativeUSDCWhale)
+		// setup swap trade params
+		let params = {
+			tokenIn: poolInfo.token1.address, // USDC
+			tokenOut: poolInfo.token0.address, // WETH
+			fee: poolInfo.fee,
+			recipient: nativeUSDCWhaleAddress,
+			deadline: Math.floor(Date.now() / 1000) + 60 * 10,
+			amountIn: amountToSwap,
+			amountOutMinimum: 0,
+			sqrtPriceLimitX96: 0
+		}
+
+		const swapTx = await uniswapRouter.exactInputSingle(params, { gasLimit: 5000000 })
+		const receiptSwap = await swapTx.wait()
+		const { tick } = await uniswapUSDCWETHPool.slot0()
+		expect(tick).to.be.gt(activeLowerTick)
+		expect(tick).to.be.lte(activeUpperTick)
+		const deltaLimitAfterSwap = await manager.deltaLimit(keeperAddress)
+		const deltaUsed = deltaLimitAfterDeltaGrant.sub(deltaLimitAfterSwap)
+		// calculate percentage of delta reclaimed based on current tick and tick range
+		const tickRange = activeUpperTick - activeLowerTick
+		const tickDifference = tick - activeLowerTick
+		const percentageOfRange = tickDifference / tickRange
+		// deltaUsed multiply by percentage of range
+		let deltaReclaimed = Number(fromWei(deltaUsed)) * percentageOfRange
+		let deltaReclaimedBigNum = toWei(deltaReclaimed.toString()).toString()
+		const exitRangeTx = await manager.exitActiveRangeOrder(3)
+		const deltaLimitAfterExit = await manager.deltaLimit(keeperAddress)
+		const expectedAfterExitDeltaLimit = deltaLimitAfterSwap.add(deltaReclaimedBigNum)
+		const receiptExit = await exitRangeTx.wait()
+		expect(deltaLimitAfterExit).to.eq(expectedAfterExitDeltaLimit)
 	})
 })
