@@ -1,9 +1,4 @@
-import type {
-  CallOrPut,
-  CollateralType,
-  SpotShock,
-  TimesToExpiry,
-} from "src/state/types";
+import type { CollateralType, SpotShock, TimesToExpiry } from "src/state/types";
 import type { LiquidationProps } from "./types";
 
 import dayjs from "dayjs";
@@ -12,7 +7,7 @@ import { BigNumber } from "ethers";
 import { readContracts } from "@wagmi/core";
 
 import { NewMarginCalculatorABI } from "src/abis/NewMarginCalculator_ABI";
-import { fromE27toInt, truncate } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
 import { getContractAddress } from "src/utils/helpers";
 
 const USDC = getContractAddress("USDC");
@@ -110,7 +105,7 @@ export const getLiquidationPrices = async (
         return 0;
 
       // get maxPrice as int.
-      const maxPrice = fromE27toInt(getMaxPriceResponses[index]);
+      const maxPrice = Convert.fromE27(getMaxPriceResponses[index]).toInt;
 
       // Adjust params based on collateral type.
       const { collateralType, isPut } = additionalProps[index];
@@ -121,15 +116,15 @@ export const getLiquidationPrices = async (
 
       switch (true) {
         case !isPut && adjustedCollateral > maxPrice * shock * strikePrice:
-          return truncate(
+          return Convert.round(
             adjustedCollateral + (1 - maxPrice) * shock * strikePrice
           );
 
         case !isPut && adjustedCollateral <= maxPrice * shock * strikePrice:
-          return truncate(adjustedCollateral / maxPrice);
+          return Convert.round(adjustedCollateral / maxPrice);
 
         case isPut && adjustedCollateral > strikePrice * maxPrice:
-          return truncate(
+          return Convert.round(
             (strikePrice - adjustedCollateral) / ((1 - maxPrice) * shock)
           );
 

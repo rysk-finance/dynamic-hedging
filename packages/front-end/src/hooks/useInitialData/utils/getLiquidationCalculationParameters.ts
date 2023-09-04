@@ -9,7 +9,7 @@ import {
   defaultSpotShock,
   defaultTimesToExpiry,
 } from "src/state/GlobalContext";
-import { fromE27toInt } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 
@@ -36,7 +36,7 @@ export const getLiquidationCalculationParameters = async (): Promise<{
   };
 
   const _parseSpotShockResults = (results?: BigNumber) => {
-    return results ? (fromE27toInt(results) as number) : defaultSpotShock;
+    return results ? Convert.fromE27(results).toInt : defaultSpotShock;
   };
 
   const _parseTimesToExpiry = (results?: readonly BigNumber[]) => {

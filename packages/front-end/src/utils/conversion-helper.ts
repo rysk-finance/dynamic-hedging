@@ -24,5 +24,3 @@ export const fromOpyn = (x: BigNumberish = 0) => utils.formatUnits(x, 8);
 export const fromOpynToNumber = (x: BigNumberish) => Number(fromOpyn(x));
 const fromRysk = (x: string = "0") => utils.formatUnits(x, 18);
 export const fromRyskToNumber = (x: string) => Number(fromRysk(x));
-export const fromE27toInt = (value: BigNumberish = 0) =>
-  parseFloat(utils.formatUnits(value, 27));
