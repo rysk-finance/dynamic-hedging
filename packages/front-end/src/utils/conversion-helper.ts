@@ -8,7 +8,6 @@ export function truncate(num: number, places: number = 3): number {
 }
 export const tFormatEth = (x: BigNumberish, places: number = 3): number =>
   truncate(formatEth(x), places);
-export const toWei = (x: string = "0") => utils.parseEther(x);
 export const fromWei = (x: BigNumberish = 0) => utils.formatEther(x);
 export const fromWeiToOpyn = (x: BigNumberish = 0) =>
   utils.parseUnits(utils.formatEther(x), 8);

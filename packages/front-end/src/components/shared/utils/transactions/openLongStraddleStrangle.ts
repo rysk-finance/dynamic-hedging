@@ -8,7 +8,7 @@ import { OptionExchangeABI } from "src/abis/OptionExchange_ABI";
 import { waitForTransactionOrTimer } from "src/components/shared/utils/waitForTransaction";
 import { GAS_MULTIPLIER } from "src/config/constants";
 import OperationType from "src/enums/OperationType";
-import { toWei } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
 import { buyOption, issue } from "./operateBlocks";
 
 export const openLongStraddleStrangle = async (
@@ -26,12 +26,12 @@ export const openLongStraddleStrangle = async (
   const putSeries: OptionSeries = {
     ...optionSeries,
     isPut: true,
-    strike: toWei(put),
+    strike: Convert.fromStr(put).toWei,
   };
   const callSeries: OptionSeries = {
     ...optionSeries,
     isPut: false,
-    strike: toWei(call),
+    strike: Convert.fromStr(call).toWei,
   };
 
   const txData = [

@@ -11,7 +11,6 @@ import { Convert } from "src/utils/Convert";
 import {
   fromWeiToInt,
   tFormatUSDC,
-  toWei,
   truncate,
 } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
@@ -118,7 +117,7 @@ export const useCollateralData = (
           const approved = isDepositing
             ? (USDCCollateral
                 ? Convert.fromStr(requiredApproval).toUSDC
-                : toWei(requiredApproval)
+                : Convert.fromStr(requiredApproval).toWei
               ).lte(allowance.amount)
             : true;
 

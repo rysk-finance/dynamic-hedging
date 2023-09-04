@@ -5,7 +5,8 @@ import { BigNumber } from "ethers";
 
 import { AlphaPortfolioValuesFeedABI } from "src/abis/AlphaPortfolioValuesFeed_ABI";
 import { BeyondPricerABI } from "src/abis/BeyondPricer_ABI";
-import { fromWeiToInt, tFormatUSDC, toWei } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
+import { fromWeiToInt, tFormatUSDC } from "src/utils/conversion-helper";
 import { getContractAddress, getOptionHash } from "src/utils/helpers";
 
 export const getQuotes = async (
@@ -44,13 +45,13 @@ export const getQuotes = async (
         return [
           {
             ...quoteOptionPriceContractDetails,
-            args: [series, toWei("1"), isSell, exposures[index]],
+            args: [series, Convert.fromInt(1).toWei, isSell, exposures[index]],
           } as const,
           {
             ...quoteOptionPriceContractDetails,
             args: [
               series,
-              toWei(orderSize.toString()),
+              Convert.fromInt(orderSize).toWei,
               isSell,
               exposures[index],
             ],
