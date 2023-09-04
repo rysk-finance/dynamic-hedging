@@ -22,5 +22,4 @@ export const toOpyn = (x: string = "0") => utils.parseUnits(x, 8);
 export const toRysk = (x: string = "0") => utils.parseUnits(x, 18);
 export const fromOpyn = (x: BigNumberish = 0) => utils.formatUnits(x, 8);
 export const fromOpynToNumber = (x: BigNumberish) => Number(fromOpyn(x));
-const fromRysk = (x: string = "0") => utils.formatUnits(x, 18);
-export const fromRyskToNumber = (x: string) => Number(fromRysk(x));
+

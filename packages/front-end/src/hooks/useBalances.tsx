@@ -1,15 +1,12 @@
 import { fetchBalance } from "@wagmi/core";
 import { useAccount } from "wagmi";
 
-import {
-  fromRyskToNumber,
-  tFormatUSDC,
-  truncate,
-} from "src/utils/conversion-helper";
-import { getContractAddress } from "src/utils/helpers";
+import { useEffect } from "react";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
-import { useEffect } from "react";
+import { Convert } from "src/utils/Convert";
+import { tFormatUSDC, truncate } from "src/utils/conversion-helper";
+import { getContractAddress } from "src/utils/helpers";
 
 const getBalances = async (address?: HexString) => {
   if (!address) {
@@ -33,9 +30,9 @@ const getBalances = async (address?: HexString) => {
   });
 
   return {
-    ETH: truncate(fromRyskToNumber(balanceETH.toString()), 2),
+    ETH: Convert.fromWei(balanceETH, 2).toInt,
     USDC: truncate(tFormatUSDC(balanceUSDC), 2),
-    WETH: truncate(fromRyskToNumber(balanceWETH.toString()), 2),
+    WETH: Convert.fromWei(balanceWETH, 2).toInt,
   };
 };
 

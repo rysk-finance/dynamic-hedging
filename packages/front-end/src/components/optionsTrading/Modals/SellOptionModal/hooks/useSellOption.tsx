@@ -11,8 +11,9 @@ import { NewMarginCalculatorABI } from "src/abis/NewMarginCalculator_ABI";
 import { getQuotes } from "src/components/shared/utils/getQuote";
 import { DECIMALS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
+import { Convert } from "src/utils/Convert";
 import {
-  fromRyskToNumber,
+  
   tFormatUSDC,
   toOpyn,
   toRysk,
@@ -137,7 +138,7 @@ export const useSellOption = (amountToSell: string) => {
                 .div(100);
               const formatted = USDCCollateral
                 ? tFormatUSDC(multipliedCollateral)
-                : fromRyskToNumber(multipliedCollateral.toString());
+                : Convert.fromWei(multipliedCollateral, 4).toInt;
               const maximum = USDCCollateral ? strike * amount : amount;
 
               if (selectedOption.callOrPut === "put") {
