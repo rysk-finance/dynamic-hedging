@@ -1,17 +1,5 @@
 import { BigNumber } from "ethers";
 
-export type Address = string;
-// UNIX time in seconds (note this differs from JS which uses ms)
-export type TimestampSeconds = string;
-
-export type Option<T> = {
-  label: string;
-  value: T;
-  key: string;
-  disabled?: boolean;
-  disabledTooltip?: string;
-};
-
 export type DepositReceipt = {
   amount: BigNumber;
   epoch: BigNumber;
@@ -28,7 +16,7 @@ export enum ETHNetwork {
   ARBITRUM_MAINNET = "arbitrum",
 }
 
-export type RyskContractAddresses = {
+type RyskContractAddresses = {
   OpynController: string;
   OpynOracle: string;
   OpynNewCalculator: string;
@@ -41,13 +29,13 @@ export type RyskContractAddresses = {
   beyondPricer: string;
 };
 
-export type ExternalContractAddresses = {
+type ExternalContractAddresses = {
   USDC: string;
   WETH: string;
   ETHUSDAggregator: string;
 };
 
-export type RyskLensAddresses = {
+type RyskLensAddresses = {
   DHVLens: string;
   UserPositionLens: string;
 };
@@ -70,18 +58,14 @@ export type Order = {
   amount: BigNumber;
   price: BigNumber;
   orderExpiry: BigNumber;
-  buyer: Address;
-  seriesAddress: Address;
+  buyer: string;
+  seriesAddress: string;
   isBuyBack: boolean;
 };
 
 export type StrangleOrder = {
   call: Order;
   put: Order;
-};
-
-export type Events = {
-  Approval: { owner: Address; spender: Address; value: BigNumber };
 };
 
 export enum Currency {

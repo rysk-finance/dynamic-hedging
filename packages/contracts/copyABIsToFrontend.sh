@@ -11,16 +11,7 @@ rm -rf ../front-end/src/types/*
 # Copy only the required types.
 cp \
 ./types/common.ts \
-./types/ERC20.ts \
-./types/LiquidityPool.ts \
-./types/OptionRegistry.ts \
-./types/AlphaPortfolioValuesFeed.ts \
-./types/PriceFeed.ts \
-./types/OptionExchange.ts \
-./types/OptionCatalogue.ts \
-./types/BeyondPricer.ts \
 ./types/DHVLensMK1.ts \
-./types/UserPositionLensMK1.ts \
 ../front-end/src/types/
 
 # Clean out the ABIs directory.
