@@ -94,11 +94,14 @@ export class Convert {
    * Public static method to ingest a 1e8 big number.
    *
    * @param value - A BigNumber or string value to convert from 1e8.
+   * @param decimals - Optional number of decimal places for rounding. Defaults to 8.
    *
    * @returns - A new instance of the Convert class.
    */
-  public static fromOpyn = (value: BigNumber | string) =>
-    new Convert(utils.formatUnits(value, this.OPYN), this.OPYN);
+  public static fromOpyn = (
+    value: BigNumber | string,
+    decimals: number = this.OPYN
+  ) => new Convert(utils.formatUnits(value, this.OPYN), decimals);
 
   /**
    * Public static method to ingest a string.

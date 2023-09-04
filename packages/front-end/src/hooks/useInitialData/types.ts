@@ -29,7 +29,7 @@ export interface SettleActions {
 }
 
 export interface LiquidateActions {
-  collateralPayout: BigNumberish;
+  collateralPayout: string;
 }
 export interface Vault {
   id: string;

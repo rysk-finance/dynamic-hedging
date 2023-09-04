@@ -10,7 +10,6 @@ import { getQuotes } from "src/components/shared/utils/getQuote";
 import { BIG_NUMBER_DECIMALS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { Convert } from "src/utils/Convert";
-import { tFormatEth, tFormatUSDC } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
@@ -116,12 +115,16 @@ export const useShortPositionData = (amountToClose: string) => {
             const remainingCollateral = collateralToRemove.isZero()
               ? 0
               : collateralAsset === getContractAddress("WETH")
-              ? tFormatEth(collateralAmount.sub(collateralToRemove))
-              : tFormatUSDC(collateralAmount.sub(collateralToRemove));
+              ? Convert.fromWei(collateralAmount.sub(collateralToRemove), 4)
+                  .toInt
+              : Convert.fromUSDC(collateralAmount.sub(collateralToRemove), 2)
+                  .toInt;
             const collateralReleased =
               collateralAsset === getContractAddress("WETH")
-                ? tFormatEth(collateralToRemove)
-                : tFormatUSDC(collateralToRemove);
+                ? Convert.fromWei(collateralToRemove, 4).toInt
+                : Convert.fromUSDC(collateralToRemove, 2).toInt;
+
+            console.log(collateralReleased);
 
             // Closing a short is buying back the oToken, hence minus the quote.
             const remainingBalanceUSDC =
@@ -137,7 +140,7 @@ export const useShortPositionData = (amountToClose: string) => {
             // Ensure user has sufficient wallet balance to cover premium before collateral is released.
             const hasRequiredCapital = balances.USDC > quote;
 
-            const requiredApproval = String(tFormatUSDC(acceptablePremium, 4));
+            const requiredApproval = Convert.fromUSDC(acceptablePremium).toStr;
             const approved = acceptablePremium.lte(allowance.amount);
 
             setPositionData({

@@ -3,11 +3,7 @@ import type { UserPositionToken, WethOracleHashMap } from "src/state/types";
 
 import dayjs from "dayjs";
 
-import {
-  fromWeiToInt,
-  tFormatEth,
-  tFormatUSDC,
-} from "src/utils/conversion-helper";
+import { fromWeiToInt, tFormatUSDC } from "src/utils/conversion-helper";
 import { Convert } from "src/utils/Convert";
 
 /**
@@ -114,8 +110,8 @@ export const calculatePnL = async (
             (totalCollateral, { collateralPayout }) => {
               const collateralForAction =
                 collateralAsset && collateralAsset.symbol === "USDC"
-                  ? tFormatUSDC(collateralPayout)
-                  : tFormatEth(collateralPayout) * ethPrice;
+                  ? Convert.fromUSDC(collateralPayout).toInt
+                  : Convert.fromWei(collateralPayout).toInt * ethPrice;
 
               return totalCollateral + collateralForAction;
             },
