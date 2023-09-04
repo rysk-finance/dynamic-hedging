@@ -8,7 +8,6 @@ import { approveAllowance } from "src/components/shared/utils/transactions/appro
 import { sell } from "src/components/shared/utils/transactions/sell";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { Convert } from "src/utils/Convert";
-import { toUSDC, toWei } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { useNotifications } from "../../hooks/useNotifications";
 import { Disclaimer } from "../Shared/components/Disclaimer";
@@ -57,7 +56,7 @@ export const SellOptionModal = () => {
       if (addresses.collateral && addresses.user) {
         const amount =
           collateralPreferences.type === "USDC"
-            ? toUSDC(positionData.requiredApproval)
+            ? Convert.fromStr(positionData.requiredApproval).toUSDC
             : Convert.fromStr(positionData.requiredApproval).toWei;
 
         const hash = await approveAllowance(
@@ -91,7 +90,7 @@ export const SellOptionModal = () => {
       ) {
         const optionSeries = {
           expiration: BigNumber.from(activeExpiry),
-          strike: toWei(selectedOption.strikeOptions.strike.toString()),
+          strike: Convert.fromInt(selectedOption.strikeOptions.strike).toWei,
           isPut: selectedOption.callOrPut === "put",
           strikeAsset: getContractAddress("USDC"),
           underlying: getContractAddress("WETH"),
@@ -102,7 +101,7 @@ export const SellOptionModal = () => {
           positionData.acceptablePremium,
           Convert.fromStr(amountToSell).toWei,
           collateralPreferences.type === "USDC"
-            ? toUSDC(positionData.collateral.toString())
+            ? Convert.fromInt(positionData.collateral).toUSDC
             : Convert.fromInt(positionData.collateral).toWei,
           addresses.collateral,
           addresses.exchange,

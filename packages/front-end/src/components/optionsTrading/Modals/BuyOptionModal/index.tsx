@@ -8,7 +8,6 @@ import { approveAllowance } from "src/components/shared/utils/transactions/appro
 import { buy } from "src/components/shared/utils/transactions/buy";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { Convert } from "src/utils/Convert";
-import { toUSDC, toWei } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { useNotifications } from "../../hooks/useNotifications";
 import { Disclaimer } from "../Shared/components/Disclaimer";
@@ -52,7 +51,7 @@ export const BuyOptionModal = () => {
 
     try {
       if (addresses.token && addresses.user) {
-        const amount = toUSDC(positionData.requiredApproval);
+        const amount = Convert.fromStr(positionData.requiredApproval).toUSDC;
 
         const hash = await approveAllowance(
           addresses.exchange,
@@ -87,7 +86,7 @@ export const BuyOptionModal = () => {
 
         const optionSeries = {
           expiration: BigNumber.from(activeExpiry),
-          strike: toWei(selectedOption.strikeOptions.strike.toString()),
+          strike: Convert.fromInt(selectedOption.strikeOptions.strike).toWei,
           isPut: selectedOption.callOrPut === "put",
           strikeAsset: addresses.token,
           underlying: getContractAddress("WETH"),

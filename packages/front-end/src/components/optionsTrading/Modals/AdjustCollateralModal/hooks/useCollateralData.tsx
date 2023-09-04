@@ -7,10 +7,10 @@ import { useAccount } from "wagmi";
 
 import { getLiquidationPrices } from "src/components/shared/utils/getLiquidationPrice";
 import { useGlobalContext } from "src/state/GlobalContext";
+import { Convert } from "src/utils/Convert";
 import {
   fromWeiToInt,
   tFormatUSDC,
-  toUSDC,
   toWei,
   truncate,
 } from "src/utils/conversion-helper";
@@ -117,7 +117,7 @@ export const useCollateralData = (
           const requiredApproval = String(truncate(amount * approvalBuffer, 4));
           const approved = isDepositing
             ? (USDCCollateral
-                ? toUSDC(requiredApproval)
+                ? Convert.fromStr(requiredApproval).toUSDC
                 : toWei(requiredApproval)
               ).lte(allowance.amount)
             : true;

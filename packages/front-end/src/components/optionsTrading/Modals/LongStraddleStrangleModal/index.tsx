@@ -9,7 +9,7 @@ import { useDebounce } from "use-debounce";
 import { approveAllowance } from "src/components/shared/utils/transactions/approveAllowance";
 import { openLongStraddleStrangle } from "src/components/shared/utils/transactions/openLongStraddleStrangle";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { toUSDC, toWei } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
 import { getContractAddress } from "src/utils/helpers";
 import { useNotifications } from "../../hooks/useNotifications";
 import { Disclaimer } from "../Shared/components/Disclaimer";
@@ -58,7 +58,7 @@ export const LongStraddleStrangleModal = ({ strategy }: ModalProps) => {
 
     try {
       if (addresses.token && addresses.user) {
-        const amount = toUSDC(positionData.requiredApproval);
+        const amount = Convert.fromStr(positionData.requiredApproval).toUSDC;
 
         const hash = await approveAllowance(
           addresses.exchange,
@@ -84,7 +84,7 @@ export const LongStraddleStrangleModal = ({ strategy }: ModalProps) => {
 
     try {
       if (addresses.collateral && addresses.token && addresses.user) {
-        const amount = toWei(amountToOpen);
+        const amount = Convert.fromStr(amountToOpen).toWei;
 
         const optionSeries = {
           expiration: BigNumber.from(activeExpiry),

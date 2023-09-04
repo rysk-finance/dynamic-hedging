@@ -11,7 +11,6 @@ import { approveAllowance } from "src/components/shared/utils/transactions/appro
 import { closeShort } from "src/components/shared/utils/transactions/closeShort";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { Convert } from "src/utils/Convert";
-import { toUSDC } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { useDebounce } from "use-debounce";
 import { useNotifications } from "../../hooks/useNotifications";
@@ -76,7 +75,7 @@ export const CloseShortOptionModal = () => {
 
     try {
       if (addresses.collateral && addresses.user) {
-        const amount = toUSDC(positionData.requiredApproval);
+        const amount = Convert.fromStr(positionData.requiredApproval).toUSDC
 
         const hash = await approveAllowance(
           addresses.exchange,

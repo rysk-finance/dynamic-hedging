@@ -17,4 +17,3 @@ export const fromWeiToInt = (x: BigNumberish = 0) =>
 export const fromUSDC = (x: BigNumberish = 0) => utils.formatUnits(x, 6);
 export const tFormatUSDC = (x: BigNumberish, places: number = 3) =>
   truncate(Number(fromUSDC(x)), places);
-export const toUSDC = (x: string = "0") => utils.parseUnits(x, 6);

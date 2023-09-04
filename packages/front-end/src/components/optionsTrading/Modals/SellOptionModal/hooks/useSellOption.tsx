@@ -12,7 +12,7 @@ import { getQuotes } from "src/components/shared/utils/getQuote";
 import { DECIMALS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { Convert } from "src/utils/Convert";
-import { tFormatUSDC, toUSDC, truncate } from "src/utils/conversion-helper";
+import { tFormatUSDC, truncate } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { getLiquidationPrices } from "../../../../shared/utils/getLiquidationPrice";
@@ -165,7 +165,7 @@ export const useSellOption = (amountToSell: string) => {
           );
           const approved = (
             USDCCollateral
-              ? toUSDC(requiredApproval)
+              ? Convert.fromStr(requiredApproval).toUSDC
               : Convert.fromStr(requiredApproval).toWei
           ).lte(allowance.amount);
 
