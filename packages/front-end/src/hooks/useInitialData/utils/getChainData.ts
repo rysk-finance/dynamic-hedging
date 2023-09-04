@@ -14,6 +14,7 @@ import { BigNumber } from "ethers";
 import { getImpliedVolatility } from "implied-volatility";
 
 import { DHVLensMK1ABI } from "src/abis/DHVLensMK1_ABI";
+import { Convert } from "src/utils/Convert";
 import {
   SECONDS_IN_YEAR,
   fromUSDC,
@@ -23,7 +24,6 @@ import {
 } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
-import { toTwoDecimalPlaces } from "src/utils/rounding";
 
 export const getChainData = async (
   expiries: string[],
@@ -86,7 +86,7 @@ export const getChainData = async (
                 side
               ) * 100;
 
-            return toTwoDecimalPlaces(IV);
+            return Convert.round(IV);
           };
 
           const positions = (userPositions[expiry]?.activeTokens || []).reduce(
@@ -111,7 +111,7 @@ export const getChainData = async (
                 IV: _getIV(Number(fromUSDC(buy.quote))),
                 quote: _getQuote(buy, false),
               },
-              delta: toTwoDecimalPlaces(Number(fromWei(delta))),
+              delta: Convert.round(fromWei(delta)),
               exchangeAddresses: {
                 USDC: usdCollatseriesExchangeBalance.seriesAddress,
                 WETH: wethCollatseriesExchangeBalance.seriesAddress,

@@ -3,9 +3,9 @@ import type { OneDayChangeProps } from "../types";
 import NumberFormat from "react-number-format";
 
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
-import { toTwoDecimalPlaces as round } from "src/utils/rounding";
 import { RyskTooltip } from "src/components/shared/RyskToolTip";
 import { useGlobalContext } from "src/state/GlobalContext";
+import { Convert } from "src/utils/Convert";
 
 export const OneDayChange = ({ low, change, high }: OneDayChangeProps) => {
   const {
@@ -46,7 +46,7 @@ export const OneDayChange = ({ low, change, high }: OneDayChangeProps) => {
           />
 
           <p className="text-gray-600 after:content-['%'] after:ml-1">
-            <RyskCountUp value={round(change) || 0} />
+            <RyskCountUp value={Convert.round(change) || 0} />
           </p>
 
           <NumberFormat

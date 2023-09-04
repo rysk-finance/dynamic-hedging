@@ -4,13 +4,13 @@ import { readContracts } from "@wagmi/core";
 
 import { DHVLensMK1ABI } from "src/abis/DHVLensMK1_ABI";
 import { PriceFeedABI } from "src/abis/PriceFeed_ABI";
+import { Convert } from "src/utils/Convert";
 import {
   SECONDS_IN_WEEK,
   fromOpynToNumber,
   fromWeiToInt,
 } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
-import { toTwoDecimalPlaces } from "src/utils/rounding";
 
 export const parseData = async (
   graphData?: QueryData
@@ -63,11 +63,12 @@ export const parseData = async (
 
     return pricePerSharesWithPrediction.map((pricePoint, index, array) => {
       const pricePointGrowth = parseFloat(pricePoint.growthSinceFirstEpoch);
-      const growthSinceFirstEpoch = toTwoDecimalPlaces(
+      const growthSinceFirstEpoch = Convert.round(
         pricePointGrowth - publicLaunchOffset
       );
+
       const ethPrice = fromOpynToNumber(pricePoint.ethPrice);
-      const ethPriceGrowth = toTwoDecimalPlaces(
+      const ethPriceGrowth = Convert.round(
         (ethPrice / publicLaunchEthPrice - 1) * 100
       );
 
@@ -81,7 +82,7 @@ export const parseData = async (
           ethPrice: NaN,
           predictedEthPrice: ethPriceGrowth,
           growthSinceFirstEpoch: NaN,
-          predictedGrowthSinceFirstEpoch: toTwoDecimalPlaces(
+          predictedGrowthSinceFirstEpoch: Convert.round(
             predictedPricePointGrowth - publicLaunchOffset
           ),
           isPrediction: true,
