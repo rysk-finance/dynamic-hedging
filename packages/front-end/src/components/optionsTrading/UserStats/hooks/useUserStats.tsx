@@ -5,7 +5,8 @@ import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
 
 import { getQuotes } from "src/components/shared/utils/getQuote";
-import { fromOpyn, fromWeiToInt, toRysk } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
+import { fromWeiToInt } from "src/utils/conversion-helper";
 import { buildActivePositions } from "../utils/buildActivePositions";
 import { calculateDelta } from "../utils/calculateDelta";
 import { calculatePnL } from "../utils/calculatePnL";
@@ -45,7 +46,7 @@ export const useUserStats = () => {
 
             return {
               expiry: parseInt(expiryTimestamp),
-              strike: toRysk(fromOpyn(strikePrice)),
+              strike: Convert.fromOpyn(strikePrice).toWei,
               isPut: isPut,
               orderSize: Math.abs(fromWeiToInt(netAmount)),
               isSell: !isShort,

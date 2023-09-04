@@ -13,11 +13,7 @@ import dayjs from "dayjs";
 import { ZERO_ADDRESS } from "src/config/constants";
 import { Vault } from "src/hooks/useInitialData/types";
 import { Convert } from "src/utils/Convert";
-import {
-  fromOpyn,
-  fromWeiToInt,
-  tFormatUSDC,
-} from "src/utils/conversion-helper";
+import { fromWeiToInt, tFormatUSDC } from "src/utils/conversion-helper";
 import { getLiquidationPrices } from "../../../shared/utils/getLiquidationPrice";
 import { PositionAction } from "../enums";
 
@@ -231,7 +227,7 @@ export const buildActivePositions = async (
         mark: (buy.quote.quote + sell.quote.quote) / 2,
         profitLoss,
         series: series.join("-"),
-        strike: fromOpyn(strikePrice),
+        strike: Convert.fromOpyn(strikePrice).toStr,
       };
     }
   );
