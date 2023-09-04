@@ -1333,19 +1333,49 @@ describe("change to 4x leverage factor", async () => {
 		const deployerBalanceBefore = await ethers.provider.getBalance(funderAddress)
 
 		const amountOut = utils.parseEther("0.1")
-		await gmxReactor.connect(deployer).sweepFunds(amountOut, funderAddress)
+		await gmxReactor.connect(deployer).sweepFunds(amountOut, funderAddress, ZERO_ADDRESS)
 
 		const contractBalanceAfter = await ethers.provider.getBalance(gmxReactor.address)
 		const deployerBalanceAfter = await ethers.provider.getBalance(funderAddress)
 		expect(contractBalanceAfter).to.eq(contractBalanceBefore.sub(amountOut))
 		expect(deployerBalanceAfter).to.eq(deployerBalanceBefore.add(amountOut))
 	})
+	it("withdraws wETH token from contract", async () => {
+		const weth = (await ethers.getContractAt(
+			"contracts/tokens/ERC20.sol:ERC20",
+			wethAddress
+		)) as ERC20
+		const funderAddress = "0x6F15ee9258ACDEbf356dB7aB607bB255a00C6fdF"
+		await network.provider.request({
+			method: "hardhat_impersonateAccount",
+			params: [funderAddress]
+		})
+		const funder = await ethers.getSigner(funderAddress)
+		weth.connect(funder).transfer(gmxReactor.address, utils.parseEther("1.5"))
+
+		const contractTokenBalanceBefore = await weth.balanceOf(gmxReactor.address)
+		const deployerTokenBalanceBefore = await weth.balanceOf(funderAddress)
+		const contractETHBalanceBefore = await ethers.provider.getBalance(gmxReactor.address)
+
+		expect(contractTokenBalanceBefore).to.eq(utils.parseEther("1.5"))
+
+		const amountOut = utils.parseEther("0")
+		await gmxReactor.connect(deployer).sweepFunds(amountOut, funderAddress, wethAddress)
+
+		const contractTokenBalanceAfter = await weth.balanceOf(gmxReactor.address)
+		const deployerTokenBalanceAfter = await weth.balanceOf(funderAddress)
+		const contractETHBalanceAfter = await ethers.provider.getBalance(gmxReactor.address)
+
+		expect(contractTokenBalanceAfter).to.eq(0)
+		expect(deployerTokenBalanceAfter).to.eq(deployerTokenBalanceBefore.add(utils.parseEther("1.5")))
+		expect(contractETHBalanceAfter).to.eq(contractETHBalanceBefore)
+	})
 	it("withdraws all ETH from contract", async () => {
 		const contractBalanceBefore = await ethers.provider.getBalance(gmxReactor.address)
 		const deployerBalanceBefore = await ethers.provider.getBalance(funderAddress)
 		// more than available
 		const amountOut = utils.parseEther("1000")
-		await gmxReactor.connect(deployer).sweepFunds(amountOut, funderAddress)
+		await gmxReactor.connect(deployer).sweepFunds(amountOut, funderAddress, ZERO_ADDRESS)
 
 		const contractBalanceAfter = await ethers.provider.getBalance(gmxReactor.address)
 		const deployerBalanceAfter = await ethers.provider.getBalance(funderAddress)
@@ -1374,8 +1404,7 @@ describe("price moves between submitting and executing orders", async () => {
 			[true]
 		)
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("200000", 8))
-
-		await liquidityPool.rebalancePortfolioDelta(delta, 0)
+		await liquidityPool.rebalancePortfolioDelta(delta.mul(999999).div(1000000), 0)
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("199998", 8))
 
 		await executeDecreasePosition()
@@ -1461,7 +1490,7 @@ describe("price moves between submitting and executing orders", async () => {
 		const delta = 2
 		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta / 2}`), 0)
 		await executeDecreasePosition()
-		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta / 2}`), 0)
+		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${(delta * 10000) / 20001}`), 0)
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("1594", 8))
 
 		await executeDecreasePosition()
@@ -1569,7 +1598,7 @@ describe("price moves between submitting and executing orders", async () => {
 		const delta = 2
 		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta / 2}`), 0)
 		await executeDecreasePosition()
-		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta / 2}`), 0)
+		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${(delta * 10000) / 20001}`), 0)
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("1606", 8))
 
 		await executeDecreasePosition()
@@ -1664,7 +1693,7 @@ describe("price moves between submitting and executing orders", async () => {
 			utils.formatUnits(await usdcNative.balanceOf(liquidityPool.address), 6)
 		)
 
-		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta}`), 0)
+		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${(delta * 99999) / 100000}`), 0)
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("1805", 8))
 
 		await executeDecreasePosition()
@@ -1759,7 +1788,7 @@ describe("price moves between submitting and executing orders", async () => {
 			utils.formatUnits(await usdcNative.balanceOf(liquidityPool.address), 6)
 		)
 
-		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${delta}`), 0)
+		await liquidityPool.rebalancePortfolioDelta(utils.parseEther(`${(delta * 99999) / 100000}`), 0)
 		await mockChainlinkFeed.setLatestAnswer(utils.parseUnits("1795", 8))
 
 		await executeDecreasePosition()
