@@ -10,7 +10,7 @@ export interface PositionOToken {
   expiryTimestamp: string;
   id: HexString;
   isPut: boolean;
-  strikePrice: BigNumberish;
+  strikePrice: string;
   symbol: string;
 }
 
@@ -57,7 +57,7 @@ export interface Position {
 export interface OraclePrices {
   prices: {
     expiry: string;
-    price: BigNumberish;
+    price: string;
   }[];
 }
 

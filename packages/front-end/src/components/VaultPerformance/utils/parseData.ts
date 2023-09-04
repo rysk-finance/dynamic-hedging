@@ -5,7 +5,7 @@ import { readContracts } from "@wagmi/core";
 import { DHVLensMK1ABI } from "src/abis/DHVLensMK1_ABI";
 import { PriceFeedABI } from "src/abis/PriceFeed_ABI";
 import { Convert } from "src/utils/Convert";
-import { fromOpynToNumber, fromWeiToInt } from "src/utils/conversion-helper";
+import {  fromWeiToInt } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { SECONDS_IN_WEEK } from "src/utils/time";
 
@@ -55,7 +55,7 @@ export const parseData = async (
       ? parseFloat(pricePerSharesWithPrediction[0].growthSinceFirstEpoch)
       : 0;
     const publicLaunchEthPrice = pricePerSharesWithPrediction.length
-      ? fromOpynToNumber(pricePerSharesWithPrediction[0].ethPrice)
+      ? Convert.fromOpyn(pricePerSharesWithPrediction[0].ethPrice).toInt
       : 0;
 
     return pricePerSharesWithPrediction.map((pricePoint, index, array) => {
@@ -64,7 +64,7 @@ export const parseData = async (
         pricePointGrowth - publicLaunchOffset
       );
 
-      const ethPrice = fromOpynToNumber(pricePoint.ethPrice);
+      const ethPrice = Convert.fromOpyn(pricePoint.ethPrice).toInt;
       const ethPriceGrowth = Convert.round(
         (ethPrice / publicLaunchEthPrice - 1) * 100
       );

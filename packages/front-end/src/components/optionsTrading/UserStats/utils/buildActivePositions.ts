@@ -12,9 +12,9 @@ import dayjs from "dayjs";
 
 import { ZERO_ADDRESS } from "src/config/constants";
 import { Vault } from "src/hooks/useInitialData/types";
+import { Convert } from "src/utils/Convert";
 import {
   fromOpyn,
-  fromOpynToNumber,
   fromWeiToInt,
   tFormatUSDC,
 } from "src/utils/conversion-helper";
@@ -125,7 +125,7 @@ export const buildActivePositions = async (
           collateralAddress:
             (vault?.collateralAsset.id as HexString) || ZERO_ADDRESS,
           expiry: parseInt(expiryTimestamp),
-          strikePrice: fromOpynToNumber(strikePrice),
+          strikePrice: Convert.fromOpyn(strikePrice).toInt,
         };
       }
     ),
@@ -163,7 +163,7 @@ export const buildActivePositions = async (
         : totalPremiumBought / fromWeiToInt(buyAmount || 0);
       const formattedPnl = tFormatUSDC(realizedPnl);
       const side = isPut ? "put" : "call";
-      const strike = fromOpynToNumber(strikePrice);
+      const strike = Convert.fromOpyn(strikePrice).toInt;
       const chainSideData = chainData[expiryTimestamp]?.[strike][side];
       const { delta, buy, sell } = {
         delta: isOpen && chainSideData?.delta ? chainSideData.delta : 0,

@@ -4,11 +4,11 @@ import type { UserPositionToken, WethOracleHashMap } from "src/state/types";
 import dayjs from "dayjs";
 
 import {
-  fromOpynToNumber,
   fromWeiToInt,
   tFormatEth,
   tFormatUSDC,
 } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
 
 /**
  * Calculate P/L value for all historical positions.
@@ -86,7 +86,7 @@ export const calculatePnL = async (
         } else {
           // Expired but not yet redeemed.
           const priceAtExpiry = wethOracleHashMap[expiryTimestamp];
-          const strike = fromOpynToNumber(strikePrice);
+          const strike = Convert.fromOpyn(strikePrice).toInt;
 
           const valueAtExpiry = isPut
             ? Math.max(strike - priceAtExpiry, 0)
@@ -145,7 +145,7 @@ export const calculatePnL = async (
         } else {
           // Expired but not yet settled.
           const priceAtExpiry = wethOracleHashMap[expiryTimestamp];
-          const strike = fromOpynToNumber(strikePrice);
+          const strike = Convert.fromOpyn(strikePrice).toInt;
 
           const valueAtExpiry = isPut
             ? Math.max(strike - priceAtExpiry, 0)
