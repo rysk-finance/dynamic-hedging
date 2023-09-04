@@ -19,7 +19,7 @@ export type AppSettings = {
 };
 
 // Types related to useInitialData hook.
-export type Expiries = string[];
+type Expiries = string[];
 
 export interface UserPositionToken extends PositionOToken {
   active: boolean;
@@ -97,7 +97,7 @@ export type ColumnNamesSet = Set<ColumnNames>;
 
 export type CollateralType = "USDC" | "WETH";
 
-export interface CollateralPreferences {
+interface CollateralPreferences {
   amount: number;
   full: boolean;
   type: CollateralType;
@@ -108,7 +108,7 @@ export interface UserVaults {
   length: number;
 }
 
-export interface Balances {
+interface Balances {
   ETH: number;
   USDC: number;
   WETH: number;
@@ -447,11 +447,7 @@ export type VaultContext = {
   dispatch: Dispatch<VaultAction>;
 };
 
-// Options trading context
-export type OptionsTradingState = {
-  selectedOption?: SelectedOption;
-  optionChainModalOpen?: OptionChainModal;
-};
+
 
 export enum OptionChainModalActions {
   ADJUST_COLLATERAL = "Adjust Collateral",
@@ -467,10 +463,6 @@ export enum OptionChainModalActions {
 export type OptionChainModal =
   (typeof OptionChainModalActions)[keyof typeof OptionChainModalActions];
 
-export enum OptionType {
-  CALL = "CALL",
-  PUT = "PUT",
-}
 
 export type CallOrPut = "call" | "put";
 
@@ -503,13 +495,13 @@ export interface ClosingOption {
   vault?: Vault;
 }
 
-export interface Quote {
+interface Quote {
   fee: number;
   quote: number;
   total: number;
 }
 
-export interface StrikeSide {
+interface StrikeSide {
   buy: {
     IV: number;
     quote: Quote;
@@ -539,11 +531,4 @@ export interface StrikeOptions {
   put?: StrikeSide;
 }
 
-export interface OptionSeries {
-  expiration: BigNumber;
-  strike: BigNumber;
-  strikeAsset: HexString;
-  underlying: HexString;
-  collateral: HexString;
-  isPut: boolean;
-}
+

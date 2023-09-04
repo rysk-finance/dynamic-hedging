@@ -2,7 +2,6 @@ import type { PropsWithChildren } from "react";
 
 import {
   ApolloClient,
-  ApolloLink,
   ApolloProvider as Provider,
   HttpLink,
   InMemoryCache,
@@ -12,7 +11,7 @@ const ryskSubgraph = new HttpLink({
   uri: process.env.REACT_APP_SUBGRAPH_URL,
 });
 
-export const RyskApolloClient = new ApolloClient({
+const RyskApolloClient = new ApolloClient({
   link: ryskSubgraph,
   cache: new InMemoryCache({
     typePolicies: {

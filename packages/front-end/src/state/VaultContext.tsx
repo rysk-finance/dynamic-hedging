@@ -4,7 +4,7 @@ import { createContext, useContext, useReducer } from "react";
 import { vaultReducer } from "./reducer";
 import { VaultContext, VaultState } from "./types";
 
-export const defaultVaultState: VaultState = {
+const defaultVaultState: VaultState = {
   depositEpoch: null,
   userDHVBalance: null,
   withdrawalEpoch: null,
@@ -12,7 +12,7 @@ export const defaultVaultState: VaultState = {
   withdrawalPricePerShare: null,
 };
 
-export const VaultReactContext = createContext<VaultContext>({
+const VaultReactContext = createContext<VaultContext>({
   state: defaultVaultState,
   dispatch: () => {},
 });

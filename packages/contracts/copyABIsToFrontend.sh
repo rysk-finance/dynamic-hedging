@@ -11,16 +11,7 @@ rm -rf ../front-end/src/types/*
 # Copy only the required types.
 cp \
 ./types/common.ts \
-./types/ERC20.ts \
-./types/LiquidityPool.ts \
-./types/OptionRegistry.ts \
-./types/AlphaPortfolioValuesFeed.ts \
-./types/PriceFeed.ts \
-./types/OptionExchange.ts \
-./types/OptionCatalogue.ts \
-./types/BeyondPricer.ts \
 ./types/DHVLensMK1.ts \
-./types/UserPositionLensMK1.ts \
 ../front-end/src/types/
 
 # Clean out the ABIs directory.
@@ -34,7 +25,7 @@ rm -rf ../front-end/tmp
 
 # Copy only the required ABIs from artifacts dir.
 # Copy them as JSON and as TS variables.
-for FILE_NAME in 'LiquidityPool' 'AlphaOptionHandler' 'OptionRegistry' 'AlphaPortfolioValuesFeed' 'PriceFeed' 'OptionExchange' 'OptionCatalogue' 'BeyondPricer'
+for FILE_NAME in 'LiquidityPool' 'AlphaOptionHandler' 'OptionRegistry' 'AlphaPortfolioValuesFeed' 'PriceFeed' 'OptionExchange' 'BeyondPricer'
 do
     ABI=$(jq --indent 4 --tab '.abi' ./artifacts/contracts/$FILE_NAME.sol/$FILE_NAME.json)
 
@@ -67,7 +58,7 @@ do
 done
 
 # Copy Opyn package ABIs from artifacts dir.
-for ABI_PATH in 'new/NewController/NewController' 'core/Oracle/Oracle' 'new/NewCalculator/NewMarginCalculator'
+for ABI_PATH in 'new/NewController/NewController' 'new/NewCalculator/NewMarginCalculator'
 do
     IFS='/'
 
