@@ -12,12 +12,7 @@ import { getQuotes } from "src/components/shared/utils/getQuote";
 import { DECIMALS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { Convert } from "src/utils/Convert";
-import {
-  tFormatUSDC,
-  toOpyn,
-  toUSDC,
-  truncate,
-} from "src/utils/conversion-helper";
+import { tFormatUSDC, toUSDC, truncate } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { getLiquidationPrices } from "../../../../shared/utils/getLiquidationPrice";
@@ -115,9 +110,9 @@ export const useSellOption = (amountToSell: string) => {
                 WETHAddress,
                 USDCAddress,
                 collateralAddress,
-                toOpyn(amountToSell),
-                toOpyn(strike.toString()),
-                toOpyn(ethPrice.toString()),
+                Convert.fromStr(amountToSell).toOpyn,
+                Convert.fromInt(strike).toOpyn,
+                Convert.fromInt(ethPrice).toOpyn,
                 BigNumber.from(activeExpiry),
                 BigNumber.from(USDCCollateral ? DECIMALS.USDC : DECIMALS.RYSK),
                 selectedOption.callOrPut === "put",

@@ -10,7 +10,7 @@ import { redeemOrBurn } from "src/components/shared/utils/transactions/redeemOrB
 import { settle } from "src/components/shared/utils/transactions/settle";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
-import { toOpyn } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
 
 export const Action = ({
   action,
@@ -62,7 +62,7 @@ export const Action = ({
             dispatch({ type: ActionType.SET_USER_STATS, loading: true });
 
             const hash = await redeemOrBurn(
-              toOpyn(option.amount.toString()),
+              Convert.fromInt(option.amount).toOpyn,
               address as HexString,
               option.address,
               refresh
