@@ -22,7 +22,7 @@ export const calculateDelta = (
 
   return positions.reduce(
     (totalDelta, { expiryTimestamp, isPut, strikePrice, netAmount }) => {
-      const isOpen = parseInt(expiryTimestamp) > nowToUnix;
+      const isOpen = Convert.fromStr(expiryTimestamp).toInt() > nowToUnix;
       const side = isPut ? "put" : "call";
       const size = Convert.fromWei(netAmount).toInt();
       const strike = Convert.fromOpyn(strikePrice).toInt();

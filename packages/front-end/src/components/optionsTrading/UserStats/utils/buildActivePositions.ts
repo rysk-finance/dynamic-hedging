@@ -119,7 +119,7 @@ export const buildActivePositions = async (
           collateral: formatCollateralAmount(0, collateralAsset, vault),
           collateralAddress:
             (vault?.collateralAsset.id as HexString) || ZERO_ADDRESS,
-          expiry: parseInt(expiryTimestamp),
+          expiry: Convert.fromStr(expiryTimestamp).toInt(),
           strikePrice: Convert.fromOpyn(strikePrice).toInt(),
         };
       }
@@ -150,7 +150,7 @@ export const buildActivePositions = async (
       index
     ) => {
       const [, ...series] = symbol.split("-");
-      const isOpen = parseInt(expiryTimestamp) > nowToUnix;
+      const isOpen = Convert.fromStr(expiryTimestamp).toInt() > nowToUnix;
       const isShort = Boolean(collateralAsset && "symbol" in collateralAsset);
       const amount = Convert.fromWei(netAmount).toInt();
       const entry = isShort

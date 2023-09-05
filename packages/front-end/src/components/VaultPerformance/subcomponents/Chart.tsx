@@ -16,6 +16,8 @@ import {
   YAxis,
 } from "recharts";
 
+import { Convert } from "src/utils/Convert";
+
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (label && active && payload && payload.length) {
     const isHistoricalDataPoint = payload.length === 2;
@@ -36,7 +38,7 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
         </p>
 
         <p className="p-2 text-sm">
-          {dayjs.unix(parseInt(label)).format("DD MMM YY")}
+          {dayjs.unix(Convert.fromStr(label).toInt()).format("DD MMM YY")}
           {isPredictedPrice
             ? " (predicted)"
             : ` (epoch ${payload[0].payload.epoch})`}
@@ -130,7 +132,7 @@ export const Chart = ({ chartData }: ChartProps) => (
           angle={0}
           minTickGap={16}
           tickFormatter={(value: string) =>
-            dayjs.unix(parseInt(value)).format("DD MMM")
+            dayjs.unix(Convert.fromStr(value).toInt()).format("DD MMM")
           }
           padding={{ left: 16, right: 16 }}
         />

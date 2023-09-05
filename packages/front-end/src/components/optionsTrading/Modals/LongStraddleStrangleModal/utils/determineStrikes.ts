@@ -1,5 +1,7 @@
 import { StrikeOptions } from "src/state/types";
 
+import { Convert } from "src/utils/Convert";
+
 export const determineStrikes = (
   ethPrice: number,
   isStrangle: boolean,
@@ -7,7 +9,7 @@ export const determineStrikes = (
 ) => {
   return strikes.reduce(
     ([puts, calls]: [string[], string[]], [strike, strikeOptions]) => {
-      const strikeInt = parseInt(strike);
+      const strikeInt = Convert.fromStr(strike).toInt();
 
       if (isStrangle) {
         const { put, call } = strikeOptions;
@@ -29,7 +31,7 @@ export const determineStrikes = (
         }
       } else {
         // Determine strike density and ether filter by $100 or $50 on straddles.
-        const range = strikes.some(([strike]) => parseInt(strike) % 100)
+        const range = strikes.some(([strike]) => Convert.fromStr(strike).toInt() % 100)
           ? 50
           : 100;
         const lowerBound = ethPrice - range;

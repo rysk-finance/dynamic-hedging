@@ -55,7 +55,7 @@ export const calculatePnL = async (
 
       if (index < longPositions.length) {
         // Longs
-        const expiriesAt = parseInt(expiryTimestamp);
+        const expiriesAt = Convert.fromStr(expiryTimestamp).toInt();
         const nowToUnix = dayjs().unix();
         const realizedPnL = Convert.fromUSDC(realizedPnl).toInt();
 
@@ -95,7 +95,7 @@ export const calculatePnL = async (
         }
       } else {
         // Shorts
-        const expiriesAt = parseInt(expiryTimestamp);
+        const expiriesAt = Convert.fromStr(expiryTimestamp).toInt();
         const nowToUnix = dayjs().unix();
         const realizedPnL = Convert.fromUSDC(realizedPnl).toInt();
         const hasBeenLiquidated =

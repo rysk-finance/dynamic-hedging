@@ -7,6 +7,7 @@ import { useEffect, useRef } from "react";
 
 import FadeInOut from "src/animation/FadeInOut";
 import FadeInUpDelayed from "src/animation/FadeInUpDelayed";
+import { Convert } from "src/utils/Convert";
 
 export const RyskModal = ({
   children,
@@ -27,7 +28,7 @@ export const RyskModal = ({
       document.body.classList.toggle("overflow-y-scroll");
       document.body.classList.toggle("fixed");
 
-      window.scrollTo({ top: parseInt(scrollY || "0") * -1 });
+      window.scrollTo({ top: Convert.fromStr(scrollY || "0").toInt() * -1 });
     };
   }, []);
 

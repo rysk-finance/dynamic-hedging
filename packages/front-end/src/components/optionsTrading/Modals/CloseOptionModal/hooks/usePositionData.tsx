@@ -45,7 +45,9 @@ export const usePositionData = (amountToClose: string) => {
     remainingBalance: 0,
     slippage: 0,
     totalSize: 0,
-    strike: closingOption?.strike ? parseInt(closingOption.strike) : undefined,
+    strike: closingOption?.strike
+      ? Convert.fromStr(closingOption.strike).toInt()
+      : undefined,
   });
 
   const [loading, setLoading] = useState(false);
@@ -92,7 +94,7 @@ export const usePositionData = (amountToClose: string) => {
               remainingBalance,
               slippage,
               totalSize,
-              strike: parseInt(closingOption.strike),
+              strike: Convert.fromStr(closingOption.strike).toInt(),
             });
             setAllowance((currentState) => ({ ...currentState, approved }));
           } else {
@@ -108,7 +110,7 @@ export const usePositionData = (amountToClose: string) => {
               slippage: 0,
               totalSize,
               strike: closingOption?.strike
-                ? parseInt(closingOption.strike)
+                ? Convert.fromStr(closingOption.strike).toInt()
                 : undefined,
             });
             setAllowance((currentState) => ({

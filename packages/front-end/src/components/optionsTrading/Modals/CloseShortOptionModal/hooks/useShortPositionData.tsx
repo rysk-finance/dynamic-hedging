@@ -54,7 +54,9 @@ export const useShortPositionData = (amountToClose: string) => {
     slippage: 0,
     totalSize: 0,
     requiredApproval: "",
-    strike: closingOption?.strike ? parseInt(closingOption.strike) : undefined,
+    strike: closingOption?.strike
+      ? Convert.fromStr(closingOption.strike).toInt()
+      : undefined,
   });
 
   const vault = closingOption?.vault;
@@ -166,7 +168,7 @@ export const useShortPositionData = (amountToClose: string) => {
               slippage,
               totalSize: Math.abs(totalSize),
               requiredApproval,
-              strike: parseInt(closingOption.strike),
+              strike: Convert.fromStr(closingOption.strike).toInt(),
             });
             setAllowance((currentState) => ({ ...currentState, approved }));
           } else {
@@ -189,7 +191,7 @@ export const useShortPositionData = (amountToClose: string) => {
               totalSize: Math.abs(totalSize),
               requiredApproval: "",
               strike: closingOption?.strike
-                ? parseInt(closingOption.strike)
+                ? Convert.fromStr(closingOption.strike).toInt()
                 : undefined,
             });
             setAllowance((currentState) => ({

@@ -98,8 +98,8 @@ export const useLongStraddleStrangle = (
             .lte(allowance.amount);
 
           const breakEven: [number, number] = [
-            putQuote.breakEven - (callQuote.breakEven - parseInt(put)),
-            callQuote.breakEven + (parseInt(call) - putQuote.breakEven),
+            putQuote.breakEven - (callQuote.breakEven - Convert.fromStr(put).toInt()),
+            callQuote.breakEven + (Convert.fromStr(call).toInt() - putQuote.breakEven),
           ];
 
           const putExposure =

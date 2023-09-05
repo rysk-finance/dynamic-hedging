@@ -10,7 +10,8 @@ export const Stats = ({ chartData }: { chartData: ChartData[] }) => {
   const firstEpoch = chartData[0];
   const latestEpoch = chartData[chartData.length - 2];
   const totalEpochTime =
-    parseInt(latestEpoch.timestamp) - parseInt(firstEpoch.timestamp);
+    Convert.fromStr(latestEpoch.timestamp).toInt() -
+    Convert.fromStr(firstEpoch.timestamp).toInt();
 
   const historical = latestEpoch.growthSinceFirstEpoch;
   const annualised =

@@ -44,7 +44,7 @@ export const useUserStats = () => {
             const isShort = collateralAsset && "symbol" in collateralAsset;
 
             return {
-              expiry: parseInt(expiryTimestamp),
+              expiry: Convert.fromStr(expiryTimestamp).toInt(),
               strike: Convert.fromOpyn(strikePrice).toWei(),
               isPut: isPut,
               orderSize: Math.abs(Convert.fromWei(netAmount).toInt()),

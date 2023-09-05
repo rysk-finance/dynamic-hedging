@@ -50,23 +50,27 @@ export const parseData = async (
         ethPrice: currentEthPrice,
         growthSinceFirstEpoch: "",
         predictedGrowthSinceFirstEpoch,
-        timestamp: String(parseInt(lastIndex.timestamp) + SECONDS_IN_WEEK),
+        timestamp: String(
+          Convert.fromStr(lastIndex.timestamp).toInt() + SECONDS_IN_WEEK
+        ),
         value: currentPricePerShare.toString(),
         __typename: "",
       },
     ];
 
-
-
     const publicLaunchOffset = pricePerSharesWithPrediction.length
-      ? Convert.fromStr(pricePerSharesWithPrediction[0].growthSinceFirstEpoch).toInt()
+      ? Convert.fromStr(
+          pricePerSharesWithPrediction[0].growthSinceFirstEpoch
+        ).toInt()
       : 0;
     const publicLaunchEthPrice = pricePerSharesWithPrediction.length
       ? Convert.fromOpyn(pricePerSharesWithPrediction[0].ethPrice).toInt()
       : 0;
 
     return pricePerSharesWithPrediction.map((pricePoint, index, array) => {
-      const pricePointGrowth = Convert.fromStr(pricePoint.growthSinceFirstEpoch).toInt();
+      const pricePointGrowth = Convert.fromStr(
+        pricePoint.growthSinceFirstEpoch
+      ).toInt();
       const growthSinceFirstEpoch = Convert.round(
         pricePointGrowth - publicLaunchOffset
       );
@@ -79,7 +83,7 @@ export const parseData = async (
       if (pricePoint.predictedGrowthSinceFirstEpoch) {
         const predictedPricePointGrowth = Convert.fromStr(
           pricePoint.predictedGrowthSinceFirstEpoch
-        ).toInt()
+        ).toInt();
 
         return {
           ...pricePoint,
