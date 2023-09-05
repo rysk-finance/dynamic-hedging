@@ -1,5 +1,5 @@
 import { prepareWriteContract, writeContract } from "@wagmi/core";
-import { BigNumber, ethers } from "ethers";
+import { BigNumber } from "ethers";
 
 import { OptionExchangeABI } from "src/abis/OptionExchange_ABI";
 import { waitForTransactionOrTimer } from "src/components/shared/utils/waitForTransaction";
@@ -11,6 +11,7 @@ import {
 import OperationType from "src/enums/OperationType";
 import { OpynActionType } from "src/enums/OpynActionType";
 import RyskActionType from "src/enums/RyskActionType";
+import { Convert } from "src/utils/Convert";
 
 export const closeShort = async (
   acceptablePremium: BigNumber,
@@ -49,7 +50,7 @@ export const closeShort = async (
           secondAddress: userAddress,
           asset: tokenAddress,
           vaultId: BigNumber.from(vaultId),
-          amount: amount.div(ethers.utils.parseUnits("1", 10)), // Rysk e18 to Opyn e8
+          amount: Convert.fromWei(amount).toOpyn(),
           optionSeries: EMPTY_SERIES,
           indexOrAcceptablePremium: BigNumber.from(0),
           data: "0x" as HexString,
