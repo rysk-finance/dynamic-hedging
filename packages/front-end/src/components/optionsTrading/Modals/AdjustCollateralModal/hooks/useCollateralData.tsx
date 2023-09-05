@@ -8,7 +8,6 @@ import { useAccount } from "wagmi";
 import { getLiquidationPrices } from "src/components/shared/utils/getLiquidationPrice";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { Convert } from "src/utils/Convert";
-import { truncate } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
@@ -109,7 +108,10 @@ export const useCollateralData = (
               : balanceWETH > amount * approvalBuffer
             : true;
 
-          const requiredApproval = String(truncate(amount * approvalBuffer, 4));
+          const requiredApproval = Convert.fromInt(
+            amount * approvalBuffer,
+            4
+          ).toStr;
           const approved = isDepositing
             ? (USDCCollateral
                 ? Convert.fromStr(requiredApproval).toUSDC

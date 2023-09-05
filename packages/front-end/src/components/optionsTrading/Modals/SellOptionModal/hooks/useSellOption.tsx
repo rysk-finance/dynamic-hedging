@@ -12,7 +12,6 @@ import { getQuotes } from "src/components/shared/utils/getQuote";
 import { DECIMALS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { Convert } from "src/utils/Convert";
-import { truncate } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { getLiquidationPrices } from "../../../../shared/utils/getLiquidationPrice";
@@ -160,9 +159,10 @@ export const useSellOption = (amountToSell: string) => {
             ? balanceUSDC > collateral * approvalBuffer
             : balanceWETH > collateral * approvalBuffer;
 
-          const requiredApproval = String(
-            truncate(collateral * approvalBuffer, 4)
-          );
+          const requiredApproval = Convert.fromInt(
+            collateral * approvalBuffer,
+            4
+          ).toStr;
           const approved = (
             USDCCollateral
               ? Convert.fromStr(requiredApproval).toUSDC

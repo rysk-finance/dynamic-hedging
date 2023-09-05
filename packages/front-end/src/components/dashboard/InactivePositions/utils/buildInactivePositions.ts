@@ -4,7 +4,6 @@ import type {
   WethOracleHashMap,
 } from "src/state/types";
 
-import { truncate } from "src/utils/conversion-helper";
 import { Convert } from "src/utils/Convert";
 
 export const buildInactivePositions = (
@@ -44,11 +43,11 @@ export const buildInactivePositions = (
         const oraclePrice =
           liquidated || (!redeemed && !settled)
             ? 0
-            : truncate(wethOracleHashMap[expiryTimestamp] || 0);
+            : Convert.round(wethOracleHashMap[expiryTimestamp] || 0);
 
         return {
-          close: Math.abs(truncate(closePremium / amount)),
-          entry: Math.abs(truncate(entryPremium / amount)),
+          close: Math.abs(Convert.round(closePremium / amount)),
+          entry: Math.abs(Convert.round(entryPremium / amount)),
           id: `${id}-${isShort ? totalPremiumSold : totalPremiumBought}`,
           isShort,
           oraclePrice,

@@ -1,7 +1,6 @@
 import type { UserPositions } from "src/state/types";
 import type { OptionsTransaction, Position } from "../types";
 
-import { truncate } from "src/utils/conversion-helper";
 import { Convert } from "src/utils/Convert";
 
 export const getUserPositions = (positions: Position[]): UserPositions => {
@@ -38,7 +37,7 @@ export const getUserPositions = (positions: Position[]): UserPositions => {
           const paid = plusFee
             ? formattedPremium + formattedFee
             : formattedPremium - formattedFee;
-          const total = truncate(paid) + acc;
+          const total = Convert.round(paid) + acc;
 
           return total;
         }, 0);
