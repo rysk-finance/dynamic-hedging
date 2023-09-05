@@ -15,7 +15,6 @@ import { getImpliedVolatility } from "implied-volatility";
 
 import { DHVLensMK1ABI } from "src/abis/DHVLensMK1_ABI";
 import { Convert } from "src/utils/Convert";
-import { fromWeiToOpyn } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { SECONDS_IN_YEAR } from "src/utils/time";
@@ -87,7 +86,9 @@ export const getChainData = async (
           const positions = (userPositions[expiry]?.activeTokens || []).reduce(
             (acc, position) => {
               if (
-                fromWeiToOpyn(strike).eq(position.strikePrice) &&
+                Convert.fromWei(strike as BigNumber).toOpyn.eq(
+                  position.strikePrice
+                ) &&
                 (side === "put") === position.isPut
               ) {
                 acc.id.push(position.id);
