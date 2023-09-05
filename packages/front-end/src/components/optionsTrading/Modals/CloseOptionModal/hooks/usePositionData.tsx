@@ -68,7 +68,7 @@ export const usePositionData = (amountToClose: string) => {
               await getQuotes([
                 {
                   expiry: Number(activeExpiry),
-                  strike: Convert.fromStr(closingOption.strike).toWei,
+                  strike: Convert.fromStr(closingOption.strike).toWei(),
                   isPut: closingOption.isPut,
                   orderSize: amount,
                   isSell: true,
@@ -77,9 +77,9 @@ export const usePositionData = (amountToClose: string) => {
 
             const remainingBalance =
               balances.USDC === 0 ? 0 : balances.USDC + quote;
-            const approved = Convert.fromStr(amountToClose).toOpyn.lte(
-              allowance.amount
-            );
+            const approved = Convert.fromStr(amountToClose)
+              .toOpyn()
+              .lte(allowance.amount);
 
             setPositionData({
               acceptablePremium,

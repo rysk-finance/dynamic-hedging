@@ -32,8 +32,8 @@ export const getUserPositions = (positions: Position[]): UserPositions => {
         plusFee: boolean
       ) => {
         return transactions.reduce((acc, { fee, premium }) => {
-          const formattedFee = Convert.fromUSDC(fee).toInt;
-          const formattedPremium = Convert.fromUSDC(premium).toInt;
+          const formattedFee = Convert.fromUSDC(fee).toInt();
+          const formattedPremium = Convert.fromUSDC(premium).toInt();
           const paid = plusFee
             ? formattedPremium + formattedFee
             : formattedPremium - formattedFee;

@@ -54,14 +54,16 @@ export const getChainData = async (
             wethCollatseriesExchangeBalance,
           }: DHVLensMK1.OptionStrikeDrillStruct
         ) => {
-          const strikeUSDC = Convert.fromWei(strike as string).toInt;
+          const strikeUSDC = Convert.fromWei(strike as string).toInt();
 
           const _getQuote = (
             buyOrSell: DHVLensMK1.TradingSpecStruct,
             isSell: boolean
           ) => {
-            const fee = Convert.fromUSDC(buyOrSell.fee as BigNumber).toInt;
-            const quote = Convert.fromUSDC(buyOrSell.quote as BigNumber).toInt;
+            const fee = Convert.fromUSDC(buyOrSell.fee as BigNumber).toInt();
+            const quote = Convert.fromUSDC(
+              buyOrSell.quote as BigNumber
+            ).toInt();
             const total = isSell ? quote - fee : fee + quote;
 
             return total >= 0.01
@@ -86,13 +88,13 @@ export const getChainData = async (
           const positions = (userPositions[expiry]?.activeTokens || []).reduce(
             (acc, position) => {
               if (
-                Convert.fromWei(strike as BigNumber).toOpyn.eq(
-                  position.strikePrice
-                ) &&
+                Convert.fromWei(strike as BigNumber)
+                  .toOpyn()
+                  .eq(position.strikePrice) &&
                 (side === "put") === position.isPut
               ) {
                 acc.id.push(position.id);
-                acc.netAmount += Convert.fromWei(position.netAmount).toInt;
+                acc.netAmount += Convert.fromWei(position.netAmount).toInt();
               }
 
               return acc;
@@ -104,10 +106,10 @@ export const getChainData = async (
             [side]: {
               buy: {
                 disabled: buy.disabled,
-                IV: _getIV(Convert.fromUSDC(buy.quote as BigNumber).toInt),
+                IV: _getIV(Convert.fromUSDC(buy.quote as BigNumber).toInt()),
                 quote: _getQuote(buy, false),
               },
-              delta: Convert.fromWei(delta as string).toInt,
+              delta: Convert.fromWei(delta as string).toInt(),
               exchangeAddresses: {
                 USDC: usdCollatseriesExchangeBalance.seriesAddress,
                 WETH: wethCollatseriesExchangeBalance.seriesAddress,
@@ -116,11 +118,11 @@ export const getChainData = async (
                 USDC: usdCollatseriesExchangeBalance.optionExchangeBalance,
                 WETH: wethCollatseriesExchangeBalance.optionExchangeBalance,
               },
-              exposure: Convert.fromWei(exposure as string).toInt,
+              exposure: Convert.fromWei(exposure as string).toInt(),
               pos: positions.netAmount,
               sell: {
                 disabled: sell.disabled || sell.premiumTooSmall,
-                IV: _getIV(Convert.fromUSDC(sell.quote as BigNumber).toInt),
+                IV: _getIV(Convert.fromUSDC(sell.quote as BigNumber).toInt()),
                 quote: _getQuote(sell, true),
               },
             },
@@ -149,7 +151,7 @@ export const getChainData = async (
           } = currentExpiry;
 
           const expiry = expiration.toNumber();
-          const ethPrice = Convert.fromWei(underlyingPrice).toInt;
+          const ethPrice = Convert.fromWei(underlyingPrice).toInt();
           const calls = createSide(callOptionDrill, "call", ethPrice, expiry);
           const puts = createSide(putOptionDrill, "put", ethPrice, expiry);
           const strikes = Array.from(

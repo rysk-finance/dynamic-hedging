@@ -34,7 +34,7 @@ export const buildInactivePositions = (
         const isShort = Boolean(collateralAsset && "symbol" in collateralAsset);
         const amount = Convert.fromWei(
           buyAmount || sellAmount || netAmount
-        ).toInt;
+        ).toInt();
         const entryPremium = isShort ? totalPremiumSold : totalPremiumBought;
         const closePremium = isShort ? totalPremiumBought : totalPremiumSold;
         const liquidated = Boolean(liquidateActions && liquidateActions.length);
@@ -53,7 +53,7 @@ export const buildInactivePositions = (
           oraclePrice,
           profitLoss: liquidated
             ? undefined
-            : Convert.fromUSDC(realizedPnl).toInt,
+            : Convert.fromUSDC(realizedPnl).toInt(),
           series: series.join("-"),
           size: Math.abs(amount),
         };

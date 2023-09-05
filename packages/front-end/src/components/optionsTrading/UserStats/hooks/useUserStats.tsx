@@ -45,9 +45,9 @@ export const useUserStats = () => {
 
             return {
               expiry: parseInt(expiryTimestamp),
-              strike: Convert.fromOpyn(strikePrice).toWei,
+              strike: Convert.fromOpyn(strikePrice).toWei(),
               isPut: isPut,
-              orderSize: Math.abs(Convert.fromWei(netAmount).toInt),
+              orderSize: Math.abs(Convert.fromWei(netAmount).toInt()),
               isSell: !isShort,
               collateral: isShort ? collateralAsset.symbol : "USDC",
             };

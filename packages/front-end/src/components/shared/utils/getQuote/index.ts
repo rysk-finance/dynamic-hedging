@@ -44,13 +44,18 @@ export const getQuotes = async (
         return [
           {
             ...quoteOptionPriceContractDetails,
-            args: [series, Convert.fromInt(1).toWei, isSell, exposures[index]],
+            args: [
+              series,
+              Convert.fromInt(1).toWei(),
+              isSell,
+              exposures[index],
+            ],
           } as const,
           {
             ...quoteOptionPriceContractDetails,
             args: [
               series,
-              Convert.fromInt(orderSize).toWei,
+              Convert.fromInt(orderSize).toWei(),
               isSell,
               exposures[index],
             ],
@@ -75,28 +80,28 @@ export const getQuotes = async (
       };
     }
 
-    const fee = Convert.fromUSDC(forOne.totalFees).toInt;
-    const premium = Convert.fromUSDC(forOne.totalPremium).toInt;
+    const fee = Convert.fromUSDC(forOne.totalFees).toInt();
+    const premium = Convert.fromUSDC(forOne.totalPremium).toInt();
     const quoteForOne = Convert.fromUSDC(
       isSell
         ? forOne.totalPremium.sub(forOne.totalFees)
         : forOne.totalPremium.add(forOne.totalFees),
       4
-    ).toInt;
+    ).toInt();
     const quote = Convert.fromUSDC(
       isSell
         ? forOrder.totalPremium.sub(forOrder.totalFees)
         : forOrder.totalPremium.add(forOrder.totalFees),
       4
-    ).toInt;
+    ).toInt();
     const calc = (quote / orderSize / quoteForOne - 1) * 100;
     const slippage = isSell ? Math.min(0, calc) : Math.max(0, calc);
     const acceptablePremium = isSell
       ? forOrder.totalPremium.div(100).mul(97)
       : forOrder.totalPremium.div(100).mul(103);
     const breakEven = isPut
-      ? Convert.fromWei(strike).toInt - quote / orderSize
-      : Convert.fromWei(strike).toInt + quote / orderSize;
+      ? Convert.fromWei(strike).toInt() - quote / orderSize
+      : Convert.fromWei(strike).toInt() + quote / orderSize;
 
     return { acceptablePremium, breakEven, fee, premium, quote, slippage };
   });

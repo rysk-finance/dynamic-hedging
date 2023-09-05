@@ -29,9 +29,9 @@ const getBalances = async (address?: HexString) => {
   });
 
   return {
-    ETH: Convert.fromWei(balanceETH, 2).toInt,
-    USDC: Convert.fromUSDC(balanceUSDC, 2).toInt,
-    WETH: Convert.fromWei(balanceWETH, 2).toInt,
+    ETH: Convert.fromWei(balanceETH, 2).toInt(),
+    USDC: Convert.fromUSDC(balanceUSDC, 2).toInt(),
+    WETH: Convert.fromWei(balanceWETH, 2).toInt(),
   };
 };
 

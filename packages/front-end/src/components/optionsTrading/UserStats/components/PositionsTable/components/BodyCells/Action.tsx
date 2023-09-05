@@ -62,7 +62,7 @@ export const Action = ({
             dispatch({ type: ActionType.SET_USER_STATS, loading: true });
 
             const hash = await redeemOrBurn(
-              Convert.fromInt(option.amount).toOpyn,
+              Convert.fromInt(option.amount).toOpyn(),
               address as HexString,
               option.address,
               refresh

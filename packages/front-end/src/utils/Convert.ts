@@ -13,58 +13,50 @@ export class Convert {
    * @param places - Optional number of decimal places for rounding.
    */
   constructor(value: string = "0", decimals: number = 0) {
-    const { rounded, e27Rounded, opynRounded, usdcRounded, weiRounded } =
-      this.adjustedRounded(value, decimals);
+    this.toE27 = () => {
+      const adjusted = decimals > Convert.E27 ? Convert.E27 : decimals;
+      const rounded = Convert.round(value, adjusted).toString();
 
-    this.toE27 = utils.parseUnits(e27Rounded, Convert.E27);
-    this.toInt = parseFloat(rounded);
-    this.toOpyn = utils.parseUnits(opynRounded, Convert.OPYN);
-    this.toStr = rounded;
-    this.toUSDC = utils.parseUnits(usdcRounded, Convert.USDC);
-    this.toWei = utils.parseUnits(weiRounded, Convert.WEI);
+      return utils.parseUnits(rounded, Convert.E27);
+    };
+    this.toInt = () => {
+      const rounded = Convert.round(value, decimals);
+
+      return rounded;
+    };
+    this.toOpyn = () => {
+      const adjusted = decimals > Convert.OPYN ? Convert.OPYN : decimals;
+      const rounded = Convert.round(value, adjusted).toString();
+
+      return utils.parseUnits(rounded, Convert.OPYN);
+    };
+    this.toStr = () => {
+      const rounded = Convert.round(value, decimals).toString();
+
+      return rounded;
+    };
+    this.toUSDC = () => {
+      const adjusted = decimals > Convert.USDC ? Convert.USDC : decimals;
+      const rounded = Convert.round(value, adjusted).toString();
+
+      return utils.parseUnits(rounded, Convert.USDC);
+    };
+    this.toWei = () => {
+      const adjusted = decimals > Convert.WEI ? Convert.WEI : decimals;
+      const rounded = Convert.round(value, adjusted).toString();
+
+      return utils.parseUnits(rounded, Convert.WEI);
+    };
 
     Object.freeze(this);
   }
 
-  toE27: BigNumber;
-  toInt: number;
-  toOpyn: BigNumber;
-  toStr: string;
-  toUSDC: BigNumber;
-  toWei: BigNumber;
-
-  /**
-   * Private method to adjust rounding based on the incoming value.
-   * This is required as `utils.parseUnits` throws if the decimals exceed
-   * the number of units to parse too. We mitigate this by ensuring we always
-   * round to the maximum available units.
-   *
-   * @param value - A numeric value to convert.
-   * @param places - The number of decimal places for rounding.
-   * @returns
-   */
-  private adjustedRounded = (value: string, decimals: number) => {
-    const rounded = Convert.round(value, decimals).toString();
-
-    const e27Rounded =
-      decimals > Convert.E27
-        ? Convert.round(value, Convert.E27).toString()
-        : rounded;
-    const opynRounded =
-      decimals > Convert.OPYN
-        ? Convert.round(value, Convert.OPYN).toString()
-        : rounded;
-    const usdcRounded =
-      decimals > Convert.USDC
-        ? Convert.round(value, Convert.USDC).toString()
-        : rounded;
-    const weiRounded =
-      decimals > Convert.WEI
-        ? Convert.round(value, Convert.WEI).toString()
-        : rounded;
-
-    return { rounded, e27Rounded, opynRounded, usdcRounded, weiRounded };
-  };
+  toE27: () => BigNumber;
+  toInt: () => number;
+  toOpyn: () => BigNumber;
+  toStr: () => string;
+  toUSDC: () => BigNumber;
+  toWei: () => BigNumber;
 
   public static USDC = 6;
   public static OPYN = 8;

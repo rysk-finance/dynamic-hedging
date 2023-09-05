@@ -29,12 +29,12 @@ export const getLiquidityPoolInfo = async (): Promise<LiquidityPool> => {
       ],
     });
 
-    const remainingBeforeBuffer = Convert.fromUSDC(checkBuffer, 2).toInt;
-    const totalAssets = Convert.fromWei(getAssets).toInt;
+    const remainingBeforeBuffer = Convert.fromUSDC(checkBuffer, 2).toInt();
+    const totalAssets = Convert.fromWei(getAssets).toInt();
     const utilisationHigh = (remainingBeforeBuffer / totalAssets) * 100 <= 3;
 
     return {
-      collateralCap: Convert.fromWei(collateralCap).toInt,
+      collateralCap: Convert.fromWei(collateralCap).toInt(),
       remainingBeforeBuffer,
       totalAssets,
       utilisationHigh,

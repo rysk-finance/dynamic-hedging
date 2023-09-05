@@ -36,7 +36,7 @@ export const getLiquidationCalculationParameters = async (): Promise<{
   };
 
   const _parseSpotShockResults = (results?: BigNumber) => {
-    return results ? Convert.fromE27(results).toInt : defaultSpotShock;
+    return results ? Convert.fromE27(results).toInt() : defaultSpotShock;
   };
 
   const _parseTimesToExpiry = (results?: readonly BigNumber[]) => {

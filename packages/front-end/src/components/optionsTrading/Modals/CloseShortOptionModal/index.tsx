@@ -75,7 +75,7 @@ export const CloseShortOptionModal = () => {
 
     try {
       if (addresses.collateral && addresses.user) {
-        const amount = Convert.fromStr(positionData.requiredApproval).toUSDC
+        const amount = Convert.fromStr(positionData.requiredApproval).toUSDC();
 
         const hash = await approveAllowance(
           addresses.exchange,
@@ -101,7 +101,7 @@ export const CloseShortOptionModal = () => {
 
     try {
       if (addresses.token && addresses.user && vaultId) {
-        const amount = Convert.fromStr(amountToSell).toWei;
+        const amount = Convert.fromStr(amountToSell).toWei();
 
         const hash = await closeShort(
           positionData.acceptablePremium,

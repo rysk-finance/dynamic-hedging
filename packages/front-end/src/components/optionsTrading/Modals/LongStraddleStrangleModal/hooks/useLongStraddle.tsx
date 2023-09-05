@@ -68,14 +68,14 @@ export const useLongStraddleStrangle = (
           const [putQuote, callQuote] = await getQuotes([
             {
               expiry: Number(activeExpiry),
-              strike: Convert.fromStr(put).toWei,
+              strike: Convert.fromStr(put).toWei(),
               isPut: true,
               orderSize: amount,
               isSell: false,
             },
             {
               expiry: Number(activeExpiry),
-              strike: Convert.fromStr(call).toWei,
+              strike: Convert.fromStr(call).toWei(),
               isPut: false,
               orderSize: amount,
               isSell: false,
@@ -92,10 +92,10 @@ export const useLongStraddleStrangle = (
           );
           const requiredApproval = Convert.fromUSDC(
             callQuote.acceptablePremium.add(putQuote.acceptablePremium)
-          ).toStr;
-          const approved = Convert.fromStr(requiredApproval).toUSDC.lte(
-            allowance.amount
-          );
+          ).toStr();
+          const approved = Convert.fromStr(requiredApproval)
+            .toUSDC()
+            .lte(allowance.amount);
 
           const breakEven: [number, number] = [
             putQuote.breakEven - (callQuote.breakEven - parseInt(put)),

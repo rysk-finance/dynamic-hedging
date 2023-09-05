@@ -92,7 +92,7 @@ export const useSellOption = (amountToSell: string) => {
           ] = await getQuotes([
             {
               expiry: Number(activeExpiry),
-              strike: Convert.fromInt(strike).toWei,
+              strike: Convert.fromInt(strike).toWei(),
               isPut: selectedOption.callOrPut === "put",
               orderSize: amount,
               isSell: selectedOption.buyOrSell === "sell",
@@ -109,9 +109,9 @@ export const useSellOption = (amountToSell: string) => {
                 WETHAddress,
                 USDCAddress,
                 collateralAddress,
-                Convert.fromStr(amountToSell).toOpyn,
-                Convert.fromInt(strike).toOpyn,
-                Convert.fromInt(ethPrice).toOpyn,
+                Convert.fromStr(amountToSell).toOpyn(),
+                Convert.fromInt(strike).toOpyn(),
+                Convert.fromInt(ethPrice).toOpyn(),
                 BigNumber.from(activeExpiry),
                 BigNumber.from(USDCCollateral ? DECIMALS.USDC : DECIMALS.RYSK),
                 selectedOption.callOrPut === "put",
@@ -129,8 +129,8 @@ export const useSellOption = (amountToSell: string) => {
                 .mul(Math.round(collateralPreferences.amount * 100))
                 .div(100);
               const formatted = USDCCollateral
-                ? Convert.fromUSDC(multipliedCollateral).toInt
-                : Convert.fromWei(multipliedCollateral, 4).toInt;
+                ? Convert.fromUSDC(multipliedCollateral).toInt()
+                : Convert.fromWei(multipliedCollateral, 4).toInt();
               const maximum = USDCCollateral ? strike * amount : amount;
 
               if (selectedOption.callOrPut === "put") {
@@ -162,11 +162,11 @@ export const useSellOption = (amountToSell: string) => {
           const requiredApproval = Convert.fromInt(
             collateral * approvalBuffer,
             4
-          ).toStr;
+          ).toStr();
           const approved = (
             USDCCollateral
-              ? Convert.fromStr(requiredApproval).toUSDC
-              : Convert.fromStr(requiredApproval).toWei
+              ? Convert.fromStr(requiredApproval).toUSDC()
+              : Convert.fromStr(requiredApproval).toWei()
           ).lte(allowance.amount);
 
           const [liquidationPrice] = collateralPreferences.full

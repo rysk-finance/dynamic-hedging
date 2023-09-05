@@ -7,7 +7,7 @@ import { logError } from "src/utils/logError";
 export const buildOracleHashMap = (oracleAsset: OraclePrices) => {
   try {
     return oracleAsset.prices.reduce((map, { expiry, price }) => {
-      map[expiry] = Convert.fromOpyn(price).toInt;
+      map[expiry] = Convert.fromOpyn(price).toInt();
 
       return map;
     }, {} as WethOracleHashMap);

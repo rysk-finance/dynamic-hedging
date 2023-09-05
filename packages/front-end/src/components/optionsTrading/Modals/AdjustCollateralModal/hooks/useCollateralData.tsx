@@ -65,8 +65,8 @@ export const useCollateralData = (
 
         if (amount > 0 && ethPrice && adjustingOption && collateralAddress) {
           const currentCollateral = USDCCollateral
-            ? Convert.fromUSDC(adjustingOption.vault.collateralAmount).toInt
-            : Convert.fromWei(adjustingOption.vault.collateralAmount).toInt;
+            ? Convert.fromUSDC(adjustingOption.vault.collateralAmount).toInt()
+            : Convert.fromWei(adjustingOption.vault.collateralAmount).toInt();
           const newCollateral = isDepositing
             ? currentCollateral + amount
             : currentCollateral - amount;
@@ -111,11 +111,11 @@ export const useCollateralData = (
           const requiredApproval = Convert.fromInt(
             amount * approvalBuffer,
             4
-          ).toStr;
+          ).toStr();
           const approved = isDepositing
             ? (USDCCollateral
-                ? Convert.fromStr(requiredApproval).toUSDC
-                : Convert.fromStr(requiredApproval).toWei
+                ? Convert.fromStr(requiredApproval).toUSDC()
+                : Convert.fromStr(requiredApproval).toWei()
               ).lte(allowance.amount)
             : true;
 

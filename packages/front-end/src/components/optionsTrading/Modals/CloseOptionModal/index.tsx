@@ -74,7 +74,7 @@ export const CloseOptionModal = () => {
 
     try {
       if (addresses.token && addresses.user) {
-        const amount = Convert.fromStr(amountToClose).toOpyn;
+        const amount = Convert.fromStr(amountToClose).toOpyn();
 
         const hash = await approveAllowance(
           addresses.exchange,
@@ -99,7 +99,7 @@ export const CloseOptionModal = () => {
 
     try {
       if (addresses.token && addresses.user) {
-        const amount = Convert.fromStr(amountToClose).toWei;
+        const amount = Convert.fromStr(amountToClose).toWei();
 
         const hash = await closeLong(
           positionData.acceptablePremium,

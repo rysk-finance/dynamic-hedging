@@ -56,8 +56,8 @@ export const SellOptionModal = () => {
       if (addresses.collateral && addresses.user) {
         const amount =
           collateralPreferences.type === "USDC"
-            ? Convert.fromStr(positionData.requiredApproval).toUSDC
-            : Convert.fromStr(positionData.requiredApproval).toWei;
+            ? Convert.fromStr(positionData.requiredApproval).toUSDC()
+            : Convert.fromStr(positionData.requiredApproval).toWei();
 
         const hash = await approveAllowance(
           addresses.exchange,
@@ -90,7 +90,7 @@ export const SellOptionModal = () => {
       ) {
         const optionSeries = {
           expiration: BigNumber.from(activeExpiry),
-          strike: Convert.fromInt(selectedOption.strikeOptions.strike).toWei,
+          strike: Convert.fromInt(selectedOption.strikeOptions.strike).toWei(),
           isPut: selectedOption.callOrPut === "put",
           strikeAsset: getContractAddress("USDC"),
           underlying: getContractAddress("WETH"),
@@ -99,10 +99,10 @@ export const SellOptionModal = () => {
 
         const hash = await sell(
           positionData.acceptablePremium,
-          Convert.fromStr(amountToSell).toWei,
+          Convert.fromStr(amountToSell).toWei(),
           collateralPreferences.type === "USDC"
-            ? Convert.fromInt(positionData.collateral).toUSDC
-            : Convert.fromInt(positionData.collateral).toWei,
+            ? Convert.fromInt(positionData.collateral).toUSDC()
+            : Convert.fromInt(positionData.collateral).toWei(),
           addresses.collateral,
           addresses.exchange,
           optionSeries,

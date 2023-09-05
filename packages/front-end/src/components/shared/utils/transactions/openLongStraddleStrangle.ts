@@ -26,12 +26,12 @@ export const openLongStraddleStrangle = async (
   const putSeries: OptionSeries = {
     ...optionSeries,
     isPut: true,
-    strike: Convert.fromStr(put).toWei,
+    strike: Convert.fromStr(put).toWei(),
   };
   const callSeries: OptionSeries = {
     ...optionSeries,
     isPut: false,
-    strike: Convert.fromStr(call).toWei,
+    strike: Convert.fromStr(call).toWei(),
   };
 
   const txData = [

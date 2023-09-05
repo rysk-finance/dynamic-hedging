@@ -58,7 +58,7 @@ export const LongStraddleStrangleModal = ({ strategy }: ModalProps) => {
 
     try {
       if (addresses.token && addresses.user) {
-        const amount = Convert.fromStr(positionData.requiredApproval).toUSDC;
+        const amount = Convert.fromStr(positionData.requiredApproval).toUSDC();
 
         const hash = await approveAllowance(
           addresses.exchange,
@@ -84,7 +84,7 @@ export const LongStraddleStrangleModal = ({ strategy }: ModalProps) => {
 
     try {
       if (addresses.collateral && addresses.token && addresses.user) {
-        const amount = Convert.fromStr(amountToOpen).toWei;
+        const amount = Convert.fromStr(amountToOpen).toWei();
 
         const optionSeries = {
           expiration: BigNumber.from(activeExpiry),

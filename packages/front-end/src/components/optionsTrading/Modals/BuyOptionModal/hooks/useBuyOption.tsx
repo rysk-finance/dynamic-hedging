@@ -66,8 +66,9 @@ export const useBuyOption = (amountToBuy: string) => {
           ] = await getQuotes([
             {
               expiry: Number(activeExpiry),
-              strike: Convert.fromInt(selectedOption.strikeOptions.strike)
-                .toWei,
+              strike: Convert.fromInt(
+                selectedOption.strikeOptions.strike
+              ).toWei(),
               isPut: selectedOption.callOrPut === "put",
               orderSize: amount,
               isSell: false,
@@ -77,10 +78,10 @@ export const useBuyOption = (amountToBuy: string) => {
           const remainingBalance =
             balances.USDC === 0 ? 0 : balances.USDC - quote;
 
-          const requiredApproval = Convert.fromUSDC(acceptablePremium).toStr;
-          const approved = Convert.fromStr(requiredApproval).toUSDC.lte(
-            allowance.amount
-          );
+          const requiredApproval = Convert.fromUSDC(acceptablePremium).toStr();
+          const approved = Convert.fromStr(requiredApproval)
+            .toUSDC()
+            .lte(allowance.amount);
 
           const exposure =
             data[activeExpiry!][selectedOption.strikeOptions.strike][

@@ -51,13 +51,13 @@ export const calculatePnL = async (
       },
       index
     ) => {
-      const positionSize = Convert.fromWei(netAmount).toInt;
+      const positionSize = Convert.fromWei(netAmount).toInt();
 
       if (index < longPositions.length) {
         // Longs
         const expiriesAt = parseInt(expiryTimestamp);
         const nowToUnix = dayjs().unix();
-        const realizedPnL = Convert.fromUSDC(realizedPnl).toInt;
+        const realizedPnL = Convert.fromUSDC(realizedPnl).toInt();
 
         if (!active) {
           // Manually closed or expired and redeemed.
@@ -65,8 +65,8 @@ export const calculatePnL = async (
         } else if (expiriesAt > nowToUnix) {
           // Open positions.
 
-          const net = Math.abs(Convert.fromWei(netAmount).toInt);
-          const bought = Convert.fromWei(buyAmount || "0").toInt;
+          const net = Math.abs(Convert.fromWei(netAmount).toInt());
+          const bought = Convert.fromWei(buyAmount || "0").toInt();
           const entry = totalPremiumBought / bought;
           const adjustedPnl = bought > net ? -(net * entry) : realizedPnL;
 
@@ -82,7 +82,7 @@ export const calculatePnL = async (
         } else {
           // Expired but not yet redeemed.
           const priceAtExpiry = wethOracleHashMap[expiryTimestamp];
-          const strike = Convert.fromOpyn(strikePrice).toInt;
+          const strike = Convert.fromOpyn(strikePrice).toInt();
 
           const valueAtExpiry = isPut
             ? Math.max(strike - priceAtExpiry, 0)
@@ -97,7 +97,7 @@ export const calculatePnL = async (
         // Shorts
         const expiriesAt = parseInt(expiryTimestamp);
         const nowToUnix = dayjs().unix();
-        const realizedPnL = Convert.fromUSDC(realizedPnl).toInt;
+        const realizedPnL = Convert.fromUSDC(realizedPnl).toInt();
         const hasBeenLiquidated =
           liquidateActions && Boolean(liquidateActions?.length);
 
@@ -110,8 +110,8 @@ export const calculatePnL = async (
             (totalCollateral, { collateralPayout }) => {
               const collateralForAction =
                 collateralAsset && collateralAsset.symbol === "USDC"
-                  ? Convert.fromUSDC(collateralPayout).toInt
-                  : Convert.fromWei(collateralPayout).toInt * ethPrice;
+                  ? Convert.fromUSDC(collateralPayout).toInt()
+                  : Convert.fromWei(collateralPayout).toInt() * ethPrice;
 
               return totalCollateral + collateralForAction;
             },
@@ -122,8 +122,8 @@ export const calculatePnL = async (
         } else if (expiriesAt > nowToUnix) {
           // Open positions.
 
-          const net = Math.abs(Convert.fromWei(netAmount).toInt);
-          const sold = Convert.fromWei(sellAmount || "0").toInt;
+          const net = Math.abs(Convert.fromWei(netAmount).toInt());
+          const sold = Convert.fromWei(sellAmount || "0").toInt();
           const entry = totalPremiumSold / sold;
           const adjustedPnl = sold > net ? net * entry : realizedPnL;
 
@@ -142,7 +142,7 @@ export const calculatePnL = async (
         } else {
           // Expired but not yet settled.
           const priceAtExpiry = wethOracleHashMap[expiryTimestamp];
-          const strike = Convert.fromOpyn(strikePrice).toInt;
+          const strike = Convert.fromOpyn(strikePrice).toInt();
 
           const valueAtExpiry = isPut
             ? Math.max(strike - priceAtExpiry, 0)

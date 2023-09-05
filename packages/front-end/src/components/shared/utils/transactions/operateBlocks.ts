@@ -107,7 +107,7 @@ export const mintShortOption = (
     secondAddress: exchangeAddress,
     asset: oTokenAddress,
     vaultId,
-    amount: Convert.fromWei(amount).toOpyn,
+    amount: Convert.fromWei(amount).toOpyn(),
     optionSeries: EMPTY_SERIES,
     indexOrAcceptablePremium: BigNumber.from(0),
     data: ZERO_ADDRESS,

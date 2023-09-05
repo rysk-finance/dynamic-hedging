@@ -51,7 +51,7 @@ export const BuyOptionModal = () => {
 
     try {
       if (addresses.token && addresses.user) {
-        const amount = Convert.fromStr(positionData.requiredApproval).toUSDC;
+        const amount = Convert.fromStr(positionData.requiredApproval).toUSDC();
 
         const hash = await approveAllowance(
           addresses.exchange,
@@ -82,11 +82,11 @@ export const BuyOptionModal = () => {
         addresses.user &&
         selectedOption
       ) {
-        const amount = Convert.fromStr(amountToBuy).toWei;
+        const amount = Convert.fromStr(amountToBuy).toWei();
 
         const optionSeries = {
           expiration: BigNumber.from(activeExpiry),
-          strike: Convert.fromInt(selectedOption.strikeOptions.strike).toWei,
+          strike: Convert.fromInt(selectedOption.strikeOptions.strike).toWei(),
           isPut: selectedOption.callOrPut === "put",
           strikeAsset: addresses.token,
           underlying: getContractAddress("WETH"),

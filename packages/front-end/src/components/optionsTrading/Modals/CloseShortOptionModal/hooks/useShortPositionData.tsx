@@ -88,7 +88,7 @@ export const useShortPositionData = (amountToClose: string) => {
               await getQuotes([
                 {
                   expiry: Number(activeExpiry),
-                  strike: Convert.fromStr(closingOption.strike).toWei,
+                  strike: Convert.fromStr(closingOption.strike).toWei(),
                   isPut: closingOption.isPut,
                   orderSize: amount,
                   isSell: false,
@@ -115,14 +115,18 @@ export const useShortPositionData = (amountToClose: string) => {
             const remainingCollateral = collateralToRemove.isZero()
               ? 0
               : collateralAsset === getContractAddress("WETH")
-              ? Convert.fromWei(collateralAmount.sub(collateralToRemove), 4)
-                  .toInt
-              : Convert.fromUSDC(collateralAmount.sub(collateralToRemove), 2)
-                  .toInt;
+              ? Convert.fromWei(
+                  collateralAmount.sub(collateralToRemove),
+                  4
+                ).toInt()
+              : Convert.fromUSDC(
+                  collateralAmount.sub(collateralToRemove),
+                  2
+                ).toInt();
             const collateralReleased =
               collateralAsset === getContractAddress("WETH")
-                ? Convert.fromWei(collateralToRemove, 4).toInt
-                : Convert.fromUSDC(collateralToRemove, 2).toInt;
+                ? Convert.fromWei(collateralToRemove, 4).toInt()
+                : Convert.fromUSDC(collateralToRemove, 2).toInt();
 
             console.log(collateralReleased);
 
@@ -140,7 +144,8 @@ export const useShortPositionData = (amountToClose: string) => {
             // Ensure user has sufficient wallet balance to cover premium before collateral is released.
             const hasRequiredCapital = balances.USDC > quote;
 
-            const requiredApproval = Convert.fromUSDC(acceptablePremium).toStr;
+            const requiredApproval =
+              Convert.fromUSDC(acceptablePremium).toStr();
             const approved = acceptablePremium.lte(allowance.amount);
 
             setPositionData({

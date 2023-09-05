@@ -105,7 +105,7 @@ export const getLiquidationPrices = async (
         return 0;
 
       // get maxPrice as int.
-      const maxPrice = Convert.fromE27(getMaxPriceResponses[index]).toInt;
+      const maxPrice = Convert.fromE27(getMaxPriceResponses[index]).toInt();
 
       // Adjust params based on collateral type.
       const { collateralType, isPut } = additionalProps[index];
