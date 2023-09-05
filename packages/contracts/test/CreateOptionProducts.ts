@@ -504,19 +504,7 @@ describe("Structured Product maker", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
-			const marginRequirement = await (
-				await optionRegistry.getCollateral(
-					{
-						expiration: upperProposedSeries.expiration,
-						strike: upperProposedSeries.strike.div(ethers.utils.parseUnits("1", 10)),
-						isPut: upperProposedSeries.isPut,
-						strikeAsset: upperProposedSeries.strikeAsset,
-						underlying: upperProposedSeries.underlying,
-						collateral: upperProposedSeries.collateral
-					},
-					amount
-				)
-			).add(toUSDC("100"))
+			const marginRequirement = 0
 			let lowerQuoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, false, 0)
 			await compareQuotes(
 				lowerQuoteResponse,
@@ -554,7 +542,7 @@ describe("Structured Product maker", async () => {
 
 			await usd.approve(
 				exchange.address,
-				marginRequirement.add(lowerQuote.sub(upperQuote).add(toUSDC("100")))
+				lowerQuote
 			)
 			const vaultId = await (await controller.getAccountVaultCounter(senderAddress)).add(1)
 			const otoken = await exchange.callStatic.createOtoken(upperProposedSeries)
@@ -562,6 +550,8 @@ describe("Structured Product maker", async () => {
 			await exchange.createOtoken(lowerProposedSeries)
 			const upperToken = await exchange.callStatic.createOtoken(upperProposedSeries)
 			const lowerToken = await exchange.callStatic.createOtoken(lowerProposedSeries)
+			const lowerOtoken = (await ethers.getContractAt("Otoken", lowerToken)) as Otoken
+			await lowerOtoken.approve(MARGIN_POOL[chainId], amount)
 			const upperBefore = await getExchangeParams(
 				liquidityPool,
 				optionProtocol,
@@ -586,57 +576,8 @@ describe("Structured Product maker", async () => {
 			)
 			await exchange.operate([
 				{
-					operation: 0,
-					operationQueue: [
-						{
-							actionType: 0,
-							owner: senderAddress,
-							secondAddress: senderAddress,
-							asset: ZERO_ADDRESS,
-							vaultId: vaultId,
-							amount: 0,
-							optionSeries: emptySeries,
-							indexOrAcceptablePremium: 0,
-							data: abiCode.encode(["uint256"], [1])
-						},
-						{
-							actionType: 5,
-							owner: senderAddress,
-							secondAddress: exchange.address,
-							asset: upperProposedSeries.collateral,
-							vaultId: vaultId,
-							amount: marginRequirement,
-							optionSeries: emptySeries,
-							indexOrAcceptablePremium: 0,
-							data: ZERO_ADDRESS
-						},
-						{
-							actionType: 1,
-							owner: senderAddress,
-							secondAddress: exchange.address,
-							asset: otoken,
-							vaultId: vaultId,
-							amount: amount.div(ethers.utils.parseUnits("1", 10)),
-							optionSeries: emptySeries,
-							indexOrAcceptablePremium: 0,
-							data: ZERO_ADDRESS
-						}
-					]
-				},
-				{
 					operation: 1,
 					operationQueue: [
-						{
-							actionType: 2,
-							owner: ZERO_ADDRESS,
-							secondAddress: exchange.address,
-							asset: ZERO_ADDRESS,
-							vaultId: 0,
-							amount: amount,
-							optionSeries: upperProposedSeries,
-							indexOrAcceptablePremium: 0,
-							data: "0x"
-						},
 						{
 							actionType: 0,
 							owner: ZERO_ADDRESS,
@@ -657,6 +598,60 @@ describe("Structured Product maker", async () => {
 							amount: amount,
 							optionSeries: lowerProposedSeries,
 							indexOrAcceptablePremium: lowerQuote,
+							data: "0x"
+						}
+					]
+				},
+				{
+					operation: 0,
+					operationQueue: [
+						{
+							actionType: 0,
+							owner: senderAddress,
+							secondAddress: senderAddress,
+							asset: ZERO_ADDRESS,
+							vaultId: vaultId,
+							amount: 0,
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: abiCode.encode(["uint256"], [1])
+						},
+						{
+							actionType: 1,
+							owner: senderAddress,
+							secondAddress: exchange.address,
+							asset: otoken,
+							vaultId: vaultId,
+							amount: amount.div(ethers.utils.parseUnits("1", 10)),
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: ZERO_ADDRESS
+						},
+						{
+							actionType: 3,
+							owner: senderAddress,
+							secondAddress: senderAddress,
+							asset: lowerToken,
+							vaultId: vaultId,
+							amount: amount.div(ethers.utils.parseUnits("1", 10)),
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: ZERO_ADDRESS
+						}
+					]
+				},
+				{
+					operation: 1,
+					operationQueue: [
+						{
+							actionType: 2,
+							owner: ZERO_ADDRESS,
+							secondAddress: exchange.address,
+							asset: ZERO_ADDRESS,
+							vaultId: 0,
+							amount: amount,
+							optionSeries: upperProposedSeries,
+							indexOrAcceptablePremium: 0,
 							data: "0x"
 						}
 					]
@@ -764,6 +759,7 @@ describe("Structured Product maker", async () => {
 			expect(lowerAfter.seriesStores.optionSeries.strike).to.equal(lowerProposedSeries.strike)
 			expect(lowerAfter.netDhvExposure.add(amount)).to.equal(0)
 			expect(upperAfter.netDhvExposure.sub(amount)).to.equal(0)
+			console.log(marginRequirement)
 		})
 		// bear call spread involves selling a lower strike price call and buying a higher strike price call expiring at the same time
 		// the sender is paid for this strategy
@@ -785,20 +781,8 @@ describe("Structured Product maker", async () => {
 				underlying: weth.address,
 				collateral: usd.address
 			}
-			const marginRequirement = await (
-				await optionRegistry.getCollateral(
-					{
-						expiration: lowerProposedSeries.expiration,
-						strike: lowerProposedSeries.strike.div(ethers.utils.parseUnits("1", 10)),
-						isPut: lowerProposedSeries.isPut,
-						strikeAsset: lowerProposedSeries.strikeAsset,
-						underlying: lowerProposedSeries.underlying,
-						collateral: lowerProposedSeries.collateral
-					},
-					amount
-				)
-			).add(toUSDC("100"))
-
+			const marginRequirement = toUSDC(fromWei((bearcsUpperStrike.sub(bearcsLowerStrike)).mul(3)))
+			console.log(marginRequirement.toString())
 			let lowerQuoteResponse = await pricer.quoteOptionPrice(lowerProposedSeries, amount, true, 0)
 			await compareQuotes(
 				lowerQuoteResponse,
@@ -834,13 +818,15 @@ describe("Structured Product maker", async () => {
 			)
 			let upperQuote = upperQuoteResponse[0].add(upperQuoteResponse[2])
 
-			await usd.approve(MARGIN_POOL[chainId], marginRequirement)
+			await usd.approve(exchange.address, marginRequirement.add(upperQuote).add(toUSDC("10")))
 			const vaultId = await (await controller.getAccountVaultCounter(senderAddress)).add(1)
 			const otoken = await exchange.callStatic.createOtoken(lowerProposedSeries)
 			const upperToken = await exchange.callStatic.createOtoken(upperProposedSeries)
 			const lowerToken = await exchange.callStatic.createOtoken(lowerProposedSeries)
 			await exchange.createOtoken(lowerProposedSeries)
 			await exchange.createOtoken(upperProposedSeries)
+			const upperOtoken = (await ethers.getContractAt("Otoken", upperToken)) as Otoken
+			await upperOtoken.approve(MARGIN_POOL[chainId], amount)
 			const upperBefore = await getExchangeParams(
 				liquidityPool,
 				optionProtocol,
@@ -865,6 +851,33 @@ describe("Structured Product maker", async () => {
 			)
 			await exchange.operate([
 				{
+					operation: 1,
+					operationQueue: [
+						{
+							actionType: 0,
+							owner: ZERO_ADDRESS,
+							secondAddress: ZERO_ADDRESS,
+							asset: ZERO_ADDRESS,
+							vaultId: 0,
+							amount: 0,
+							optionSeries: upperProposedSeries,
+							indexOrAcceptablePremium: 0,
+							data: "0x"
+						},
+						{
+							actionType: 1,
+							owner: ZERO_ADDRESS,
+							secondAddress: senderAddress,
+							asset: ZERO_ADDRESS,
+							vaultId: 0,
+							amount: amount,
+							optionSeries: upperProposedSeries,
+							indexOrAcceptablePremium: lowerQuote,
+							data: "0x"
+						}
+					]
+				},
+				{
 					operation: 0,
 					operationQueue: [
 						{
@@ -881,7 +894,7 @@ describe("Structured Product maker", async () => {
 						{
 							actionType: 5,
 							owner: senderAddress,
-							secondAddress: senderAddress,
+							secondAddress: exchange.address,
 							asset: lowerProposedSeries.collateral,
 							vaultId: vaultId,
 							amount: marginRequirement,
@@ -894,6 +907,17 @@ describe("Structured Product maker", async () => {
 							owner: senderAddress,
 							secondAddress: exchange.address,
 							asset: otoken,
+							vaultId: vaultId,
+							amount: amount.div(ethers.utils.parseUnits("1", 10)),
+							optionSeries: emptySeries,
+							indexOrAcceptablePremium: 0,
+							data: ZERO_ADDRESS
+						},
+						{
+							actionType: 3,
+							owner: senderAddress,
+							secondAddress: senderAddress,
+							asset: upperToken,
 							vaultId: vaultId,
 							amount: amount.div(ethers.utils.parseUnits("1", 10)),
 							optionSeries: emptySeries,
@@ -914,28 +938,6 @@ describe("Structured Product maker", async () => {
 							amount: amount,
 							optionSeries: lowerProposedSeries,
 							indexOrAcceptablePremium: 0,
-							data: "0x"
-						},
-						{
-							actionType: 0,
-							owner: ZERO_ADDRESS,
-							secondAddress: ZERO_ADDRESS,
-							asset: ZERO_ADDRESS,
-							vaultId: 0,
-							amount: 0,
-							optionSeries: upperProposedSeries,
-							indexOrAcceptablePremium: 0,
-							data: "0x"
-						},
-						{
-							actionType: 1,
-							owner: ZERO_ADDRESS,
-							secondAddress: senderAddress,
-							asset: ZERO_ADDRESS,
-							vaultId: 0,
-							amount: amount,
-							optionSeries: upperProposedSeries,
-							indexOrAcceptablePremium: upperQuote,
 							data: "0x"
 						}
 					]
@@ -1043,6 +1045,7 @@ describe("Structured Product maker", async () => {
 			expect(lowerAfter.seriesStores.optionSeries.strike).to.equal(lowerProposedSeries.strike)
 			expect(lowerAfter.netDhvExposure.sub(amount)).to.equal(0)
 			expect(upperAfter.netDhvExposure.add(amount)).to.equal(0)
+			console.log(marginRequirement)
 		})
 		// e.g.
 		// Buy 1 XYZ 100-strike price call for $5.00
