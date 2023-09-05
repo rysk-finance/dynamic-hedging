@@ -1,15 +1,16 @@
 import type { ClosingOption } from "src/state/types";
 import type { ActionProps } from "./types";
 
-import { useAccount } from "wagmi";
+import { useChainModal } from "@rainbow-me/rainbowkit";
+import { useAccount, useNetwork } from "wagmi";
 
 import { PositionAction } from "src/components/optionsTrading/UserStats/enums";
-import { useGlobalContext } from "src/state/GlobalContext";
-import { ActionType } from "src/state/types";
+import { useNotifications } from "src/components/optionsTrading/hooks/useNotifications";
 import { redeemOrBurn } from "src/components/shared/utils/transactions/redeemOrBurn";
 import { settle } from "src/components/shared/utils/transactions/settle";
+import { useGlobalContext } from "src/state/GlobalContext";
+import { ActionType } from "src/state/types";
 import { toOpyn } from "src/utils/conversion-helper";
-import { useNotifications } from "src/components/optionsTrading/hooks/useNotifications";
 
 export const Action = ({
   action,
@@ -24,6 +25,8 @@ export const Action = ({
   strike,
 }: ActionProps) => {
   const { address } = useAccount();
+  const { chain } = useNetwork();
+  const { openChainModal } = useChainModal();
 
   const {
     dispatch,
@@ -35,7 +38,15 @@ export const Action = ({
   const [, handleTransactionSuccess, notifyFailure] = useNotifications();
 
   const handleActionClick =
-    (action: string, expiry: string, option: ClosingOption) => async () => {
+    (
+      action: string,
+      expiry: string,
+      option: ClosingOption,
+      wrongNetwork?: boolean
+    ) =>
+    async () => {
+      if (openChainModal && wrongNetwork) return openChainModal();
+
       switch (action) {
         case PositionAction.CLOSE:
           dispatch({
@@ -101,15 +112,20 @@ export const Action = ({
       <button
         className="w-full h-full decoration-dotted underline"
         disabled={disabled}
-        onClick={handleActionClick(action, expiryTimestamp, {
-          address: id,
-          amount,
-          isPut,
-          isShort,
-          series,
-          strike,
-          vault: collateral.vault,
-        })}
+        onClick={handleActionClick(
+          action,
+          expiryTimestamp,
+          {
+            address: id,
+            amount,
+            isPut,
+            isShort,
+            series,
+            strike,
+            vault: collateral.vault,
+          },
+          chain?.unsupported
+        )}
       >
         {action}
       </button>
