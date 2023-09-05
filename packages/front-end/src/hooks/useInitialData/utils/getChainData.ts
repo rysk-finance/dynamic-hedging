@@ -15,11 +15,7 @@ import { getImpliedVolatility } from "implied-volatility";
 
 import { DHVLensMK1ABI } from "src/abis/DHVLensMK1_ABI";
 import { Convert } from "src/utils/Convert";
-import {
-  fromUSDC,
-  fromWeiToInt,
-  fromWeiToOpyn,
-} from "src/utils/conversion-helper";
+import { fromWeiToInt, fromWeiToOpyn } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { SECONDS_IN_YEAR } from "src/utils/time";
@@ -65,8 +61,8 @@ export const getChainData = async (
             buyOrSell: DHVLensMK1.TradingSpecStruct,
             isSell: boolean
           ) => {
-            const fee = Number(fromUSDC(buyOrSell.fee as BigNumber));
-            const quote = Number(fromUSDC(buyOrSell.quote as BigNumber));
+            const fee = Convert.fromUSDC(buyOrSell.fee as BigNumber).toInt;
+            const quote = Convert.fromUSDC(buyOrSell.quote as BigNumber).toInt;
             const total = isSell ? quote - fee : fee + quote;
 
             return total >= 0.01
@@ -107,7 +103,7 @@ export const getChainData = async (
             [side]: {
               buy: {
                 disabled: buy.disabled,
-                IV: _getIV(Number(fromUSDC(buy.quote))),
+                IV: _getIV(Convert.fromUSDC(buy.quote as BigNumber).toInt),
                 quote: _getQuote(buy, false),
               },
               delta: Convert.fromWei(delta as string).toInt,
@@ -123,7 +119,7 @@ export const getChainData = async (
               pos: positions.netAmount,
               sell: {
                 disabled: sell.disabled || sell.premiumTooSmall,
-                IV: _getIV(Number(fromUSDC(sell.quote))),
+                IV: _getIV(Convert.fromUSDC(sell.quote as BigNumber).toInt),
                 quote: _getQuote(sell, true),
               },
             },

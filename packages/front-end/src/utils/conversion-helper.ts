@@ -10,4 +10,3 @@ export const fromWeiToOpyn = (x: BigNumberish = 0) =>
   utils.parseUnits(utils.formatEther(x), 8);
 export const fromWeiToInt = (x: BigNumberish = 0) =>
   Number(utils.formatEther(x));
-export const fromUSDC = (x: BigNumberish = 0) => utils.formatUnits(x, 6);
