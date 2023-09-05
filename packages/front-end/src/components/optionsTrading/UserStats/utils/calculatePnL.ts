@@ -41,6 +41,7 @@ export const calculatePnL = async (
       [historicalPnL, activePnL],
       {
         active,
+        buyAmount,
         collateralAsset,
         expiryTimestamp,
         id,
@@ -48,7 +49,10 @@ export const calculatePnL = async (
         liquidateActions,
         netAmount,
         realizedPnl,
+        sellAmount,
         strikePrice,
+        totalPremiumBought,
+        totalPremiumSold,
       },
       index
     ) => {
@@ -65,13 +69,18 @@ export const calculatePnL = async (
           return [historicalPnL + realizedPnL, activePnL];
         } else if (expiriesAt > nowToUnix) {
           // Open positions.
+          const entry = totalPremiumBought / fromWeiToInt(buyAmount || 0);
+          const net = Math.abs(fromWeiToInt(netAmount));
+          const bought = fromWeiToInt(buyAmount);
+          const adjustedPnl = bought > net ? -(net * entry) : realizedPnL;
+
           const { quote } =
             quotes[
               activePositions.findIndex(
                 (pos) => pos.id === id && !pos.collateralAsset?.symbol
               )
             ];
-          const value = realizedPnL + quote;
+          const value = adjustedPnl + quote;
 
           return [historicalPnL + value, activePnL + value];
         } else {
@@ -116,6 +125,11 @@ export const calculatePnL = async (
           return [historicalPnL + realizedPnL - collateralLost, activePnL];
         } else if (expiriesAt > nowToUnix) {
           // Open positions.
+          const entry = totalPremiumSold / fromWeiToInt(sellAmount || 0);
+          const net = Math.abs(fromWeiToInt(netAmount));
+          const sold = fromWeiToInt(sellAmount);
+          const adjustedPnl = sold > net ? net * entry : realizedPnL;
+
           const { quote } =
             quotes[
               activePositions.findIndex(
@@ -125,7 +139,7 @@ export const calculatePnL = async (
               )
             ];
 
-          const value = realizedPnL - quote;
+          const value = adjustedPnl - quote;
 
           return [historicalPnL + value, activePnL + value];
         } else {
