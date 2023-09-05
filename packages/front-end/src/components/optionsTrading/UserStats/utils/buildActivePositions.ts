@@ -39,41 +39,36 @@ const formatCollateralAmount = (
 
 const calculateProfitLoss = (
   amount: number,
-  formattedPnl: number,
+  adjustedPnl: number,
   isOpen: boolean,
-  isPut: boolean,
   isShort: boolean,
-  priceAtExpiry: number,
   quote: number,
-  strike: number
+  valueAtExpiry: number
 ) => {
   if (isOpen) {
     if (isShort) {
-      return formattedPnl - quote;
+      return adjustedPnl - quote;
     } else {
-      return formattedPnl + quote;
+      return adjustedPnl + quote;
     }
   }
 
-  const valueAtExpiry = isPut
-    ? Math.max(strike - priceAtExpiry, 0)
-    : Math.max(priceAtExpiry - strike, 0);
-
-  return formattedPnl + valueAtExpiry * amount;
+  return adjustedPnl + valueAtExpiry * amount;
 };
 
 const getAction = (
   disabled: boolean,
   isOpen: boolean,
   isShort: boolean,
-  profitLoss: number
+  profitLoss: number,
+  valueAtExpiry: number
 ) => {
   if (!isOpen && isShort) {
     return PositionAction.SETTLE;
   }
 
   if (!isOpen) {
-    if (profitLoss > 0) {
+    if (profitLoss > 0 && valueAtExpiry > 0) {
       return PositionAction.REDEEM;
     } else {
       return PositionAction.BURN;
@@ -166,6 +161,7 @@ export const buildActivePositions = async (
       const entry = isShort
         ? totalPremiumSold / fromWeiToInt(sellAmount || 0)
         : totalPremiumBought / fromWeiToInt(buyAmount || 0);
+      const formattedPnl = tFormatUSDC(realizedPnl);
       const side = isPut ? "put" : "call";
       const strike = fromOpynToNumber(strikePrice);
       const chainSideData = chainData[expiryTimestamp]?.[strike][side];
@@ -186,23 +182,35 @@ export const buildActivePositions = async (
         ? buy?.disabled || !buy.quote.quote
         : sell?.disabled || !sell.quote.quote;
 
+      // Adjust P/L for partially closed positions.
+      const net = Math.abs(fromWeiToInt(netAmount));
+      const bought = fromWeiToInt(buyAmount);
+      const sold = fromWeiToInt(sellAmount);
+
+      const adjusted =
+        isShort && sold > net
+          ? net * entry
+          : !isShort && bought > net
+          ? -(net * entry)
+          : formattedPnl;
+
       // P/L calcs.
-      const formattedPnl = tFormatUSDC(realizedPnl);
       const { quote } = quotes[index];
       const priceAtExpiry = wethOracleHashMap[expiryTimestamp];
+      const valueAtExpiry = isPut
+        ? Math.max(strike - priceAtExpiry, 0)
+        : Math.max(priceAtExpiry - strike, 0);
       const profitLoss = calculateProfitLoss(
         amount,
-        formattedPnl,
+        adjusted,
         isOpen,
-        isPut,
         isShort,
-        priceAtExpiry,
         quote,
-        strike
+        valueAtExpiry
       );
 
       return {
-        action: getAction(disabled, isOpen, isShort, profitLoss),
+        action: getAction(disabled, isOpen, isShort, profitLoss, valueAtExpiry),
         amount,
         breakEven: isPut ? strike - entry : strike + entry,
         collateral: {
