@@ -85,10 +85,12 @@ export class Convert {
    * Public static method to ingest an integer.
    *
    * @param value - An integer to convert.
+   * @param decimals - Optional number of decimal places for rounding. Defaults to 2.
    *
    * @returns - A new instance of the Convert class.
    */
-  public static fromInt = (value: number) => new Convert(value.toString());
+  public static fromInt = (value: number, decimals: number = 2) =>
+    new Convert(value.toString(), decimals);
 
   /**
    * Public static method to ingest a 1e8 big number.
@@ -107,10 +109,12 @@ export class Convert {
    * Public static method to ingest a string.
    *
    * @param value - A string integer to convert.
+   * @param decimals - Optional number of decimal places for rounding. Defaults to 2.
    *
    * @returns - A new instance of the Convert class.
    */
-  public static fromStr = (value: string) => new Convert(value);
+  public static fromStr = (value: string, decimals: number = 2) =>
+    new Convert(value, decimals);
 
   /**
    * Public static method to ingest a 1e6 big number.
