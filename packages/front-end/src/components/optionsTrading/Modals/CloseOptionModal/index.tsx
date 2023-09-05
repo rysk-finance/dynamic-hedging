@@ -63,7 +63,7 @@ export const CloseOptionModal = () => {
 
     const maxAmount = Math.min(
       positionData.totalSize,
-      parseFloat(rounded || "0")
+      Convert.fromStr(rounded || "0").toInt()
     );
 
     setAmountToClose((maxAmount ? maxAmount : rounded).toString());

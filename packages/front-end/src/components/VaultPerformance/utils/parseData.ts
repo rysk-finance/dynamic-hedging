@@ -36,13 +36,17 @@ export const parseData = async (
     ).toInt();
     const lastPPS = Convert.fromWei(lastIndex.value).toInt();
     const diff = (currentPPS - lastPPS) * 100;
-    const lastGrowthCalculation = parseFloat(lastIndex.growthSinceFirstEpoch);
+    const lastGrowthCalculation = Convert.fromStr(
+      lastIndex.growthSinceFirstEpoch
+    ).toInt();
     const predictedGrowthSinceFirstEpoch = String(lastGrowthCalculation + diff);
 
     const pricePerSharesWithPrediction = [
       ...pricePerShares,
       {
-        epoch: (parseFloat(lastIndex.epoch) + 1).toString(),
+        epoch: Convert.fromInt(
+          Convert.fromStr(lastIndex.epoch).toInt() + 1
+        ).toStr(),
         ethPrice: currentEthPrice,
         growthSinceFirstEpoch: "",
         predictedGrowthSinceFirstEpoch,
@@ -52,15 +56,17 @@ export const parseData = async (
       },
     ];
 
+
+
     const publicLaunchOffset = pricePerSharesWithPrediction.length
-      ? parseFloat(pricePerSharesWithPrediction[0].growthSinceFirstEpoch)
+      ? Convert.fromStr(pricePerSharesWithPrediction[0].growthSinceFirstEpoch).toInt()
       : 0;
     const publicLaunchEthPrice = pricePerSharesWithPrediction.length
       ? Convert.fromOpyn(pricePerSharesWithPrediction[0].ethPrice).toInt()
       : 0;
 
     return pricePerSharesWithPrediction.map((pricePoint, index, array) => {
-      const pricePointGrowth = parseFloat(pricePoint.growthSinceFirstEpoch);
+      const pricePointGrowth = Convert.fromStr(pricePoint.growthSinceFirstEpoch).toInt();
       const growthSinceFirstEpoch = Convert.round(
         pricePointGrowth - publicLaunchOffset
       );
@@ -71,9 +77,9 @@ export const parseData = async (
       );
 
       if (pricePoint.predictedGrowthSinceFirstEpoch) {
-        const predictedPricePointGrowth = parseFloat(
+        const predictedPricePointGrowth = Convert.fromStr(
           pricePoint.predictedGrowthSinceFirstEpoch
-        );
+        ).toInt()
 
         return {
           ...pricePoint,
