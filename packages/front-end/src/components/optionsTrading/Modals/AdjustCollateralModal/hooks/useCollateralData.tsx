@@ -8,11 +8,7 @@ import { useAccount } from "wagmi";
 import { getLiquidationPrices } from "src/components/shared/utils/getLiquidationPrice";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { Convert } from "src/utils/Convert";
-import {
-  fromWeiToInt,
-  tFormatUSDC,
-  truncate,
-} from "src/utils/conversion-helper";
+import { truncate } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
@@ -70,8 +66,8 @@ export const useCollateralData = (
 
         if (amount > 0 && ethPrice && adjustingOption && collateralAddress) {
           const currentCollateral = USDCCollateral
-            ? tFormatUSDC(adjustingOption.vault.collateralAmount)
-            : fromWeiToInt(adjustingOption.vault.collateralAmount);
+            ? Convert.fromUSDC(adjustingOption.vault.collateralAmount).toInt
+            : Convert.fromWei(adjustingOption.vault.collateralAmount).toInt;
           const newCollateral = isDepositing
             ? currentCollateral + amount
             : currentCollateral - amount;

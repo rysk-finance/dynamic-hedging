@@ -3,7 +3,8 @@ import type { LiquidityPool } from "src/state/types";
 import { readContracts } from "@wagmi/core";
 
 import { LiquidityPoolABI } from "src/abis/LiquidityPool_ABI";
-import { fromWeiToInt, tFormatUSDC } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
+import { fromWeiToInt } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 
@@ -29,7 +30,7 @@ export const getLiquidityPoolInfo = async (): Promise<LiquidityPool> => {
       ],
     });
 
-    const remainingBeforeBuffer = tFormatUSDC(checkBuffer, 2);
+    const remainingBeforeBuffer = Convert.fromUSDC(checkBuffer, 2).toInt;
     const totalAssets = fromWeiToInt(getAssets);
     const utilisationHigh = (remainingBeforeBuffer / totalAssets) * 100 <= 3;
 

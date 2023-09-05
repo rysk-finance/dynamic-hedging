@@ -13,7 +13,7 @@ import dayjs from "dayjs";
 import { ZERO_ADDRESS } from "src/config/constants";
 import { Vault } from "src/hooks/useInitialData/types";
 import { Convert } from "src/utils/Convert";
-import { fromWeiToInt, tFormatUSDC } from "src/utils/conversion-helper";
+import { fromWeiToInt } from "src/utils/conversion-helper";
 import { getLiquidationPrices } from "../../../shared/utils/getLiquidationPrice";
 import { PositionAction } from "../enums";
 
@@ -26,7 +26,7 @@ const formatCollateralAmount = (
     if (collateralAsset.symbol === "WETH") {
       return fromWeiToInt(vault.collateralAmount);
     } else {
-      return tFormatUSDC(vault.collateralAmount);
+      return Convert.fromUSDC(vault.collateralAmount).toInt;
     }
   } else {
     return fallback;
@@ -157,7 +157,7 @@ export const buildActivePositions = async (
       const entry = isShort
         ? totalPremiumSold / fromWeiToInt(sellAmount || 0)
         : totalPremiumBought / fromWeiToInt(buyAmount || 0);
-      const formattedPnl = tFormatUSDC(realizedPnl);
+      const formattedPnl = Convert.fromUSDC(realizedPnl).toInt;
       const side = isPut ? "put" : "call";
       const strike = Convert.fromOpyn(strikePrice).toInt;
       const chainSideData = chainData[expiryTimestamp]?.[strike][side];

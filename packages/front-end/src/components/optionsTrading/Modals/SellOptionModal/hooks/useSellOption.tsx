@@ -12,7 +12,7 @@ import { getQuotes } from "src/components/shared/utils/getQuote";
 import { DECIMALS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { Convert } from "src/utils/Convert";
-import { tFormatUSDC, truncate } from "src/utils/conversion-helper";
+import { truncate } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { getLiquidationPrices } from "../../../../shared/utils/getLiquidationPrice";
@@ -130,7 +130,7 @@ export const useSellOption = (amountToSell: string) => {
                 .mul(Math.round(collateralPreferences.amount * 100))
                 .div(100);
               const formatted = USDCCollateral
-                ? tFormatUSDC(multipliedCollateral)
+                ? Convert.fromUSDC(multipliedCollateral).toInt
                 : Convert.fromWei(multipliedCollateral, 4).toInt;
               const maximum = USDCCollateral ? strike * amount : amount;
 

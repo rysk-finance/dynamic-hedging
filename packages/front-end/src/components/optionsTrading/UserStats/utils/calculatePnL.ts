@@ -3,7 +3,7 @@ import type { UserPositionToken, WethOracleHashMap } from "src/state/types";
 
 import dayjs from "dayjs";
 
-import { fromWeiToInt, tFormatUSDC } from "src/utils/conversion-helper";
+import { fromWeiToInt } from "src/utils/conversion-helper";
 import { Convert } from "src/utils/Convert";
 
 /**
@@ -58,7 +58,7 @@ export const calculatePnL = async (
         // Longs
         const expiriesAt = parseInt(expiryTimestamp);
         const nowToUnix = dayjs().unix();
-        const realizedPnL = tFormatUSDC(realizedPnl);
+        const realizedPnL = Convert.fromUSDC(realizedPnl).toInt;
 
         if (!active) {
           // Manually closed or expired and redeemed.
@@ -97,7 +97,7 @@ export const calculatePnL = async (
         // Shorts
         const expiriesAt = parseInt(expiryTimestamp);
         const nowToUnix = dayjs().unix();
-        const realizedPnL = tFormatUSDC(realizedPnl);
+        const realizedPnL = Convert.fromUSDC(realizedPnl).toInt;
         const hasBeenLiquidated =
           liquidateActions && Boolean(liquidateActions?.length);
 

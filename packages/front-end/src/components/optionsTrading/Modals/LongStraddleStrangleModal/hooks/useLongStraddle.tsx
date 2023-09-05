@@ -9,7 +9,6 @@ import { BigNumber } from "ethers";
 import { getQuotes } from "src/components/shared/utils/getQuote";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { Convert } from "src/utils/Convert";
-import { tFormatUSDC } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
@@ -91,12 +90,9 @@ export const useLongStraddleStrangle = (
           const totalAcceptablePremium = callQuote.acceptablePremium.add(
             putQuote.acceptablePremium
           );
-          const requiredApproval = String(
-            tFormatUSDC(
-              callQuote.acceptablePremium.add(putQuote.acceptablePremium),
-              4
-            )
-          );
+          const requiredApproval = Convert.fromUSDC(
+            callQuote.acceptablePremium.add(putQuote.acceptablePremium)
+          ).toStr;
           const approved = Convert.fromStr(requiredApproval).toUSDC.lte(
             allowance.amount
           );

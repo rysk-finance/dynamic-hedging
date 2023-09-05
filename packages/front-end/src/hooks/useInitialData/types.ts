@@ -47,7 +47,7 @@ export interface Position {
   oToken: PositionOToken;
   optionsBoughtTransactions: OptionsTransaction[];
   optionsSoldTransactions: OptionsTransaction[];
-  realizedPnl: BigNumberish;
+  realizedPnl: string;
   redeemActions?: RedeemActions[];
   sellAmount?: BigNumberish;
   settleActions?: SettleActions[];

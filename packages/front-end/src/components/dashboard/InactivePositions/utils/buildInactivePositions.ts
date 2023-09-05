@@ -4,11 +4,8 @@ import type {
   WethOracleHashMap,
 } from "src/state/types";
 
-import {
-  fromWeiToInt,
-  tFormatUSDC,
-  truncate,
-} from "src/utils/conversion-helper";
+import { fromWeiToInt, truncate } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
 
 export const buildInactivePositions = (
   userPositions: UserPositions,
@@ -52,7 +49,9 @@ export const buildInactivePositions = (
           id: `${id}-${isShort ? totalPremiumSold : totalPremiumBought}`,
           isShort,
           oraclePrice,
-          profitLoss: liquidated ? undefined : tFormatUSDC(realizedPnl),
+          profitLoss: liquidated
+            ? undefined
+            : Convert.fromUSDC(realizedPnl).toInt,
           series: series.join("-"),
           size: Math.abs(amount),
         };

@@ -5,7 +5,6 @@ import { useEffect } from "react";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
 import { Convert } from "src/utils/Convert";
-import { tFormatUSDC, truncate } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 
 const getBalances = async (address?: HexString) => {
@@ -31,7 +30,7 @@ const getBalances = async (address?: HexString) => {
 
   return {
     ETH: Convert.fromWei(balanceETH, 2).toInt,
-    USDC: truncate(tFormatUSDC(balanceUSDC), 2),
+    USDC: Convert.fromUSDC(balanceUSDC, 2).toInt,
     WETH: Convert.fromWei(balanceWETH, 2).toInt,
   };
 };
