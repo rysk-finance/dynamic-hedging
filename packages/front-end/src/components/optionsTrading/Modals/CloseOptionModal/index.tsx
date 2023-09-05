@@ -52,21 +52,18 @@ export const CloseOptionModal = () => {
 
   const handleCloseMax = (event: ChangeEvent<HTMLInputElement>) => {
     if (event.currentTarget.checked) {
-      setAmountToClose(positionData.totalSize.toString());
+      setAmountToClose(Convert.fromInt(positionData.totalSize).toStr());
     } else {
       setAmountToClose("");
     }
   };
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const rounded = roundInputValue(event);
+    const rounded = Convert.fromStr(roundInputValue(event)).toInt();
 
-    const maxAmount = Math.min(
-      positionData.totalSize,
-      Convert.fromStr(rounded || "0").toInt()
-    );
+    const maxAmount = Math.min(positionData.totalSize, rounded || 0);
 
-    setAmountToClose((maxAmount ? maxAmount : rounded).toString());
+    setAmountToClose(Convert.fromInt(maxAmount ? maxAmount : rounded).toStr());
   };
 
   const handleApprove = async () => {
@@ -145,7 +142,7 @@ export const CloseOptionModal = () => {
           <span className="flex">
             <Label className="flex items-center justify-center select-none cursor-pointer w-min border-black border-r-2 px-2">
               <Checkbox
-                checked={amountToClose === positionData.totalSize.toString()}
+                checked={amountToClose === Convert.fromInt(positionData.totalSize).toStr()}
                 name="close-max"
                 onChange={handleCloseMax}
               />

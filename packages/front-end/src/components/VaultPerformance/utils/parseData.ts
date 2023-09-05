@@ -53,7 +53,7 @@ export const parseData = async (
         timestamp: String(
           Convert.fromStr(lastIndex.timestamp).toInt() + SECONDS_IN_WEEK
         ),
-        value: currentPricePerShare.toString(),
+        value: currentPPS,
         __typename: "",
       },
     ];

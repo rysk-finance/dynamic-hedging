@@ -63,7 +63,7 @@ export const Multiplier = () => {
   const iconLeft = useMemo(() => {
     const base = 2.6;
     const gap = 0.3;
-    const len = multiplier.toString().length;
+    const len = Convert.fromInt(multiplier).toStr().length;
 
     return `${base + (len - 1) * gap}rem`;
   }, [multiplier]);
