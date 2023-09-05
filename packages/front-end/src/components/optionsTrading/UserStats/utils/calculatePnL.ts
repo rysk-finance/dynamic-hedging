@@ -3,7 +3,6 @@ import type { UserPositionToken, WethOracleHashMap } from "src/state/types";
 
 import dayjs from "dayjs";
 
-import { fromWeiToInt } from "src/utils/conversion-helper";
 import { Convert } from "src/utils/Convert";
 
 /**
@@ -52,7 +51,7 @@ export const calculatePnL = async (
       },
       index
     ) => {
-      const positionSize = fromWeiToInt(netAmount);
+      const positionSize = Convert.fromWei(netAmount).toInt;
 
       if (index < longPositions.length) {
         // Longs
@@ -65,9 +64,10 @@ export const calculatePnL = async (
           return [historicalPnL + realizedPnL, activePnL];
         } else if (expiriesAt > nowToUnix) {
           // Open positions.
-          const entry = totalPremiumBought / fromWeiToInt(buyAmount || 0);
-          const net = Math.abs(fromWeiToInt(netAmount));
-          const bought = fromWeiToInt(buyAmount);
+
+          const net = Math.abs(Convert.fromWei(netAmount).toInt);
+          const bought = Convert.fromWei(buyAmount || "0").toInt;
+          const entry = totalPremiumBought / bought;
           const adjustedPnl = bought > net ? -(net * entry) : realizedPnL;
 
           const { quote } =
@@ -121,9 +121,10 @@ export const calculatePnL = async (
           return [historicalPnL + realizedPnL - collateralLost, activePnL];
         } else if (expiriesAt > nowToUnix) {
           // Open positions.
-          const entry = totalPremiumSold / fromWeiToInt(sellAmount || 0);
-          const net = Math.abs(fromWeiToInt(netAmount));
-          const sold = fromWeiToInt(sellAmount);
+
+          const net = Math.abs(Convert.fromWei(netAmount).toInt);
+          const sold = Convert.fromWei(sellAmount || "0").toInt;
+          const entry = totalPremiumSold / sold;
           const adjustedPnl = sold > net ? net * entry : realizedPnL;
 
           const { quote } =

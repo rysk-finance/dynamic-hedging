@@ -41,15 +41,15 @@ export interface Vault {
 
 export interface Position {
   active: boolean;
-  buyAmount?: BigNumberish;
+  buyAmount?: string;
   liquidateActions?: LiquidateActions[];
-  netAmount: BigNumberish;
+  netAmount: string;
   oToken: PositionOToken;
   optionsBoughtTransactions: OptionsTransaction[];
   optionsSoldTransactions: OptionsTransaction[];
   realizedPnl: string;
   redeemActions?: RedeemActions[];
-  sellAmount?: BigNumberish;
+  sellAmount?: string;
   settleActions?: SettleActions[];
   vault?: Vault;
 }

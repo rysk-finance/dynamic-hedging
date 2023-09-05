@@ -6,7 +6,6 @@ import { ActionType } from "src/state/types";
 
 import { getQuotes } from "src/components/shared/utils/getQuote";
 import { Convert } from "src/utils/Convert";
-import { fromWeiToInt } from "src/utils/conversion-helper";
 import { buildActivePositions } from "../utils/buildActivePositions";
 import { calculateDelta } from "../utils/calculateDelta";
 import { calculatePnL } from "../utils/calculatePnL";
@@ -48,7 +47,7 @@ export const useUserStats = () => {
               expiry: parseInt(expiryTimestamp),
               strike: Convert.fromOpyn(strikePrice).toWei,
               isPut: isPut,
-              orderSize: Math.abs(fromWeiToInt(netAmount)),
+              orderSize: Math.abs(Convert.fromWei(netAmount).toInt),
               isSell: !isShort,
               collateral: isShort ? collateralAsset.symbol : "USDC",
             };

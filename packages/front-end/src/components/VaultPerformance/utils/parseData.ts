@@ -5,7 +5,6 @@ import { readContracts } from "@wagmi/core";
 import { DHVLensMK1ABI } from "src/abis/DHVLensMK1_ABI";
 import { PriceFeedABI } from "src/abis/PriceFeed_ABI";
 import { Convert } from "src/utils/Convert";
-import {  fromWeiToInt } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { SECONDS_IN_WEEK } from "src/utils/time";
 
@@ -32,8 +31,10 @@ export const parseData = async (
     const { pricePerShares } = graphData;
     const lastIndex = pricePerShares[pricePerShares.length - 1];
 
-    const currentPPS = fromWeiToInt(currentPricePerShare[0] || lastIndex.value);
-    const lastPPS = fromWeiToInt(lastIndex.value);
+    const currentPPS = Convert.fromWei(
+      currentPricePerShare[0] || lastIndex.value
+    ).toInt;
+    const lastPPS = Convert.fromWei(lastIndex.value).toInt;
     const diff = (currentPPS - lastPPS) * 100;
     const lastGrowthCalculation = parseFloat(lastIndex.growthSinceFirstEpoch);
     const predictedGrowthSinceFirstEpoch = String(lastGrowthCalculation + diff);

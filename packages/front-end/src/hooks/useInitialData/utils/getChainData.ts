@@ -15,7 +15,7 @@ import { getImpliedVolatility } from "implied-volatility";
 
 import { DHVLensMK1ABI } from "src/abis/DHVLensMK1_ABI";
 import { Convert } from "src/utils/Convert";
-import { fromWeiToInt, fromWeiToOpyn } from "src/utils/conversion-helper";
+import { fromWeiToOpyn } from "src/utils/conversion-helper";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { SECONDS_IN_YEAR } from "src/utils/time";
@@ -91,7 +91,7 @@ export const getChainData = async (
                 (side === "put") === position.isPut
               ) {
                 acc.id.push(position.id);
-                acc.netAmount += fromWeiToInt(position.netAmount);
+                acc.netAmount += Convert.fromWei(position.netAmount).toInt;
               }
 
               return acc;

@@ -6,7 +6,6 @@ import { BigNumber } from "ethers";
 import { AlphaPortfolioValuesFeedABI } from "src/abis/AlphaPortfolioValuesFeed_ABI";
 import { BeyondPricerABI } from "src/abis/BeyondPricer_ABI";
 import { Convert } from "src/utils/Convert";
-import { fromWeiToInt } from "src/utils/conversion-helper";
 import { getContractAddress, getOptionHash } from "src/utils/helpers";
 
 export const getQuotes = async (
@@ -96,8 +95,8 @@ export const getQuotes = async (
       ? forOrder.totalPremium.div(100).mul(97)
       : forOrder.totalPremium.div(100).mul(103);
     const breakEven = isPut
-      ? fromWeiToInt(strike) - quote / orderSize
-      : fromWeiToInt(strike) + quote / orderSize;
+      ? Convert.fromWei(strike).toInt - quote / orderSize
+      : Convert.fromWei(strike).toInt + quote / orderSize;
 
     return { acceptablePremium, breakEven, fee, premium, quote, slippage };
   });

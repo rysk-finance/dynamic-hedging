@@ -4,7 +4,7 @@ import type {
   WethOracleHashMap,
 } from "src/state/types";
 
-import { fromWeiToInt, truncate } from "src/utils/conversion-helper";
+import { truncate } from "src/utils/conversion-helper";
 import { Convert } from "src/utils/Convert";
 
 export const buildInactivePositions = (
@@ -30,9 +30,12 @@ export const buildInactivePositions = (
         netAmount,
         liquidateActions,
       }) => {
+        console.log(buyAmount || sellAmount || netAmount);
         const [, ...series] = symbol.split("-");
         const isShort = Boolean(collateralAsset && "symbol" in collateralAsset);
-        const amount = fromWeiToInt(buyAmount || sellAmount || netAmount);
+        const amount = Convert.fromWei(
+          buyAmount || sellAmount || netAmount
+        ).toInt;
         const entryPremium = isShort ? totalPremiumSold : totalPremiumBought;
         const closePremium = isShort ? totalPremiumBought : totalPremiumSold;
         const liquidated = Boolean(liquidateActions && liquidateActions.length);

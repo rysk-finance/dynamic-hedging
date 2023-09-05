@@ -13,7 +13,6 @@ import dayjs from "dayjs";
 import { ZERO_ADDRESS } from "src/config/constants";
 import { Vault } from "src/hooks/useInitialData/types";
 import { Convert } from "src/utils/Convert";
-import { fromWeiToInt } from "src/utils/conversion-helper";
 import { getLiquidationPrices } from "../../../shared/utils/getLiquidationPrice";
 import { PositionAction } from "../enums";
 
@@ -24,7 +23,7 @@ const formatCollateralAmount = (
 ) => {
   if (vault && collateralAsset) {
     if (collateralAsset.symbol === "WETH") {
-      return fromWeiToInt(vault.collateralAmount);
+      return Convert.fromWei(vault.collateralAmount).toInt;
     } else {
       return Convert.fromUSDC(vault.collateralAmount).toInt;
     }
@@ -115,7 +114,7 @@ export const buildActivePositions = async (
         vault,
       }) => {
         return {
-          amount: Math.abs(fromWeiToInt(netAmount)),
+          amount: Math.abs(Convert.fromWei(netAmount).toInt),
           callOrPut: isPut ? "put" : "call",
           collateral: formatCollateralAmount(0, collateralAsset, vault),
           collateralAddress:
@@ -153,10 +152,10 @@ export const buildActivePositions = async (
       const [, ...series] = symbol.split("-");
       const isOpen = parseInt(expiryTimestamp) > nowToUnix;
       const isShort = Boolean(collateralAsset && "symbol" in collateralAsset);
-      const amount = fromWeiToInt(netAmount);
+      const amount = Convert.fromWei(netAmount).toInt;
       const entry = isShort
-        ? totalPremiumSold / fromWeiToInt(sellAmount || 0)
-        : totalPremiumBought / fromWeiToInt(buyAmount || 0);
+        ? totalPremiumSold / Convert.fromWei(sellAmount || "0").toInt
+        : totalPremiumBought / Convert.fromWei(buyAmount || "0").toInt;
       const formattedPnl = Convert.fromUSDC(realizedPnl).toInt;
       const side = isPut ? "put" : "call";
       const strike = Convert.fromOpyn(strikePrice).toInt;
@@ -179,9 +178,9 @@ export const buildActivePositions = async (
         : sell?.disabled || !sell.quote.quote;
 
       // Adjust P/L for partially closed positions.
-      const net = Math.abs(fromWeiToInt(netAmount));
-      const bought = fromWeiToInt(buyAmount);
-      const sold = fromWeiToInt(sellAmount);
+      const net = Math.abs(Convert.fromWei(netAmount).toInt);
+      const bought = Convert.fromWei(buyAmount || "0").toInt;
+      const sold = Convert.fromWei(sellAmount || "0").toInt;
 
       const adjusted =
         isShort && sold > net

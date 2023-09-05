@@ -23,23 +23,23 @@ type Expiries = string[];
 
 export interface UserPositionToken extends PositionOToken {
   active: boolean;
-  buyAmount?: BigNumberish;
+  buyAmount?: string;
   firstCreated?: string;
   id: HexString;
-  netAmount: BigNumberish;
+  netAmount: string;
   totalPremiumBought: number;
   totalPremiumSold: number;
   liquidateActions?: LiquidateActions[];
   realizedPnl: string;
   redeemActions?: RedeemActions[];
-  sellAmount?: BigNumberish;
+  sellAmount?: string;
   settleActions?: SettleActions[];
   vault?: Vault;
 }
 
 export interface UserPositions {
   [expiry: string]: {
-    netAmount: BigNumberish;
+    netAmount: string;
     isLong: boolean;
     isShort: boolean;
     activeTokens: UserPositionToken[];
