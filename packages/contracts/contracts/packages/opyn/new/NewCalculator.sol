@@ -99,6 +99,11 @@ contract NewMarginCalculator is Ownable {
     /// @dev addressbook module
     AddressBookInterface public addressBook;
 
+    /// @dev fee in percentage terms (1e18 is 100%)
+    uint256 public fee;
+    /// @dev fee recipient
+    address public feeRecipient;
+
     /// @notice emits an event when collateral dust is updated
     event CollateralDustUpdated(address indexed collateral, uint256 dust);
     /// @notice emits an event when new time to expiry is added for a specific product
@@ -113,6 +118,10 @@ contract NewMarginCalculator is Ownable {
     event OracleDeviationUpdated(uint256 oracleDeviation);
     /// @notice emits an event when the liquidation multiplier is updated
     event LiquidationMultiplierUpdated(uint256 liquidationMultiplier);
+    /// @notice emits an event when the fee is updated
+    event FeeUpdated(uint256 fee);
+    /// @notice emits an event when the fee recipient is updated
+    event FeeRecipientUpdated(address feeRecipient);
 
     /**
      * @notice constructor
@@ -154,6 +163,37 @@ contract NewMarginCalculator is Ownable {
         liquidationMultiplier = _liquidationMultiplier;
 
         emit LiquidationMultiplierUpdated(_liquidationMultiplier);
+    }
+
+    /**
+     * @notice set the fee
+     * @dev can only be called by owner
+     * @param _fee the fee to apply to redemptions
+     */
+    function setFee(uint256 _fee) external onlyOwner {
+        require(_fee <= 1e18, "MarginCalculator: fee should be less than 1e18 (100%)");
+
+        fee = _fee;
+
+        emit FeeUpdated(_fee);
+    }
+
+    /**
+     * @notice set the fee recipient
+     * @dev can only be called by owner
+     * @param _feeRecipient the fee recipient to send fees to
+     */
+    function setFeeRecipient(address _feeRecipient) external onlyOwner {
+        feeRecipient = _feeRecipient;
+
+        emit FeeRecipientUpdated(_feeRecipient);
+    }
+
+    /**
+     * @notice function to get the fee and fee recipient in one call
+     */
+    function getFeeInformation() external view returns (uint256, address) {
+        return (fee, feeRecipient);
     }
 
     /**
@@ -480,12 +520,7 @@ contract NewMarginCalculator is Ownable {
             vaultDetails.shortCollateralAsset,
             vaultDetails.shortUnderlyingAsset
         );
-        FPI.FixedPointInt memory collateralRequired = _getNakedMarginRequired(
-            productHash,
-            shortDetails,
-            vaultDetails.shortExpiryTimestamp,
-            opType
-        );
+        (, FPI.FixedPointInt memory collateralRequired) = _getMarginRequired(_vault, vaultDetails);
 
         // if collateral required <= collateral in the vault, the vault is not liquidatable
         if (collateralRequired.isLessThanOrEqual(depositedCollateral)) {
@@ -532,10 +567,8 @@ contract NewMarginCalculator is Ownable {
         returns (uint256, bool)
     {
         VaultDetails memory vaultDetails = _getVaultDetails(_vault, _vaultType);
-
         // include all the checks for to ensure the vault is valid
         _checkIsValidVault(_vault, vaultDetails);
-
         // if the vault contains no oTokens, return the amount of collateral
         if (!vaultDetails.hasShort && !vaultDetails.hasLong) {
             uint256 amount = vaultDetails.hasCollateral ? _vault.collateralAmounts[0] : 0;
@@ -636,7 +669,7 @@ contract NewMarginCalculator is Ownable {
 
         if (now < otokenDetails.otokenExpiry) {
             // it's not expired, return amount of margin required based on vault type
-            if (_vaultDetails.vaultType == 1) {
+            if (_vaultDetails.vaultType == 1 && !_vaultDetails.hasLong) {
                 // this is a naked margin vault
                 // fetch dust amount for otoken collateral asset as FixedPointInt, assuming dust is already scaled by collateral decimals
                 FPI.FixedPointInt memory dustAmount = FPI.fromScaledUint(
@@ -681,12 +714,17 @@ contract NewMarginCalculator is Ownable {
                     )
                 );
             } else {
-                // this is a fully collateralized vault
+                // this is a fully collateralized vault or spread vault
                 FPI.FixedPointInt memory longStrike = _vaultDetails.hasLong
                     ? FPI.fromScaledUint(_vaultDetails.longStrikePrice, BASE)
                     : ZERO;
 
                 if (otokenDetails.isPut) {
+                    // we only want to allow strike asset collateralised put spreads as weth collateralised put credit spreads are bad
+                    require(
+                        otokenDetails.otokenCollateralAsset == otokenDetails.otokenStrikeAsset,
+                        "MarginCalculator: put spread vault should be collateralised with strike asset"
+                    );
                     FPI.FixedPointInt memory strikeNeeded = _getPutSpreadMarginRequired(
                         shortAmount,
                         longAmount,
@@ -694,30 +732,27 @@ contract NewMarginCalculator is Ownable {
                         longStrike
                     );
                     // convert amount to be denominated in collateral
-                    return (
-                        collateralAmount,
-                        _convertAmountOnLivePrice(
-                            strikeNeeded,
-                            otokenDetails.otokenStrikeAsset,
-                            otokenDetails.otokenCollateralAsset
-                        )
-                    );
+                    return (collateralAmount, strikeNeeded);
                 } else {
-                    FPI.FixedPointInt memory underlyingNeeded = _getCallSpreadMarginRequired(
+                    FPI.FixedPointInt memory assetNeeded = _getCallSpreadMarginRequired(
                         shortAmount,
                         longAmount,
                         shortStrike,
-                        longStrike
+                        longStrike,
+                        otokenDetails.otokenCollateralAsset == otokenDetails.otokenStrikeAsset
                     );
-                    // convert amount to be denominated in collateral
-                    return (
-                        collateralAmount,
-                        _convertAmountOnLivePrice(
-                            underlyingNeeded,
-                            otokenDetails.otokenUnderlyingAsset,
-                            otokenDetails.otokenCollateralAsset
-                        )
-                    );
+                    if (otokenDetails.otokenCollateralAsset == otokenDetails.otokenStrikeAsset) {
+                        // collateral needed is denominated in underlying asset so we need to convert to strike asset
+                        return (
+                            collateralAmount,
+                            _convertAmountOnLivePrice(
+                                assetNeeded,
+                                otokenDetails.otokenStrikeAsset,
+                                otokenDetails.otokenCollateralAsset
+                            )
+                        );
+                    }
+                    return (collateralAmount, assetNeeded);
                 }
             }
         } else {
@@ -808,11 +843,11 @@ contract NewMarginCalculator is Ownable {
         } else if (optionType == OptionType.NAKED_PUT) {
             a = FPI.min(ssd.shortStrike.div(ssd.shortUnderlyingPrice), spotShockValue);
             b = FPI.max((ssd.shortStrike.div(ssd.shortUnderlyingPrice)).sub(spotShockValue), ZERO);
-            return optionUpperBoundValue.mul(a).add(b).mul(ssd.shortAmount);
+            return (optionUpperBoundValue.mul(a).add(b)).mul(ssd.shortAmount);
         } else {
             a = FPI.min(ssd.shortUnderlyingPrice, (ssd.shortStrike.mul(spotShockValue)));
             b = FPI.max(ssd.shortUnderlyingPrice.sub(ssd.shortStrike.mul(spotShockValue)), ZERO);
-            return optionUpperBoundValue.mul(a).add(b).mul(ssd.shortAmount);
+            return (optionUpperBoundValue.mul(a).add(b)).mul(ssd.shortAmount);
         }
     }
 
@@ -873,19 +908,25 @@ contract NewMarginCalculator is Ownable {
      *                                           long strike
      *
      * @dev if long strike = 0, return max( short amount - long amount, 0)
-     * @return margin requirement denominated in the underlying asset
+     * @return margin requirement denominated in the collateral asset
      */
     function _getCallSpreadMarginRequired(
         FPI.FixedPointInt memory _shortAmount,
         FPI.FixedPointInt memory _longAmount,
         FPI.FixedPointInt memory _shortStrike,
-        FPI.FixedPointInt memory _longStrike
+        FPI.FixedPointInt memory _longStrike,
+        bool strikeAssetIsCollateral
     ) internal view returns (FPI.FixedPointInt memory) {
         // max (short amount - long amount , 0)
         if (_longStrike.isEqual(ZERO)) {
             return FPI.max(_shortAmount.sub(_longAmount), ZERO);
         }
-
+        // if the collateral is the same as the strike asset then the correct amount is just the long strike - short strike
+        if (strikeAssetIsCollateral) {
+            // be certain the amounts are the same as the collateral requirements become problematic
+            require(_shortAmount.isEqual(_longAmount), "MarginCalculator: long and short amounts must be the same");
+            return FPI.max((_longStrike).sub(_shortStrike).mul(_shortAmount), ZERO);
+        }
         /**
          *             (long strike - short strike) * short amount
          * calculate  ----------------------------------------------
@@ -1121,9 +1162,6 @@ contract NewMarginCalculator is Ownable {
         pure
         returns (bool)
     {
-        if (_vaultDetails.vaultType == 1)
-            require(!_vaultDetails.hasLong, "MarginCalculator: naked margin vault cannot have long otoken");
-
         // if vault is missing a long or a short, return True
         if (!_vaultDetails.hasLong || !_vaultDetails.hasShort) return true;
 

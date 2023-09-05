@@ -30,8 +30,8 @@ import {CalleeInterface} from "../interfaces/CalleeInterface.sol";
  * C7: invalid addressbook address
  * C8: invalid owner address
  * C9: invalid input
- * C10: fullPauser cannot be set to address zero
- * C11: partialPauser cannot be set to address zero
+ * C10: fullPauser cannot be set to address zero - removed for space
+ * C11: partialPauser cannot be set to address zero - removed for space
  * C12: can not run actions for different owners
  * C13: can not run actions on different vaults
  * C14: invalid final vault state
@@ -359,8 +359,6 @@ contract NewController is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgr
      * @param _fullPauser new fullPauser address
      */
     function setFullPauser(address _fullPauser) external onlyOwner {
-        require(_fullPauser != address(0), "C10");
-        require(fullPauser != _fullPauser, "C9");
         emit FullPauserUpdated(fullPauser, _fullPauser);
         fullPauser = _fullPauser;
     }
@@ -371,8 +369,6 @@ contract NewController is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgr
      * @param _partialPauser new partialPauser address
      */
     function setPartialPauser(address _partialPauser) external onlyOwner {
-        require(_partialPauser != address(0), "C11");
-        require(partialPauser != _partialPauser, "C9");
         emit PartialPauserUpdated(partialPauser, _partialPauser);
         partialPauser = _partialPauser;
     }
@@ -937,7 +933,18 @@ contract NewController is Initializable, OwnableUpgradeSafe, ReentrancyGuardUpgr
 
         otoken.burnOtoken(msg.sender, _args.amount);
 
-        pool.transferToUser(collateral, _args.receiver, payout);
+        // apply redemption fee
+        (uint256 feePercentage, address feeRecipient) = calculator.getFeeInformation();
+        // multiply amount by the fee as a percentage
+        uint256 fee = (payout * feePercentage) / 1e18;
+        // transfer the fee to the fee recipient and send the remainder to the user, if the fee recipient
+        // is the zero address then dont charge the fee, if the fee is 0 then dont transfer anything
+        if (fee != 0 && feeRecipient != address(0)) {
+            pool.transferToUser(collateral, feeRecipient, fee);
+        } else {
+            fee = 0;
+        }
+        pool.transferToUser(collateral, _args.receiver, payout - fee);
 
         emit Redeem(_args.otoken, msg.sender, _args.receiver, collateral, _args.amount, payout);
     }

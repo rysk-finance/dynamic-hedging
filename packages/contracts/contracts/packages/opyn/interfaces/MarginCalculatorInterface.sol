@@ -28,4 +28,5 @@ interface MarginCalculatorInterface {
             uint256,
             uint256
         );
+    function getFeeInformation() external view returns (uint256, address);
 }

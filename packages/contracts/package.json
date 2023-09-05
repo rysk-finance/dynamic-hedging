@@ -28,6 +28,7 @@
 		"deployAlpha:mainnet": "npx hardhat run deploy/arbitrum/ArbitrumAlphaDeploy.ts --network arbitrum",
 		"deployRangeOrderReactor:arbitrum": "npx hardhat run deploy/arbitrum/DeployRangeOrderReactor.ts --network arbitrum",
 		"deployRangeOrderReactor:arbitrumGoerli": "npx hardhat run deploy/arbitrum/DeployRangeOrderReactor.ts --network arbitrumGoerli",
+		"deployOpynUpgrade:arbitrumGoerli": "npx hardhat run deploy/arbitrum/deployOpynSpreadUpgrade.ts --network arbitrumGoerli",
 		"deployLens:arbitrum": "npx hardhat run deploy/arbitrum/deployDHVLensMK1.ts --network arbitrum",
 		"deployQuantLens:arbitrum": "npx hardhat run deploy/arbitrum/deployQuantPositionLensMK1.ts --network arbitrum",
 		"deployLens:arbitrumGoerli": "npx hardhat run deploy/arbitrum/deployDHVLensMK1.ts --network arbitrumGoerli",
