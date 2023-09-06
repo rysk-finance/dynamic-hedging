@@ -12,7 +12,7 @@ export const Icon = ({ strategy }: ModalProps) => {
 
   return (
     <div className="bg-white w-1/5 border-black border-b-2">
-      <Icon className="w-24 h-24 mx-auto" />
+      <Icon className="w-20 h-24 m-auto pt-1" />
     </div>
   );
 };
