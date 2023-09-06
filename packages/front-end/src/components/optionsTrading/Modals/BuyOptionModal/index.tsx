@@ -14,6 +14,7 @@ import { Disclaimer } from "../Shared/components/Disclaimer";
 import { Button, Input, Label, Wrapper } from "../Shared/components/Form";
 import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
+import { MAX_TRADE_SIZE, MIN_TRADE_SIZE } from "../Shared/utils/constants";
 import { getButtonProps } from "../Shared/utils/getButtonProps";
 import { roundInputValue } from "../Shared/utils/roundNumberValue";
 import { Pricing } from "./components/Pricing";
@@ -135,7 +136,7 @@ export const BuyOptionModal = () => {
     <Modal>
       <Header changeVisible={!disableChangeButton}>{`Buy Position`}</Header>
 
-      <Pricing positionData={positionData} />
+      <Pricing positionData={positionData} size={amountToBuy} />
 
       <Wrapper>
         <Label title="Enter how many contracts you would like to buy.">
@@ -151,6 +152,8 @@ export const BuyOptionModal = () => {
           className="w-1/4 !border-0"
           disabled={
             !Number(amountToBuy) ||
+            Number(amountToBuy) < MIN_TRADE_SIZE ||
+            Number(amountToBuy) > MAX_TRADE_SIZE ||
             !addresses.user ||
             positionData.remainingBalance < 0 ||
             transactionPending ||

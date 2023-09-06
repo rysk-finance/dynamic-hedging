@@ -8,8 +8,9 @@ import { RyskCountUp } from "src/components/shared/RyskCountUp";
 import { RyskTooltip } from "src/components/shared/RyskToolTip";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { Symbol } from "../../Shared/components/Symbol";
+import { MAX_TRADE_SIZE, MIN_TRADE_SIZE } from "../../Shared/utils/constants";
 
-export const Pricing = ({ positionData }: PricingProps) => {
+export const Pricing = ({ positionData, size }: PricingProps) => {
   const {
     state: {
       options: {
@@ -24,6 +25,10 @@ export const Pricing = ({ positionData }: PricingProps) => {
 
   const errorMessage = useMemo(() => {
     switch (true) {
+      case size && Number(size) < MIN_TRADE_SIZE:
+      case size && Number(size) > MAX_TRADE_SIZE:
+        return "Trade size must be between 0.1 and 1000.";
+
       case remainingBalance <= 0 && Boolean(quote):
         return "Final balance cannot be negative.";
 
