@@ -50,13 +50,13 @@ export const Strategies = () => {
             {hasRequiredState &&
               strategyList.map(({ description, Icon, label, modal }) => (
                 <motion.button
-                  className="flex justify-center py-1 group/strategy-icon"
+                  className="flex justify-center py-1 mx-4 group/strategy-icon"
                   key={label}
                   onClick={handleClick(modal)}
                   {...FadeInOut()}
                 >
-                  <Icon className="h-12 mr-1" />
-                  <span className="w-32">
+                  <Icon className="h-6 mr-1 my-auto" />
+                  <span className="w-40">
                     <p className="font-dm-mono text-sm font-medium">{label}</p>
                     <small className="block text-2xs !leading-1">
                       {description}

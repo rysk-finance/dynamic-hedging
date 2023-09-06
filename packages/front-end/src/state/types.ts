@@ -455,11 +455,13 @@ export type VaultContext = {
 export enum OptionChainModalActions {
   ADJUST_COLLATERAL = "Adjust Collateral",
   BUY = "Buy",
+  CALL_CREDIT_SPREAD = "Call Credit Spread",
   CLOSE_LONG = "Close Long",
   CLOSE_SHORT = "Close Short",
   LONG_STRADDLE = "Long Straddle",
   LONG_STRANGLE = "Long Strangle",
   OPERATOR = "Operator",
+  PUT_CREDIT_SPREAD = "Put Credit Spread",
   SELL = "Sell",
 }
 
