@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 import { useCallback } from "react";
 
 import { PriceFeedABI } from "src/abis/PriceFeed_ABI";
-import { fromOpynToNumber } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { CMC_API_KEY, endpoints } from "../config/endpoints";
@@ -25,7 +25,7 @@ const priceFeedGetRate = async () => {
     args: [getContractAddress("WETH"), getContractAddress("USDC")],
   });
 
-  return fromOpynToNumber(ethPrice);
+  return Convert.fromOpyn(ethPrice, 2).toInt();
 };
 
 /**

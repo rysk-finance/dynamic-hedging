@@ -8,7 +8,7 @@ import { useAccount } from "wagmi";
 
 import { getQuotes } from "src/components/shared/utils/getQuote";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { toOpyn, toRysk } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
@@ -45,7 +45,9 @@ export const usePositionData = (amountToClose: string) => {
     remainingBalance: 0,
     slippage: 0,
     totalSize: 0,
-    strike: closingOption?.strike ? parseInt(closingOption.strike) : undefined,
+    strike: closingOption?.strike
+      ? Convert.fromStr(closingOption.strike).toInt()
+      : undefined,
   });
 
   const [loading, setLoading] = useState(false);
@@ -68,7 +70,7 @@ export const usePositionData = (amountToClose: string) => {
               await getQuotes([
                 {
                   expiry: Number(activeExpiry),
-                  strike: toRysk(closingOption.strike),
+                  strike: Convert.fromStr(closingOption.strike).toWei(),
                   isPut: closingOption.isPut,
                   orderSize: amount,
                   isSell: true,
@@ -77,7 +79,9 @@ export const usePositionData = (amountToClose: string) => {
 
             const remainingBalance =
               balances.USDC === 0 ? 0 : balances.USDC + quote;
-            const approved = toOpyn(amountToClose).lte(allowance.amount);
+            const approved = Convert.fromStr(amountToClose)
+              .toOpyn()
+              .lte(allowance.amount);
 
             setPositionData({
               acceptablePremium,
@@ -90,7 +94,7 @@ export const usePositionData = (amountToClose: string) => {
               remainingBalance,
               slippage,
               totalSize,
-              strike: parseInt(closingOption.strike),
+              strike: Convert.fromStr(closingOption.strike).toInt(),
             });
             setAllowance((currentState) => ({ ...currentState, approved }));
           } else {
@@ -106,7 +110,7 @@ export const usePositionData = (amountToClose: string) => {
               slippage: 0,
               totalSize,
               strike: closingOption?.strike
-                ? parseInt(closingOption.strike)
+                ? Convert.fromStr(closingOption.strike).toInt()
                 : undefined,
             });
             setAllowance((currentState) => ({

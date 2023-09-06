@@ -1,13 +1,13 @@
 import type { WethOracleHashMap } from "src/state/types";
 import type { OraclePrices } from "../types";
 
-import { fromOpynToNumber } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
 import { logError } from "src/utils/logError";
 
 export const buildOracleHashMap = (oracleAsset: OraclePrices) => {
   try {
     return oracleAsset.prices.reduce((map, { expiry, price }) => {
-      map[expiry] = fromOpynToNumber(price);
+      map[expiry] = Convert.fromOpyn(price).toInt();
 
       return map;
     }, {} as WethOracleHashMap);

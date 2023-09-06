@@ -9,7 +9,7 @@ import {
 } from "src/enums/OpynActionType";
 import RyskActionType from "src/enums/RyskActionType";
 import { OptionSeries } from "src/types";
-import { fromWeiToOpyn } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
 import { getContractAddress } from "src/utils/helpers";
 
 // The return value must be spread into the queue.
@@ -107,7 +107,7 @@ export const mintShortOption = (
     secondAddress: exchangeAddress,
     asset: oTokenAddress,
     vaultId,
-    amount: fromWeiToOpyn(amount),
+    amount: Convert.fromWei(amount).toOpyn(),
     optionSeries: EMPTY_SERIES,
     indexOrAcceptablePremium: BigNumber.from(0),
     data: ZERO_ADDRESS,

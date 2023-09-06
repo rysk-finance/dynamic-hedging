@@ -2,22 +2,12 @@ import type { UserVaults } from "src/state/types";
 import type { OptionSeries } from "src/types";
 
 import { prepareWriteContract, writeContract } from "@wagmi/core";
-import { BigNumber, utils } from "ethers";
+import { BigNumber } from "ethers";
 
 import { OptionExchangeABI } from "src/abis/OptionExchange_ABI";
 import { waitForTransactionOrTimer } from "src/components/shared/utils/waitForTransaction";
-import {
-  EMPTY_SERIES,
-  GAS_MULTIPLIER,
-  ZERO_ADDRESS,
-} from "src/config/constants";
+import { GAS_MULTIPLIER } from "src/config/constants";
 import OperationType from "src/enums/OperationType";
-import {
-  OpenVaultCollateralType,
-  OpynActionType,
-} from "src/enums/OpynActionType";
-import RyskActionType from "src/enums/RyskActionType";
-import { fromWeiToOpyn } from "src/utils/conversion-helper";
 import {
   depositCollateral,
   mintShortOption,

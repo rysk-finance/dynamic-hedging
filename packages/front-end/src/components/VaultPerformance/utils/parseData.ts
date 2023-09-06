@@ -4,13 +4,9 @@ import { readContracts } from "@wagmi/core";
 
 import { DHVLensMK1ABI } from "src/abis/DHVLensMK1_ABI";
 import { PriceFeedABI } from "src/abis/PriceFeed_ABI";
-import {
-  SECONDS_IN_WEEK,
-  fromOpynToNumber,
-  fromWeiToInt,
-} from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
 import { getContractAddress } from "src/utils/helpers";
-import { toTwoDecimalPlaces } from "src/utils/rounding";
+import { SECONDS_IN_WEEK } from "src/utils/time";
 
 export const parseData = async (
   graphData?: QueryData
@@ -35,53 +31,66 @@ export const parseData = async (
     const { pricePerShares } = graphData;
     const lastIndex = pricePerShares[pricePerShares.length - 1];
 
-    const currentPPS = fromWeiToInt(currentPricePerShare[0] || lastIndex.value);
-    const lastPPS = fromWeiToInt(lastIndex.value);
+    const currentPPS = Convert.fromWei(
+      currentPricePerShare[0] || lastIndex.value
+    ).toInt();
+    const lastPPS = Convert.fromWei(lastIndex.value).toInt();
     const diff = (currentPPS - lastPPS) * 100;
-    const lastGrowthCalculation = parseFloat(lastIndex.growthSinceFirstEpoch);
+    const lastGrowthCalculation = Convert.fromStr(
+      lastIndex.growthSinceFirstEpoch
+    ).toInt();
     const predictedGrowthSinceFirstEpoch = String(lastGrowthCalculation + diff);
 
     const pricePerSharesWithPrediction = [
       ...pricePerShares,
       {
-        epoch: (parseFloat(lastIndex.epoch) + 1).toString(),
+        epoch: Convert.fromInt(
+          Convert.fromStr(lastIndex.epoch).toInt() + 1
+        ).toStr(),
         ethPrice: currentEthPrice,
         growthSinceFirstEpoch: "",
         predictedGrowthSinceFirstEpoch,
-        timestamp: String(parseInt(lastIndex.timestamp) + SECONDS_IN_WEEK),
-        value: currentPricePerShare.toString(),
+        timestamp: String(
+          Convert.fromStr(lastIndex.timestamp).toInt() + SECONDS_IN_WEEK
+        ),
+        value: currentPPS,
         __typename: "",
       },
     ];
 
     const publicLaunchOffset = pricePerSharesWithPrediction.length
-      ? parseFloat(pricePerSharesWithPrediction[0].growthSinceFirstEpoch)
+      ? Convert.fromStr(
+          pricePerSharesWithPrediction[0].growthSinceFirstEpoch
+        ).toInt()
       : 0;
     const publicLaunchEthPrice = pricePerSharesWithPrediction.length
-      ? fromOpynToNumber(pricePerSharesWithPrediction[0].ethPrice)
+      ? Convert.fromOpyn(pricePerSharesWithPrediction[0].ethPrice).toInt()
       : 0;
 
     return pricePerSharesWithPrediction.map((pricePoint, index, array) => {
-      const pricePointGrowth = parseFloat(pricePoint.growthSinceFirstEpoch);
-      const growthSinceFirstEpoch = toTwoDecimalPlaces(
+      const pricePointGrowth = Convert.fromStr(
+        pricePoint.growthSinceFirstEpoch
+      ).toInt();
+      const growthSinceFirstEpoch = Convert.round(
         pricePointGrowth - publicLaunchOffset
       );
-      const ethPrice = fromOpynToNumber(pricePoint.ethPrice);
-      const ethPriceGrowth = toTwoDecimalPlaces(
+
+      const ethPrice = Convert.fromOpyn(pricePoint.ethPrice).toInt();
+      const ethPriceGrowth = Convert.round(
         (ethPrice / publicLaunchEthPrice - 1) * 100
       );
 
       if (pricePoint.predictedGrowthSinceFirstEpoch) {
-        const predictedPricePointGrowth = parseFloat(
+        const predictedPricePointGrowth = Convert.fromStr(
           pricePoint.predictedGrowthSinceFirstEpoch
-        );
+        ).toInt();
 
         return {
           ...pricePoint,
           ethPrice: NaN,
           predictedEthPrice: ethPriceGrowth,
           growthSinceFirstEpoch: NaN,
-          predictedGrowthSinceFirstEpoch: toTwoDecimalPlaces(
+          predictedGrowthSinceFirstEpoch: Convert.round(
             predictedPricePointGrowth - publicLaunchOffset
           ),
           isPrediction: true,

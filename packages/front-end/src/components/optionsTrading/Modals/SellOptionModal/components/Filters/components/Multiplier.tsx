@@ -9,6 +9,7 @@ import { RyskTooltip } from "src/components/shared/RyskToolTip";
 import { COLLATERAL_DOCS } from "src/config/links";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
+import { Convert } from "src/utils/Convert";
 
 export const Multiplier = () => {
   const {
@@ -23,7 +24,7 @@ export const Multiplier = () => {
   const [debouncedMultiplier] = useDebounce(multiplier, 300);
 
   const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const rounded = parseFloat(roundInputValue(event));
+    const rounded = Convert.fromStr(roundInputValue(event)).toInt();
 
     if (rounded > 100) {
       setMultiplier(Math.floor(rounded / 10));
@@ -62,7 +63,7 @@ export const Multiplier = () => {
   const iconLeft = useMemo(() => {
     const base = 2.6;
     const gap = 0.3;
-    const len = multiplier.toString().length;
+    const len = Convert.fromInt(multiplier).toStr().length;
 
     return `${base + (len - 1) * gap}rem`;
   }, [multiplier]);

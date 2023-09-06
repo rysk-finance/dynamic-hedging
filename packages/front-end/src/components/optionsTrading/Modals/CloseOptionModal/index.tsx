@@ -11,7 +11,7 @@ import { RyskTooltip } from "src/components/shared/RyskToolTip";
 import { approveAllowance } from "src/components/shared/utils/transactions/approveAllowance";
 import { closeLong } from "src/components/shared/utils/transactions/closeLong";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { toOpyn, toRysk } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
 import { useNotifications } from "../../hooks/useNotifications";
 import { Disclaimer } from "../Shared/components/Disclaimer";
 import {
@@ -52,21 +52,18 @@ export const CloseOptionModal = () => {
 
   const handleCloseMax = (event: ChangeEvent<HTMLInputElement>) => {
     if (event.currentTarget.checked) {
-      setAmountToClose(positionData.totalSize.toString());
+      setAmountToClose(Convert.fromInt(positionData.totalSize).toStr());
     } else {
       setAmountToClose("");
     }
   };
 
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const rounded = roundInputValue(event);
+    const rounded = Convert.fromStr(roundInputValue(event)).toInt();
 
-    const maxAmount = Math.min(
-      positionData.totalSize,
-      parseFloat(rounded || "0")
-    );
+    const maxAmount = Math.min(positionData.totalSize, rounded || 0);
 
-    setAmountToClose((maxAmount ? maxAmount : rounded).toString());
+    setAmountToClose(Convert.fromInt(maxAmount ? maxAmount : rounded).toStr());
   };
 
   const handleApprove = async () => {
@@ -74,7 +71,7 @@ export const CloseOptionModal = () => {
 
     try {
       if (addresses.token && addresses.user) {
-        const amount = toOpyn(amountToClose);
+        const amount = Convert.fromStr(amountToClose).toOpyn();
 
         const hash = await approveAllowance(
           addresses.exchange,
@@ -99,7 +96,7 @@ export const CloseOptionModal = () => {
 
     try {
       if (addresses.token && addresses.user) {
-        const amount = toRysk(amountToClose);
+        const amount = Convert.fromStr(amountToClose).toWei();
 
         const hash = await closeLong(
           positionData.acceptablePremium,
@@ -145,7 +142,7 @@ export const CloseOptionModal = () => {
           <span className="flex">
             <Label className="flex items-center justify-center select-none cursor-pointer w-min border-black border-r-2 px-2">
               <Checkbox
-                checked={amountToClose === positionData.totalSize.toString()}
+                checked={amountToClose === Convert.fromInt(positionData.totalSize).toStr()}
                 name="close-max"
                 onChange={handleCloseMax}
               />

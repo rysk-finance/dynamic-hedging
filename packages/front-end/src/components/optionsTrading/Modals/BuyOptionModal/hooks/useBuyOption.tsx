@@ -8,7 +8,7 @@ import { useAccount } from "wagmi";
 import { BigNumber } from "ethers";
 import { getQuotes } from "src/components/shared/utils/getQuote";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { tFormatUSDC, toRysk, toUSDC } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
@@ -66,7 +66,9 @@ export const useBuyOption = (amountToBuy: string) => {
           ] = await getQuotes([
             {
               expiry: Number(activeExpiry),
-              strike: toRysk(selectedOption.strikeOptions.strike.toString()),
+              strike: Convert.fromInt(
+                selectedOption.strikeOptions.strike
+              ).toWei(),
               isPut: selectedOption.callOrPut === "put",
               orderSize: amount,
               isSell: false,
@@ -76,8 +78,10 @@ export const useBuyOption = (amountToBuy: string) => {
           const remainingBalance =
             balances.USDC === 0 ? 0 : balances.USDC - quote;
 
-          const requiredApproval = String(tFormatUSDC(acceptablePremium, 4));
-          const approved = toUSDC(requiredApproval).lte(allowance.amount);
+          const requiredApproval = Convert.fromUSDC(acceptablePremium).toStr();
+          const approved = Convert.fromStr(requiredApproval)
+            .toUSDC()
+            .lte(allowance.amount);
 
           const exposure =
             data[activeExpiry!][selectedOption.strikeOptions.strike][

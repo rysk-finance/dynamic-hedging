@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 
 import { BIG_NUMBER_DECIMALS } from "../../config/constants";
 import { Currency, OptionSeries } from "../../types";
-import { parseTimestamp } from "../../utils/parseTimestamp";
+import { parseTimestamp } from "../../utils/time";
 import { BigNumberDisplay } from "../BigNumberDisplay";
 
 type OptionSeriesInfoProps = {

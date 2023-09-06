@@ -11,14 +11,7 @@ import { NewMarginCalculatorABI } from "src/abis/NewMarginCalculator_ABI";
 import { getQuotes } from "src/components/shared/utils/getQuote";
 import { DECIMALS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
-import {
-  fromRyskToNumber,
-  tFormatUSDC,
-  toOpyn,
-  toRysk,
-  toUSDC,
-  truncate,
-} from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { getLiquidationPrices } from "../../../../shared/utils/getLiquidationPrice";
@@ -99,7 +92,7 @@ export const useSellOption = (amountToSell: string) => {
           ] = await getQuotes([
             {
               expiry: Number(activeExpiry),
-              strike: toRysk(strike.toString()),
+              strike: Convert.fromInt(strike).toWei(),
               isPut: selectedOption.callOrPut === "put",
               orderSize: amount,
               isSell: selectedOption.buyOrSell === "sell",
@@ -116,9 +109,9 @@ export const useSellOption = (amountToSell: string) => {
                 WETHAddress,
                 USDCAddress,
                 collateralAddress,
-                toOpyn(amountToSell),
-                toOpyn(strike.toString()),
-                toOpyn(ethPrice.toString()),
+                Convert.fromStr(amountToSell).toOpyn(),
+                Convert.fromInt(strike).toOpyn(),
+                Convert.fromInt(ethPrice).toOpyn(),
                 BigNumber.from(activeExpiry),
                 BigNumber.from(USDCCollateral ? DECIMALS.USDC : DECIMALS.RYSK),
                 selectedOption.callOrPut === "put",
@@ -136,8 +129,8 @@ export const useSellOption = (amountToSell: string) => {
                 .mul(Math.round(collateralPreferences.amount * 100))
                 .div(100);
               const formatted = USDCCollateral
-                ? tFormatUSDC(multipliedCollateral)
-                : fromRyskToNumber(multipliedCollateral.toString());
+                ? Convert.fromUSDC(multipliedCollateral).toInt()
+                : Convert.fromWei(multipliedCollateral, 4).toInt();
               const maximum = USDCCollateral ? strike * amount : amount;
 
               if (selectedOption.callOrPut === "put") {
@@ -166,11 +159,14 @@ export const useSellOption = (amountToSell: string) => {
             ? balanceUSDC > collateral * approvalBuffer
             : balanceWETH > collateral * approvalBuffer;
 
-          const requiredApproval = String(
-            truncate(collateral * approvalBuffer, 4)
-          );
+          const requiredApproval = Convert.fromInt(
+            collateral * approvalBuffer,
+            4
+          ).toStr();
           const approved = (
-            USDCCollateral ? toUSDC(requiredApproval) : toRysk(requiredApproval)
+            USDCCollateral
+              ? Convert.fromStr(requiredApproval).toUSDC()
+              : Convert.fromStr(requiredApproval).toWei()
           ).lte(allowance.amount);
 
           const [liquidationPrice] = collateralPreferences.full

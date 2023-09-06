@@ -12,6 +12,7 @@ import { logError } from "src/utils/logError";
 import { useUpdateEthPrice } from "../useUpdateEthPrice";
 import { initialDataQuery } from "./graphQuery";
 import { getInitialData } from "./utils";
+import { Convert } from "src/utils/Convert";
 
 /**
  * Initialiser hook to pre-fetch:
@@ -94,7 +95,8 @@ export const useInitialData = () => {
           oracleHashMap,
         ]) => {
           const firstAvailableExpiry = validExpiries.find(
-            (expiry) => parseFloat(expiry) > dayjs().add(1, "day").unix()
+            (expiry) =>
+              Convert.fromStr(expiry).toInt() > dayjs().add(1, "day").unix()
           );
 
           dispatch({

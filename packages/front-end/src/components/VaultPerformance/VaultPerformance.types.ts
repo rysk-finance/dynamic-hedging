@@ -1,12 +1,10 @@
-import type { BigNumberish } from "ethers";
-
 interface PricePerShareEpoch {
   epoch: string;
-  ethPrice: BigNumberish;
+  ethPrice: string;
   growthSinceFirstEpoch: string;
   predictedGrowthSinceFirstEpoch?: string;
   timestamp: string;
-  value: BigNumberish;
+  value: string;
   __typename: string;
 }
 

@@ -23,23 +23,23 @@ type Expiries = string[];
 
 export interface UserPositionToken extends PositionOToken {
   active: boolean;
-  buyAmount?: BigNumberish;
+  buyAmount?: string;
   firstCreated?: string;
   id: HexString;
-  netAmount: BigNumberish;
+  netAmount: string;
   totalPremiumBought: number;
   totalPremiumSold: number;
   liquidateActions?: LiquidateActions[];
-  realizedPnl: BigNumberish;
+  realizedPnl: string;
   redeemActions?: RedeemActions[];
-  sellAmount?: BigNumberish;
+  sellAmount?: string;
   settleActions?: SettleActions[];
   vault?: Vault;
 }
 
 export interface UserPositions {
   [expiry: string]: {
-    netAmount: BigNumberish;
+    netAmount: string;
     isLong: boolean;
     isShort: boolean;
     activeTokens: UserPositionToken[];
@@ -447,8 +447,6 @@ export type VaultContext = {
   dispatch: Dispatch<VaultAction>;
 };
 
-
-
 export enum OptionChainModalActions {
   ADJUST_COLLATERAL = "Adjust Collateral",
   BUY = "Buy",
@@ -462,7 +460,6 @@ export enum OptionChainModalActions {
 
 export type OptionChainModal =
   (typeof OptionChainModalActions)[keyof typeof OptionChainModalActions];
-
 
 export type CallOrPut = "call" | "put";
 
@@ -530,5 +527,3 @@ export interface StrikeOptions {
   call?: StrikeSide;
   put?: StrikeSide;
 }
-
-

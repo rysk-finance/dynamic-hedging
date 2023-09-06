@@ -7,13 +7,7 @@ import { useAccount } from "wagmi";
 
 import { getLiquidationPrices } from "src/components/shared/utils/getLiquidationPrice";
 import { useGlobalContext } from "src/state/GlobalContext";
-import {
-  fromWeiToInt,
-  tFormatUSDC,
-  toUSDC,
-  toWei,
-  truncate,
-} from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
@@ -71,8 +65,8 @@ export const useCollateralData = (
 
         if (amount > 0 && ethPrice && adjustingOption && collateralAddress) {
           const currentCollateral = USDCCollateral
-            ? tFormatUSDC(adjustingOption.vault.collateralAmount)
-            : fromWeiToInt(adjustingOption.vault.collateralAmount);
+            ? Convert.fromUSDC(adjustingOption.vault.collateralAmount).toInt()
+            : Convert.fromWei(adjustingOption.vault.collateralAmount).toInt();
           const newCollateral = isDepositing
             ? currentCollateral + amount
             : currentCollateral - amount;
@@ -114,11 +108,14 @@ export const useCollateralData = (
               : balanceWETH > amount * approvalBuffer
             : true;
 
-          const requiredApproval = String(truncate(amount * approvalBuffer, 4));
+          const requiredApproval = Convert.fromInt(
+            amount * approvalBuffer,
+            4
+          ).toStr();
           const approved = isDepositing
             ? (USDCCollateral
-                ? toUSDC(requiredApproval)
-                : toWei(requiredApproval)
+                ? Convert.fromStr(requiredApproval).toUSDC()
+                : Convert.fromStr(requiredApproval).toWei()
               ).lte(allowance.amount)
             : true;
 

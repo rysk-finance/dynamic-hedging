@@ -7,7 +7,7 @@ import { useDebounce } from "use-debounce";
 import { approveAllowance } from "src/components/shared/utils/transactions/approveAllowance";
 import { sell } from "src/components/shared/utils/transactions/sell";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { toRysk, toUSDC, toWei } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
 import { getContractAddress } from "src/utils/helpers";
 import { useNotifications } from "../../hooks/useNotifications";
 import { Disclaimer } from "../Shared/components/Disclaimer";
@@ -56,8 +56,8 @@ export const SellOptionModal = () => {
       if (addresses.collateral && addresses.user) {
         const amount =
           collateralPreferences.type === "USDC"
-            ? toUSDC(positionData.requiredApproval)
-            : toRysk(positionData.requiredApproval);
+            ? Convert.fromStr(positionData.requiredApproval).toUSDC()
+            : Convert.fromStr(positionData.requiredApproval).toWei();
 
         const hash = await approveAllowance(
           addresses.exchange,
@@ -90,7 +90,7 @@ export const SellOptionModal = () => {
       ) {
         const optionSeries = {
           expiration: BigNumber.from(activeExpiry),
-          strike: toWei(selectedOption.strikeOptions.strike.toString()),
+          strike: Convert.fromInt(selectedOption.strikeOptions.strike).toWei(),
           isPut: selectedOption.callOrPut === "put",
           strikeAsset: getContractAddress("USDC"),
           underlying: getContractAddress("WETH"),
@@ -99,10 +99,10 @@ export const SellOptionModal = () => {
 
         const hash = await sell(
           positionData.acceptablePremium,
-          toRysk(amountToSell),
+          Convert.fromStr(amountToSell).toWei(),
           collateralPreferences.type === "USDC"
-            ? toUSDC(positionData.collateral.toString())
-            : toRysk(positionData.collateral.toString()),
+            ? Convert.fromInt(positionData.collateral).toUSDC()
+            : Convert.fromInt(positionData.collateral).toWei(),
           addresses.collateral,
           addresses.exchange,
           optionSeries,

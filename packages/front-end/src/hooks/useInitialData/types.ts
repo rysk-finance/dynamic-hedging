@@ -10,7 +10,7 @@ export interface PositionOToken {
   expiryTimestamp: string;
   id: HexString;
   isPut: boolean;
-  strikePrice: BigNumberish;
+  strikePrice: string;
   symbol: string;
 }
 
@@ -29,7 +29,7 @@ export interface SettleActions {
 }
 
 export interface LiquidateActions {
-  collateralPayout: BigNumberish;
+  collateralPayout: string;
 }
 export interface Vault {
   id: string;
@@ -41,15 +41,15 @@ export interface Vault {
 
 export interface Position {
   active: boolean;
-  buyAmount?: BigNumberish;
+  buyAmount?: string;
   liquidateActions?: LiquidateActions[];
-  netAmount: BigNumberish;
+  netAmount: string;
   oToken: PositionOToken;
   optionsBoughtTransactions: OptionsTransaction[];
   optionsSoldTransactions: OptionsTransaction[];
-  realizedPnl: BigNumberish;
+  realizedPnl: string;
   redeemActions?: RedeemActions[];
-  sellAmount?: BigNumberish;
+  sellAmount?: string;
   settleActions?: SettleActions[];
   vault?: Vault;
 }
@@ -57,7 +57,7 @@ export interface Position {
 export interface OraclePrices {
   prices: {
     expiry: string;
-    price: BigNumberish;
+    price: string;
   }[];
 }
 

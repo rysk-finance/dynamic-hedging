@@ -6,12 +6,11 @@ import { AnimatePresence } from "framer-motion";
 import { useState } from "react";
 
 import FadeInOutQuick from "src/animation/FadeInOutQuick";
-import { useGlobalContext } from "src/state/GlobalContext";
-import { toRysk, toUSDC } from "src/utils/conversion-helper";
-
 import { RyskTooltip } from "src/components/shared/RyskToolTip";
 import { approveAllowance } from "src/components/shared/utils/transactions/approveAllowance";
 import { closeShort } from "src/components/shared/utils/transactions/closeShort";
+import { useGlobalContext } from "src/state/GlobalContext";
+import { Convert } from "src/utils/Convert";
 import { getContractAddress } from "src/utils/helpers";
 import { useDebounce } from "use-debounce";
 import { useNotifications } from "../../hooks/useNotifications";
@@ -54,7 +53,7 @@ export const CloseShortOptionModal = () => {
 
   const handleCloseMax = (event: ChangeEvent<HTMLInputElement>) => {
     if (event.currentTarget.checked) {
-      setAmountToSell(positionData.totalSize.toString());
+      setAmountToSell(Convert.fromInt(positionData.totalSize).toStr());
     } else {
       setAmountToSell("");
     }
@@ -76,7 +75,7 @@ export const CloseShortOptionModal = () => {
 
     try {
       if (addresses.collateral && addresses.user) {
-        const amount = toUSDC(positionData.requiredApproval);
+        const amount = Convert.fromStr(positionData.requiredApproval).toUSDC();
 
         const hash = await approveAllowance(
           addresses.exchange,
@@ -102,7 +101,7 @@ export const CloseShortOptionModal = () => {
 
     try {
       if (addresses.token && addresses.user && vaultId) {
-        const amount = toRysk(amountToSell);
+        const amount = Convert.fromStr(amountToSell).toWei();
 
         const hash = await closeShort(
           positionData.acceptablePremium,
@@ -156,7 +155,7 @@ export const CloseShortOptionModal = () => {
           <span className="flex">
             <Label className="flex items-center justify-center select-none cursor-pointer w-min border-black border-r-2 px-2">
               <Checkbox
-                checked={amountToSell === positionData.totalSize.toString()}
+                checked={amountToSell === Convert.fromInt(positionData.totalSize).toStr()}
                 name="close-max"
                 onChange={handleCloseMax}
               />

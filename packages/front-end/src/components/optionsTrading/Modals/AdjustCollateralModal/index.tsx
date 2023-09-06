@@ -6,7 +6,7 @@ import { useDebounce } from "use-debounce";
 import { adjustCollateral } from "src/components/shared/utils/transactions/adjustCollateral";
 import { approveAllowance } from "src/components/shared/utils/transactions/approveAllowance";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { toUSDC, toWei } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
 import { useNotifications } from "../../hooks/useNotifications";
 import { Disclaimer } from "../Shared/components/Disclaimer";
 import { Button, Input, Label, Wrapper } from "../Shared/components/Form";
@@ -52,8 +52,8 @@ export const AdjustCollateralModal = () => {
       if (adjustingOption && addresses.token && addresses.user) {
         const amount =
           adjustingOption.asset === "USDC"
-            ? toUSDC(collateralData.requiredApproval)
-            : toWei(collateralData.requiredApproval);
+            ? Convert.fromStr(collateralData.requiredApproval).toUSDC()
+            : Convert.fromStr(collateralData.requiredApproval).toWei();
 
         const hash = await approveAllowance(
           addresses.exchange,
@@ -81,8 +81,8 @@ export const AdjustCollateralModal = () => {
       if (adjustingOption && addresses.user && addresses.token) {
         const amount =
           adjustingOption.asset === "USDC"
-            ? toUSDC(collateralData.requiredApproval)
-            : toWei(collateralData.requiredApproval);
+            ? Convert.fromStr(collateralData.requiredApproval).toUSDC()
+            : Convert.fromStr(collateralData.requiredApproval).toWei();
 
         const hash = await adjustCollateral(
           amount,

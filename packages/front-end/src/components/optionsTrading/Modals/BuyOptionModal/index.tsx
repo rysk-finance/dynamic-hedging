@@ -7,7 +7,7 @@ import { useDebounce } from "use-debounce";
 import { approveAllowance } from "src/components/shared/utils/transactions/approveAllowance";
 import { buy } from "src/components/shared/utils/transactions/buy";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { toRysk, toUSDC, toWei } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
 import { getContractAddress } from "src/utils/helpers";
 import { useNotifications } from "../../hooks/useNotifications";
 import { Disclaimer } from "../Shared/components/Disclaimer";
@@ -51,7 +51,7 @@ export const BuyOptionModal = () => {
 
     try {
       if (addresses.token && addresses.user) {
-        const amount = toUSDC(positionData.requiredApproval);
+        const amount = Convert.fromStr(positionData.requiredApproval).toUSDC();
 
         const hash = await approveAllowance(
           addresses.exchange,
@@ -82,11 +82,11 @@ export const BuyOptionModal = () => {
         addresses.user &&
         selectedOption
       ) {
-        const amount = toRysk(amountToBuy);
+        const amount = Convert.fromStr(amountToBuy).toWei();
 
         const optionSeries = {
           expiration: BigNumber.from(activeExpiry),
-          strike: toWei(selectedOption.strikeOptions.strike.toString()),
+          strike: Convert.fromInt(selectedOption.strikeOptions.strike).toWei(),
           isPut: selectedOption.callOrPut === "put",
           strikeAsset: addresses.token,
           underlying: getContractAddress("WETH"),

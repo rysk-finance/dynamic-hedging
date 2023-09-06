@@ -5,7 +5,7 @@ import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
 
 import { getQuotes } from "src/components/shared/utils/getQuote";
-import { fromOpyn, fromWeiToInt, toRysk } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
 import { buildActivePositions } from "../utils/buildActivePositions";
 import { calculateDelta } from "../utils/calculateDelta";
 import { calculatePnL } from "../utils/calculatePnL";
@@ -44,10 +44,10 @@ export const useUserStats = () => {
             const isShort = collateralAsset && "symbol" in collateralAsset;
 
             return {
-              expiry: parseInt(expiryTimestamp),
-              strike: toRysk(fromOpyn(strikePrice)),
+              expiry: Convert.fromStr(expiryTimestamp).toInt(),
+              strike: Convert.fromOpyn(strikePrice).toWei(),
               isPut: isPut,
-              orderSize: Math.abs(fromWeiToInt(netAmount)),
+              orderSize: Math.abs(Convert.fromWei(netAmount).toInt()),
               isSell: !isShort,
               collateral: isShort ? collateralAsset.symbol : "USDC",
             };

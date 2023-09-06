@@ -4,6 +4,7 @@ import NumberFormat from "react-number-format";
 import ReactSlider from "react-slider";
 import { useAccount, useNetwork } from "wagmi";
 
+import { Convert } from "src/utils/Convert";
 import LPABI from "../../abis/LiquidityPool.json";
 import ERC20ABI from "../../abis/erc20.json";
 import {
@@ -372,7 +373,7 @@ export const VaultWithdraw = () => {
                       //
                     }
                   }}
-                  value={sliderPercentage.toString()}
+                  value={Convert.fromInt(sliderPercentage).toStr()}
                   iconLeft={
                     <div className="h-full flex items-center px-4 text-right text-cyan-dark cursor-default">
                       <p>%</p>

@@ -5,7 +5,7 @@ import { BigNumber } from "ethers";
 
 import { AlphaPortfolioValuesFeedABI } from "src/abis/AlphaPortfolioValuesFeed_ABI";
 import { BeyondPricerABI } from "src/abis/BeyondPricer_ABI";
-import { fromWeiToInt, tFormatUSDC, toWei } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
 import { getContractAddress, getOptionHash } from "src/utils/helpers";
 
 export const getQuotes = async (
@@ -44,13 +44,18 @@ export const getQuotes = async (
         return [
           {
             ...quoteOptionPriceContractDetails,
-            args: [series, toWei("1"), isSell, exposures[index]],
+            args: [
+              series,
+              Convert.fromInt(1).toWei(),
+              isSell,
+              exposures[index],
+            ],
           } as const,
           {
             ...quoteOptionPriceContractDetails,
             args: [
               series,
-              toWei(orderSize.toString()),
+              Convert.fromInt(orderSize).toWei(),
               isSell,
               exposures[index],
             ],
@@ -75,28 +80,28 @@ export const getQuotes = async (
       };
     }
 
-    const fee = tFormatUSDC(forOne.totalFees);
-    const premium = tFormatUSDC(forOne.totalPremium);
-    const quoteForOne = tFormatUSDC(
+    const fee = Convert.fromUSDC(forOne.totalFees).toInt();
+    const premium = Convert.fromUSDC(forOne.totalPremium).toInt();
+    const quoteForOne = Convert.fromUSDC(
       isSell
         ? forOne.totalPremium.sub(forOne.totalFees)
         : forOne.totalPremium.add(forOne.totalFees),
       4
-    );
-    const quote = tFormatUSDC(
+    ).toInt();
+    const quote = Convert.fromUSDC(
       isSell
         ? forOrder.totalPremium.sub(forOrder.totalFees)
         : forOrder.totalPremium.add(forOrder.totalFees),
       4
-    );
+    ).toInt();
     const calc = (quote / orderSize / quoteForOne - 1) * 100;
     const slippage = isSell ? Math.min(0, calc) : Math.max(0, calc);
     const acceptablePremium = isSell
       ? forOrder.totalPremium.div(100).mul(97)
       : forOrder.totalPremium.div(100).mul(103);
     const breakEven = isPut
-      ? fromWeiToInt(strike) - quote / orderSize
-      : fromWeiToInt(strike) + quote / orderSize;
+      ? Convert.fromWei(strike).toInt() - quote / orderSize
+      : Convert.fromWei(strike).toInt() + quote / orderSize;
 
     return { acceptablePremium, breakEven, fee, premium, quote, slippage };
   });

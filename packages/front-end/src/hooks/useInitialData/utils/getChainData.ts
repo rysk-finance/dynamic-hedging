@@ -14,16 +14,10 @@ import { BigNumber } from "ethers";
 import { getImpliedVolatility } from "implied-volatility";
 
 import { DHVLensMK1ABI } from "src/abis/DHVLensMK1_ABI";
-import {
-  SECONDS_IN_YEAR,
-  fromUSDC,
-  fromWei,
-  fromWeiToInt,
-  fromWeiToOpyn,
-} from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
-import { toTwoDecimalPlaces } from "src/utils/rounding";
+import { SECONDS_IN_YEAR } from "src/utils/time";
 
 export const getChainData = async (
   expiries: string[],
@@ -60,14 +54,16 @@ export const getChainData = async (
             wethCollatseriesExchangeBalance,
           }: DHVLensMK1.OptionStrikeDrillStruct
         ) => {
-          const strikeUSDC = Number(fromWei(strike));
+          const strikeUSDC = Convert.fromWei(strike as string).toInt();
 
           const _getQuote = (
             buyOrSell: DHVLensMK1.TradingSpecStruct,
             isSell: boolean
           ) => {
-            const fee = Number(fromUSDC(buyOrSell.fee as BigNumber));
-            const quote = Number(fromUSDC(buyOrSell.quote as BigNumber));
+            const fee = Convert.fromUSDC(buyOrSell.fee as BigNumber).toInt();
+            const quote = Convert.fromUSDC(
+              buyOrSell.quote as BigNumber
+            ).toInt();
             const total = isSell ? quote - fee : fee + quote;
 
             return total >= 0.01
@@ -86,17 +82,19 @@ export const getChainData = async (
                 side
               ) * 100;
 
-            return toTwoDecimalPlaces(IV);
+            return Convert.round(IV);
           };
 
           const positions = (userPositions[expiry]?.activeTokens || []).reduce(
             (acc, position) => {
               if (
-                fromWeiToOpyn(strike).eq(position.strikePrice) &&
+                Convert.fromWei(strike as BigNumber)
+                  .toOpyn()
+                  .eq(position.strikePrice) &&
                 (side === "put") === position.isPut
               ) {
                 acc.id.push(position.id);
-                acc.netAmount += fromWeiToInt(position.netAmount);
+                acc.netAmount += Convert.fromWei(position.netAmount).toInt();
               }
 
               return acc;
@@ -108,10 +106,10 @@ export const getChainData = async (
             [side]: {
               buy: {
                 disabled: buy.disabled,
-                IV: _getIV(Number(fromUSDC(buy.quote))),
+                IV: _getIV(Convert.fromUSDC(buy.quote as BigNumber).toInt()),
                 quote: _getQuote(buy, false),
               },
-              delta: toTwoDecimalPlaces(Number(fromWei(delta))),
+              delta: Convert.fromWei(delta as string).toInt(),
               exchangeAddresses: {
                 USDC: usdCollatseriesExchangeBalance.seriesAddress,
                 WETH: wethCollatseriesExchangeBalance.seriesAddress,
@@ -120,11 +118,11 @@ export const getChainData = async (
                 USDC: usdCollatseriesExchangeBalance.optionExchangeBalance,
                 WETH: wethCollatseriesExchangeBalance.optionExchangeBalance,
               },
-              exposure: Number(fromWei(exposure)),
+              exposure: Convert.fromWei(exposure as string).toInt(),
               pos: positions.netAmount,
               sell: {
                 disabled: sell.disabled || sell.premiumTooSmall,
-                IV: _getIV(Number(fromUSDC(sell.quote))),
+                IV: _getIV(Convert.fromUSDC(sell.quote as BigNumber).toInt()),
                 quote: _getQuote(sell, true),
               },
             },
@@ -153,7 +151,7 @@ export const getChainData = async (
           } = currentExpiry;
 
           const expiry = expiration.toNumber();
-          const ethPrice = Number(fromWei(underlyingPrice));
+          const ethPrice = Convert.fromWei(underlyingPrice).toInt();
           const calls = createSide(callOptionDrill, "call", ethPrice, expiry);
           const puts = createSide(putOptionDrill, "put", ethPrice, expiry);
           const strikes = Array.from(

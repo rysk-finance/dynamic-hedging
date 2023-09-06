@@ -9,7 +9,7 @@ import { BigNumber } from "ethers";
 import { getQuotes } from "src/components/shared/utils/getQuote";
 import { BIG_NUMBER_DECIMALS } from "src/config/constants";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { tFormatEth, tFormatUSDC, toRysk } from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
 import { getContractAddress } from "src/utils/helpers";
 import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
@@ -54,7 +54,9 @@ export const useShortPositionData = (amountToClose: string) => {
     slippage: 0,
     totalSize: 0,
     requiredApproval: "",
-    strike: closingOption?.strike ? parseInt(closingOption.strike) : undefined,
+    strike: closingOption?.strike
+      ? Convert.fromStr(closingOption.strike).toInt()
+      : undefined,
   });
 
   const vault = closingOption?.vault;
@@ -88,7 +90,7 @@ export const useShortPositionData = (amountToClose: string) => {
               await getQuotes([
                 {
                   expiry: Number(activeExpiry),
-                  strike: toRysk(closingOption.strike),
+                  strike: Convert.fromStr(closingOption.strike).toWei(),
                   isPut: closingOption.isPut,
                   orderSize: amount,
                   isSell: false,
@@ -115,12 +117,20 @@ export const useShortPositionData = (amountToClose: string) => {
             const remainingCollateral = collateralToRemove.isZero()
               ? 0
               : collateralAsset === getContractAddress("WETH")
-              ? tFormatEth(collateralAmount.sub(collateralToRemove))
-              : tFormatUSDC(collateralAmount.sub(collateralToRemove));
+              ? Convert.fromWei(
+                  collateralAmount.sub(collateralToRemove),
+                  4
+                ).toInt()
+              : Convert.fromUSDC(
+                  collateralAmount.sub(collateralToRemove),
+                  2
+                ).toInt();
             const collateralReleased =
               collateralAsset === getContractAddress("WETH")
-                ? tFormatEth(collateralToRemove)
-                : tFormatUSDC(collateralToRemove);
+                ? Convert.fromWei(collateralToRemove, 4).toInt()
+                : Convert.fromUSDC(collateralToRemove, 2).toInt();
+
+            console.log(collateralReleased);
 
             // Closing a short is buying back the oToken, hence minus the quote.
             const remainingBalanceUSDC =
@@ -136,7 +146,8 @@ export const useShortPositionData = (amountToClose: string) => {
             // Ensure user has sufficient wallet balance to cover premium before collateral is released.
             const hasRequiredCapital = balances.USDC > quote;
 
-            const requiredApproval = String(tFormatUSDC(acceptablePremium, 4));
+            const requiredApproval =
+              Convert.fromUSDC(acceptablePremium).toStr();
             const approved = acceptablePremium.lte(allowance.amount);
 
             setPositionData({
@@ -157,7 +168,7 @@ export const useShortPositionData = (amountToClose: string) => {
               slippage,
               totalSize: Math.abs(totalSize),
               requiredApproval,
-              strike: parseInt(closingOption.strike),
+              strike: Convert.fromStr(closingOption.strike).toInt(),
             });
             setAllowance((currentState) => ({ ...currentState, approved }));
           } else {
@@ -180,7 +191,7 @@ export const useShortPositionData = (amountToClose: string) => {
               totalSize: Math.abs(totalSize),
               requiredApproval: "",
               strike: closingOption?.strike
-                ? parseInt(closingOption.strike)
+                ? Convert.fromStr(closingOption.strike).toInt()
                 : undefined,
             });
             setAllowance((currentState) => ({

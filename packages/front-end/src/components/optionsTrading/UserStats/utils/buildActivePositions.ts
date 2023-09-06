@@ -12,12 +12,7 @@ import dayjs from "dayjs";
 
 import { ZERO_ADDRESS } from "src/config/constants";
 import { Vault } from "src/hooks/useInitialData/types";
-import {
-  fromOpyn,
-  fromOpynToNumber,
-  fromWeiToInt,
-  tFormatUSDC,
-} from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
 import { getLiquidationPrices } from "../../../shared/utils/getLiquidationPrice";
 import { PositionAction } from "../enums";
 
@@ -28,9 +23,9 @@ const formatCollateralAmount = (
 ) => {
   if (vault && collateralAsset) {
     if (collateralAsset.symbol === "WETH") {
-      return fromWeiToInt(vault.collateralAmount);
+      return Convert.fromWei(vault.collateralAmount).toInt();
     } else {
-      return tFormatUSDC(vault.collateralAmount);
+      return Convert.fromUSDC(vault.collateralAmount).toInt();
     }
   } else {
     return fallback;
@@ -119,13 +114,13 @@ export const buildActivePositions = async (
         vault,
       }) => {
         return {
-          amount: Math.abs(fromWeiToInt(netAmount)),
+          amount: Math.abs(Convert.fromWei(netAmount).toInt()),
           callOrPut: isPut ? "put" : "call",
           collateral: formatCollateralAmount(0, collateralAsset, vault),
           collateralAddress:
             (vault?.collateralAsset.id as HexString) || ZERO_ADDRESS,
-          expiry: parseInt(expiryTimestamp),
-          strikePrice: fromOpynToNumber(strikePrice),
+          expiry: Convert.fromStr(expiryTimestamp).toInt(),
+          strikePrice: Convert.fromOpyn(strikePrice).toInt(),
         };
       }
     ),
@@ -155,15 +150,15 @@ export const buildActivePositions = async (
       index
     ) => {
       const [, ...series] = symbol.split("-");
-      const isOpen = parseInt(expiryTimestamp) > nowToUnix;
+      const isOpen = Convert.fromStr(expiryTimestamp).toInt() > nowToUnix;
       const isShort = Boolean(collateralAsset && "symbol" in collateralAsset);
-      const amount = fromWeiToInt(netAmount);
+      const amount = Convert.fromWei(netAmount).toInt();
       const entry = isShort
-        ? totalPremiumSold / fromWeiToInt(sellAmount || 0)
-        : totalPremiumBought / fromWeiToInt(buyAmount || 0);
-      const formattedPnl = tFormatUSDC(realizedPnl);
+        ? totalPremiumSold / Convert.fromWei(sellAmount || "0").toInt()
+        : totalPremiumBought / Convert.fromWei(buyAmount || "0").toInt();
+      const formattedPnl = Convert.fromUSDC(realizedPnl).toInt();
       const side = isPut ? "put" : "call";
-      const strike = fromOpynToNumber(strikePrice);
+      const strike = Convert.fromOpyn(strikePrice).toInt();
       const chainSideData = chainData[expiryTimestamp]?.[strike][side];
       const { delta, buy, sell } = {
         delta: isOpen && chainSideData?.delta ? chainSideData.delta : 0,
@@ -183,9 +178,9 @@ export const buildActivePositions = async (
         : sell?.disabled || !sell.quote.quote;
 
       // Adjust P/L for partially closed positions.
-      const net = Math.abs(fromWeiToInt(netAmount));
-      const bought = fromWeiToInt(buyAmount);
-      const sold = fromWeiToInt(sellAmount);
+      const net = Math.abs(Convert.fromWei(netAmount).toInt());
+      const bought = Convert.fromWei(buyAmount || "0").toInt();
+      const sold = Convert.fromWei(sellAmount || "0").toInt();
 
       const adjusted =
         isShort && sold > net
@@ -231,7 +226,7 @@ export const buildActivePositions = async (
         mark: (buy.quote.quote + sell.quote.quote) / 2,
         profitLoss,
         series: series.join("-"),
-        strike: fromOpyn(strikePrice),
+        strike: Convert.fromOpyn(strikePrice).toStr(),
       };
     }
   );

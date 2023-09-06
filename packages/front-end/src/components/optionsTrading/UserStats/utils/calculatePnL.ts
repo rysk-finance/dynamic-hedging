@@ -3,12 +3,7 @@ import type { UserPositionToken, WethOracleHashMap } from "src/state/types";
 
 import dayjs from "dayjs";
 
-import {
-  fromOpynToNumber,
-  fromWeiToInt,
-  tFormatEth,
-  tFormatUSDC,
-} from "src/utils/conversion-helper";
+import { Convert } from "src/utils/Convert";
 
 /**
  * Calculate P/L value for all historical positions.
@@ -56,22 +51,23 @@ export const calculatePnL = async (
       },
       index
     ) => {
-      const positionSize = fromWeiToInt(netAmount);
+      const positionSize = Convert.fromWei(netAmount).toInt();
 
       if (index < longPositions.length) {
         // Longs
-        const expiriesAt = parseInt(expiryTimestamp);
+        const expiriesAt = Convert.fromStr(expiryTimestamp).toInt();
         const nowToUnix = dayjs().unix();
-        const realizedPnL = tFormatUSDC(realizedPnl);
+        const realizedPnL = Convert.fromUSDC(realizedPnl).toInt();
 
         if (!active) {
           // Manually closed or expired and redeemed.
           return [historicalPnL + realizedPnL, activePnL];
         } else if (expiriesAt > nowToUnix) {
           // Open positions.
-          const entry = totalPremiumBought / fromWeiToInt(buyAmount || 0);
-          const net = Math.abs(fromWeiToInt(netAmount));
-          const bought = fromWeiToInt(buyAmount);
+
+          const net = Math.abs(Convert.fromWei(netAmount).toInt());
+          const bought = Convert.fromWei(buyAmount || "0").toInt();
+          const entry = totalPremiumBought / bought;
           const adjustedPnl = bought > net ? -(net * entry) : realizedPnL;
 
           const { quote } =
@@ -86,7 +82,7 @@ export const calculatePnL = async (
         } else {
           // Expired but not yet redeemed.
           const priceAtExpiry = wethOracleHashMap[expiryTimestamp];
-          const strike = fromOpynToNumber(strikePrice);
+          const strike = Convert.fromOpyn(strikePrice).toInt();
 
           const valueAtExpiry = isPut
             ? Math.max(strike - priceAtExpiry, 0)
@@ -99,9 +95,9 @@ export const calculatePnL = async (
         }
       } else {
         // Shorts
-        const expiriesAt = parseInt(expiryTimestamp);
+        const expiriesAt = Convert.fromStr(expiryTimestamp).toInt();
         const nowToUnix = dayjs().unix();
-        const realizedPnL = tFormatUSDC(realizedPnl);
+        const realizedPnL = Convert.fromUSDC(realizedPnl).toInt();
         const hasBeenLiquidated =
           liquidateActions && Boolean(liquidateActions?.length);
 
@@ -114,8 +110,8 @@ export const calculatePnL = async (
             (totalCollateral, { collateralPayout }) => {
               const collateralForAction =
                 collateralAsset && collateralAsset.symbol === "USDC"
-                  ? tFormatUSDC(collateralPayout)
-                  : tFormatEth(collateralPayout) * ethPrice;
+                  ? Convert.fromUSDC(collateralPayout).toInt()
+                  : Convert.fromWei(collateralPayout).toInt() * ethPrice;
 
               return totalCollateral + collateralForAction;
             },
@@ -125,9 +121,10 @@ export const calculatePnL = async (
           return [historicalPnL + realizedPnL - collateralLost, activePnL];
         } else if (expiriesAt > nowToUnix) {
           // Open positions.
-          const entry = totalPremiumSold / fromWeiToInt(sellAmount || 0);
-          const net = Math.abs(fromWeiToInt(netAmount));
-          const sold = fromWeiToInt(sellAmount);
+
+          const net = Math.abs(Convert.fromWei(netAmount).toInt());
+          const sold = Convert.fromWei(sellAmount || "0").toInt();
+          const entry = totalPremiumSold / sold;
           const adjustedPnl = sold > net ? net * entry : realizedPnL;
 
           const { quote } =
@@ -145,7 +142,7 @@ export const calculatePnL = async (
         } else {
           // Expired but not yet settled.
           const priceAtExpiry = wethOracleHashMap[expiryTimestamp];
-          const strike = fromOpynToNumber(strikePrice);
+          const strike = Convert.fromOpyn(strikePrice).toInt();
 
           const valueAtExpiry = isPut
             ? Math.max(strike - priceAtExpiry, 0)
