@@ -18,4 +18,5 @@ export interface PositionDataState {
 
 export interface PricingProps {
   positionData: PositionDataState;
+  size: string;
 }
