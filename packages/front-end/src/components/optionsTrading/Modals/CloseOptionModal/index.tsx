@@ -23,6 +23,7 @@ import {
 } from "../Shared/components/Form";
 import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
+import { MAX_TRADE_SIZE, MIN_TRADE_SIZE } from "../Shared/utils/constants";
 import { getButtonProps } from "../Shared/utils/getButtonProps";
 import { roundInputValue } from "../Shared/utils/roundNumberValue";
 import { Pricing } from "./components/Pricing";
@@ -123,7 +124,7 @@ export const CloseOptionModal = () => {
   return (
     <Modal>
       <Header>{`Sell Position`}</Header>
-      <Pricing positionData={positionData} />
+      <Pricing positionData={positionData} size={amountToClose} />
       <Wrapper>
         <Label title="Enter how much of your position you would like to sell.">
           <Input
@@ -159,6 +160,8 @@ export const CloseOptionModal = () => {
             disabled={
               Number(amountToClose) > positionData.totalSize ||
               !Number(amountToClose) ||
+              Number(amountToClose) < MIN_TRADE_SIZE ||
+              Number(amountToClose) > MAX_TRADE_SIZE ||
               !addresses.user ||
               !addresses.token ||
               transactionPending ||

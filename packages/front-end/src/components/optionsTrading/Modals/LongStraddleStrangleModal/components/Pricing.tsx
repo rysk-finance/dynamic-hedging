@@ -12,11 +12,12 @@ import { RyskCountUp } from "src/components/shared/RyskCountUp";
 import { RyskTooltip } from "src/components/shared/RyskToolTip";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { OptionChainModalActions } from "src/state/types";
+import { MAX_TRADE_SIZE, MIN_TRADE_SIZE } from "../../Shared/utils/constants";
 import { determineStrikes } from "../utils/determineStrikes";
 
 export const Pricing = ({
-  amount,
   positionData,
+  size,
   strategy,
   strikeState: { selectedStrike, setSelectedStrike },
 }: PricingProps) => {
@@ -48,11 +49,15 @@ export const Pricing = ({
 
   const errorMessage = useMemo(() => {
     switch (true) {
-      case amount && !strikesSelected && isStrangle:
+      case size && !strikesSelected && isStrangle:
         return "Please select your strikes.";
 
-      case amount && !strikesSelected:
+      case size && !strikesSelected:
         return "Please select a strike.";
+
+      case size && Number(size) < MIN_TRADE_SIZE:
+      case size && Number(size) > MAX_TRADE_SIZE:
+        return "Trade size must be between 0.1 and 1000.";
 
       case remainingBalance <= 0 && Boolean(quote):
         return "Final balance cannot be negative.";

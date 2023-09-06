@@ -24,4 +24,5 @@ export interface PositionDataState {
 export interface PricingProps {
   loading: boolean;
   positionData: PositionDataState;
+  size: string;
 }

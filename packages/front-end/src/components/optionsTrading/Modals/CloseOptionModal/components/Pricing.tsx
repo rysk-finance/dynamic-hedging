@@ -1,11 +1,16 @@
 import type { PricingProps } from "../types";
 
+import { AnimatePresence, motion } from "framer-motion";
+import { useMemo } from "react";
+
+import FadeInOutQuick from "src/animation/FadeInOutQuick";
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
 import { RyskTooltip } from "src/components/shared/RyskToolTip";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { Symbol } from "../../Shared/components/Symbol";
+import { MAX_TRADE_SIZE, MIN_TRADE_SIZE } from "../../Shared/utils/constants";
 
-export const Pricing = ({ positionData }: PricingProps) => {
+export const Pricing = ({ positionData, size }: PricingProps) => {
   const {
     state: {
       userTradingPreferences: { tutorialMode },
@@ -13,6 +18,17 @@ export const Pricing = ({ positionData }: PricingProps) => {
   } = useGlobalContext();
 
   const { fee, now, premium, quote, remainingBalance, slippage } = positionData;
+
+  const errorMessage = useMemo(() => {
+    switch (true) {
+      case size && Number(size) < MIN_TRADE_SIZE:
+      case size && Number(size) > MAX_TRADE_SIZE:
+        return "Trade size must be between 0.1 and 1000.";
+
+      default:
+        return "";
+    }
+  }, [positionData]);
 
   return (
     <div className="flex flex-col">
@@ -88,6 +104,17 @@ export const Pricing = ({ positionData }: PricingProps) => {
             {` USDC`}
           </p>
         </span>
+
+        <AnimatePresence mode="wait">
+          {errorMessage && (
+            <motion.small
+              className="block leading-6 text-red-500 text-right"
+              {...FadeInOutQuick}
+            >
+              {errorMessage}
+            </motion.small>
+          )}
+        </AnimatePresence>
       </div>
 
       <small className="flex flex-col pb-3 text-center leading-6 text-gray-600">
