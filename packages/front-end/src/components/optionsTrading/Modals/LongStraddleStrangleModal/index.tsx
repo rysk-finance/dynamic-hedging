@@ -16,6 +16,7 @@ import { Disclaimer } from "../Shared/components/Disclaimer";
 import { Button, Input, Label, Wrapper } from "../Shared/components/Form";
 import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
+import { MAX_TRADE_SIZE, MIN_TRADE_SIZE } from "../Shared/utils/constants";
 import { getButtonProps } from "../Shared/utils/getButtonProps";
 import { roundInputValue } from "../Shared/utils/roundNumberValue";
 import { Icon } from "./components/Icon";
@@ -124,8 +125,8 @@ export const LongStraddleStrangleModal = ({ strategy }: ModalProps) => {
       </div>
 
       <Pricing
-        amount={debouncedAmountToOpen}
         positionData={positionData}
+        size={debouncedAmountToOpen}
         strategy={strategy}
         strikeState={{
           selectedStrike: selectedStrikes,
@@ -147,6 +148,8 @@ export const LongStraddleStrangleModal = ({ strategy }: ModalProps) => {
           className="w-1/4 !border-0"
           disabled={
             !Number(amountToOpen) ||
+            Number(amountToOpen) < MIN_TRADE_SIZE ||
+            Number(amountToOpen) > MAX_TRADE_SIZE ||
             !addresses.user ||
             positionData.remainingBalance < 0 ||
             transactionPending ||

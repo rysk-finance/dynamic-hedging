@@ -32,8 +32,8 @@ export interface InfoProps extends ModalProps {
 }
 
 export interface PricingProps extends ModalProps {
-  amount: string;
   positionData: PositionDataState;
+  size: string;
   strikeState: {
     selectedStrike: StrategyStrikesTuple;
     setSelectedStrike: Dispatch<SetStateAction<StrategyStrikesTuple>>;
