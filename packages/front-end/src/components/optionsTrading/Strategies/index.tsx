@@ -47,7 +47,7 @@ export const Strategies = () => {
       >
         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 col-span-9 lg:col-span-10 h-14 overflow-hidden">
           <AnimatePresence>
-            {!loading &&
+            {hasRequiredState &&
               strategyList.map(({ description, Icon, label, modal }) => (
                 <motion.button
                   className="flex justify-center py-1 group/strategy-icon"
