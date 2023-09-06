@@ -28,4 +28,5 @@ export interface PricingProps {
   collateralAddress?: HexString;
   remainingCollateral: number;
   positionData: PositionDataState;
+  size: string;
 }

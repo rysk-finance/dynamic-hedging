@@ -9,11 +9,13 @@ import { RyskTooltip } from "src/components/shared/RyskToolTip";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { getContractAddress } from "src/utils/helpers";
 import { Symbol } from "../../Shared/components/Symbol";
+import { MAX_TRADE_SIZE, MIN_TRADE_SIZE } from "../../Shared/utils/constants";
 
 export const Pricing = ({
   collateralAddress,
   remainingCollateral,
   positionData,
+  size,
 }: PricingProps) => {
   const {
     state: {
@@ -41,6 +43,10 @@ export const Pricing = ({
 
   const errorMessage = useMemo(() => {
     switch (true) {
+      case size && Number(size) < MIN_TRADE_SIZE:
+      case size && Number(size) > MAX_TRADE_SIZE:
+        return "Trade size must be between 0.1 and 1000.";
+        
       case !hasRequiredCapital && Boolean(quote):
         return "Insufficient balance to cover collateral.";
 

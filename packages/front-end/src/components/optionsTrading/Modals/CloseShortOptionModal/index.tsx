@@ -25,6 +25,7 @@ import {
 } from "../Shared/components/Form";
 import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
+import { MAX_TRADE_SIZE, MIN_TRADE_SIZE } from "../Shared/utils/constants";
 import { getButtonProps } from "../Shared/utils/getButtonProps";
 import { roundInputValue } from "../Shared/utils/roundNumberValue";
 import { Pricing } from "./components/Pricing";
@@ -62,7 +63,12 @@ export const CloseShortOptionModal = () => {
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const rounded = roundInputValue(event);
 
-    setAmountToSell(rounded);
+    const maxAmount = Math.min(
+      positionData.totalSize,
+      parseFloat(rounded || "0")
+    );
+
+    setAmountToSell((maxAmount ? maxAmount : rounded).toString());
   };
 
   const handleApprove = async () => {
@@ -129,6 +135,7 @@ export const CloseShortOptionModal = () => {
         collateralAddress={addresses.collateral}
         remainingCollateral={positionData.remainingCollateral}
         positionData={positionData}
+        size={amountToSell}
       />
 
       <Wrapper>
@@ -162,8 +169,10 @@ export const CloseShortOptionModal = () => {
           <Button
             className="w-1/4 !border-0"
             disabled={
-              !Number(debouncedAmountToSell) ||
-              Number(debouncedAmountToSell) > positionData.totalSize ||
+              !Number(amountToSell) ||
+              Number(amountToSell) < MIN_TRADE_SIZE ||
+              Number(amountToSell) > MAX_TRADE_SIZE ||
+              Number(amountToSell) > positionData.totalSize ||
               !addresses.token ||
               !positionData.hasRequiredCapital ||
               transactionPending ||
