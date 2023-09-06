@@ -22,7 +22,7 @@ import { roundInputValue } from "../Shared/utils/roundNumberValue";
 import { Icon } from "./components/Icon";
 import { Info } from "./components/Info";
 import { Pricing } from "./components/Pricing";
-import { useLongStraddleStrangle } from "./hooks/useLongStraddle";
+import { useLongStraddleStrangle } from "./hooks/useLongStraddleStrangle";
 
 export const LongStraddleStrangleModal = ({ strategy }: ModalProps) => {
   const {
