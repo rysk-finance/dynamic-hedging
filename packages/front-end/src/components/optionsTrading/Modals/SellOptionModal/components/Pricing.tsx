@@ -7,8 +7,9 @@ import FadeInOutQuick from "src/animation/FadeInOutQuick";
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
 import { RyskTooltip } from "src/components/shared/RyskToolTip";
 import { useGlobalContext } from "src/state/GlobalContext";
+import { MAX_TRADE_SIZE, MIN_TRADE_SIZE } from "../../Shared/utils/constants";
 
-export const Pricing = ({ loading, positionData }: PricingProps) => {
+export const Pricing = ({ loading, positionData, size }: PricingProps) => {
   const {
     state: {
       collateralPreferences: { amount, full, type },
@@ -49,6 +50,10 @@ export const Pricing = ({ loading, positionData }: PricingProps) => {
       (collateralType === "WETH" && remainingBalanceWETH <= 0);
 
     switch (true) {
+      case size && Number(size) < MIN_TRADE_SIZE:
+      case size && Number(size) > MAX_TRADE_SIZE:
+        return "Trade size must be between 0.1 and 1000.";
+
       case !full && amount < 1.1:
         return "Collateral multiplier must be at least 1.1x.";
 

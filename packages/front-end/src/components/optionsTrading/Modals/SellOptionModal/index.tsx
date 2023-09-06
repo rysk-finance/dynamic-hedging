@@ -14,11 +14,12 @@ import { Disclaimer } from "../Shared/components/Disclaimer";
 import { Button, Input, Label, Wrapper } from "../Shared/components/Form";
 import { Header } from "../Shared/components/Header";
 import { Modal } from "../Shared/components/Modal";
+import { Symbol } from "../Shared/components/Symbol";
+import { MAX_TRADE_SIZE, MIN_TRADE_SIZE } from "../Shared/utils/constants";
 import { getButtonProps } from "../Shared/utils/getButtonProps";
 import { roundInputValue } from "../Shared/utils/roundNumberValue";
 import { Filters } from "./components/Filters";
 import { Pricing } from "./components/Pricing";
-import { Symbol } from "../Shared/components/Symbol";
 import { useSellOption } from "./hooks/useSellOption";
 
 export const SellOptionModal = () => {
@@ -149,7 +150,11 @@ export const SellOptionModal = () => {
 
         <Filters />
 
-        <Pricing loading={loading} positionData={positionData} />
+        <Pricing
+          loading={loading}
+          positionData={positionData}
+          size={amountToSell}
+        />
       </div>
 
       <Wrapper>
@@ -164,7 +169,9 @@ export const SellOptionModal = () => {
 
         <Button
           disabled={
-            !Number(debouncedAmountToSell) ||
+            !Number(amountToSell) ||
+            Number(amountToSell) < MIN_TRADE_SIZE ||
+            Number(amountToSell) > MAX_TRADE_SIZE ||
             (collateralPreferences.type === "USDC" &&
               positionData.remainingBalanceUSDC <= 0) ||
             (collateralPreferences.type === "WETH" &&
