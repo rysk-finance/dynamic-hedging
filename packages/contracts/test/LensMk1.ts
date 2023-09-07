@@ -757,9 +757,9 @@ describe("Lens", async () => {
 			})
 			it("ping the lens contract other func", async () => {
 				const lensValsI = await userLens.getVaultsForUser(senderAddress)
-				const lensVals = await userLens.getVaultsForUserAndOtoken(senderAddress, lensValsI[1].otoken)
+				const lensVals = await userLens.getVaultsForUserAndOtoken(senderAddress, lensValsI[1].shortOtoken, lensValsI[1].longOtoken, lensValsI[1].collateralAsset)
 				// console.log({lensVals})
-				// console.log(await userLens.getVaultsForUserAndOtoken(senderAddress, senderAddress))
+				// console.log(await userLens.getVaultsForUserAndOtoken(senderAddress, senderAddress, senderAddress, senderAddress))
 			})
 		})
 	})

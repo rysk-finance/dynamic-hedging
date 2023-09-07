@@ -42,7 +42,22 @@
 					},
 					{
 						"internalType": "address",
-						"name": "otoken",
+						"name": "shortOtoken",
+						"type": "address"
+					},
+					{
+						"internalType": "bool",
+						"name": "hasLongOtoken",
+						"type": "bool"
+					},
+					{
+						"internalType": "address",
+						"name": "longOtoken",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "collateralAsset",
 						"type": "address"
 					}
 				],
@@ -63,7 +78,17 @@
 			},
 			{
 				"internalType": "address",
-				"name": "otoken",
+				"name": "shortOtoken",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "longOtoken",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "collateralAsset",
 				"type": "address"
 			}
 		],
