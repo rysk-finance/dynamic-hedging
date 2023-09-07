@@ -40,7 +40,7 @@ export const Header = ({ children, changeVisible = false }: HeaderProps) => {
   };
 
   return (
-    <span className="grid grid-cols-10 bg-black text-white bg-[url('./assets/circle-lines.png')] bg-no-repeat bg-contain">
+    <span className="sticky top-0 z-50 grid grid-cols-10 bg-black text-white bg-[url('./assets/circle-lines.png')] bg-no-repeat bg-contain">
       <h2 className="col-span-4 col-start-4 text-lg font-medium text-center py-3">
         {children}
       </h2>
