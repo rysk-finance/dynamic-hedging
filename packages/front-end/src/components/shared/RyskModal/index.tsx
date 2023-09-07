@@ -53,7 +53,7 @@ export const RyskModal = ({
       <LayoutGroup>
         <motion.div
           aria-modal="true"
-          className={`flex flex-col col-span-8 col-start-3 lg:col-span-6 lg:col-start-4 my-auto border-black border-2 rounded-lg bg-bone-light bg-[url('./assets/white-ascii-50.png')] bg-center overflow-y-auto overflow-x-hidden cursor-default max-h-[90%] xl:max-h-[75%] rysk-scrollbar ${modalClasses}`}
+          className={`flex flex-col col-span-8 col-start-3 lg:col-span-6 lg:col-start-4 my-auto border-black border-2 rounded-lg bg-bone-light bg-[url('./assets/white-ascii-50.png')] bg-center overflow-y-auto overflow-x-hidden cursor-default max-h-[90%] xl:max-h-[70%] rysk-scrollbar ${modalClasses}`}
           layout="position"
           onClick={handleModalClick}
           ref={modalRef}
