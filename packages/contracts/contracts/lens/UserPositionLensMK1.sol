@@ -31,7 +31,7 @@ contract UserPositionLensMK1 {
 		return _loopVaults(user);
 	}
 
-	function getVaultsForUserAndOtoken(address user, address shortOtoken, address longOtoken, address collateralAsset) external view returns (uint256) {
+	function getVaultsForUserAndOtoken(address user, address shortOtoken, address longOtoken, address collateralAsset) external view returns (uint256, bool) {
 		return _searchVaults(user, shortOtoken, longOtoken, collateralAsset);
 	}
 
@@ -58,7 +58,7 @@ contract UserPositionLensMK1 {
 		return vaultDrill;
 	}
 
-	function _searchVaults(address user, address shortOtoken, address longOtoken, address collateralAsset) internal view returns (uint256) {
+	function _searchVaults(address user, address shortOtoken, address longOtoken, address collateralAsset) internal view returns (uint256, bool) {
 		IController controller = IController(addressbook.getController());
 		uint256 vaultCount = controller.getAccountVaultCounter(user);
 		for (uint i; i < vaultCount; i++) {
@@ -68,13 +68,13 @@ contract UserPositionLensMK1 {
 					if (IOtoken(shortOtoken).collateralAsset() == collateralAsset) {
 						if (otokenVault.longOtokens.length > 0) {
 							if (otokenVault.longOtokens[0] == longOtoken) {
-								return i + 1;
+								return (i + 1, true);
 							} else {
 								continue;
 							}
 						} else {
 							if (longOtoken == address(0)) {
-								return i + 1;
+								return (i + 1, true);
 							} else {
 								continue;
 							}
@@ -89,6 +89,6 @@ contract UserPositionLensMK1 {
 				continue;
 			}
 		}
-		return vaultCount + 1;
+		return (vaultCount + 1, false);
 	}
 }

@@ -3,7 +3,7 @@ import { UserPositionLensMK1 } from "../../types/UserPositionLensMK1"
 
 // update these addresses to connect to the appropriate set of contracts
 
-const opynAddressBookAddress = "0xCa19F26c52b11186B4b1e76a662a14DA5149EA5a"
+const opynAddressBookAddress = "0xd6e67bF0b1Cdb34C37f31A2652812CB30746a94A"
 export async function deployLens() {
 	const lensFactory = await ethers.getContractFactory("UserPositionLensMK1")
 	const lens = (await lensFactory.deploy(
