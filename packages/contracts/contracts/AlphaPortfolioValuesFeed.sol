@@ -167,7 +167,7 @@ contract AlphaPortfolioValuesFeed is AccessControl, IPortfolioValuesFeed {
 		bytes32[] memory _optionHashes,
 		int256[] memory _netDhvExposures
 	) external {
-		_onlyGovernor();
+		_isKeeper();
 		_isExchangePaused();
 		uint256 arrayLength = _optionHashes.length;
 		require(arrayLength == _netDhvExposures.length);
