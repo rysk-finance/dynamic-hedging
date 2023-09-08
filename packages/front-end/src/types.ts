@@ -27,6 +27,7 @@ type RyskContractAddresses = {
   optionHandler: string;
   optionExchange: string;
   beyondPricer: string;
+  marginPool: string;
 };
 
 type ExternalContractAddresses = {
