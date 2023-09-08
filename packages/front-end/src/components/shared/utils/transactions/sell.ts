@@ -1,4 +1,3 @@
-import type { UserVaults } from "src/state/types";
 import type { OptionSeries } from "src/types";
 
 import { prepareWriteContract, writeContract } from "@wagmi/core";
@@ -8,6 +7,7 @@ import { OptionExchangeABI } from "src/abis/OptionExchange_ABI";
 import { waitForTransactionOrTimer } from "src/components/shared/utils/waitForTransaction";
 import { GAS_MULTIPLIER, ZERO_ADDRESS } from "src/config/constants";
 import OperationType from "src/enums/OperationType";
+import { getVaultId } from "../getVaultId";
 import {
   depositCollateral,
   mintShortOption,
@@ -24,16 +24,14 @@ export const sell = async (
   optionSeries: OptionSeries,
   oTokenAddress: HexString,
   refresh: () => void,
-  userAddress: HexString,
-  vaults: UserVaults
+  userAddress: HexString
 ) => {
-  const vaultKey = oTokenAddress.toLowerCase() as HexString;
-  const hasVault = Boolean(vaults[vaultKey]);
-
-  // Get vaultId from global state or assign next available.
-  const vaultId = hasVault
-    ? BigNumber.from(vaults[vaultKey])
-    : BigNumber.from(vaults.length + 1);
+  const [vaultId, hasVault] = await getVaultId(
+    collateralAddress,
+    ZERO_ADDRESS,
+    oTokenAddress,
+    userAddress
+  );
 
   const requiredData = [
     depositCollateral(

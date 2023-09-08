@@ -1,5 +1,3 @@
-import type { BigNumberish } from "ethers";
-
 import type { CollateralType } from "src/state/types";
 
 export interface PositionOToken {
@@ -35,6 +33,7 @@ export interface Vault {
   id: string;
   vaultId: string;
   collateralAmount: string;
+  longAmount: string;
   shortAmount: string;
   collateralAsset: { id: HexString };
 }

@@ -103,11 +103,6 @@ interface CollateralPreferences {
   type: CollateralType;
 }
 
-export interface UserVaults {
-  [oTokenAddress: HexString]: string;
-  length: number;
-}
-
 interface Balances {
   ETH: number;
   USDC: number;
@@ -235,7 +230,6 @@ export type GlobalState = {
     spotShock: SpotShock;
     timesToExpiry: TimesToExpiry;
     userPositions: UserPositions;
-    vaults: UserVaults;
     wethOracleHashMap: WethOracleHashMap;
   };
 
@@ -349,7 +343,6 @@ export type GlobalAction =
       spotShock?: SpotShock;
       timesToExpiry?: TimesToExpiry;
       userPositions?: UserPositions;
-      vaults?: UserVaults;
       wethOracleHashMap?: WethOracleHashMap;
     }
   | {

@@ -7,7 +7,6 @@ import { getLiquidationCalculationParameters } from "./getLiquidationCalculation
 import { getLiquidityPoolInfo } from "./getLiquidityPoolInfo";
 import { getOperatorStatus } from "./getOperatorStatus";
 import { getUserPositions } from "./getUserPositions";
-import { getUserVaults } from "./getUserVaults";
 
 export const getInitialData = async (
   data: InitialDataQuery,
@@ -27,9 +26,6 @@ export const getInitialData = async (
   // Get operator status.
   const isOperator = await getOperatorStatus(address);
 
-  // Get all user short position vaults.
-  const userVaults = await getUserVaults(address);
-
   // Get required parameters for calculating liquidation price of shorts.
   const liquidationParameters = await getLiquidationCalculationParameters();
 
@@ -44,7 +40,6 @@ export const getInitialData = async (
     userPositions,
     chainData,
     isOperator,
-    userVaults,
     liquidationParameters,
     liquidityPoolInfo,
     oracleHashMap,
