@@ -23,7 +23,7 @@ export const getUserVaults = async (
 
     return vaults.reduce(
       (userVaults, currentVault) => {
-        const address = currentVault.otoken.toLowerCase() as HexString;
+        const address = currentVault.shortOtoken.toLowerCase() as HexString;
 
         userVaults[address] = currentVault.vaultId.toString();
         userVaults.length = userVaults.length + 1;
