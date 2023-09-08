@@ -17,7 +17,10 @@ contract UserPositionLensMK1 {
 
 	struct VaultDrill {
 		uint256 vaultId;
-		address otoken;
+		address shortOtoken;
+		bool hasLongOtoken;
+		address longOtoken;
+		address collateralAsset;
 	}
 
 	constructor(address _addressbook) {
@@ -28,8 +31,8 @@ contract UserPositionLensMK1 {
 		return _loopVaults(user);
 	}
 
-	function getVaultsForUserAndOtoken(address user, address otoken) external view returns (uint256) {
-		return _searchVaults(user, otoken);
+	function getVaultsForUserAndOtoken(address user, address shortOtoken, address longOtoken, address collateralAsset) external view returns (uint256, bool) {
+		return _searchVaults(user, shortOtoken, longOtoken, collateralAsset);
 	}
 
 	function _loopVaults(address user) internal view returns (VaultDrill[] memory) {
@@ -37,30 +40,55 @@ contract UserPositionLensMK1 {
 		uint256 vaultCount = controller.getAccountVaultCounter(user);
 		VaultDrill[] memory vaultDrill = new VaultDrill[](vaultCount);
 		for (uint i; i < vaultCount; i++) {
-			address[] memory otokenarr = controller.getVault(user, i + 1).shortOtokens;
-			if (otokenarr.length > 0) {
-				vaultDrill[i] = VaultDrill(i + 1, otokenarr[0]);
-			} else {
-				vaultDrill[i] = VaultDrill(i + 1, address(0));
+			address shortOtoken;
+			bool hasLongOtoken;
+			address longOtoken;
+			address collateralAsset;
+			GammaTypes.Vault memory otokenVault = controller.getVault(user, i + 1);
+			if (otokenVault.shortOtokens.length > 0) {
+				shortOtoken = otokenVault.shortOtokens[0];
+				collateralAsset = otokenVault.collateralAssets[0];
+			} 
+			if (otokenVault.longOtokens.length > 0) {
+				longOtoken = otokenVault.longOtokens[0];
+				hasLongOtoken = true;
 			}
+			vaultDrill[i] = VaultDrill(i + 1, shortOtoken, hasLongOtoken, longOtoken, collateralAsset);
 		}
 		return vaultDrill;
 	}
 
-	function _searchVaults(address user, address otoken) internal view returns (uint256) {
+	function _searchVaults(address user, address shortOtoken, address longOtoken, address collateralAsset) internal view returns (uint256, bool) {
 		IController controller = IController(addressbook.getController());
 		uint256 vaultCount = controller.getAccountVaultCounter(user);
 		for (uint i; i < vaultCount; i++) {
-			VaultDrill memory vault;
-			address[] memory otokenarr = controller.getVault(user, i + 1).shortOtokens;
-			if (otokenarr.length > 0) {
-				if (otokenarr[0] == otoken) {
-					return i + 1;
+			GammaTypes.Vault memory otokenVault = controller.getVault(user, i + 1);
+			if (otokenVault.shortOtokens.length > 0) {
+				if (otokenVault.shortOtokens[0] == shortOtoken){
+					if (IOtoken(shortOtoken).collateralAsset() == collateralAsset) {
+						if (otokenVault.longOtokens.length > 0) {
+							if (otokenVault.longOtokens[0] == longOtoken) {
+								return (i + 1, true);
+							} else {
+								continue;
+							}
+						} else {
+							if (longOtoken == address(0)) {
+								return (i + 1, true);
+							} else {
+								continue;
+							}
+						}
+					} else {
+						continue;
+					}
+				} else {
+					continue;
 				}
 			} else {
 				continue;
 			}
 		}
-		return vaultCount+1;
+		return (vaultCount + 1, false);
 	}
 }

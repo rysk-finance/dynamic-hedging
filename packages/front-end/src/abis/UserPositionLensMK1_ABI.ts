@@ -42,7 +42,22 @@ export const UserPositionLensMK1ABI = [
 					},
 					{
 						"internalType": "address",
-						"name": "otoken",
+						"name": "shortOtoken",
+						"type": "address"
+					},
+					{
+						"internalType": "bool",
+						"name": "hasLongOtoken",
+						"type": "bool"
+					},
+					{
+						"internalType": "address",
+						"name": "longOtoken",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "collateralAsset",
 						"type": "address"
 					}
 				],
@@ -63,7 +78,17 @@ export const UserPositionLensMK1ABI = [
 			},
 			{
 				"internalType": "address",
-				"name": "otoken",
+				"name": "shortOtoken",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "longOtoken",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "collateralAsset",
 				"type": "address"
 			}
 		],
@@ -73,6 +98,11 @@ export const UserPositionLensMK1ABI = [
 				"internalType": "uint256",
 				"name": "",
 				"type": "uint256"
+			},
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
 			}
 		],
 		"stateMutability": "view",
