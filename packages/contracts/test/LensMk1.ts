@@ -33,6 +33,7 @@ import {
 	OtokenFactory,
 	PriceFeed,
 	Protocol,
+	QuantPositionLensMK1,
 	UserPositionLensMK1,
 	VolatilityFeed,
 	WETH
@@ -73,6 +74,7 @@ let catalogue: OptionCatalogue
 let lens: DHVLensMK1
 let userLens: UserPositionLensMK1
 let exposureLens: ExposureLensMK1
+let quantLens: QuantPositionLensMK1
 let otoken: any
 
 /* --- variables to change --- */
@@ -306,6 +308,10 @@ describe("Lens", async () => {
 		it("SETUP: deploy exposure lens contract", async () => {
 			const lensFactory = await ethers.getContractFactory("ExposureLensMK1")
 			exposureLens = (await lensFactory.deploy(optionProtocol.address)) as UserPositionLensMK1
+		})
+		it("SETUP: deploy quant exposure lens contract", async () => {
+			const lensFactory = await ethers.getContractFactory("QuantPositionLensMK1")
+			quantLens = (await lensFactory.deploy(optionProtocol.address)) as QuantPositionLensMK1
 		})
 	})
 	describe("Purchase a bunch of random options", async () => {
@@ -747,6 +753,15 @@ describe("Lens", async () => {
 			it("ping the lens contract", async () => {
 				const lensVals = await exposureLens.getSeriesAddressDetails(otoken)
 				// console.log({lensVals})
+			})
+		})
+
+		describe("Hit the quant Lens", async () => {
+			it("ping the lens contract", async () => {
+				const lensVals = await quantLens.DHVPosDrill()
+				console.log({lensVals})
+				// console.log(lensVals[0])
+				// console.log(lensVals[2])
 			})
 		})
 
