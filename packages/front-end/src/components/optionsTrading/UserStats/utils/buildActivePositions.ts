@@ -55,7 +55,6 @@ const getAction = (
   disabled: boolean,
   isOpen: boolean,
   isShort: boolean,
-  profitLoss: number,
   valueAtExpiry: number
 ) => {
   if (!isOpen && isShort) {
@@ -63,7 +62,7 @@ const getAction = (
   }
 
   if (!isOpen) {
-    if (profitLoss > 0 && valueAtExpiry > 0) {
+    if (valueAtExpiry) {
       return PositionAction.REDEEM;
     } else {
       return PositionAction.BURN;
@@ -205,7 +204,7 @@ export const buildActivePositions = async (
       );
 
       return {
-        action: getAction(disabled, isOpen, isShort, profitLoss, valueAtExpiry),
+        action: getAction(disabled, isOpen, isShort, valueAtExpiry),
         amount,
         breakEven: isPut ? strike - entry : strike + entry,
         collateral: {
