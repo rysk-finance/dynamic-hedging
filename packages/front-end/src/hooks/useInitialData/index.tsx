@@ -51,6 +51,7 @@ export const useInitialData = () => {
       skip: skip,
       variables: {
         address: address?.toLowerCase(),
+        after: process.env.REACT_APP_TRANSACTIONS_AFTER || "0",
         underlying: getContractAddress("WETH"),
       },
     }
