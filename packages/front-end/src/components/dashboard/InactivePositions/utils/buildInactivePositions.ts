@@ -29,7 +29,6 @@ export const buildInactivePositions = (
         netAmount,
         liquidateActions,
       }) => {
-        console.log(buyAmount || sellAmount || netAmount);
         const [, ...series] = symbol.split("-");
         const isShort = Boolean(collateralAsset && "symbol" in collateralAsset);
         const amount = Convert.fromWei(
