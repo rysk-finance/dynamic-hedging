@@ -517,6 +517,7 @@ interface StrikeSide {
   pos: number;
   sell: {
     IV: number;
+    premiumTooSmall: boolean;
     quote: Quote;
     disabled: boolean;
   };

@@ -123,6 +123,7 @@ export const getChainData = async (
               sell: {
                 disabled: sell.disabled || sell.premiumTooSmall,
                 IV: _getIV(Convert.fromUSDC(sell.quote as BigNumber).toInt()),
+                premiumTooSmall: sell.premiumTooSmall,
                 quote: _getQuote(sell, true),
               },
             },

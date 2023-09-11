@@ -55,7 +55,8 @@ const getAction = (
   disabled: boolean,
   isOpen: boolean,
   isShort: boolean,
-  valueAtExpiry: number
+  valueAtExpiry: number,
+  canClose?: boolean
 ) => {
   if (!isOpen && isShort) {
     return PositionAction.SETTLE;
@@ -69,7 +70,7 @@ const getAction = (
     }
   }
 
-  if (disabled) {
+  if (disabled && !canClose) {
     return PositionAction.UNTRADEABLE;
   } else {
     return PositionAction.CLOSE;
@@ -168,13 +169,20 @@ export const buildActivePositions = async (
         sell:
           isOpen && chainSideData?.sell
             ? chainSideData.sell
-            : { disabled: false, quote: { quote: 0 } },
+            : { disabled: false, premiumTooSmall: false, quote: { quote: 0 } },
       };
 
       // Determine if disabled.
       const disabled = isShort
         ? buy?.disabled || !buy.quote.quote
         : sell?.disabled || !sell.quote.quote;
+
+      // Determine if longs can be closed instead of sold when premiumTooSmall === true.
+      const canClose =
+        !isShort &&
+        chainSideData &&
+        chainSideData.exposure < 0 &&
+        sell.premiumTooSmall;
 
       // Adjust P/L for partially closed positions.
       const net = Math.abs(Convert.fromWei(netAmount).toInt());
@@ -204,7 +212,7 @@ export const buildActivePositions = async (
       );
 
       return {
-        action: getAction(disabled, isOpen, isShort, valueAtExpiry),
+        action: getAction(disabled, isOpen, isShort, valueAtExpiry, canClose),
         amount,
         breakEven: isPut ? strike - entry : strike + entry,
         collateral: {
@@ -213,7 +221,7 @@ export const buildActivePositions = async (
           liquidationPrice: liquidationPrices[index],
           vault,
         },
-        disabled: isOpen && disabled,
+        disabled: isOpen && disabled && !canClose,
         delta: amount * delta,
         entry,
         expiryTimestamp,
