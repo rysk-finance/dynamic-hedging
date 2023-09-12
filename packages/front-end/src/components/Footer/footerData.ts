@@ -83,7 +83,7 @@ export const footerData = [
         href: AppPaths.PRIVACY_POLICY,
       },
       {
-        label: "Terms and conditions",
+        label: "Terms of service",
         href: AppPaths.TERMS_OF_SERVICE,
       },
     ],
