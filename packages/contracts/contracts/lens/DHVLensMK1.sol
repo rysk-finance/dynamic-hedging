@@ -41,6 +41,8 @@ contract DHVLensMK1 {
 	struct SeriesExchangeBalance {
 		address seriesAddress;
 		uint256 optionExchangeBalance;
+		int256 shortExposure;
+		int256 longExposure;
 	}
 
 	struct TradingSpec {
@@ -306,6 +308,7 @@ contract DHVLensMK1 {
 		address collateral
 	) internal view returns (SeriesExchangeBalance memory) {
 		IOptionRegistry optionRegistry = getOptionRegistry();
+		AlphaPortfolioValuesFeed pvFeed = getPortfolioValuesFeed();
 		address series = optionRegistry.getOtoken(
 			underlyingAsset,
 			strikeAsset,
@@ -314,8 +317,9 @@ contract DHVLensMK1 {
 			strike,
 			collateral
 		);
+		(,int256 shortExposure, int256 longExposure) = pvFeed.storesForAddress(series);
 		uint256 balance = series != address(0) ? ERC20(series).balanceOf(exchange) : 0;
-		SeriesExchangeBalance memory seriesExchangeBalance = SeriesExchangeBalance(series, balance);
+		SeriesExchangeBalance memory seriesExchangeBalance = SeriesExchangeBalance(series, balance, shortExposure, longExposure);
 		return seriesExchangeBalance;
 	}
 
