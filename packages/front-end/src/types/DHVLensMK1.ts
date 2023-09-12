@@ -76,11 +76,20 @@ export declare namespace DHVLensMK1 {
   export type SeriesExchangeBalanceStruct = {
     seriesAddress: string;
     optionExchangeBalance: BigNumberish;
+    longExposure: BigNumberish;
+    shortExposure: BigNumberish;
   };
 
-  export type SeriesExchangeBalanceStructOutput = [string, BigNumber] & {
+  export type SeriesExchangeBalanceStructOutput = [
+    string,
+    BigNumber,
+    BigNumber,
+    BigNumber
+  ] & {
     seriesAddress: string;
     optionExchangeBalance: BigNumber;
+    longExposure: BigNumber;
+    shortExposure: BigNumber;
   };
 
   export type OptionStrikeDrillStruct = {

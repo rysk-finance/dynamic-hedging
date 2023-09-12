@@ -307,6 +307,16 @@ export const DHVLensMK1ABI = [
 												"internalType": "uint256",
 												"name": "optionExchangeBalance",
 												"type": "uint256"
+											},
+											{
+												"internalType": "int256",
+												"name": "longExposure",
+												"type": "int256"
+											},
+											{
+												"internalType": "int256",
+												"name": "shortExposure",
+												"type": "int256"
 											}
 										],
 										"internalType": "struct DHVLensMK1.SeriesExchangeBalance",
@@ -324,6 +334,16 @@ export const DHVLensMK1ABI = [
 												"internalType": "uint256",
 												"name": "optionExchangeBalance",
 												"type": "uint256"
+											},
+											{
+												"internalType": "int256",
+												"name": "longExposure",
+												"type": "int256"
+											},
+											{
+												"internalType": "int256",
+												"name": "shortExposure",
+												"type": "int256"
 											}
 										],
 										"internalType": "struct DHVLensMK1.SeriesExchangeBalance",
@@ -432,6 +452,16 @@ export const DHVLensMK1ABI = [
 												"internalType": "uint256",
 												"name": "optionExchangeBalance",
 												"type": "uint256"
+											},
+											{
+												"internalType": "int256",
+												"name": "longExposure",
+												"type": "int256"
+											},
+											{
+												"internalType": "int256",
+												"name": "shortExposure",
+												"type": "int256"
 											}
 										],
 										"internalType": "struct DHVLensMK1.SeriesExchangeBalance",
@@ -449,6 +479,16 @@ export const DHVLensMK1ABI = [
 												"internalType": "uint256",
 												"name": "optionExchangeBalance",
 												"type": "uint256"
+											},
+											{
+												"internalType": "int256",
+												"name": "longExposure",
+												"type": "int256"
+											},
+											{
+												"internalType": "int256",
+												"name": "shortExposure",
+												"type": "int256"
 											}
 										],
 										"internalType": "struct DHVLensMK1.SeriesExchangeBalance",
@@ -593,6 +633,16 @@ export const DHVLensMK1ABI = [
 										"internalType": "uint256",
 										"name": "optionExchangeBalance",
 										"type": "uint256"
+									},
+									{
+										"internalType": "int256",
+										"name": "longExposure",
+										"type": "int256"
+									},
+									{
+										"internalType": "int256",
+										"name": "shortExposure",
+										"type": "int256"
 									}
 								],
 								"internalType": "struct DHVLensMK1.SeriesExchangeBalance",
@@ -610,6 +660,16 @@ export const DHVLensMK1ABI = [
 										"internalType": "uint256",
 										"name": "optionExchangeBalance",
 										"type": "uint256"
+									},
+									{
+										"internalType": "int256",
+										"name": "longExposure",
+										"type": "int256"
+									},
+									{
+										"internalType": "int256",
+										"name": "shortExposure",
+										"type": "int256"
 									}
 								],
 								"internalType": "struct DHVLensMK1.SeriesExchangeBalance",
@@ -718,6 +778,16 @@ export const DHVLensMK1ABI = [
 										"internalType": "uint256",
 										"name": "optionExchangeBalance",
 										"type": "uint256"
+									},
+									{
+										"internalType": "int256",
+										"name": "longExposure",
+										"type": "int256"
+									},
+									{
+										"internalType": "int256",
+										"name": "shortExposure",
+										"type": "int256"
 									}
 								],
 								"internalType": "struct DHVLensMK1.SeriesExchangeBalance",
@@ -735,6 +805,16 @@ export const DHVLensMK1ABI = [
 										"internalType": "uint256",
 										"name": "optionExchangeBalance",
 										"type": "uint256"
+									},
+									{
+										"internalType": "int256",
+										"name": "longExposure",
+										"type": "int256"
+									},
+									{
+										"internalType": "int256",
+										"name": "shortExposure",
+										"type": "int256"
 									}
 								],
 								"internalType": "struct DHVLensMK1.SeriesExchangeBalance",
