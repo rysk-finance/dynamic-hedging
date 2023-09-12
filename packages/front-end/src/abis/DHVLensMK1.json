@@ -310,12 +310,12 @@
 											},
 											{
 												"internalType": "int256",
-												"name": "longExposure",
+												"name": "shortExposure",
 												"type": "int256"
 											},
 											{
 												"internalType": "int256",
-												"name": "shortExposure",
+												"name": "longExposure",
 												"type": "int256"
 											}
 										],
@@ -337,12 +337,12 @@
 											},
 											{
 												"internalType": "int256",
-												"name": "longExposure",
+												"name": "shortExposure",
 												"type": "int256"
 											},
 											{
 												"internalType": "int256",
-												"name": "shortExposure",
+												"name": "longExposure",
 												"type": "int256"
 											}
 										],
@@ -455,12 +455,12 @@
 											},
 											{
 												"internalType": "int256",
-												"name": "longExposure",
+												"name": "shortExposure",
 												"type": "int256"
 											},
 											{
 												"internalType": "int256",
-												"name": "shortExposure",
+												"name": "longExposure",
 												"type": "int256"
 											}
 										],
@@ -482,12 +482,12 @@
 											},
 											{
 												"internalType": "int256",
-												"name": "longExposure",
+												"name": "shortExposure",
 												"type": "int256"
 											},
 											{
 												"internalType": "int256",
-												"name": "shortExposure",
+												"name": "longExposure",
 												"type": "int256"
 											}
 										],
@@ -636,12 +636,12 @@
 									},
 									{
 										"internalType": "int256",
-										"name": "longExposure",
+										"name": "shortExposure",
 										"type": "int256"
 									},
 									{
 										"internalType": "int256",
-										"name": "shortExposure",
+										"name": "longExposure",
 										"type": "int256"
 									}
 								],
@@ -663,12 +663,12 @@
 									},
 									{
 										"internalType": "int256",
-										"name": "longExposure",
+										"name": "shortExposure",
 										"type": "int256"
 									},
 									{
 										"internalType": "int256",
-										"name": "shortExposure",
+										"name": "longExposure",
 										"type": "int256"
 									}
 								],
@@ -781,12 +781,12 @@
 									},
 									{
 										"internalType": "int256",
-										"name": "longExposure",
+										"name": "shortExposure",
 										"type": "int256"
 									},
 									{
 										"internalType": "int256",
-										"name": "shortExposure",
+										"name": "longExposure",
 										"type": "int256"
 									}
 								],
@@ -808,12 +808,12 @@
 									},
 									{
 										"internalType": "int256",
-										"name": "longExposure",
+										"name": "shortExposure",
 										"type": "int256"
 									},
 									{
 										"internalType": "int256",
-										"name": "shortExposure",
+										"name": "longExposure",
 										"type": "int256"
 									}
 								],
