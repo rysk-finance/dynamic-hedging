@@ -141,6 +141,8 @@ export class Convert {
   public static round = (value: string | number, decimals: number = 2) => {
     const asFloat = typeof value === "string" ? parseFloat(value) : value;
 
+    if (Number.isNaN(asFloat)) return 0;
+
     if (!decimals) return asFloat;
 
     const exponent = Math.pow(10, decimals);

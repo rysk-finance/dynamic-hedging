@@ -86,7 +86,7 @@ export const useBuyOption = (amountToBuy: string) => {
           const exposure =
             data[activeExpiry!][selectedOption.strikeOptions.strike][
               selectedOption.callOrPut
-            ]?.exposure || 0;
+            ]?.exposure.net || 0;
 
           setPurchaseData({
             acceptablePremium,

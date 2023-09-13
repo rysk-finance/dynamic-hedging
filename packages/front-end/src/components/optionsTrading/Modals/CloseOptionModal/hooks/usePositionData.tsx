@@ -39,7 +39,10 @@ export const usePositionData = (amountToClose: string) => {
     callOrPut: closingOption?.isPut ? "put" : "call",
     expiry: formatExpiry(activeExpiry),
     fee: 0,
+    maxCloseSize: 0,
     now: dateTimeNow(),
+    operation: "sell",
+    orderTooBig: false,
     premium: 0,
     quote: 0,
     remainingBalance: 0,
@@ -63,7 +66,6 @@ export const usePositionData = (amountToClose: string) => {
           const now = dateTimeNow();
 
           const totalSize = closingOption.amount;
-          const title = closingOption.series;
 
           if (amount > 0) {
             const [{ acceptablePremium, fee, premium, quote, slippage }] =
@@ -88,7 +90,13 @@ export const usePositionData = (amountToClose: string) => {
               callOrPut: closingOption.isPut ? "put" : "call",
               expiry: formatExpiry(activeExpiry),
               fee,
+              maxCloseSize: closingOption?.shortUSDCExposure,
               now,
+              operation: closingOption?.shortUSDCExposure ? "close" : "sell",
+              orderTooBig: Boolean(
+                closingOption?.shortUSDCExposure &&
+                  amount > closingOption.shortUSDCExposure
+              ),
               premium,
               quote,
               remainingBalance,
@@ -103,7 +111,10 @@ export const usePositionData = (amountToClose: string) => {
               callOrPut: closingOption?.isPut ? "put" : "call",
               expiry: formatExpiry(activeExpiry),
               fee: 0,
+              maxCloseSize: 0,
               now,
+              operation: "sell",
+              orderTooBig: false,
               premium: 0,
               quote: 0,
               remainingBalance: balances.USDC,

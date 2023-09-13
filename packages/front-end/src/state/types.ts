@@ -152,6 +152,7 @@ export interface ActivePositions {
   mark: number;
   profitLoss: number;
   series: string;
+  shortUSDCExposure?: number;
   strike: string;
 }
 
@@ -488,6 +489,7 @@ export interface ClosingOption {
   isPut: boolean;
   isShort: boolean;
   series: string;
+  shortUSDCExposure?: number;
   strike: string;
   vault?: Vault;
 }
@@ -496,6 +498,17 @@ interface Quote {
   fee: number;
   quote: number;
   total: number;
+}
+
+interface TokenExposure {
+  long: number;
+  short: number;
+}
+
+interface Exposure {
+  net: number;
+  USDC: TokenExposure;
+  WETH: TokenExposure;
 }
 
 interface StrikeSide {
@@ -513,10 +526,11 @@ interface StrikeSide {
     USDC: BigNumber;
     WETH: BigNumber;
   };
-  exposure: number;
+  exposure: Exposure;
   pos: number;
   sell: {
     IV: number;
+    premiumTooSmall: boolean;
     quote: Quote;
     disabled: boolean;
   };

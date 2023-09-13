@@ -6,7 +6,7 @@ import { BigNumber } from "ethers";
 
 import { OptionExchangeABI } from "src/abis/OptionExchange_ABI";
 import { waitForTransactionOrTimer } from "src/components/shared/utils/waitForTransaction";
-import { GAS_MULTIPLIER } from "src/config/constants";
+import { GAS_MULTIPLIER, ZERO_ADDRESS } from "src/config/constants";
 import OperationType from "src/enums/OperationType";
 import {
   depositCollateral,
@@ -62,7 +62,13 @@ export const sell = async (
     {
       operation: OperationType.RyskAction,
       operationQueue: [
-        sellOption(acceptablePremium, amount, optionSeries, userAddress),
+        sellOption(
+          acceptablePremium,
+          amount,
+          optionSeries,
+          ZERO_ADDRESS,
+          userAddress
+        ),
       ],
     },
   ];

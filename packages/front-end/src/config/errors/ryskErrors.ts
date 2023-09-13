@@ -61,6 +61,7 @@ export const RYSK_SIGHASH_ERRORS = {
   "0xe3c0287b": "No existing withdrawal.",
   "0x7be9badb": "Total supply reached.",
   "0x9d3b9e01": "Collateral asset invalid.",
+  "0xe9a56c20": "Premium too small.",
 } as { [key: HexString]: string };
 
 export const RYSK_SIGHASH_NO_SUPPORT_ERRORS = {

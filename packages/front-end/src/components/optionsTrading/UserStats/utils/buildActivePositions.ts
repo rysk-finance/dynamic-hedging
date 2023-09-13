@@ -51,11 +51,25 @@ const calculateProfitLoss = (
   return adjustedPnl + valueAtExpiry * amount;
 };
 
+/**
+ * Get the first action that can be performed for any position.
+ *
+ * @param disabled - True if the opposite side is disabled.
+ * @param isOpen - True if the position is active.
+ * @param isShort - True if the position is short (sold).
+ * @param valueAtExpiry - USDC value at the time of expiry.
+ * @param premiumTooSmall - Boolean value representing the sell side premiumTooSmall flag.
+ * @param exposure - Overall DHV exposure of the series.
+ *
+ * @returns - String representation of the available action.
+ */
 const getAction = (
   disabled: boolean,
   isOpen: boolean,
   isShort: boolean,
-  valueAtExpiry: number
+  valueAtExpiry: number,
+  premiumTooSmall: boolean,
+  exposure?: number
 ) => {
   if (!isOpen && isShort) {
     return PositionAction.SETTLE;
@@ -69,11 +83,15 @@ const getAction = (
     }
   }
 
-  if (disabled) {
+  // Untradeable when:
+  // - Is disabled.
+  // - Is long with the premiumTooSmall flag up and has no USDC short exposure.
+  const shortExposure = exposure ? exposure : 0;
+  if (disabled || (!isShort && premiumTooSmall && shortExposure <= 0)) {
     return PositionAction.UNTRADEABLE;
-  } else {
-    return PositionAction.CLOSE;
   }
+
+  return PositionAction.CLOSE;
 };
 
 /**
@@ -168,7 +186,7 @@ export const buildActivePositions = async (
         sell:
           isOpen && chainSideData?.sell
             ? chainSideData.sell
-            : { disabled: false, quote: { quote: 0 } },
+            : { disabled: false, premiumTooSmall: false, quote: { quote: 0 } },
       };
 
       // Determine if disabled.
@@ -203,8 +221,17 @@ export const buildActivePositions = async (
         valueAtExpiry
       );
 
+      const action = getAction(
+        disabled,
+        isOpen,
+        isShort,
+        valueAtExpiry,
+        sell.premiumTooSmall,
+        chainSideData?.exposure.USDC.short
+      );
+
       return {
-        action: getAction(disabled, isOpen, isShort, valueAtExpiry),
+        action,
         amount,
         breakEven: isPut ? strike - entry : strike + entry,
         collateral: {
@@ -213,7 +240,7 @@ export const buildActivePositions = async (
           liquidationPrice: liquidationPrices[index],
           vault,
         },
-        disabled: isOpen && disabled,
+        disabled: action === PositionAction.UNTRADEABLE,
         delta: amount * delta,
         entry,
         expiryTimestamp,
@@ -225,6 +252,10 @@ export const buildActivePositions = async (
         mark: (buy.quote.quote + sell.quote.quote) / 2,
         profitLoss,
         series: series.join("-"),
+        shortUSDCExposure:
+          !isShort && sell.premiumTooSmall
+            ? chainSideData?.exposure.USDC.short
+            : undefined,
         strike: Convert.fromOpyn(strikePrice).toStr(),
       };
     }

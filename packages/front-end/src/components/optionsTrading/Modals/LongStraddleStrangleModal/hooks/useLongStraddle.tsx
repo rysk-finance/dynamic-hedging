@@ -98,14 +98,16 @@ export const useLongStraddleStrangle = (
             .lte(allowance.amount);
 
           const breakEven: [number, number] = [
-            putQuote.breakEven - (callQuote.breakEven - Convert.fromStr(put).toInt()),
-            callQuote.breakEven + (Convert.fromStr(call).toInt() - putQuote.breakEven),
+            putQuote.breakEven -
+              (callQuote.breakEven - Convert.fromStr(call).toInt()),
+            callQuote.breakEven +
+              (Convert.fromStr(put).toInt() - putQuote.breakEven),
           ];
 
           const putExposure =
-            data[activeExpiry!][Number(put)].put?.exposure || 0;
+            data[activeExpiry!][Number(put)].put?.exposure.net || 0;
           const callExposure =
-            data[activeExpiry!][Number(call)].call?.exposure || 0;
+            data[activeExpiry!][Number(call)].call?.exposure.net || 0;
 
           setPositionData({
             acceptablePremium: totalAcceptablePremium,

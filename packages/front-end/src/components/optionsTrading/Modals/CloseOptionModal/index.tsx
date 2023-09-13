@@ -61,7 +61,9 @@ export const CloseOptionModal = () => {
   const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const rounded = Convert.fromStr(roundInputValue(event)).toInt();
 
-    const maxAmount = Math.min(positionData.totalSize, rounded || 0);
+    const maxAmount = Math.min(positionData.totalSize, rounded);
+
+    if (!maxAmount) return setAmountToClose("");
 
     setAmountToClose(Convert.fromInt(maxAmount ? maxAmount : rounded).toStr());
   };
@@ -104,7 +106,8 @@ export const CloseOptionModal = () => {
           addresses.exchange,
           refresh,
           addresses.token,
-          addresses.user
+          addresses.user,
+          positionData.operation
         );
 
         if (hash) {
@@ -142,7 +145,10 @@ export const CloseOptionModal = () => {
           <span className="flex">
             <Label className="flex items-center justify-center select-none cursor-pointer w-min border-black border-r-2 px-2">
               <Checkbox
-                checked={amountToClose === Convert.fromInt(positionData.totalSize).toStr()}
+                checked={
+                  amountToClose ===
+                  Convert.fromInt(positionData.totalSize).toStr()
+                }
                 name="close-max"
                 onChange={handleCloseMax}
               />
@@ -159,6 +165,7 @@ export const CloseOptionModal = () => {
               !Number(amountToClose) ||
               Number(amountToClose) < MIN_TRADE_SIZE ||
               Number(amountToClose) > MAX_TRADE_SIZE ||
+              positionData.orderTooBig ||
               !addresses.user ||
               !addresses.token ||
               transactionPending ||

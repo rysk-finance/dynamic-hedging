@@ -18,10 +18,8 @@ export const AssetPriceInfo = () => {
       eth24hLow,
       eth24hChange,
       ethPriceError,
-      options: { refresh },
       userTradingPreferences: { tutorialMode },
     },
-    dispatch,
   } = useGlobalContext();
 
   const ready = Boolean(!ethPriceError && ethPrice && ethPriceUpdateTime);
@@ -49,8 +47,8 @@ export const AssetPriceInfo = () => {
               <CurrentPrice />
 
               <OneDayChange
-                high={eth24hHigh}
-                low={eth24hLow}
+                high={Math.max(ethPrice, eth24hHigh || 0)}
+                low={Math.min(ethPrice, eth24hLow || 0)}
                 change={eth24hChange}
               />
             </motion.div>

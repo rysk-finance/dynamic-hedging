@@ -109,7 +109,7 @@ export const getChainData = async (
                 IV: _getIV(Convert.fromUSDC(buy.quote as BigNumber).toInt()),
                 quote: _getQuote(buy, false),
               },
-              delta: Convert.fromWei(delta as string).toInt(),
+              delta: Convert.fromWei(delta as BigNumber).toInt(),
               exchangeAddresses: {
                 USDC: usdCollatseriesExchangeBalance.seriesAddress,
                 WETH: wethCollatseriesExchangeBalance.seriesAddress,
@@ -118,15 +118,36 @@ export const getChainData = async (
                 USDC: usdCollatseriesExchangeBalance.optionExchangeBalance,
                 WETH: wethCollatseriesExchangeBalance.optionExchangeBalance,
               },
-              exposure: Convert.fromWei(exposure as string).toInt(),
+              exposure: {
+                net: Convert.fromWei(exposure as BigNumber).toInt(),
+                USDC: {
+                  long: Convert.fromWei(
+                    usdCollatseriesExchangeBalance.longExposure as BigNumber
+                  ).toInt(),
+                  short: Convert.fromWei(
+                    usdCollatseriesExchangeBalance.shortExposure as BigNumber
+                  ).toInt(),
+                },
+                WETH: {
+                  long: Convert.fromWei(
+                    wethCollatseriesExchangeBalance.longExposure as BigNumber
+                  ).toInt(),
+                  short: Convert.fromWei(
+                    wethCollatseriesExchangeBalance.shortExposure as BigNumber
+                  ).toInt(),
+                },
+              },
               pos: positions.netAmount,
               sell: {
-                disabled: sell.disabled || sell.premiumTooSmall,
+                disabled: sell.disabled,
                 IV: _getIV(Convert.fromUSDC(sell.quote as BigNumber).toInt()),
+                premiumTooSmall: sell.premiumTooSmall,
                 quote: _getQuote(sell, true),
               },
             },
           } as CallSide | PutSide;
+
+          // console.log(expiry, strikeUSDC, side, sell.premiumTooSmall);
 
           return sideData;
         },

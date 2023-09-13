@@ -42,7 +42,7 @@ export const Pricing = ({ loading, positionData, size }: PricingProps) => {
       setCollateralType(type);
       setCollateralFull(full);
     }
-  }, [loading]);
+  }, [loading, type, full]);
 
   const errorMessage = useMemo(() => {
     const negativeBalance =

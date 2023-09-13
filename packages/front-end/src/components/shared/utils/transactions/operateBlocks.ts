@@ -118,16 +118,36 @@ export const sellOption = (
   acceptablePremium: BigNumber,
   amount: BigNumber,
   optionSeries: OptionSeries,
+  tokenAddress: HexString,
   userAddress: HexString
 ) => {
   return {
     actionType: BigNumber.from(RyskActionType.SellOption),
     owner: ZERO_ADDRESS,
     secondAddress: userAddress,
-    asset: ZERO_ADDRESS,
+    asset: tokenAddress,
     vaultId: BigNumber.from(0),
     amount,
     optionSeries,
+    indexOrAcceptablePremium: acceptablePremium,
+    data: ZERO_ADDRESS,
+  };
+};
+
+export const closeOption = (
+  acceptablePremium: BigNumber,
+  amount: BigNumber,
+  tokenAddress: HexString,
+  userAddress: HexString
+) => {
+  return {
+    actionType: BigNumber.from(RyskActionType.CloseOption),
+    owner: ZERO_ADDRESS,
+    secondAddress: userAddress,
+    asset: tokenAddress,
+    vaultId: BigNumber.from(0),
+    amount,
+    optionSeries: EMPTY_SERIES,
     indexOrAcceptablePremium: acceptablePremium,
     data: ZERO_ADDRESS,
   };

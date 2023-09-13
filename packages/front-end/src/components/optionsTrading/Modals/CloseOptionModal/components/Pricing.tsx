@@ -17,10 +17,22 @@ export const Pricing = ({ positionData, size }: PricingProps) => {
     },
   } = useGlobalContext();
 
-  const { fee, now, premium, quote, remainingBalance, slippage } = positionData;
+  const {
+    fee,
+    maxCloseSize,
+    now,
+    orderTooBig,
+    premium,
+    quote,
+    remainingBalance,
+    slippage,
+  } = positionData;
 
   const errorMessage = useMemo(() => {
     switch (true) {
+      case orderTooBig:
+        return `You may only close up to ${maxCloseSize || 0} at this time.`;
+
       case size && Number(size) < MIN_TRADE_SIZE:
       case size && Number(size) > MAX_TRADE_SIZE:
         return "Trade size must be between 0.1 and 1000.";

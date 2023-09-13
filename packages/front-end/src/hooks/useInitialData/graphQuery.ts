@@ -2,11 +2,11 @@ import { QueriesEnum } from "src/clients/Apollo/Queries";
 
 export const initialDataQuery = `
 query ${QueriesEnum.INITIAL_DATA} (
-  $address: String, $underlying: String
+  $address: String, $after: BigInt, $underlying: String,
 ) {
   longPositions(
     first: 1000,
-    where: { account: $address }
+    where: { account: $address, optionsBoughtTransactions_: { timestamp_gte: $after } }
   ) {
     active
     buyAmount
@@ -36,7 +36,7 @@ query ${QueriesEnum.INITIAL_DATA} (
   
   shortPositions(
     first: 1000,
-    where: { account: $address }
+    where: { account: $address, optionsSoldTransactions_: { timestamp_gte: $after } }
   ) {
     active
     sellAmount

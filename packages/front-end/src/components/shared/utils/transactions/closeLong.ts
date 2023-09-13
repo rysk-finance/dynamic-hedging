@@ -1,15 +1,13 @@
+import type { CloseLongOperation } from "src/components/optionsTrading/Modals/CloseOptionModal/types";
+
 import { prepareWriteContract, writeContract } from "@wagmi/core";
 import { BigNumber } from "ethers";
 
 import { OptionExchangeABI } from "src/abis/OptionExchange_ABI";
 import { waitForTransactionOrTimer } from "src/components/shared/utils/waitForTransaction";
-import {
-  EMPTY_SERIES,
-  GAS_MULTIPLIER,
-  ZERO_ADDRESS,
-} from "src/config/constants";
+import { EMPTY_SERIES, GAS_MULTIPLIER } from "src/config/constants";
 import OperationType from "src/enums/OperationType";
-import RyskActionType from "src/enums/RyskActionType";
+import { closeOption, sellOption } from "./operateBlocks";
 
 export const closeLong = async (
   acceptablePremium: BigNumber,
@@ -17,23 +15,22 @@ export const closeLong = async (
   exchangeAddress: HexString,
   refresh: () => void,
   tokenAddress: HexString,
-  userAddress: HexString
+  userAddress: HexString,
+  operation: CloseLongOperation
 ) => {
   const txData = [
     {
       operation: OperationType.RyskAction,
       operationQueue: [
-        {
-          actionType: BigNumber.from(RyskActionType.SellOption),
-          owner: ZERO_ADDRESS,
-          secondAddress: userAddress,
-          asset: tokenAddress,
-          vaultId: BigNumber.from(0),
-          amount,
-          optionSeries: EMPTY_SERIES,
-          indexOrAcceptablePremium: acceptablePremium,
-          data: "0x" as HexString,
-        },
+        operation === "sell"
+          ? sellOption(
+              acceptablePremium,
+              amount,
+              EMPTY_SERIES,
+              tokenAddress,
+              userAddress
+            )
+          : closeOption(acceptablePremium, amount, tokenAddress, userAddress),
       ],
     },
   ];

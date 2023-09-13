@@ -54,5 +54,6 @@ export interface ActionProps
     | "isPut"
     | "isShort"
     | "series"
+    | "shortUSDCExposure"
     | "strike"
   > {}

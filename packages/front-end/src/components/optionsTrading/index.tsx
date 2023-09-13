@@ -76,7 +76,7 @@ export const OptionsTradingContent = () => {
         <AssetPriceInfo />
 
         <LayoutGroup>
-          <div className="relative border-2 border-black">
+          <div className="relative border-2 border-black rounded-lg overflow-hidden">
             <ExpiryDatePicker />
             <Filters />
             <Strategies />
