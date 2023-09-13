@@ -25,15 +25,21 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
 
     return (
       <div className="bg-white rounded-lg shadow-lg font-dm-mono text-center w-60">
-        <p className="px-4 pt-4 pb-2 text-xl font-medium after:content-['_%']">
+        <p className="p-2 text-sm">{`Since last epoch`}</p>
+
+        <p className="px-4 pt-4 py-2 border-t-2 border-bone text-xl font-medium after:content-['_%']">
           {`DHV: ${
-            isHistoricalDataPoint ? payload[0].value : payload[1].value
+            isHistoricalDataPoint
+              ? payload[0].payload.epochWeeklyChange
+              : payload[1].payload.epochWeeklyChange
           }`}
         </p>
 
         <p className="px-4 pb-2 border-b-2 border-bone text-xl font-medium after:content-['_%']">
           {`ETH: ${
-            isHistoricalDataPoint ? payload[1].value : payload[3].value
+            isHistoricalDataPoint
+              ? payload[1].payload.ethWeeklyChange
+              : payload[3].payload.ethWeeklyChange
           }`}
         </p>
 

@@ -33,13 +33,15 @@ export const parseData = async (
 
     const currentPPS = Convert.fromWei(
       currentPricePerShare[0] || lastIndex.value
-    ).toInt();
+    );
     const lastPPS = Convert.fromWei(lastIndex.value).toInt();
-    const diff = (currentPPS - lastPPS) * 100;
+    const diff = (currentPPS.toInt() - lastPPS) * 100;
     const lastGrowthCalculation = Convert.fromStr(
       lastIndex.growthSinceFirstEpoch
     ).toInt();
-    const predictedGrowthSinceFirstEpoch = String(lastGrowthCalculation + diff);
+    const predictedGrowthSinceFirstEpoch = Convert.fromInt(
+      lastGrowthCalculation + diff
+    ).toStr();
 
     const pricePerSharesWithPrediction = [
       ...pricePerShares,
@@ -47,13 +49,13 @@ export const parseData = async (
         epoch: Convert.fromInt(
           Convert.fromStr(lastIndex.epoch).toInt() + 1
         ).toStr(),
-        ethPrice: currentEthPrice,
+        ethPrice: currentEthPrice.toString(),
         growthSinceFirstEpoch: "",
         predictedGrowthSinceFirstEpoch,
         timestamp: String(
           Convert.fromStr(lastIndex.timestamp).toInt() + SECONDS_IN_WEEK
         ),
-        value: currentPPS,
+        value: currentPPS.toStr(),
         __typename: "",
       },
     ];
@@ -68,31 +70,50 @@ export const parseData = async (
       : 0;
 
     return pricePerSharesWithPrediction.map((pricePoint, index, array) => {
+      const previousIndex = array[index ? index - 1 : index];
+
+      const previousPricePointGrowth = Convert.fromStr(
+        previousIndex.growthSinceFirstEpoch
+      ).toInt();
       const pricePointGrowth = Convert.fromStr(
         pricePoint.growthSinceFirstEpoch
       ).toInt();
       const growthSinceFirstEpoch = Convert.round(
         pricePointGrowth - publicLaunchOffset
       );
+      const epochWeeklyChange = Convert.round(
+        growthSinceFirstEpoch - (previousPricePointGrowth - publicLaunchOffset)
+      );
 
+      const previousEthPrice = Convert.fromOpyn(previousIndex.ethPrice).toInt();
       const ethPrice = Convert.fromOpyn(pricePoint.ethPrice).toInt();
       const ethPriceGrowth = Convert.round(
         (ethPrice / publicLaunchEthPrice - 1) * 100
+      );
+      const ethWeeklyChange = Convert.round(
+        ethPriceGrowth - (previousEthPrice / publicLaunchEthPrice - 1) * 100
       );
 
       if (pricePoint.predictedGrowthSinceFirstEpoch) {
         const predictedPricePointGrowth = Convert.fromStr(
           pricePoint.predictedGrowthSinceFirstEpoch
         ).toInt();
+        const predictedGrowthSinceFirstEpoch = Convert.round(
+          predictedPricePointGrowth - publicLaunchOffset
+        );
+        const epochWeeklyChange = Convert.round(
+          predictedGrowthSinceFirstEpoch -
+            (previousPricePointGrowth - publicLaunchOffset)
+        );
 
         return {
           ...pricePoint,
           ethPrice: NaN,
           predictedEthPrice: ethPriceGrowth,
+          ethWeeklyChange,
           growthSinceFirstEpoch: NaN,
-          predictedGrowthSinceFirstEpoch: Convert.round(
-            predictedPricePointGrowth - publicLaunchOffset
-          ),
+          predictedGrowthSinceFirstEpoch,
+          epochWeeklyChange,
           isPrediction: true,
         };
       }
@@ -102,8 +123,10 @@ export const parseData = async (
           ...pricePoint,
           ethPrice: ethPriceGrowth,
           predictedEthPrice: ethPriceGrowth,
+          ethWeeklyChange,
           growthSinceFirstEpoch,
           predictedGrowthSinceFirstEpoch: growthSinceFirstEpoch,
+          epochWeeklyChange,
           isPrediction: false,
         };
       }
@@ -112,8 +135,10 @@ export const parseData = async (
         ...pricePoint,
         ethPrice: ethPriceGrowth,
         predictedEthPrice: null,
+        ethWeeklyChange,
         growthSinceFirstEpoch,
         predictedGrowthSinceFirstEpoch: null,
+        epochWeeklyChange,
         isPrediction: false,
       };
     });

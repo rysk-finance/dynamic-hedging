@@ -22,8 +22,10 @@ export interface ChartData
   > {
   ethPrice: number;
   predictedEthPrice: number | null;
+  ethWeeklyChange: number;
   growthSinceFirstEpoch: number;
   predictedGrowthSinceFirstEpoch: number | null;
+  epochWeeklyChange: number;
   isPrediction: boolean;
 }
 
@@ -32,6 +34,8 @@ export interface CustomTooltipProps {
   payload?: {
     payload: {
       epoch: string;
+      epochWeeklyChange: number;
+      ethWeeklyChange: number;
       isPrediction: boolean;
     };
     value: number;
