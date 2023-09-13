@@ -33,6 +33,7 @@ export const useSentry = () => {
           /ApolloError: Failed to fetch/,
           /ApolloError: Load failed/,
           /ApolloError: Store error: database unavailable/,
+          /The operation was aborted/,
           /NetworkError when attempting to fetch resource/,
           /user rejected transaction/,
           /ChunkLoadError/,
