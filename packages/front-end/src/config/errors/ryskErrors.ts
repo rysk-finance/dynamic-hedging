@@ -72,5 +72,3 @@ export const RYSK_SIGHASH_NO_SUPPORT_ERRORS = {
   "0x04213078": "This trade is too large. Please try a smaller position size.",
   "0xeddee5b2": "This trade is too small. Please try a larger position size.",
 } as { [key: HexString]: string };
-
-export const PREMIUM_TOO_SMALL = "0xe9a56c20"
