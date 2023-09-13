@@ -9,7 +9,7 @@ export const ExpiryDatePicker = () => {
   const {
     state: {
       options: { expiries },
-      userTradingPreferences: { calendarMode, tutorialMode },
+      userTradingPreferences: { tutorialMode },
     },
   } = useGlobalContext();
 

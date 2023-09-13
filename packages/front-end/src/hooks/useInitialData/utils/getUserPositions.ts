@@ -70,8 +70,8 @@ export const getUserPositions = (positions: Position[]): UserPositions => {
       if (!key) {
         positions[expiryTimestamp] = {
           netAmount,
-          isLong,
-          isShort,
+          isLong: isLong && active,
+          isShort: isShort && active,
           activeTokens: active ? [token] : [],
           inactiveTokens: !active ? [token] : [],
           longTokens: hasCollateral ? [] : [token],
@@ -80,8 +80,8 @@ export const getUserPositions = (positions: Position[]): UserPositions => {
       } else {
         positions[expiryTimestamp] = {
           ...key,
-          isLong: key.isLong || isLong,
-          isShort: key.isShort || isShort,
+          isLong: key.isLong || (isLong && active),
+          isShort: key.isShort || (isShort && active),
           activeTokens: active
             ? [...key.activeTokens, token]
             : key.activeTokens,
