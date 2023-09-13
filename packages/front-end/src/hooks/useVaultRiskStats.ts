@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
 import { logError } from "src/utils/logError";
+import { typedFetch } from "src/utils/typedFetch";
+
+interface Response {
+  delta: string;
+  sharpe: string;
+  maxDrawdown: string;
+}
 
 export const useVaultRiskStats = () => {
   const [delta, setDelta] = useState("Soon™️");
@@ -8,10 +15,9 @@ export const useVaultRiskStats = () => {
 
   const getStats = async () => {
     try {
-      const res = await fetch(
-        `https://api.rysk.finance/beyond_portfolio_risk_stats`
+      const data = await typedFetch<Response>(
+        "https://api.rysk.finance/beyond_portfolio_risk_stats"
       );
-      const data = await res.json();
       setDelta(data.delta);
       setSharpe(data.sharpe);
       setMaxDrawdown(data.maxDrawdown);
