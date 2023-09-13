@@ -22,6 +22,7 @@ export const Action = ({
   isPut,
   isShort,
   series,
+  shortUSDCExposure,
   strike,
 }: ActionProps) => {
   const { address } = useAccount();
@@ -121,6 +122,7 @@ export const Action = ({
             isPut,
             isShort,
             series,
+            shortUSDCExposure,
             strike,
             vault: collateral.vault,
           },

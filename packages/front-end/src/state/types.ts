@@ -152,6 +152,7 @@ export interface ActivePositions {
   mark: number;
   profitLoss: number;
   series: string;
+  shortUSDCExposure?: number;
   strike: string;
 }
 
@@ -488,6 +489,7 @@ export interface ClosingOption {
   isPut: boolean;
   isShort: boolean;
   series: string;
+  shortUSDCExposure?: number;
   strike: string;
   vault?: Vault;
 }
