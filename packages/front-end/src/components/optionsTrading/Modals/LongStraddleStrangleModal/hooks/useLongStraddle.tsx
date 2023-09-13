@@ -105,9 +105,9 @@ export const useLongStraddleStrangle = (
           ];
 
           const putExposure =
-            data[activeExpiry!][Number(put)].put?.exposure || 0;
+            data[activeExpiry!][Number(put)].put?.exposure.net || 0;
           const callExposure =
-            data[activeExpiry!][Number(call)].call?.exposure || 0;
+            data[activeExpiry!][Number(call)].call?.exposure.net || 0;
 
           setPositionData({
             acceptablePremium: totalAcceptablePremium,

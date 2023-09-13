@@ -166,7 +166,7 @@ export const Body = ({ chainRows, expiry }: BodyProps) => {
                   cellClasses="!border-r-0"
                   disabled={callSellDisabled && callBuyDisabled}
                 >
-                  <Exposure value={option.call?.exposure || 0} />
+                  <Exposure value={option.call?.exposure.net || 0} />
                 </Cell>
               )}
 
@@ -243,7 +243,7 @@ export const Body = ({ chainRows, expiry }: BodyProps) => {
                   cellClasses="!border-r-0"
                   disabled={putSellDisabled && putBuyDisabled}
                 >
-                  <Exposure value={option.put?.exposure || 0} />
+                  <Exposure value={option.put?.exposure.net || 0} />
                 </Cell>
               )}
             </motion.tr>

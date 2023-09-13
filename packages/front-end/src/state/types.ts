@@ -498,6 +498,17 @@ interface Quote {
   total: number;
 }
 
+interface TokenExposure {
+  long: number;
+  short: number;
+}
+
+interface Exposure {
+  net: number;
+  USDC: TokenExposure;
+  WETH: TokenExposure;
+}
+
 interface StrikeSide {
   buy: {
     IV: number;
@@ -513,7 +524,7 @@ interface StrikeSide {
     USDC: BigNumber;
     WETH: BigNumber;
   };
-  exposure: number;
+  exposure: Exposure;
   pos: number;
   sell: {
     IV: number;
