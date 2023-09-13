@@ -34,7 +34,8 @@ const isRPCError = (err: any): err is RPCError => {
   const stringifiedError = `${err}`;
   return (
     stringifiedError.includes("Internal JSON-RPC error.") ||
-    stringifiedError.includes("call revert exception")
+    stringifiedError.includes("call revert exception") ||
+    stringifiedError.includes("execution reverted")
   );
 };
 

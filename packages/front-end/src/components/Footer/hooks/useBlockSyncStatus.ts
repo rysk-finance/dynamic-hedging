@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useBlockNumber } from "wagmi";
 
 import { SUBGRAPH_STATUS } from "src/config/endpoints";
+import { logError } from "src/utils/logError";
 import { typedFetch } from "src/utils/typedFetch";
 
 const INTERVAL = 1000;
@@ -27,16 +28,25 @@ export const useBlockSyncStatus = () => {
     }, INTERVAL);
 
     if (!(count % SUBGRAPH_INTERVAL)) {
-      typedFetch<SubgraphStatusResponse>(SUBGRAPH_STATUS).then(
-        ({ block, synced }) => {
-          const offset = blockHeight ? block - blockHeight : 0;
+      try {
+        typedFetch<SubgraphStatusResponse>(SUBGRAPH_STATUS).then(
+          ({ block, synced }) => {
+            const offset = blockHeight ? block - blockHeight : 0;
 
-          setBlockState({
-            offset,
-            synced,
-          });
-        }
-      );
+            setBlockState({
+              offset,
+              synced,
+            });
+          }
+        );
+      } catch (error) {
+        logError(error);
+
+        setBlockState({
+          offset: 0,
+          synced: false,
+        });
+      }
     }
 
     return () => {
