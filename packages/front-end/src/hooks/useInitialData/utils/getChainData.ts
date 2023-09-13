@@ -139,13 +139,15 @@ export const getChainData = async (
               },
               pos: positions.netAmount,
               sell: {
-                disabled: sell.disabled || sell.premiumTooSmall,
+                disabled: sell.disabled,
                 IV: _getIV(Convert.fromUSDC(sell.quote as BigNumber).toInt()),
                 premiumTooSmall: sell.premiumTooSmall,
                 quote: _getQuote(sell, true),
               },
             },
           } as CallSide | PutSide;
+
+          // console.log(expiry, strikeUSDC, side, sell.premiumTooSmall);
 
           return sideData;
         },
