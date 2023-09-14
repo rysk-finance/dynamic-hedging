@@ -1,4 +1,3 @@
-import { Helmet } from "react-helmet";
 import { Route, Routes, Navigate } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 
@@ -30,12 +29,6 @@ function App() {
         <ApolloProvider>
           <Init />
           <div className="bg-bone flex flex-col min-h-screen">
-            {process.env.REACT_APP_ENV !== "production" && (
-              <Helmet>
-                <meta name="robots" content="noindex, nofollow" />
-              </Helmet>
-            )}
-
             <MobileWarning />
             <Header />
             <div className="px-16 overflow-hidden">
