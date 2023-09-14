@@ -1,6 +1,42 @@
 {
-  "rewrites": [{ "source": "/(.*)", "destination": "/" }],
-  "github": {
-    "silent": true
-  }
+    "$schema": "https://openapi.vercel.sh/vercel.json",
+    "rewrites": [{ "source": "/(.*)", "destination": "/" }],
+    "github": {
+        "silent": true
+    },
+    "headers": [
+        {
+            "source": "/(.*)",
+            "headers": [
+                {
+                    "key": "Access-Control-Allow-Origin",
+                    "value": "https://*.rysk.finance"
+                },
+                {
+                    "key": "Content-Security-Policy",
+                    "value": "base-uri 'self'; default-src 'self' https://*.rysk.finance; frame-src 'self' https://verify.walletconnect.com; object-src 'none'; font-src 'self' fonts.gstatic.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com; connect-src *; img-src 'self' data: https://*.walletconnect.com; frame-ancestors 'self'; form-action 'self';"
+                },
+                {
+                    "key": "X-Frame-Options",
+                    "value": "DENY"
+                },
+                {
+                    "key": "Strict-Transport-Security",
+                    "value": "max-age=63072000; includeSubDomains; preload;"
+                },
+                {
+                    "key": "Referrer-Policy",
+                    "value": "no-referrer-when-downgrade"
+                },
+                {
+                    "key": "X-Content-Type-Options",
+                    "value": "nosniff"
+                },
+                {
+                    "key": "X-XSS-Protection",
+                    "value": "1; mode=block"
+                }
+            ]
+        }
+    ]
 }
