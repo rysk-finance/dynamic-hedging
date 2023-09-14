@@ -1,5 +1,5 @@
 import { Helmet } from "react-helmet";
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, Navigate } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 
 import ApolloProvider from "./clients/Apollo/Apollo";
@@ -54,6 +54,10 @@ function App() {
                   />
                   <Route path={AppPaths.TRADE} element={<OptionsTrading />} />
                   <Route path={AppPaths.VAULT} element={<Vault />} />
+                  <Route
+                    path={AppPaths.FALLBACK}
+                    element={<Navigate to={AppPaths.HOME} />}
+                  />
                 </Routes>
               </div>
             </div>
