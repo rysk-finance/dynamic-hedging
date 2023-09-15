@@ -14,7 +14,7 @@
                 },
                 {
                     "key": "Content-Security-Policy",
-                    "value": "base-uri 'self'; default-src 'self' https://*.rysk.finance; frame-src 'self' https://verify.walletconnect.com; object-src 'none'; font-src 'self' fonts.gstatic.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com; connect-src *; img-src 'self' data: https://*.walletconnect.com; frame-ancestors 'self'; form-action 'self';"
+                    "value": "base-uri 'self'; default-src 'self' https://*.rysk.finance; frame-src 'self' https://verify.walletconnect.com; object-src 'none'; font-src 'self' fonts.gstatic.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com; connect-src *; script-src-elem 'self' https://*.usefathom.com; img-src 'self' data: https://*.walletconnect.com https://*.usefathom.com; frame-ancestors 'self'; form-action 'self';"
                 },
                 {
                     "key": "X-Frame-Options",
