@@ -50,3 +50,12 @@ export interface CustomLegendProps {
 export interface ChartProps {
   chartData: ChartData[];
 }
+
+export interface CustomDotProps {
+  cx?: number;
+  cy?: number;
+  fill?: string;
+  rx?: number;
+  size?: number;
+  value?: number;
+}

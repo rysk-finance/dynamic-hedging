@@ -2,6 +2,7 @@ import type {
   ChartProps,
   CustomLegendProps,
   CustomTooltipProps,
+  CustomDotProps,
 } from "../VaultPerformance.types";
 
 import dayjs from "dayjs";
@@ -78,51 +79,77 @@ const CustomLegend = ({ payload }: CustomLegendProps) => {
   return null;
 };
 
+const CustomizedDot = ({
+  cx,
+  cy,
+  fill,
+  rx = 12,
+  size = 12,
+  value,
+}: CustomDotProps) => {
+  if (value === null || Number.isNaN(value)) return;
+
+  return (
+    <svg
+      x={cx && cx - size / 2}
+      y={cy && cy - size / 2}
+      width={size}
+      height={size}
+      viewBox="0 0 13 13"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect rx={rx} x={0.34} y={0.4} width={12} height={12} fill={fill} />
+    </svg>
+  );
+};
+
 export const Chart = ({ chartData }: ChartProps) => (
   <div className="p-8" role="graphics-document">
     <ResponsiveContainer width={"100%"} height={384}>
       <LineChart data={chartData}>
         <Line
-          activeDot={{ fill: "#00FEFD", stroke: "#00FEFD" }}
+          activeDot={<CustomizedDot fill="#00FEFD" rx={0} size={16} />}
           animationDuration={1000}
           animationEasing="ease-in"
           dataKey="growthSinceFirstEpoch"
-          dot={{ r: 4, fill: "black", stroke: "black" }}
+          dot={<CustomizedDot />}
+          fill="black"
           name="DHV"
           stroke="black"
           strokeWidth={2}
           type="linear"
         />
         <Line
-          activeDot={{ fill: "#00FEFD", stroke: "#00FEFD" }}
+          activeDot={<CustomizedDot fill="#00FEFD" rx={0} size={16} />}
           animationBegin={1000}
           animationDuration={1000}
           animationEasing="ease"
           dataKey="predictedGrowthSinceFirstEpoch"
-          dot={{ r: 4, fill: "black", stroke: "black" }}
+          dot={<CustomizedDot />}
+          fill="black"
           stroke="black"
           strokeDasharray="8 8"
           strokeWidth={2}
           type="linear"
         />
         <Line
-          activeDot={{ fill: "#343434", stroke: "#343434" }}
+          activeDot={<CustomizedDot fill="#343434" rx={0} size={16} />}
           animationDuration={1000}
           animationEasing="ease-in"
           dataKey="ethPrice"
-          dot={{ r: 4, fill: "#626890", stroke: "#626890" }}
+          dot={<CustomizedDot fill="#626890" />}
           name="Ethereum"
           stroke="#626890"
           strokeWidth={2}
           type="linear"
         />
         <Line
-          activeDot={{ fill: "#343434", stroke: "#343434" }}
+          activeDot={<CustomizedDot fill="#343434" rx={0} size={16} />}
           animationBegin={1000}
           animationDuration={1000}
           animationEasing="ease"
           dataKey="predictedEthPrice"
-          dot={{ r: 4, fill: "#626890", stroke: "#626890" }}
+          dot={<CustomizedDot fill="#626890" />}
           stroke="#626890"
           strokeDasharray="8 8"
           strokeWidth={2}
