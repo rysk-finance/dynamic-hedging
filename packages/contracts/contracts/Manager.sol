@@ -7,9 +7,15 @@ import "./LiquidityPool.sol";
 import "./OptionExchange.sol";
 import "./OptionCatalogue.sol";
 import "./BeyondPricer.sol";
+import {IRangeOrderReactor, Position, IUniswapV3PoolState} from "./interfaces/IRangeOrderReactor.sol";
 
 import "./libraries/AccessControl.sol";
 import "./libraries/CustomErrors.sol";
+
+struct RebalanceCaller {
+	address caller;
+	uint256 deltaUsed;
+}
 
 /**
  *  @title Contract used for all user facing options interactions
@@ -22,6 +28,8 @@ contract Manager is AccessControl {
 
 	// delta limit for an address
 	mapping(address => uint256) public deltaLimit;
+	// reactor index to last caller and delta allowance deducted
+	mapping(uint256 => RebalanceCaller) public rebalanceCallers;
 	// option handler
 	IAlphaOptionHandler public optionHandler;
 	// liquidity pool
@@ -195,6 +203,7 @@ contract Manager is AccessControl {
 			revert ExceedsDeltaLimit();
 		}
 		deltaLimit[msg.sender] -= absoluteDelta;
+		rebalanceCallers[reactorIndex] = RebalanceCaller(msg.sender, absoluteDelta);
 		liquidityPool.rebalancePortfolioDelta(delta, reactorIndex);
 	}
 
@@ -364,4 +373,77 @@ contract Manager is AccessControl {
 			revert NotProxyManager();
 		}
 	}
+
+	///////////////////////////
+	/// Range Order Reactor ///
+	///////////////////////////
+
+	/**
+	 * @notice Exits an active range order
+	 * @param reactorIndex the index of the range order reactor
+	 */
+ 	function exitActiveRangeOrder(uint256 reactorIndex) external {
+		_isKeeper();
+		address rangeOrderReactorAddress = liquidityPool.hedgingReactors(reactorIndex);
+		IRangeOrderReactor rangeOrderReactor = IRangeOrderReactor(rangeOrderReactorAddress);
+		_handleReclaimDelta(reactorIndex, rangeOrderReactor);
+		rangeOrderReactor.exitActiveRangeOrder();
+	}
+
+	function _handleReclaimDelta(uint256 reactorIndex, IRangeOrderReactor rangeOrderReactor) internal {
+		RebalanceCaller memory rebalanceCaller = rebalanceCallers[reactorIndex];
+		if (rebalanceCaller.deltaUsed > 0) {
+			IUniswapV3PoolState uniswapPool = rangeOrderReactor.pool();
+			(, int24 tick) = uniswapPool.slot0();
+			Position memory currentOrder = rangeOrderReactor.currentPosition();
+			deltaLimit[rebalanceCaller.caller] += reclaimableDelta(rebalanceCaller.deltaUsed, tick, currentOrder);
+			delete rebalanceCallers[reactorIndex];
+		}
+	} 
+
+	/**
+	 * @notice Calculates amount of delta that can be reclaimed depending on how much of the range order was filled
+	 * @param deltaAmount the amount of delta used to execute the range order
+	 * @param tick the current tick of the pool
+	 * @param currentOrder the current position of the range order reactor
+	 */
+	function reclaimableDelta(uint256 deltaAmount, int24 tick, Position memory currentOrder) 
+		public
+		pure 
+		returns (uint256)
+	{
+        uint256 filled = percentageFilled(tick, currentOrder);
+        // Calculate reclaimable amount
+        uint256 reclaimable = deltaAmount * (1e18 - filled) / 1e18;
+        return reclaimable;
+    }
+
+	/**
+	 * @notice Calculates the percentage of the range order that has been filled
+	 * @param tick the current tick of the pool
+	 * @param position the current position of the range order reactor
+	*/
+	function percentageFilled(int24 tick, Position memory position) 
+		public
+		pure
+		returns (uint256) 
+	{
+		int256 totalRange = int256(position.activeUpperTick - position.activeLowerTick);
+
+        if(totalRange == 0) return 0;
+
+        int256 distance;
+        if(position.activeRangeAboveTick) {
+			distance = int256(position.activeUpperTick - tick);
+        } else {
+			distance = int256(tick - position.activeLowerTick);
+        }
+
+        // Clamp the distance to be within the range [0, totalRange]
+        if (distance < 0) distance = 0;
+        if (distance > totalRange) distance = totalRange;
+
+        return uint256(distance * 1e18 / totalRange);
+    }
+
 }
