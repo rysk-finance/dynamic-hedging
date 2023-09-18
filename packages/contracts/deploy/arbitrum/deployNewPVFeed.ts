@@ -9,12 +9,6 @@ const blackScholesAddress = "0x85C100Eb32C3e2F6EA0444E553f3A9bCE468cb8C"
 const maxNetDhvExposure = 200e18
 
 export async function deployNewPVFeed() {
-	const volatilityFeedFactory = await ethers.getContractFactory("VolatilityFeed")
-	const volatilityFeed = (await volatilityFeedFactory.deploy(
-		authorityAddress
-	)) as AlphaPortfolioValuesFeed
-	console.log("portfolio values feed deployed")
-
 	const portfolioValuesFeedFactory = await ethers.getContractFactory("AlphaPortfolioValuesFeed", {
 		libraries: {
 			BlackScholes: blackScholesAddress
@@ -37,17 +31,6 @@ export async function deployNewPVFeed() {
 	} catch (err: any) {
 		console.log(err)
 	}
-
-	console.log("address:", volatilityFeed.address)
-
-	const optionProtocol = await ethers.getContractAt(
-		"contracts/Protocol.sol:Protocol",
-		optionProtocolAddress
-	)
-	await optionProtocol.changeVolatilityFeed(volatilityFeed.address, { gasLimit: 100000000 })
-
-	expect(await optionProtocol.volatilityFeed()).to.eq(volatilityFeed.address)
-	console.log({ newVolatilityFeed: volatilityFeed.address })
 }
 
 deployNewPVFeed()
