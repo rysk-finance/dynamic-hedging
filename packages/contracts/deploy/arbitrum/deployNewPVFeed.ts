@@ -8,7 +8,7 @@ const blackScholesAddress = "0x85C100Eb32C3e2F6EA0444E553f3A9bCE468cb8C"
 
 const maxNetDhvExposure = 200e18
 
-export async function deployNewVolFeed() {
+export async function deployNewPVFeed() {
 	const volatilityFeedFactory = await ethers.getContractFactory("VolatilityFeed")
 	const volatilityFeed = (await volatilityFeedFactory.deploy(
 		authorityAddress
@@ -50,7 +50,7 @@ export async function deployNewVolFeed() {
 	console.log({ newVolatilityFeed: volatilityFeed.address })
 }
 
-deployNewVolFeed()
+deployNewPVFeed()
 	.then(() => process.exit(0))
 	.catch(error => {
 		console.error(error)
