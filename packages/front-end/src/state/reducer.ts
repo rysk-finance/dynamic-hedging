@@ -186,6 +186,9 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
             hideExpired:
               action.activePositionsFilters?.hideExpired ??
               state.userStats.activePositionsFilters.hideExpired,
+            returnFormat:
+              action.activePositionsFilters?.returnFormat ??
+              state.userStats.activePositionsFilters.returnFormat,
             isAscending:
               action.activePositionsFilters?.isAscending ??
               state.userStats.activePositionsFilters.isAscending,

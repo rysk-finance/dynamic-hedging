@@ -151,6 +151,7 @@ export interface ActivePositions {
   isShort: boolean;
   mark: number;
   profitLoss: number;
+  returnOnInvestment: number;
   series: string;
   shortUSDCExposure?: number;
   strike: string;
@@ -163,6 +164,7 @@ export interface InactivePositions {
   isShort: boolean;
   oraclePrice: number;
   profitLoss?: number;
+  returnOnInvestment?: number;
   series: string;
   size: number;
 }
@@ -176,6 +178,7 @@ export interface UserStats {
     compact: boolean;
     hideExpired: boolean;
     isAscending: boolean;
+    returnFormat: boolean;
     sort: ActivePositionsSortType;
   };
   delta: number;
@@ -400,6 +403,7 @@ export type GlobalAction =
       activePositionsFilters?: {
         compact?: boolean;
         hideExpired?: boolean;
+        returnFormat?: boolean;
         isAscending?: boolean;
         sort?: ActivePositionsSortType;
       };
