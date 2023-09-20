@@ -11,7 +11,7 @@ import {
 } from "src/state/localStorage";
 import { ActionType } from "src/state/types";
 
-const columns = [
+const columns = (returnFormat: boolean) => [
   {
     className: "cursor-pointer col-span-2",
     columnKey: ActivePositionSort.Expiry,
@@ -51,7 +51,7 @@ const columns = [
   {
     className: "cursor-pointer",
     columnKey: ActivePositionSort.PnL,
-    name: "p/l",
+    name: returnFormat ? "p/l" : "roi",
     sortable: true,
     tutorial:
       "The profit or loss of the position. You can click to sort by this column.",
@@ -92,7 +92,7 @@ export const Head = () => {
     dispatch,
     state: {
       userStats: {
-        activePositionsFilters: { isAscending, sort },
+        activePositionsFilters: { isAscending, sort, returnFormat },
       },
       userTradingPreferences: { tutorialMode },
     },
@@ -118,27 +118,34 @@ export const Head = () => {
   return (
     <thead className="w-[150%] lg:w-full border-b-2 border-black border-dashed pr-3">
       <tr className="grid grid-cols-12 text-center [&_th]:border-l-2 first:[&_th]:border-0 [&_th]:border-gray-500 [&_th]:border-dashed [&_th]:py-3 [&_th]:text-xs [&_th]:lg:text-sm [&_th]:xl:text-base">
-        {columns.map(({ className, columnKey, name, sortable, tutorial }) => (
-          <RyskTooltip
-            content={tutorial}
-            disabled={!tutorialMode}
-            key={name}
-            placement="top"
-          >
-            <th
-              className={`flex items-center justify-center capitalize select-none ${className}`}
-              onClick={columnKey && handleSortClick(columnKey)}
-              scope="col"
+        {columns(returnFormat).map(
+          ({ className, columnKey, name, sortable, tutorial }) => (
+            <RyskTooltip
+              content={tutorial}
+              disabled={!tutorialMode}
+              key={name}
+              placement="top"
             >
-              <span>{name}</span>
-              {sortable && (
-                <ChevronUpDown
-                  isAscending={sort === columnKey ? isAscending : undefined}
-                />
-              )}
-            </th>
-          </RyskTooltip>
-        ))}
+              <th
+                className={`flex items-center justify-center capitalize select-none ${className}`}
+                onClick={columnKey && handleSortClick(columnKey)}
+                scope="col"
+              >
+                {/* ActivePositionSort.PnL */}
+                <span>
+                  {columnKey === ActivePositionSort.PnL && !returnFormat
+                    ? "ROI"
+                    : name}
+                </span>
+                {sortable && (
+                  <ChevronUpDown
+                    isAscending={sort === columnKey ? isAscending : undefined}
+                  />
+                )}
+              </th>
+            </RyskTooltip>
+          )
+        )}
       </tr>
     </thead>
   );

@@ -20,7 +20,13 @@ export const Body = () => {
     state: {
       userStats: {
         activePositions,
-        activePositionsFilters: { compact, hideExpired, isAscending, sort },
+        activePositionsFilters: {
+          compact,
+          hideExpired,
+          isAscending,
+          returnFormat,
+          sort,
+        },
       },
     },
   } = useGlobalContext();
@@ -95,6 +101,7 @@ export const Body = () => {
               isShort,
               mark,
               profitLoss,
+              returnOnInvestment,
               series,
             } = activePosition;
 
@@ -116,7 +123,10 @@ export const Body = () => {
                 />
                 <Size amount={amount} />
                 <Delta delta={delta} />
-                <ProfitLoss profitLoss={profitLoss} />
+                <ProfitLoss
+                  profitLoss={returnFormat ? profitLoss : returnOnInvestment}
+                  suffix={returnFormat ? undefined : " %"}
+                />
                 <Entry entry={entry} />
                 <Mark mark={mark} />
                 <Liquidation {...activePosition} />

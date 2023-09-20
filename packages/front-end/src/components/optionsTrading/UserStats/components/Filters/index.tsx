@@ -11,7 +11,7 @@ export const Filters = () => {
     dispatch,
     state: {
       userStats: {
-        activePositionsFilters: { compact, hideExpired },
+        activePositionsFilters: { compact, hideExpired, returnFormat },
       },
     },
   } = useGlobalContext();
@@ -44,8 +44,29 @@ export const Filters = () => {
     });
   };
 
+  const handleReturnFormatClick = () => {
+    const activePositionsFilters = { returnFormat: !returnFormat };
+
+    setLocalStorageObject(
+      LocalStorageKeys.ACTIVE_POSITIONS_RETURN_FORMAT,
+      activePositionsFilters
+    );
+
+    dispatch({
+      type: ActionType.SET_USER_STATS,
+      activePositionsFilters,
+    });
+  };
+
   return (
     <div className="flex justify-end select-none">
+      <span
+        className="flex items-center cursor-pointer mr-8 py-3"
+        onClick={handleReturnFormatClick}
+      >
+        <SimpleToggle isActive={returnFormat}>{`P/L / ROI:`}</SimpleToggle>
+      </span>
+
       <span
         className="flex items-center cursor-pointer mr-8 py-3"
         onClick={handleCompactClick}
