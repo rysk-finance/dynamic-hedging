@@ -220,12 +220,13 @@ export const buildActivePositions = async (
         quote,
         valueAtExpiry
       );
-      const returnOnInvestment = Math.max(
-        isShort
-          ? (profitLoss / adjusted) * 100
-          : 0 - (profitLoss / adjusted) * 100,
-        -100
-      );
+      const returnOnInvestment =
+        Math.max(
+          isShort
+            ? profitLoss / formatCollateralAmount(0, collateralAsset, vault)
+            : profitLoss / (amount * entry),
+          -1
+        ) * 100;
 
       const action = getAction(
         disabled,
