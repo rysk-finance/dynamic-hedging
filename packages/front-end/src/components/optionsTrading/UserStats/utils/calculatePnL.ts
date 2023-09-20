@@ -59,17 +59,16 @@ export const calculatePnL = async (
         const nowToUnix = dayjs().unix();
         const realizedPnL = Convert.fromUSDC(realizedPnl).toInt();
 
+        const net = Math.abs(Convert.fromWei(netAmount).toInt());
+        const bought = Convert.fromWei(buyAmount || "0").toInt();
+        const entry = totalPremiumBought / bought;
+        const adjustedPnl = bought > net ? -(net * entry) : realizedPnL;
+
         if (!active) {
           // Manually closed or expired and redeemed.
           return [historicalPnL + realizedPnL, activePnL];
         } else if (expiriesAt > nowToUnix) {
           // Open positions.
-
-          const net = Math.abs(Convert.fromWei(netAmount).toInt());
-          const bought = Convert.fromWei(buyAmount || "0").toInt();
-          const entry = totalPremiumBought / bought;
-          const adjustedPnl = bought > net ? -(net * entry) : realizedPnL;
-
           const { quote } =
             quotes[
               activePositions.findIndex(
@@ -89,7 +88,7 @@ export const calculatePnL = async (
             : Math.max(priceAtExpiry - strike, 0);
 
           return [
-            historicalPnL + realizedPnL + valueAtExpiry * positionSize,
+            historicalPnL + adjustedPnl + valueAtExpiry * positionSize,
             activePnL,
           ];
         }
@@ -100,6 +99,11 @@ export const calculatePnL = async (
         const realizedPnL = Convert.fromUSDC(realizedPnl).toInt();
         const hasBeenLiquidated =
           liquidateActions && Boolean(liquidateActions?.length);
+
+        const net = Math.abs(Convert.fromWei(netAmount).toInt());
+        const sold = Convert.fromWei(sellAmount || "0").toInt();
+        const entry = totalPremiumSold / sold;
+        const adjustedPnl = sold > net ? net * entry : realizedPnL;
 
         if (!active && !hasBeenLiquidated) {
           // Manually closed or expired and settled.
@@ -121,12 +125,6 @@ export const calculatePnL = async (
           return [historicalPnL + realizedPnL - collateralLost, activePnL];
         } else if (expiriesAt > nowToUnix) {
           // Open positions.
-
-          const net = Math.abs(Convert.fromWei(netAmount).toInt());
-          const sold = Convert.fromWei(sellAmount || "0").toInt();
-          const entry = totalPremiumSold / sold;
-          const adjustedPnl = sold > net ? net * entry : realizedPnL;
-
           const { quote } =
             quotes[
               activePositions.findIndex(
@@ -149,7 +147,7 @@ export const calculatePnL = async (
             : Math.max(priceAtExpiry - strike, 0);
 
           return [
-            historicalPnL + realizedPnL + valueAtExpiry * positionSize,
+            historicalPnL + adjustedPnl + valueAtExpiry * positionSize,
             activePnL,
           ];
         }
