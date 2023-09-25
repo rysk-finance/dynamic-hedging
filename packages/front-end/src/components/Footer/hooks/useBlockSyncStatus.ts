@@ -8,7 +8,6 @@ import { logError } from "src/utils/logError";
 import { typedFetch } from "src/utils/typedFetch";
 
 const INTERVAL = 1000;
-const BLOCK_HEIGHT_UPDATE_INTERVAL = 5000;
 const SUBGRAPH_INTERVAL = 60000;
 
 export const useBlockSyncStatus = () => {
@@ -19,7 +18,7 @@ export const useBlockSyncStatus = () => {
   });
 
   const { data: blockHeight } = useBlockNumber({
-    watch: blockState.synced && !(count % BLOCK_HEIGHT_UPDATE_INTERVAL),
+    watch: true,
   });
 
   useEffect(() => {
