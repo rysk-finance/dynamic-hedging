@@ -161,6 +161,11 @@ export const defaultGlobalState: GlobalState = {
         hideExpired: false,
       }),
       ...getLocalStorageObject<
+        Pick<UserStats["activePositionsFilters"], "returnFormat">
+      >(LocalStorageKeys.ACTIVE_POSITIONS_RETURN_FORMAT, {
+        returnFormat: true,
+      }),
+      ...getLocalStorageObject<
         Pick<UserStats["activePositionsFilters"], "isAscending" | "sort">
       >(LocalStorageKeys.ACTIVE_POSITIONS_FILTERS_SORTING, {
         isAscending: true,

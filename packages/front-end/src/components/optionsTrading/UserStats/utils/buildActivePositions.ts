@@ -195,7 +195,7 @@ export const buildActivePositions = async (
         : sell?.disabled || !sell.quote.quote;
 
       // Adjust P/L for partially closed positions.
-      const net = Math.abs(Convert.fromWei(netAmount).toInt());
+      const net = Math.abs(amount);
       const bought = Convert.fromWei(buyAmount || "0").toInt();
       const sold = Convert.fromWei(sellAmount || "0").toInt();
 
@@ -220,6 +220,13 @@ export const buildActivePositions = async (
         quote,
         valueAtExpiry
       );
+      const returnOnInvestment =
+        Math.max(
+          isShort
+            ? profitLoss / formatCollateralAmount(0, collateralAsset, vault)
+            : profitLoss / (amount * entry),
+          -1
+        ) * 100;
 
       const action = getAction(
         disabled,
@@ -251,6 +258,7 @@ export const buildActivePositions = async (
         isShort,
         mark: (buy.quote.quote + sell.quote.quote) / 2,
         profitLoss,
+        returnOnInvestment,
         series: series.join("-"),
         shortUSDCExposure:
           !isShort && sell.premiumTooSmall

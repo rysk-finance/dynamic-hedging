@@ -130,8 +130,6 @@ export const useShortPositionData = (amountToClose: string) => {
                 ? Convert.fromWei(collateralToRemove, 4).toInt()
                 : Convert.fromUSDC(collateralToRemove, 2).toInt();
 
-            console.log(collateralReleased);
-
             // Closing a short is buying back the oToken, hence minus the quote.
             const remainingBalanceUSDC =
               balances.USDC === 0
