@@ -5,9 +5,10 @@ import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
 import { AnimatePresence, motion } from "framer-motion";
 
-import FadeInOutFixedDelay from "src/animation/FadeInOutFixedDelay";
 import { DownChevron, UpChevron } from "src/Icons";
+import FadeInOutFixedDelay from "src/animation/FadeInOutFixedDelay";
 import { useGlobalContext } from "src/state/GlobalContext";
+import { useMinuteRender } from "../../hooks/useMinuteRender";
 
 dayjs.extend(duration);
 
@@ -36,6 +37,8 @@ export const DateList = ({
       options: { activeExpiry, expiries, userPositions },
     },
   } = useGlobalContext();
+
+  useMinuteRender();
 
   return (
     <ol className="grid grid-cols-4 col-span-10">
