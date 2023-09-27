@@ -1,7 +1,7 @@
 import hre, { ethers } from "hardhat"
 
-const multicallAddress = "0xA07C27805B17F4E5f6ab696A9Acf223B4aA78B60"
-const pvFeedAddress = "0x7f9d820CFc109686F2ca096fFA93dd497b91C073"
+const multicallAddress = "0xac344596a241A3D801db62C98f3B93b768eE7dB5"
+const pvFeedAddress = "0xc7abaec336098cd0dcd98b67cb14d3b18e1c68a8"
 
 const main = async () => {
 	const [deployer] = await ethers.getSigners()
