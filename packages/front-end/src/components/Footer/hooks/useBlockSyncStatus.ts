@@ -22,22 +22,21 @@ export const useBlockSyncStatus = () => {
     }, INTERVAL);
 
     if (!(count % SUBGRAPH_INTERVAL)) {
-      try {
-        typedFetch<SubgraphStatusResponse>(SUBGRAPH_STATUS).then(
-          ({ block, synced }) =>
-            setBlockState({
-              block,
-              synced,
-            })
-        );
-      } catch (error) {
-        logError(error);
+      typedFetch<SubgraphStatusResponse>(SUBGRAPH_STATUS)
+        .then(({ block, synced }) => {
+          setBlockState({
+            block,
+            synced,
+          });
+        })
+        .catch((error) => {
+          logError(error);
 
-        setBlockState({
-          block: 0,
-          synced: false,
+          setBlockState({
+            block: 0,
+            synced: false,
+          });
         });
-      }
     }
 
     return () => {
