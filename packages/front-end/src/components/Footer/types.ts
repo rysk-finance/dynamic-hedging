@@ -1,5 +1,5 @@
 export interface BlockState {
-  offset: number;
+  block: number;
   synced: boolean;
 }
 

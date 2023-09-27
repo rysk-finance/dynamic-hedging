@@ -6,7 +6,7 @@ import { RyskTooltip } from "../shared/RyskToolTip";
 import { useBlockSyncStatus } from "./hooks/useBlockSyncStatus";
 
 export const Footer = () => {
-  const [height, offset, synced] = useBlockSyncStatus();
+  const [height, synced] = useBlockSyncStatus();
 
   return (
     <footer className="grid grid-cols-12 bg-black text-white py-16">
@@ -85,10 +85,7 @@ export const Footer = () => {
             />
             <span>
               {`Subgraph block sync: `}
-              <RyskCountUp
-                format="Integer"
-                value={height ? height + offset : 0}
-              />
+              <RyskCountUp format="Integer" value={height || 0} />
             </span>
           </div>
         </RyskTooltip>
