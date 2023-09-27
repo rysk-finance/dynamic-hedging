@@ -7,4 +7,9 @@ export const endpoints = {
     "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=ethereum",
 };
 
-export const SUBGRAPH_STATUS = `https://api.rysk.finance/subgraph-status`;
+const deployment = process.env.REACT_APP_SUBGRAPH_URL
+  ? `?deployment=arbitrum${
+      process.env.REACT_APP_SUBGRAPH_URL.split("arbitrum")[1].split("/gn")[0]
+    }`
+  : "";
+export const SUBGRAPH_STATUS = `https://api.rysk.finance/subgraph-status${deployment}`;
