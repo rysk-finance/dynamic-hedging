@@ -3,7 +3,7 @@ import { useMemo } from "react";
 
 import { OptionChainModalActions } from "src/state/types";
 
-import { useMinuteUpdate } from "src/components/optionsTrading/hooks/useMinuteUpdate";
+import { useHourUpdate } from "src/components/optionsTrading/hooks/useHourUpdate";
 import { AssetPriceInfo } from "./AssetPriceInfo";
 import { Chain } from "./Chain";
 import { ExpiryDatePicker } from "./ExpiryDatePicker";
@@ -15,6 +15,7 @@ import { CloseShortOptionModal } from "./Modals/CloseShortOptionModal";
 import { LongStraddleStrangleModal } from "./Modals/LongStraddleStrangleModal";
 import { OperatorModal } from "./Modals/OperatorModal";
 import { SellOptionModal } from "./Modals/SellOptionModal";
+import { SpreadModal } from "./Modals/SpreadModal";
 import { Strategies } from "./Strategies";
 import { UserStats } from "./UserStats";
 import { useModal } from "./hooks/useModal";
@@ -22,7 +23,7 @@ import { useModal } from "./hooks/useModal";
 export const OptionsTradingContent = () => {
   const [modalType] = useModal();
 
-  useMinuteUpdate();
+  useHourUpdate();
 
   const visibleModal = useMemo(() => {
     const {

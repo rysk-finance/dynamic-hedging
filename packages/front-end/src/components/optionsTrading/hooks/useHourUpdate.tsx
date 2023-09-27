@@ -5,13 +5,12 @@ import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
 
 /**
- * This hook causes a state update at the top of every minute to allow
- * options chain timers and actions to be updated automatically during
- * periods of low vol.
+ * This hook causes a state update at the top of every hour to allow
+ * actions to be updated automatically during periods of low vol.
  *
  * @returns void
  */
-export const useMinuteUpdate = () => {
+export const useHourUpdate = () => {
   const {
     dispatch,
     state: {
@@ -22,7 +21,7 @@ export const useMinuteUpdate = () => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      if (dayjs().second() === 59) {
+      if (dayjs().second() === 59 && dayjs().minute() === 59) {
         dispatch({
           type: ActionType.SET_ETH_PRICE_LAST_UPDATED,
           timestamp: dayjs().unix(),
