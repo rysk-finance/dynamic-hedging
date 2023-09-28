@@ -100,14 +100,19 @@ export const CloseShortOptionModal = () => {
     setTransactionPending(true);
 
     try {
-      if (addresses.token && addresses.user && vaultId) {
+      if (
+        addresses.token &&
+        addresses.user &&
+        addresses.collateral &&
+        vaultId
+      ) {
         const amount = Convert.fromStr(amountToSell).toWei();
 
         const hash = await closeShort(
           positionData.acceptablePremium,
           amount,
           addresses.exchange,
-          addresses.collateral!,
+          addresses.collateral,
           positionData.collateralToRemove,
           refresh,
           addresses.token,

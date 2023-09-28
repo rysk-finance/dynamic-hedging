@@ -55,7 +55,7 @@ export const useShortPositionData = (amountToClose: string) => {
     totalSize: 0,
     requiredApproval: "",
     strike: closingOption?.strike
-      ? Convert.fromStr(closingOption.strike).toInt()
+      ? Convert.fromStr(closingOption.strike[0]).toInt()
       : undefined,
   });
 
@@ -90,7 +90,7 @@ export const useShortPositionData = (amountToClose: string) => {
               await getQuotes([
                 {
                   expiry: Number(activeExpiry),
-                  strike: Convert.fromStr(closingOption.strike).toWei(),
+                  strike: Convert.fromStr(closingOption.strike[0]).toWei(),
                   isPut: closingOption.isPut,
                   orderSize: amount,
                   isSell: false,
@@ -166,7 +166,7 @@ export const useShortPositionData = (amountToClose: string) => {
               slippage,
               totalSize: Math.abs(totalSize),
               requiredApproval,
-              strike: Convert.fromStr(closingOption.strike).toInt(),
+              strike: Convert.fromStr(closingOption.strike[0]).toInt(),
             });
             setAllowance((currentState) => ({ ...currentState, approved }));
           } else {
@@ -189,7 +189,7 @@ export const useShortPositionData = (amountToClose: string) => {
               totalSize: Math.abs(totalSize),
               requiredApproval: "",
               strike: closingOption?.strike
-                ? Convert.fromStr(closingOption.strike).toInt()
+                ? Convert.fromStr(closingOption.strike[0]).toInt()
                 : undefined,
             });
             setAllowance((currentState) => ({
