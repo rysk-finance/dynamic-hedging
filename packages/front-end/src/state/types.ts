@@ -144,6 +144,8 @@ export interface ActivePositions {
   isOpen: boolean;
   isPut: boolean;
   isShort: boolean;
+  isSpread: boolean;
+  longCollateralAddress?: HexString;
   mark: number;
   profitLoss: number;
   returnOnInvestment: number;
@@ -451,6 +453,7 @@ export enum OptionChainModalActions {
   CALL_CREDIT_SPREAD = "Call Credit Spread",
   CLOSE_LONG = "Close Long",
   CLOSE_SHORT = "Close Short",
+  CLOSE_SPREAD = "Close Spread",
   LONG_STRADDLE = "Long Straddle",
   LONG_STRANGLE = "Long Strangle",
   OPERATOR = "Operator",
@@ -487,9 +490,11 @@ export interface ClosingOption {
   amount: number;
   isPut: boolean;
   isShort: boolean;
+  isSpread: boolean;
+  longCollateralAddress?: HexString;
   series: string;
   shortUSDCExposure?: number;
-  strike: string;
+  strike: [string, string];
   vault?: Vault;
 }
 

@@ -367,6 +367,8 @@ export const buildActivePositions = async (
         isOpen,
         isPut,
         isShort,
+        isSpread,
+        longCollateralAddress: longCollateral?.oToken.id,
         mark,
         profitLoss,
         returnOnInvestment,

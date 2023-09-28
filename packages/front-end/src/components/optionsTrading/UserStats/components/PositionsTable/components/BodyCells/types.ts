@@ -54,6 +54,8 @@ export interface ActionProps
     | "id"
     | "isPut"
     | "isShort"
+    | "isSpread"
+    | "longCollateralAddress"
     | "series"
     | "shortUSDCExposure"
     | "strike"
