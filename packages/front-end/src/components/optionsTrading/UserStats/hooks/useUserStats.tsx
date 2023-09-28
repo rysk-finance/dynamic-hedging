@@ -100,6 +100,7 @@ export const useUserStats = () => {
         longs,
         shorts,
         activeQuotes,
+        activeCollateralQuotes,
         wethOracleHashMap
       );
 
