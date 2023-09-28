@@ -46,7 +46,7 @@ export const Pricing = ({
       case size && Number(size) < MIN_TRADE_SIZE:
       case size && Number(size) > MAX_TRADE_SIZE:
         return "Trade size must be between 0.1 and 1000.";
-        
+
       case !hasRequiredCapital && Boolean(quote):
         return "Insufficient balance to cover collateral.";
 
@@ -148,7 +148,7 @@ export const Pricing = ({
         <span className="flex pb-2 border-gray-600 border-b">
           <p className="mr-auto">{`Collateral remaining:`}</p>
           <RyskTooltip
-            content="The total amount of collateral that will remain in the vault for this poisition."
+            content="The total amount of collateral that will remain in the vault for this position."
             disabled={!tutorialMode}
             placement="left"
           >
