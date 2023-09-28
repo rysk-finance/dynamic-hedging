@@ -36,17 +36,19 @@ export const Series = ({
       {isShort ? (
         <DownChevron
           aria-hidden={true}
-          className="min-w-6 h-6 ml-3 my-auto stroke-red-900"
+          className="min-w-6 h-6 mx-1 my-auto stroke-red-900"
           strokeWidth={2}
         />
       ) : (
         <UpChevron
           aria-hidden={true}
-          className="min-w-6 h-6 ml-3 my-auto stroke-green-1100"
+          className="min-w-6 h-6 mx-1 my-auto stroke-green-1100"
           strokeWidth={2}
         />
       )}
-      <span className={`w-2/3 my-auto ${dynamicClasses}`}>{series}</span>
+      <span className={`w-4/5 text-xs 2xl:text-sm my-auto ${dynamicClasses}`}>
+        {series}
+      </span>
     </td>
   );
 };
