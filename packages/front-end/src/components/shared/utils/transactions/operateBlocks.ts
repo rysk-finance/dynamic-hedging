@@ -152,3 +152,22 @@ export const closeOption = (
     data: ZERO_ADDRESS,
   };
 };
+
+export const depositLongOption = (
+  amount: BigNumber,
+  oTokenAddress: HexString,
+  userAddress: HexString,
+  vaultId: BigNumber
+) => {
+  return {
+    actionType: BigNumber.from(OpynActionType.DepositLongOption),
+    owner: userAddress,
+    secondAddress: userAddress,
+    asset: oTokenAddress,
+    vaultId,
+    amount: Convert.fromWei(amount).toOpyn(),
+    optionSeries: EMPTY_SERIES,
+    indexOrAcceptablePremium: BigNumber.from(0),
+    data: ZERO_ADDRESS,
+  };
+};

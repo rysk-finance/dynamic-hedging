@@ -29,11 +29,13 @@ export const OptionsTradingContent = () => {
     const {
       ADJUST_COLLATERAL,
       BUY,
+      CALL_CREDIT_SPREAD,
       CLOSE_LONG,
       CLOSE_SHORT,
       LONG_STRADDLE,
       LONG_STRANGLE,
       OPERATOR,
+      PUT_CREDIT_SPREAD,
       SELL,
     } = OptionChainModalActions;
 
@@ -43,6 +45,9 @@ export const OptionsTradingContent = () => {
 
       case BUY:
         return <BuyOptionModal key={modalType} />;
+
+      case CALL_CREDIT_SPREAD:
+        return <SpreadModal key={modalType} strategy={CALL_CREDIT_SPREAD} />;
 
       case CLOSE_LONG:
         return <CloseOptionModal key={modalType} />;
@@ -62,6 +67,9 @@ export const OptionsTradingContent = () => {
 
       case OPERATOR:
         return <OperatorModal key={modalType} />;
+
+      case PUT_CREDIT_SPREAD:
+        return <SpreadModal key={modalType} strategy={PUT_CREDIT_SPREAD} />;
 
       case SELL:
         return <SellOptionModal key={modalType} />;
