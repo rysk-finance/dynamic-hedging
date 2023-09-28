@@ -46,7 +46,7 @@ export const useUserStats = () => {
             return {
               expiry: Convert.fromStr(expiryTimestamp).toInt(),
               strike: Convert.fromOpyn(strikePrice).toWei(),
-              isPut: isPut,
+              isPut,
               orderSize: Math.abs(Convert.fromWei(netAmount).toInt()),
               isSell: !isShort,
               collateral: isShort ? collateralAsset.symbol : "USDC",
@@ -55,10 +55,39 @@ export const useUserStats = () => {
         )
       );
 
+      const activeCollateralQuotes = await getQuotes(
+        active.map(({ netAmount, vault }) => {
+          const longCollateralToken = vault?.longCollateral?.oToken;
+
+          if (longCollateralToken) {
+            const { expiryTimestamp, isPut, strikePrice } = longCollateralToken;
+
+            return {
+              expiry: Convert.fromStr(expiryTimestamp).toInt(),
+              strike: Convert.fromOpyn(strikePrice).toWei(),
+              isPut,
+              orderSize: Math.abs(Convert.fromWei(netAmount).toInt()),
+              isSell: false,
+              collateral: "USDC",
+            };
+          }
+
+          return {
+            expiry: 0,
+            strike: Convert.fromInt(0).toWei(),
+            isPut: false,
+            orderSize: 0,
+            isSell: false,
+            collateral: "USDC",
+          };
+        })
+      );
+
       const activePositions = await buildActivePositions(
         data,
         active,
         activeQuotes,
+        activeCollateralQuotes,
         ethPrice,
         spotShock,
         timesToExpiry,
