@@ -35,17 +35,33 @@ const formatCollateralAmount = (
 const calculateProfitLoss = (
   amount: number,
   adjustedPnl: number,
+  adjustedCollateralPnL: number,
   isOpen: boolean,
   isShort: boolean,
+  isSpread: boolean,
   quote: number,
-  valueAtExpiry: number
+  quoteCollateral: number,
+  valueAtExpiry: number,
+  valueAtExpiryCollateral: number
 ) => {
   if (isOpen) {
+    if (isSpread) {
+      return adjustedPnl - quote + (adjustedCollateralPnL + quoteCollateral);
+    }
+
     if (isShort) {
       return adjustedPnl - quote;
     } else {
       return adjustedPnl + quote;
     }
+  }
+
+  if (isSpread) {
+    const short = adjustedPnl + valueAtExpiry * amount;
+    const long =
+      adjustedCollateralPnL + valueAtExpiryCollateral * Math.abs(amount);
+
+    return short + long;
   }
 
   return adjustedPnl + valueAtExpiry * amount;
@@ -67,9 +83,11 @@ const getAction = (
   disabled: boolean,
   isOpen: boolean,
   isShort: boolean,
+  isSpread: boolean,
   valueAtExpiry: number,
   premiumTooSmall: boolean,
-  exposure?: number
+  exposure?: number,
+  collateralExposure?: number
 ) => {
   if (!isOpen && isShort) {
     return PositionAction.SETTLE;
@@ -86,12 +104,35 @@ const getAction = (
   // Untradeable when:
   // - Is disabled.
   // - Is long with the premiumTooSmall flag up and has no USDC short exposure.
+  // - Is spread with the premiumTooSmall flag up on the long collateral and has no USDC short exposure.
   const shortExposure = exposure ? exposure : 0;
-  if (disabled || (!isShort && premiumTooSmall && shortExposure <= 0)) {
+  const longCollateralExposure = collateralExposure ? collateralExposure : 0;
+  if (
+    disabled ||
+    (!isShort && premiumTooSmall && shortExposure <= 0) ||
+    (isSpread && premiumTooSmall && longCollateralExposure <= 0)
+  ) {
     return PositionAction.UNTRADEABLE;
   }
 
   return PositionAction.CLOSE;
+};
+
+const getSeries = (
+  series: string,
+  strike: number,
+  collateralStrike?: number
+) => {
+  switch (true) {
+    case collateralStrike && collateralStrike > strike:
+      return `${series}-CCS`;
+
+    case collateralStrike && collateralStrike < strike:
+      return `${series}-PCS`;
+
+    default:
+      return series;
+  }
 };
 
 /**
@@ -111,6 +152,7 @@ export const buildActivePositions = async (
   chainData: ChainData,
   positions: UserPositionToken[] = [],
   quotes: QuoteData[],
+  collateralQuotes: QuoteData[],
   ethPrice: number,
   spotShock: SpotShock,
   timesToExpiry: TimesToExpiry,
@@ -166,17 +208,21 @@ export const buildActivePositions = async (
       },
       index
     ) => {
+      // Data for position. In the case of spreads, this is for the short.
       const [, ...series] = symbol.split("-");
       const isOpen = Convert.fromStr(expiryTimestamp).toInt() > nowToUnix;
       const isShort = Boolean(collateralAsset && "symbol" in collateralAsset);
+      const isSpread = Boolean(vault?.longCollateral);
       const amount = Convert.fromWei(netAmount).toInt();
+      const net = Math.abs(amount);
       const entry = isShort
         ? totalPremiumSold / Convert.fromWei(sellAmount || "0").toInt()
         : totalPremiumBought / Convert.fromWei(buyAmount || "0").toInt();
       const formattedPnl = Convert.fromUSDC(realizedPnl).toInt();
       const side = isPut ? "put" : "call";
-      const strike = Convert.fromOpyn(strikePrice).toInt();
-      const chainSideData = chainData[expiryTimestamp]?.[strike][side];
+      const strike = Convert.fromOpyn(strikePrice);
+      const strikeInt = strike.toInt();
+      const chainSideData = chainData[expiryTimestamp]?.[strikeInt][side];
       const { delta, buy, sell } = {
         delta: isOpen && chainSideData?.delta ? chainSideData.delta : 0,
         buy:
@@ -189,13 +235,53 @@ export const buildActivePositions = async (
             : { disabled: false, premiumTooSmall: false, quote: { quote: 0 } },
       };
 
+      // Data for the long collateral on a spread.
+      const longCollateral = vault?.longCollateral;
+      const formattedPnlCollateral = Convert.fromUSDC(
+        longCollateral?.realizedPnl || "0"
+      ).toInt();
+      const entryCollateral = longCollateral
+        ? longCollateral.totalPremiumBought /
+          Convert.fromWei(sellAmount || "0").toInt()
+        : 0;
+      const expiryCollateral =
+        longCollateral?.oToken.expiryTimestamp || expiryTimestamp;
+      const sideCollateral =
+        (longCollateral?.oToken.isPut ? "put" : "call") || side;
+      const strikeCollateral = Convert.fromOpyn(
+        longCollateral?.oToken.strikePrice || strikePrice
+      );
+      const strikeIntCollateral = strikeCollateral.toInt();
+      const chainsSideDataCollateral =
+        chainData[expiryCollateral]?.[strikeIntCollateral][sideCollateral];
+      const {
+        delta: deltaCollateral,
+        buy: buyCollateral,
+        sell: sellCollateral,
+      } = {
+        delta:
+          isOpen && chainsSideDataCollateral?.delta
+            ? chainsSideDataCollateral.delta
+            : 0,
+        buy:
+          isOpen && chainsSideDataCollateral?.buy
+            ? chainsSideDataCollateral.buy
+            : { disabled: false, quote: { quote: 0 } },
+        sell:
+          isOpen && chainsSideDataCollateral?.sell
+            ? chainsSideDataCollateral.sell
+            : { disabled: false, premiumTooSmall: false, quote: { quote: 0 } },
+      };
+
       // Determine if disabled.
       const disabled = isShort
-        ? buy?.disabled || !buy.quote.quote
-        : sell?.disabled || !sell.quote.quote;
+        ? buy.disabled || !buy.quote.quote
+        : sell.disabled || !sell.quote.quote;
+      const disabledCollateral = isSpread
+        ? sellCollateral.disabled || !sellCollateral.quote.quote
+        : false;
 
       // Adjust P/L for partially closed positions.
-      const net = Math.abs(amount);
       const bought = Convert.fromWei(buyAmount || "0").toInt();
       const sold = Convert.fromWei(sellAmount || "0").toInt();
 
@@ -206,19 +292,32 @@ export const buildActivePositions = async (
           ? -(net * entry)
           : formattedPnl;
 
+      const adjustedCollateral =
+        isSpread && sold > net
+          ? -(net * entryCollateral)
+          : formattedPnlCollateral;
+
       // P/L calcs.
       const { quote } = quotes[index];
+      const { quote: quoteCollateral } = collateralQuotes[index];
       const priceAtExpiry = wethOracleHashMap[expiryTimestamp];
       const valueAtExpiry = isPut
-        ? Math.max(strike - priceAtExpiry, 0)
-        : Math.max(priceAtExpiry - strike, 0);
+        ? Math.max(strikeInt - priceAtExpiry, 0)
+        : Math.max(priceAtExpiry - strikeInt, 0);
+      const valueAtExpiryCollateral = isPut
+        ? Math.max(strikeIntCollateral - priceAtExpiry, 0)
+        : Math.max(priceAtExpiry - strikeIntCollateral, 0);
       const profitLoss = calculateProfitLoss(
         amount,
         adjusted,
+        adjustedCollateral,
         isOpen,
         isShort,
+        isSpread,
         quote,
-        valueAtExpiry
+        quoteCollateral,
+        valueAtExpiry,
+        valueAtExpiryCollateral
       );
       const returnOnInvestment =
         Math.max(
@@ -229,18 +328,28 @@ export const buildActivePositions = async (
         ) * 100;
 
       const action = getAction(
-        disabled,
+        disabled || disabledCollateral,
         isOpen,
         isShort,
+        isSpread,
         valueAtExpiry,
-        sell.premiumTooSmall,
-        chainSideData?.exposure.USDC.short
+        isSpread ? sellCollateral.premiumTooSmall : sell.premiumTooSmall,
+        chainSideData?.exposure.USDC.short,
+        chainsSideDataCollateral?.exposure.USDC.short
       );
+
+      // Calculate mark price.
+      const markPosition = (buy.quote.quote + sell.quote.quote) / 2;
+      const markCollateral =
+        (buyCollateral.quote.quote + sellCollateral.quote.quote) / 2;
+      const mark = (markPosition + markCollateral) / 2;
 
       return {
         action,
         amount,
-        breakEven: isPut ? strike - entry : strike + entry,
+        breakEven: isPut
+          ? strikeInt - (isSpread ? entry + entryCollateral : entry)
+          : strikeInt + (isSpread ? entry - entryCollateral : entry),
         collateral: {
           amount: formatCollateralAmount(0, collateralAsset, vault),
           asset: collateralAsset?.symbol,
@@ -248,23 +357,27 @@ export const buildActivePositions = async (
           vault,
         },
         disabled: action === PositionAction.UNTRADEABLE,
-        delta: amount * delta,
-        entry,
+        delta: isSpread
+          ? deltaCollateral * net + delta * amount
+          : delta * amount,
+        entry: entryCollateral ? (entry + entryCollateral) / 2 : entry,
         expiryTimestamp,
         firstCreated,
         id,
         isOpen,
         isPut,
         isShort,
-        mark: (buy.quote.quote + sell.quote.quote) / 2,
+        mark,
         profitLoss,
         returnOnInvestment,
-        series: series.join("-"),
+        series: getSeries(series.join("-"), strikeInt, strikeIntCollateral),
         shortUSDCExposure:
           !isShort && sell.premiumTooSmall
             ? chainSideData?.exposure.USDC.short
+            : isSpread && sellCollateral.premiumTooSmall
+            ? chainsSideDataCollateral?.exposure.USDC.short
             : undefined,
-        strike: Convert.fromOpyn(strikePrice).toStr(),
+        strike: [strike.toStr(), isSpread ? strikeCollateral.toStr() : ""],
       };
     }
   );

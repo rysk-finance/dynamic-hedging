@@ -149,7 +149,7 @@ export interface ActivePositions {
   returnOnInvestment: number;
   series: string;
   shortUSDCExposure?: number;
-  strike: string;
+  strike: [string, string];
 }
 
 export interface InactivePositions {

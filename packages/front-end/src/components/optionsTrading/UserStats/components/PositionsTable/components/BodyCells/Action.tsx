@@ -123,7 +123,7 @@ export const Action = ({
             isShort,
             series,
             shortUSDCExposure,
-            strike,
+            strike: strike[0],
             vault: collateral.vault,
           },
           chain?.unsupported

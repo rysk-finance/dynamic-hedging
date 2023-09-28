@@ -33,21 +33,26 @@ export const Liquidation = ({
     });
   };
 
-  // Highlight positions where the liquidation price is within 3% of the underlying.
-  const liquidationThreshold = 1.03;
-  const inDanger = ethPrice
-    ? isPut
-      ? ethPrice < liquidationPrice * liquidationThreshold
-      : ethPrice > liquidationPrice / liquidationThreshold
-    : false;
-  const textColor =
-    inDanger && liquidationPrice ? "text-red-900" : "text-black";
-
   if (asset && collateralAmount && vault) {
+    const isPartOfSpread = Boolean(vault.longCollateral);
+
+    // Highlight positions where the liquidation price is within 3% of the underlying.
+    const liquidationThreshold = 1.03;
+    const inDanger = ethPrice
+      ? isPut
+        ? ethPrice < liquidationPrice * liquidationThreshold
+        : ethPrice > liquidationPrice / liquidationThreshold
+      : false;
+    const textColor =
+      inDanger && liquidationPrice && !isPartOfSpread
+        ? "text-red-900"
+        : "text-black";
+
     return (
       <td className="col-span-2 font-dm-mono xl:!text-xs 2xl:!text-sm">
         <button
           className={`w-full h-full decoration-dotted underline ease-in-out duration-200 ${textColor}`}
+          disabled={isPartOfSpread}
           onClick={handleCollateralClick({
             address: id,
             amount: Math.abs(amount),
@@ -57,11 +62,11 @@ export const Liquidation = ({
             isPut,
             liquidationPrice,
             series,
-            strike: Number(strike),
+            strike: Number(strike[0]),
             vault,
           })}
         >
-          {liquidationPrice ? (
+          {liquidationPrice && !isPartOfSpread ? (
             <>
               <RyskCountUp prefix="$" value={collateral.liquidationPrice} />
               {` (`}
