@@ -47,7 +47,7 @@ export const Button = ({ ...props }: ButtonProps) => {
         type="submit"
         {...FadeInOutQuick}
         {...props}
-        disabled={debouncedDisabled}
+        disabled={props.disabled ?? debouncedDisabled}
       />
     </AnimatePresence>
   );
