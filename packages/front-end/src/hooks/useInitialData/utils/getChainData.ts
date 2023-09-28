@@ -54,7 +54,8 @@ export const getChainData = async (
             wethCollatseriesExchangeBalance,
           }: DHVLensMK1.OptionStrikeDrillStruct
         ) => {
-          const strikeUSDC = Convert.fromWei(strike as string).toInt();
+          const convertStrike = Convert.fromWei(strike as string);
+          const strikeUSDC = convertStrike.toInt();
 
           const _getQuote = (
             buyOrSell: DHVLensMK1.TradingSpecStruct,
@@ -87,19 +88,26 @@ export const getChainData = async (
 
           const positions = (userPositions[expiry]?.activeTokens || []).reduce(
             (acc, position) => {
+              const longCollateral = position.vault?.longCollateral;
+
               if (
-                Convert.fromWei(strike as BigNumber)
-                  .toOpyn()
-                  .eq(position.strikePrice) &&
+                convertStrike.toOpyn().eq(position.strikePrice) &&
                 (side === "put") === position.isPut
               ) {
-                acc.id.push(position.id);
-                acc.netAmount += Convert.fromWei(position.netAmount).toInt();
+                acc += Convert.fromWei(position.netAmount).toInt();
+              }
+
+              if (
+                longCollateral &&
+                convertStrike.toOpyn().eq(longCollateral.oToken.strikePrice) &&
+                (side === "put") === longCollateral.oToken.isPut
+              ) {
+                acc += Math.abs(Convert.fromWei(position.netAmount).toInt());
               }
 
               return acc;
             },
-            { id: [], netAmount: 0 } as { id: HexString[]; netAmount: number }
+            0
           );
 
           sideData[strikeUSDC] = {
@@ -137,7 +145,7 @@ export const getChainData = async (
                   ).toInt(),
                 },
               },
-              pos: positions.netAmount,
+              pos: positions,
               sell: {
                 disabled: sell.disabled,
                 IV: _getIV(Convert.fromUSDC(sell.quote as BigNumber).toInt()),

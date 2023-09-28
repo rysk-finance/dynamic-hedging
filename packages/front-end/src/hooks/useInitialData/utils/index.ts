@@ -1,5 +1,6 @@
 import type { InitialDataQuery } from "../types";
 
+import { buildLongCollateralMap } from "./buildLongCollateralMap";
 import { buildOracleHashMap } from "./buildOracleHashMap";
 import { getChainData } from "./getChainData";
 import { getExpiries } from "./getExpiries";
@@ -12,13 +13,19 @@ export const getInitialData = async (
   data: InitialDataQuery,
   address?: HexString
 ) => {
-  const { longPositions, shortPositions, oracleAsset } = data;
+  const { longCollateral, longPositions, shortPositions, oracleAsset } = data;
+
+  // Build map from longs used as collateral.
+  const longCollateralMap = buildLongCollateralMap(longCollateral);
 
   // Get expiries.
   const validExpiries = await getExpiries();
 
   // Get user positions.
-  const userPositions = getUserPositions([...longPositions, ...shortPositions]);
+  const userPositions = getUserPositions(
+    [...longPositions, ...shortPositions],
+    longCollateralMap
+  );
 
   // Get chain data.
   const chainData = await getChainData(validExpiries, userPositions);
