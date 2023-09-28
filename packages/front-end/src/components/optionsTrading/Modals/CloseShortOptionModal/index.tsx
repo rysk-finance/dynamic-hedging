@@ -155,7 +155,10 @@ export const CloseShortOptionModal = () => {
           <span className="flex">
             <Label className="flex items-center justify-center select-none cursor-pointer w-min border-black border-r-2 px-2">
               <Checkbox
-                checked={amountToSell === Convert.fromInt(positionData.totalSize).toStr()}
+                checked={
+                  amountToSell ===
+                  Convert.fromInt(positionData.totalSize).toStr()
+                }
                 name="close-max"
                 onChange={handleCloseMax}
               />
