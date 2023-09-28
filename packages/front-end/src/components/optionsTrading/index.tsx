@@ -12,6 +12,7 @@ import { AdjustCollateralModal } from "./Modals/AdjustCollateralModal";
 import { BuyOptionModal } from "./Modals/BuyOptionModal";
 import { CloseOptionModal } from "./Modals/CloseOptionModal";
 import { CloseShortOptionModal } from "./Modals/CloseShortOptionModal";
+import { CloseSpreadModal } from "./Modals/CloseSpreadModal";
 import { LongStraddleStrangleModal } from "./Modals/LongStraddleStrangleModal";
 import { OperatorModal } from "./Modals/OperatorModal";
 import { SellOptionModal } from "./Modals/SellOptionModal";
@@ -32,6 +33,7 @@ export const OptionsTradingContent = () => {
       CALL_CREDIT_SPREAD,
       CLOSE_LONG,
       CLOSE_SHORT,
+      CLOSE_SPREAD,
       LONG_STRADDLE,
       LONG_STRANGLE,
       OPERATOR,
@@ -54,6 +56,9 @@ export const OptionsTradingContent = () => {
 
       case CLOSE_SHORT:
         return <CloseShortOptionModal key={modalType} />;
+
+      case CLOSE_SPREAD:
+        return <CloseSpreadModal key={modalType} />;
 
       case LONG_STRADDLE:
         return (
