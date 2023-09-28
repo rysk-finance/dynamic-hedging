@@ -1,8 +1,8 @@
 import type { CallOrPut } from "src/state/types";
+import type { SpreadAddresses } from "../../Shared/types";
 import type {
   ModalProps,
   PositionDataState,
-  SpreadAddresses,
   StrategyStrikesTuple,
 } from "../types";
 
@@ -40,14 +40,13 @@ export const useSpread = (
 
   // Addresses.
   const { address } = useAccount();
-
-  const USDCAddress = getContractAddress("USDC");
   const shortOTokenAddress = strikes[0]
     ? data[activeExpiry!][Number(strikes[0])][side]?.exchangeAddresses.USDC
     : undefined;
   const longOTokenAddress = strikes[1]
     ? data[activeExpiry!][Number(strikes[1])][side]?.exchangeAddresses.USDC
     : undefined;
+  const USDCAddress = getContractAddress("USDC");
   const exchangeAddress = getContractAddress("optionExchange");
   const marginPoolAddress = getContractAddress("marginPool");
 

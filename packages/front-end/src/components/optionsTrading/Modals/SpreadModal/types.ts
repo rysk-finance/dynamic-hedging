@@ -2,7 +2,7 @@ import type { BigNumber } from "ethers";
 import type { Dispatch, SetStateAction } from "react";
 
 import { OptionChainModalActions } from "src/state/types";
-import type { Addresses } from "../Shared/types";
+
 
 // [SHORT, LONG]
 export type StrategyStrikesTuple = [string, string];
@@ -23,11 +23,6 @@ export interface PositionDataState {
   requiredApproval: string;
   slippage: number;
   strikes: [number, number];
-}
-
-export interface SpreadAddresses extends Omit<Addresses, "token"> {
-  marginPool: HexString;
-  token: [HexString | undefined, HexString | undefined];
 }
 
 export interface ModalProps {

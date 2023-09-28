@@ -1,8 +1,7 @@
 import type { BigNumber } from "ethers";
 
 import type { CallOrPut } from "src/state/types";
-
-export type CloseLongOperation = "close" | "sell";
+import type { CloseLongOperation } from "../Shared/types";
 
 export interface PositionDataState {
   acceptablePremium: BigNumber;

@@ -3,15 +3,13 @@ import { BigNumber } from "ethers";
 
 import { OptionExchangeABI } from "src/abis/OptionExchange_ABI";
 import { waitForTransactionOrTimer } from "src/components/shared/utils/waitForTransaction";
-import {
-  EMPTY_SERIES,
-  GAS_MULTIPLIER,
-  ZERO_ADDRESS,
-} from "src/config/constants";
+import { EMPTY_SERIES, GAS_MULTIPLIER } from "src/config/constants";
 import OperationType from "src/enums/OperationType";
-import { OpynActionType } from "src/enums/OpynActionType";
-import RyskActionType from "src/enums/RyskActionType";
-import { Convert } from "src/utils/Convert";
+import {
+  burnShortOption,
+  buyOption,
+  withdrawCollateral,
+} from "./operateBlocks";
 
 export const closeShort = async (
   acceptablePremium: BigNumber,
@@ -24,48 +22,25 @@ export const closeShort = async (
   userAddress: HexString,
   vaultId: string
 ) => {
+  const vaultBigNumber = BigNumber.from(vaultId);
+
   const txData = [
     {
       operation: OperationType.RyskAction,
       operationQueue: [
-        {
-          actionType: BigNumber.from(RyskActionType.BuyOption),
-          owner: ZERO_ADDRESS,
-          secondAddress: userAddress,
-          asset: tokenAddress,
-          vaultId: BigNumber.from(0),
-          amount: amount,
-          optionSeries: EMPTY_SERIES,
-          indexOrAcceptablePremium: acceptablePremium,
-          data: "0x" as HexString,
-        },
+        buyOption(acceptablePremium, amount, EMPTY_SERIES, userAddress),
       ],
     },
     {
       operation: OperationType.OpynAction,
       operationQueue: [
-        {
-          actionType: BigNumber.from(OpynActionType.BurnShortOption),
-          owner: userAddress,
-          secondAddress: userAddress,
-          asset: tokenAddress,
-          vaultId: BigNumber.from(vaultId),
-          amount: Convert.fromWei(amount).toOpyn(),
-          optionSeries: EMPTY_SERIES,
-          indexOrAcceptablePremium: BigNumber.from(0),
-          data: "0x" as HexString,
-        },
-        {
-          actionType: BigNumber.from(OpynActionType.WithdrawCollateral),
-          owner: userAddress,
-          secondAddress: userAddress,
-          asset: collateralAddress,
-          vaultId: BigNumber.from(vaultId),
-          amount: collateralAmount,
-          optionSeries: EMPTY_SERIES,
-          indexOrAcceptablePremium: BigNumber.from(0),
-          data: "0x" as HexString,
-        },
+        burnShortOption(amount, tokenAddress, userAddress, vaultBigNumber),
+        withdrawCollateral(
+          collateralAmount,
+          collateralAddress,
+          userAddress,
+          vaultBigNumber
+        ),
       ],
     },
   ];
