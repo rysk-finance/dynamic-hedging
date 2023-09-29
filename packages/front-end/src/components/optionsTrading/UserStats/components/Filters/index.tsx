@@ -5,6 +5,7 @@ import {
 } from "src/state/localStorage";
 import { ActionType } from "src/state/types";
 import { SimpleToggle } from "../../../../shared/SimpleToggle";
+import { RefreshButton } from "./components/RefreshButton";
 
 export const Filters = () => {
   const {
@@ -60,6 +61,8 @@ export const Filters = () => {
 
   return (
     <div className="flex justify-end select-none">
+      <RefreshButton />
+
       <span
         className="flex items-center cursor-pointer mr-8 py-3"
         onClick={handleReturnFormatClick}
