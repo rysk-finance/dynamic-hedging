@@ -24,7 +24,7 @@ export const approveAllowance = async (
   if (config.request.data) {
     const { hash } = await writeContract(config);
 
-    await waitForTransactionOrTimer(hash, 1);
+    await waitForTransactionOrTimer(hash, true);
 
     return hash;
   }

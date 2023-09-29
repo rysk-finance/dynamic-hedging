@@ -1,21 +1,59 @@
-import { waitForTransaction } from "@wagmi/core";
+import type { Transactions } from "./types";
+
+import { gql } from "@apollo/client";
+import { getAccount, waitForTransaction } from "@wagmi/core";
+import dayjs from "dayjs";
+
+import { RyskApolloClient } from "src/clients/Apollo/Apollo";
+import { transactionsQuery } from "./graphQuery";
+
+const recursiveCheck = async (
+  after: number,
+  hash: HexString,
+  address?: string
+): Promise<boolean> => {
+  const query = gql(transactionsQuery);
+  const variables = {
+    after,
+    hash,
+    address,
+  };
+  const { data } = await RyskApolloClient.query<Transactions>({
+    query,
+    variables,
+    fetchPolicy: "no-cache",
+  });
+
+  const empty = Object.values(data).every((arr) => !arr.length);
+
+  if (empty) {
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+    return recursiveCheck(after, hash, address);
+  }
+
+  return true;
+};
 
 /**
- * Wait for x confirmations or x milliseconds after a transaction before continuing.
+ * Recursive graph query for an indexed transaction hash.
  *
  * @param hash  - Hash of the TX to check.
- * @param confirmations - Minimum confirmations to wait for (defaults to three).
- * @param timerMs - Maximum wait time in milliseconds.
  *
- * @returns Promise<unknown>
+ * @returns Promise<boolean>
  */
 export const waitForTransactionOrTimer = async (
   hash: HexString,
-  confirmations: number = 12,
-  timerMs: number = 15000
-): Promise<unknown> => {
-  return Promise.race([
-    waitForTransaction({ hash, confirmations }),
-    new Promise((resolve) => setTimeout(resolve, timerMs)),
-  ]);
+  bypass: boolean = false
+): Promise<boolean> => {
+  if (bypass) {
+    waitForTransaction({ hash, confirmations: 12 });
+
+    return true;
+  }
+
+  const { address } = getAccount();
+
+  const after = dayjs().subtract(1, "minute").unix();
+
+  return recursiveCheck(after, hash, address?.toLowerCase());
 };

@@ -14,7 +14,7 @@ export const setOperator = async (isOperator: boolean) => {
 
   const { hash } = await writeContract(config);
 
-  await waitForTransactionOrTimer(hash, 1);
+  await waitForTransactionOrTimer(hash, true);
 
   return hash;
 };
