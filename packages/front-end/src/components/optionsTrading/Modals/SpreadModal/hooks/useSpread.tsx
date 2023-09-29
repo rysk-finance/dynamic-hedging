@@ -185,7 +185,6 @@ export const useSpread = (
             slippage: 0,
             strikes: strikes.map(Number) as [number, number],
           });
-          // Can I avoid a double setter here?
           setAllowanceUSDC((currentState) => ({
             ...currentState,
             approved: false,

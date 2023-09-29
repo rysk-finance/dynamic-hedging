@@ -213,7 +213,6 @@ export const useSpreadPositionData = (amountToClose: string) => {
               strikes: closingOption.strike,
               totalSize: Math.abs(totalSize),
             });
-            // Can I avoid a double setter here?
             setAllowanceUSDC((currentState) => ({
               ...currentState,
               approved: false,
