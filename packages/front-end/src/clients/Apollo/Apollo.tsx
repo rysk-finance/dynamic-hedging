@@ -11,7 +11,7 @@ const ryskSubgraph = new HttpLink({
   uri: process.env.REACT_APP_SUBGRAPH_URL,
 });
 
-const RyskApolloClient = new ApolloClient({
+export const RyskApolloClient = new ApolloClient({
   link: ryskSubgraph,
   cache: new InMemoryCache({
     typePolicies: {
