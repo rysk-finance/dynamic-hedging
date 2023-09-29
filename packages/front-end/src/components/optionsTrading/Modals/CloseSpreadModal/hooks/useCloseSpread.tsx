@@ -38,7 +38,8 @@ export const useShortPositionData = (amountToClose: string) => {
   const [allowanceUSDC, setAllowanceUSDC] = useAllowance(USDCAddress, address);
   const [allowanceOToken, setAllowanceOToken] = useAllowance(
     longOTokenAddress,
-    address
+    address,
+    marginPoolAddress
   );
 
   // User position state.
