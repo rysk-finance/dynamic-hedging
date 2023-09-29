@@ -27,7 +27,7 @@ import { MAX_TRADE_SIZE, MIN_TRADE_SIZE } from "../Shared/utils/constants";
 import { getButtonProps } from "../Shared/utils/getButtonProps";
 import { roundInputValue } from "../Shared/utils/roundNumberValue";
 import { Pricing } from "./components/Pricing";
-import { useShortPositionData } from "./hooks/useCloseSpread";
+import { useSpreadPositionData } from "./hooks/useSpreadPositionData";
 
 export const CloseSpreadModal = () => {
   const {
@@ -54,7 +54,7 @@ export const CloseSpreadModal = () => {
     positionData,
     vaultId,
     loading,
-  ] = useShortPositionData(debouncedAmountToSell);
+  ] = useSpreadPositionData(debouncedAmountToSell);
 
   const handleCloseMax = (event: ChangeEvent<HTMLInputElement>) => {
     if (event.currentTarget.checked) {

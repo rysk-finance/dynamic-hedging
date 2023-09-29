@@ -15,7 +15,7 @@ import { logError } from "src/utils/logError";
 import { useAllowance } from "../../Shared/hooks/useAllowance";
 import { dateTimeNow, formatExpiry } from "../../Shared/utils/datetime";
 
-export const useShortPositionData = (amountToClose: string) => {
+export const useSpreadPositionData = (amountToClose: string) => {
   // Context state.
   const {
     state: {
