@@ -234,6 +234,7 @@ export const buildActivePositions = async (
             ? chainSideData.sell
             : { disabled: false, premiumTooSmall: false, quote: { quote: 0 } },
       };
+      const mark = (buy.quote.quote + sell.quote.quote) / 2;
 
       // Data for the long collateral on a spread.
       const longCollateral = vault?.longCollateral;
@@ -249,11 +250,11 @@ export const buildActivePositions = async (
       const sideCollateral =
         (longCollateral?.oToken.isPut ? "put" : "call") || side;
       const strikeCollateral = Convert.fromOpyn(
-        longCollateral?.oToken.strikePrice || strikePrice
+        longCollateral?.oToken.strikePrice || "0"
       );
       const strikeIntCollateral = strikeCollateral.toInt();
       const chainsSideDataCollateral =
-        chainData[expiryCollateral]?.[strikeIntCollateral][sideCollateral];
+        chainData[expiryCollateral]?.[strikeIntCollateral]?.[sideCollateral];
       const {
         delta: deltaCollateral,
         buy: buyCollateral,
@@ -272,6 +273,8 @@ export const buildActivePositions = async (
             ? chainsSideDataCollateral.sell
             : { disabled: false, premiumTooSmall: false, quote: { quote: 0 } },
       };
+      const markCollateral =
+        (buyCollateral.quote.quote + sellCollateral.quote.quote) / 2;
 
       // Determine if disabled.
       const disabled = isShort
@@ -338,12 +341,6 @@ export const buildActivePositions = async (
         chainsSideDataCollateral?.exposure.USDC.short
       );
 
-      // Calculate mark price.
-      const markPosition = (buy.quote.quote + sell.quote.quote) / 2;
-      const markCollateral =
-        (buyCollateral.quote.quote + sellCollateral.quote.quote) / 2;
-      const mark = (markPosition + markCollateral) / 2;
-
       return {
         action,
         amount,
@@ -369,7 +366,7 @@ export const buildActivePositions = async (
         isShort,
         isSpread,
         longCollateralAddress: longCollateral?.oToken.id,
-        mark,
+        mark: markCollateral ? (mark + markCollateral) / 2 : mark,
         profitLoss,
         returnOnInvestment,
         series: getSeries(series.join("-"), strikeInt, strikeIntCollateral),
