@@ -73,7 +73,7 @@ export const Pricing = ({ positionData, size }: PricingProps) => {
           <span className="flex">
             <p className="mr-auto">{`Premium:`}</p>
             <RyskTooltip
-              content="The amount of USDC required per contract."
+              content="The amount of USDC received per contract."
               disabled={!tutorialMode}
               placement="left"
             >

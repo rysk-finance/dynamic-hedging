@@ -97,7 +97,7 @@ export const Pricing = ({
         <span className="flex">
           <p className="mr-auto my-auto">{`Short strike:`}</p>
           <RyskTooltip
-            content={`Use this to select the strike price for the ${strategy.toLowerCase()}.`}
+            content={`Use this to select the short strike price for the ${strategy.toLowerCase()}.`}
             disabled={!tutorialMode}
             placement="left"
           >
@@ -122,7 +122,7 @@ export const Pricing = ({
         <span className="flex pb-2 border-gray-600 border-b">
           <p className="mr-auto my-auto">{`Long strike:`}</p>
           <RyskTooltip
-            content={`Use this to select the strike price for the ${strategy.toLowerCase()}.`}
+            content={`Use this to select the long strike price for the ${strategy.toLowerCase()}.`}
             disabled={!tutorialMode}
             placement="left"
           >
@@ -164,13 +164,7 @@ export const Pricing = ({
 
               <span className="flex pb-2 border-gray-600 border-b">
                 <p className="mr-auto">{`Liquidation Price:`}</p>
-                <RyskTooltip
-                  content="The price at which your position will be liquidated."
-                  disabled={!tutorialMode}
-                  placement="left"
-                >
-                  <p className="font-medium">{`Fully Collateralised`}</p>
-                </RyskTooltip>
+                <p className="font-medium">{`Fully Collateralised`}</p>
               </span>
 
               <span className="flex pt-2">
@@ -250,7 +244,7 @@ export const Pricing = ({
               <span className="flex">
                 <p className="mr-auto">{`Break even:`}</p>
                 <RyskTooltip
-                  content="The price at which your position will break even if held to expiry. The first value is for the CALL and the second is for the PUT."
+                  content="The price at which your position will break even if held to expiry."
                   disabled={!tutorialMode}
                   placement="left"
                 >
