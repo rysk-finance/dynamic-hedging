@@ -7,7 +7,7 @@ import "./LiquidityPool.sol";
 import "./OptionExchange.sol";
 import "./OptionCatalogue.sol";
 import "./BeyondPricer.sol";
-import {IRangeOrderReactor, Position, IUniswapV3PoolState} from "./interfaces/IRangeOrderReactor.sol";
+import { IRangeOrderReactor, Position, IUniswapV3PoolState } from "./interfaces/IRangeOrderReactor.sol";
 
 import "./libraries/AccessControl.sol";
 import "./libraries/CustomErrors.sol";
@@ -272,12 +272,12 @@ contract Manager is AccessControl {
 	/////////////////////
 
 	function setLowDeltaSellOptionFlatIV(uint256 _lowDeltaSellOptionFlatIV) external {
-		_isProxyManager();
+		_isKeeper();
 		beyondPricer.setLowDeltaSellOptionFlatIV(_lowDeltaSellOptionFlatIV);
 	}
 
 	function setLowDeltaThreshold(uint256 _lowDeltaThreshold) external {
-		_isProxyManager();
+		_isKeeper();
 		beyondPricer.setLowDeltaThreshold(_lowDeltaThreshold);
 	}
 
@@ -292,17 +292,17 @@ contract Manager is AccessControl {
 	}
 
 	function setSlippageGradient(uint256 _slippageGradient) external {
-		_isProxyManager();
+		_isKeeper();
 		beyondPricer.setSlippageGradient(_slippageGradient);
 	}
 
 	function setCollateralLendingRate(uint256 _collateralLendingRate) external {
-		_isProxyManager();
+		_isKeeper();
 		beyondPricer.setCollateralLendingRate(_collateralLendingRate);
 	}
 
 	function setDeltaBorrowRates(BeyondPricer.DeltaBorrowRates calldata _deltaBorrowRates) external {
-		_isProxyManager();
+		_isKeeper();
 		beyondPricer.setDeltaBorrowRates(_deltaBorrowRates);
 	}
 
@@ -326,7 +326,7 @@ contract Manager is AccessControl {
 		int80[] memory _callSlippageGradientMultipliers,
 		int80[] memory _putSlippageGradientMultipliers
 	) public {
-		_isProxyManager();
+		_isKeeper();
 		beyondPricer.setSlippageGradientMultipliers(
 			_tenorIndex,
 			_callSlippageGradientMultipliers,
@@ -339,7 +339,7 @@ contract Manager is AccessControl {
 		int80[] memory _callSpreadCollateralMultipliers,
 		int80[] memory _putSpreadCollateralMultipliers
 	) public {
-		_isProxyManager();
+		_isKeeper();
 		beyondPricer.setSpreadCollateralMultipliers(
 			_tenorIndex,
 			_callSpreadCollateralMultipliers,
@@ -352,7 +352,7 @@ contract Manager is AccessControl {
 		int80[] memory _callSpreadDeltaMultipliers,
 		int80[] memory _putSpreadDeltaMultipliers
 	) public {
-		_isProxyManager();
+		_isKeeper();
 		beyondPricer.setSpreadDeltaMultipliers(
 			_tenorIndex,
 			_callSpreadDeltaMultipliers,
@@ -382,7 +382,7 @@ contract Manager is AccessControl {
 	 * @notice Exits an active range order
 	 * @param reactorIndex the index of the range order reactor
 	 */
- 	function exitActiveRangeOrder(uint256 reactorIndex) external {
+	function exitActiveRangeOrder(uint256 reactorIndex) external {
 		_isKeeper();
 		address rangeOrderReactorAddress = liquidityPool.hedgingReactors(reactorIndex);
 		IRangeOrderReactor rangeOrderReactor = IRangeOrderReactor(rangeOrderReactorAddress);
@@ -396,10 +396,14 @@ contract Manager is AccessControl {
 			IUniswapV3PoolState uniswapPool = rangeOrderReactor.pool();
 			(, int24 tick) = uniswapPool.slot0();
 			Position memory currentOrder = rangeOrderReactor.currentPosition();
-			deltaLimit[rebalanceCaller.caller] += reclaimableDelta(rebalanceCaller.deltaUsed, tick, currentOrder);
+			deltaLimit[rebalanceCaller.caller] += reclaimableDelta(
+				rebalanceCaller.deltaUsed,
+				tick,
+				currentOrder
+			);
 			delete rebalanceCallers[reactorIndex];
 		}
-	} 
+	}
 
 	/**
 	 * @notice Calculates amount of delta that can be reclaimed depending on how much of the range order was filled
@@ -407,43 +411,38 @@ contract Manager is AccessControl {
 	 * @param tick the current tick of the pool
 	 * @param currentOrder the current position of the range order reactor
 	 */
-	function reclaimableDelta(uint256 deltaAmount, int24 tick, Position memory currentOrder) 
-		public
-		pure 
-		returns (uint256)
-	{
-        uint256 filled = percentageFilled(tick, currentOrder);
-        // Calculate reclaimable amount
-        uint256 reclaimable = deltaAmount * (1e18 - filled) / 1e18;
-        return reclaimable;
-    }
+	function reclaimableDelta(
+		uint256 deltaAmount,
+		int24 tick,
+		Position memory currentOrder
+	) public pure returns (uint256) {
+		uint256 filled = percentageFilled(tick, currentOrder);
+		// Calculate reclaimable amount
+		uint256 reclaimable = (deltaAmount * (1e18 - filled)) / 1e18;
+		return reclaimable;
+	}
 
 	/**
 	 * @notice Calculates the percentage of the range order that has been filled
 	 * @param tick the current tick of the pool
 	 * @param position the current position of the range order reactor
-	*/
-	function percentageFilled(int24 tick, Position memory position) 
-		public
-		pure
-		returns (uint256) 
-	{
+	 */
+	function percentageFilled(int24 tick, Position memory position) public pure returns (uint256) {
 		int256 totalRange = int256(position.activeUpperTick - position.activeLowerTick);
 
-        if(totalRange == 0) return 0;
+		if (totalRange == 0) return 0;
 
-        int256 distance;
-        if(position.activeRangeAboveTick) {
+		int256 distance;
+		if (position.activeRangeAboveTick) {
 			distance = int256(position.activeUpperTick - tick);
-        } else {
+		} else {
 			distance = int256(tick - position.activeLowerTick);
-        }
+		}
 
-        // Clamp the distance to be within the range [0, totalRange]
-        if (distance < 0) distance = 0;
-        if (distance > totalRange) distance = totalRange;
+		// Clamp the distance to be within the range [0, totalRange]
+		if (distance < 0) distance = 0;
+		if (distance > totalRange) distance = totalRange;
 
-        return uint256(distance * 1e18 / totalRange);
-    }
-
+		return uint256((distance * 1e18) / totalRange);
+	}
 }
