@@ -60,7 +60,7 @@ export const SpreadModal = ({ strategy }: ModalProps) => {
     setAmountToOpen(rounded);
   };
 
-  const [shortOTokenAddress, longOTokenAddress] = addresses.token;
+  const [shortOTokenAddress, longOTokenAddress] = addresses.tokens;
 
   const handleApprove = async () => {
     setTransactionPending(true);

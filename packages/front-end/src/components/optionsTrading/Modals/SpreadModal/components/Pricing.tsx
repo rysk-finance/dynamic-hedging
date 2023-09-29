@@ -12,7 +12,7 @@ import { RyskCountUp } from "src/components/shared/RyskCountUp";
 import { RyskTooltip } from "src/components/shared/RyskToolTip";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { MAX_TRADE_SIZE, MIN_TRADE_SIZE } from "../../Shared/utils/constants";
-import { determineStrikes } from "../utils/determineStrikes";
+import { getAvailableStrikes } from "../utils/determineStrikes";
 
 export const Pricing = ({
   positionData,
@@ -71,7 +71,7 @@ export const Pricing = ({
   }, [positionData]);
 
   const [callStrikes, putStrikes] = useMemo(() => {
-    return determineStrikes(
+    return getAvailableStrikes(
       Object.entries(data[activeExpiry!]),
       strikes,
       strategy

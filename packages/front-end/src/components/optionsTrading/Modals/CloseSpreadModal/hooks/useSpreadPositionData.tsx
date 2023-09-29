@@ -62,7 +62,7 @@ export const useSpreadPositionData = (amountToClose: string) => {
     remainingCollateral: 0,
     requiredApproval: "",
     slippage: 0,
-    strikes: closingOption?.strike,
+    strikes: closingOption?.strikes,
     totalSize: 0,
   });
 
@@ -84,8 +84,8 @@ export const useSpreadPositionData = (amountToClose: string) => {
           longOTokenAddress &&
           closingOption
         ) {
-          const convertShort = Convert.fromStr(closingOption.strike[0]);
-          const convertLong = Convert.fromStr(closingOption.strike[1]);
+          const convertShort = Convert.fromStr(closingOption.strikes[0]);
+          const convertLong = Convert.fromStr(closingOption.strikes[1]);
           const now = dateTimeNow();
           const totalSize = closingOption.amount;
 
@@ -179,7 +179,7 @@ export const useSpreadPositionData = (amountToClose: string) => {
               remainingCollateral,
               requiredApproval,
               slippage: shortQuote.slippage - longQuote.slippage,
-              strikes: closingOption.strike,
+              strikes: closingOption.strikes,
               totalSize: Math.abs(totalSize),
             });
             setAllowanceUSDC((currentState) => ({
@@ -210,7 +210,7 @@ export const useSpreadPositionData = (amountToClose: string) => {
               remainingCollateral: 0,
               requiredApproval: "",
               slippage: 0,
-              strikes: closingOption.strike,
+              strikes: closingOption.strikes,
               totalSize: Math.abs(totalSize),
             });
             setAllowanceUSDC((currentState) => ({
@@ -245,7 +245,7 @@ export const useSpreadPositionData = (amountToClose: string) => {
     collateral: USDCAddress,
     exchange: exchangeAddress,
     marginPool: marginPoolAddress,
-    token: [shortOTokenAddress, longOTokenAddress],
+    tokens: [shortOTokenAddress, longOTokenAddress],
     user: address,
   };
 

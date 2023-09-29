@@ -1,6 +1,6 @@
 import { OptionChainModalActions, StrikeOptions } from "src/state/types";
 
-export const determineStrikes = (
+export const getAvailableStrikes = (
   strikes: [string, StrikeOptions][],
   selectedStrikes: [number, number],
   strategy:

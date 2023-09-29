@@ -48,8 +48,8 @@ export const usePositionData = (amountToClose: string) => {
     remainingBalance: 0,
     slippage: 0,
     totalSize: 0,
-    strike: closingOption?.strike
-      ? Convert.fromStr(closingOption.strike[0]).toInt()
+    strike: closingOption?.strikes
+      ? Convert.fromStr(closingOption.strikes[0]).toInt()
       : undefined,
   });
 
@@ -72,7 +72,7 @@ export const usePositionData = (amountToClose: string) => {
               await getQuotes([
                 {
                   expiry: Number(activeExpiry),
-                  strike: Convert.fromStr(closingOption.strike[0]).toWei(),
+                  strike: Convert.fromStr(closingOption.strikes[0]).toWei(),
                   isPut: closingOption.isPut,
                   orderSize: amount,
                   isSell: true,
@@ -102,7 +102,7 @@ export const usePositionData = (amountToClose: string) => {
               remainingBalance,
               slippage,
               totalSize,
-              strike: Convert.fromStr(closingOption.strike[0]).toInt(),
+              strike: Convert.fromStr(closingOption.strikes[0]).toInt(),
             });
             setAllowance((currentState) => ({ ...currentState, approved }));
           } else {
@@ -120,8 +120,8 @@ export const usePositionData = (amountToClose: string) => {
               remainingBalance: balances.USDC,
               slippage: 0,
               totalSize,
-              strike: closingOption?.strike
-                ? Convert.fromStr(closingOption.strike[0]).toInt()
+              strike: closingOption?.strikes
+                ? Convert.fromStr(closingOption.strikes[0]).toInt()
                 : undefined,
             });
             setAllowance((currentState) => ({

@@ -10,7 +10,7 @@ export interface Addresses {
 
 export interface SpreadAddresses extends Omit<Addresses, "token"> {
   marginPool: HexString;
-  token: [HexString | undefined, HexString | undefined];
+  tokens: [HexString | undefined, HexString | undefined];
 }
 
 export interface AllowanceState {

@@ -215,7 +215,7 @@ export const useSpread = (
     collateral: USDCAddress,
     exchange: exchangeAddress,
     marginPool: marginPoolAddress,
-    token: [shortOTokenAddress, longOTokenAddress],
+    tokens: [shortOTokenAddress, longOTokenAddress],
     user: address,
   };
 

@@ -25,7 +25,7 @@ export const Action = ({
   longCollateralAddress,
   series,
   shortUSDCExposure,
-  strike,
+  strikes,
 }: ActionProps) => {
   const { address } = useAccount();
   const { chain } = useNetwork();
@@ -127,7 +127,7 @@ export const Action = ({
             longCollateralAddress,
             series,
             shortUSDCExposure,
-            strike,
+            strikes,
             vault: collateral.vault,
           },
           chain?.unsupported

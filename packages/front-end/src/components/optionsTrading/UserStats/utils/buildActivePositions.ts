@@ -376,7 +376,7 @@ export const buildActivePositions = async (
             : isSpread && sellCollateral.premiumTooSmall
             ? chainsSideDataCollateral?.exposure.USDC.short
             : undefined,
-        strike: [strike.toStr(), isSpread ? strikeCollateral.toStr() : ""],
+        strikes: [strike.toStr(), isSpread ? strikeCollateral.toStr() : ""],
       };
     }
   );

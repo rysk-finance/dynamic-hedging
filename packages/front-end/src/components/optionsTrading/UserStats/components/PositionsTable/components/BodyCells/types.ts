@@ -36,7 +36,7 @@ export interface LiquidationProps
     | "id"
     | "isPut"
     | "series"
-    | "strike"
+    | "strikes"
   > {}
 
 export interface BreakEvenProps {
@@ -58,5 +58,5 @@ export interface ActionProps
     | "longCollateralAddress"
     | "series"
     | "shortUSDCExposure"
-    | "strike"
+    | "strikes"
   > {}

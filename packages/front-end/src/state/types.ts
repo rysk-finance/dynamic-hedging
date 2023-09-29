@@ -151,7 +151,7 @@ export interface ActivePositions {
   returnOnInvestment: number;
   series: string;
   shortUSDCExposure?: number;
-  strike: [string, string];
+  strikes: [string, string];
 }
 
 export interface InactivePositions {
@@ -494,7 +494,7 @@ export interface ClosingOption {
   longCollateralAddress?: HexString;
   series: string;
   shortUSDCExposure?: number;
-  strike: [string, string];
+  strikes: [string, string];
   vault?: Vault;
 }
 

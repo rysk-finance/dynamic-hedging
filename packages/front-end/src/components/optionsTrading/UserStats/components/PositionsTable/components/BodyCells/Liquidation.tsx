@@ -12,7 +12,7 @@ export const Liquidation = ({
   id,
   isPut,
   series,
-  strike,
+  strikes,
 }: LiquidationProps) => {
   const {
     dispatch,
@@ -62,7 +62,7 @@ export const Liquidation = ({
             isPut,
             liquidationPrice,
             series,
-            strike: Number(strike[0]),
+            strike: Number(strikes[0]),
             vault,
           })}
         >

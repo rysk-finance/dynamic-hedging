@@ -75,7 +75,7 @@ export const CloseSpreadModal = () => {
     setAmountToSell((maxAmount ? maxAmount : rounded).toString());
   };
 
-  const [shortOTokenAddress, longOTokenAddress] = addresses.token;
+  const [shortOTokenAddress, longOTokenAddress] = addresses.tokens;
 
   const handleApprove = async () => {
     setTransactionPending(true);
@@ -217,7 +217,7 @@ export const CloseSpreadModal = () => {
               Number(amountToSell) < MIN_TRADE_SIZE ||
               Number(amountToSell) > MAX_TRADE_SIZE ||
               Number(amountToSell) > positionData.totalSize ||
-              !addresses.token ||
+              !addresses.tokens ||
               !positionData.hasRequiredCapital ||
               transactionPending ||
               loading ||
