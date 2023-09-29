@@ -73,7 +73,7 @@ export const Body = () => {
                         strokeWidth={2}
                       />
                     )}
-                    <span className="w-2/3">{series}</span>
+                    <span className="w-4/5 text-xs 2xl:text-sm">{series}</span>
                   </td>
                   <td className="font-dm-mono">
                     {<RyskCountUp value={size} />}
