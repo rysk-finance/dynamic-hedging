@@ -1,7 +1,7 @@
 import type { Transactions } from "./types";
 
 import { gql } from "@apollo/client";
-import { getAccount, waitForTransaction } from "@wagmi/core";
+import { waitForTransaction } from "@wagmi/core";
 import dayjs from "dayjs";
 
 import { RyskApolloClient } from "src/clients/Apollo/Apollo";
@@ -12,8 +12,7 @@ const TIMEOUT = 12;
 const recursiveCheck = async (
   after: number,
   attempt: number,
-  hash: HexString,
-  address?: string
+  hash: HexString
 ): Promise<boolean> => {
   // Bail out after 1 minute.
   if (attempt === TIMEOUT) return true;
@@ -22,7 +21,6 @@ const recursiveCheck = async (
   const variables = {
     after,
     hash,
-    address,
   };
   const { data } = await RyskApolloClient.query<Transactions>({
     query,
@@ -34,7 +32,7 @@ const recursiveCheck = async (
 
   if (empty) {
     await new Promise((resolve) => setTimeout(resolve, 5000));
-    return recursiveCheck(after, attempt + 1, hash, address);
+    return recursiveCheck(after, attempt + 1, hash);
   }
 
   return true;
@@ -57,9 +55,7 @@ export const waitForTransactionOrTimer = async (
     return true;
   }
 
-  const { address } = getAccount();
-
   const after = dayjs().subtract(1, "minute").unix();
 
-  return recursiveCheck(after, 0, hash, address?.toLowerCase());
+  return recursiveCheck(after, 0, hash);
 };

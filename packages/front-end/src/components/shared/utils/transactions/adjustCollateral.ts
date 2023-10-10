@@ -56,7 +56,7 @@ export const adjustCollateral = async (
   if (config.request.data) {
     const { hash } = await writeContract(config);
 
-    await waitForTransactionOrTimer(hash, true);
+    await waitForTransactionOrTimer(hash);
 
     refresh();
 
