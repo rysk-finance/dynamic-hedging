@@ -7,37 +7,37 @@ query ${QueriesEnum.TRANSACTIONS} (
   longBuys: longPositions(
     where: {account: $address, optionsBoughtTransactions_: {transactionHash: $hash, timestamp_gte: $after}}
   ) {
-    optionsBoughtTransactions {
-      transactionHash
-      timestamp
-    }
+    id
   }
 
   longSells: longPositions(
     where: {account: $address, optionsSoldTransactions_: {transactionHash: $hash, timestamp_gte: $after}}
   ) {
-    optionsSoldTransactions {
-      transactionHash
-      timestamp
-    }
+    id
+  }
+
+  longRedeems: longPositions(
+    where: {account: $address, redeemActions_: {transactionHash: $hash, timestamp_gte: $after}}
+  ) {
+    id
   }
 
   shortBuys: shortPositions(
     where: {account: $address, optionsBoughtTransactions_: {transactionHash: $hash, timestamp_gte: $after}}
   ) {
-    optionsBoughtTransactions {
-      transactionHash
-      timestamp
-    }
+    id
   }
 
   shortSells: shortPositions(
     where: {account: $address, optionsSoldTransactions_: {transactionHash: $hash, timestamp_gte: $after}}
   ) {
-    optionsSoldTransactions {
-      transactionHash
-      timestamp
-    }
+    id
+  }
+
+  shortSettles: shortPositions(
+    where: {account: $address, settleActions_: {transactionHash: $hash, timestamp_gte: $after}}
+  ) {
+    id
   }
 }
 `;
