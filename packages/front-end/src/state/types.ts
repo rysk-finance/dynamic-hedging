@@ -1,5 +1,5 @@
 import type { ApolloError } from "@apollo/client";
-import type { BigNumber, BigNumberish } from "ethers";
+import type { BigNumber } from "ethers";
 
 import type {
   LiquidateActions,
@@ -154,15 +154,15 @@ export interface ActivePositions {
   strikes: [string, string];
 }
 
-export interface InactivePositions {
+export interface InactivePositions
+  extends Pick<
+    ActivePositions,
+    "entry" | "id" | "isPut" | "isShort" | "series"
+  > {
   close: number;
-  entry: number;
-  id: string;
-  isShort: boolean;
   oraclePrice: number;
   profitLoss?: number;
   returnOnInvestment?: number;
-  series: string;
   size: number;
 }
 

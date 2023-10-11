@@ -104,7 +104,7 @@ export const Series = ({
 
         {collateralSeries && (
           <span
-            className={`inline-flex items-center mx-auto col-span-2 col-start-2 text-xs 2xl:text-sm text-green-1100 ${height}`}
+            className={`inline-flex items-center mx-auto col-span-2 text-xs 2xl:text-sm text-green-1100 ${height}`}
           >
             {collateralSeries}
           </span>
