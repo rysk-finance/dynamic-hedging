@@ -44,6 +44,8 @@ export const useSentry = () => {
           /ResolutionError/,
           /@coinbase/,
           /ConnectorNotFoundError/,
+          /EvalError/,
+          /chrome-extension/,
           "NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.",
           "NotFoundError: Failed to execute 'insertBefore' on 'Node': The node before which the new node is to be inserted is not a child of this node.",
         ],
