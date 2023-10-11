@@ -206,17 +206,15 @@ export const buildActivePositions = async (
       const strike = Convert.fromOpyn(strikePrice);
       const strikeInt = strike.toInt();
       const chainSideData = chainData[expiryTimestamp]?.[strikeInt][side];
-      const { delta, buy, sell } = {
-        delta: isOpen && chainSideData?.delta ? chainSideData.delta : 0,
-        buy:
-          isOpen && chainSideData?.buy
-            ? chainSideData.buy
-            : { disabled: false, quote: { quote: 0 } },
-        sell:
-          isOpen && chainSideData?.sell
-            ? chainSideData.sell
-            : { disabled: false, premiumTooSmall: false, quote: { quote: 0 } },
-      };
+      const buy =
+        isOpen && chainSideData?.buy
+          ? chainSideData.buy
+          : { disabled: false, quote: { quote: 0 } };
+      const sell =
+        isOpen && chainSideData?.sell
+          ? chainSideData.sell
+          : { disabled: false, premiumTooSmall: false, quote: { quote: 0 } };
+      const delta = isOpen && chainSideData?.delta ? chainSideData.delta : 0;
       const mark = (buy.quote.quote + sell.quote.quote) / 2;
 
       // Data for the long collateral on a spread.
@@ -241,24 +239,18 @@ export const buildActivePositions = async (
       const strikeIntCollateral = strikeCollateral.toInt();
       const chainsSideDataCollateral =
         chainData[expiryCollateral]?.[strikeIntCollateral]?.[sideCollateral];
-      const {
-        delta: deltaCollateral,
-        buy: buyCollateral,
-        sell: sellCollateral,
-      } = {
-        delta:
-          isOpen && chainsSideDataCollateral?.delta
-            ? chainsSideDataCollateral.delta
-            : 0,
-        buy:
-          isOpen && chainsSideDataCollateral?.buy
-            ? chainsSideDataCollateral.buy
-            : { disabled: false, quote: { quote: 0 } },
-        sell:
-          isOpen && chainsSideDataCollateral?.sell
-            ? chainsSideDataCollateral.sell
-            : { disabled: false, premiumTooSmall: false, quote: { quote: 0 } },
-      };
+      const deltaCollateral =
+        isOpen && chainsSideDataCollateral?.delta
+          ? chainsSideDataCollateral.delta
+          : 0;
+      const buyCollateral =
+        isOpen && chainsSideDataCollateral?.buy
+          ? chainsSideDataCollateral.buy
+          : { disabled: false, quote: { quote: 0 } };
+      const sellCollateral =
+        isOpen && chainsSideDataCollateral?.sell
+          ? chainsSideDataCollateral.sell
+          : { disabled: false, premiumTooSmall: false, quote: { quote: 0 } };
       const markCollateral =
         (buyCollateral.quote.quote + sellCollateral.quote.quote) / 2;
 
