@@ -118,23 +118,6 @@ const getAction = (
   return PositionAction.CLOSE;
 };
 
-const getSeries = (
-  series: string,
-  strike: number,
-  collateralStrike?: number
-) => {
-  switch (true) {
-    case collateralStrike && collateralStrike > strike:
-      return `${series}-CCS`;
-
-    case collateralStrike && collateralStrike < strike:
-      return `${series}-PCS`;
-
-    default:
-      return series;
-  }
-};
-
 /**
  * Calculate table data for all active user positions.
  *
