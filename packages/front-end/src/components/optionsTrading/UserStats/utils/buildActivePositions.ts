@@ -238,6 +238,9 @@ export const buildActivePositions = async (
 
       // Data for the long collateral on a spread.
       const longCollateral = vault?.longCollateral;
+      const [, ...seriesCollateral] = longCollateral
+        ? longCollateral.oToken.symbol.split("-")
+        : [""];
       const formattedPnlCollateral = Convert.fromUSDC(
         longCollateral?.realizedPnl || "0"
       ).toInt();
@@ -369,7 +372,7 @@ export const buildActivePositions = async (
         mark: markCollateral ? (mark + markCollateral) / 2 : mark,
         profitLoss,
         returnOnInvestment,
-        series: getSeries(series.join("-"), strikeInt, strikeIntCollateral),
+        series: [series.join("-"), seriesCollateral.join("-")],
         shortUSDCExposure:
           !isShort && sell.premiumTooSmall
             ? chainSideData?.exposure.USDC.short

@@ -149,7 +149,7 @@ export interface ActivePositions {
   mark: number;
   profitLoss: number;
   returnOnInvestment: number;
-  series: string;
+  series: [string, string];
   shortUSDCExposure?: number;
   strikes: [string, string];
 }

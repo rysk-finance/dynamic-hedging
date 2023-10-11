@@ -11,6 +11,7 @@ export const Liquidation = ({
   expiryTimestamp,
   id,
   isPut,
+  isSpread,
   series,
   strikes,
 }: LiquidationProps) => {
@@ -51,8 +52,8 @@ export const Liquidation = ({
     return (
       <td className="col-span-2 font-dm-mono xl:!text-xs 2xl:!text-sm">
         <button
-          className={`w-full h-full decoration-dotted underline ease-in-out duration-200 ${textColor}`}
-          disabled={isPartOfSpread}
+          className={`w-full h-full decoration-dotted ease-in-out duration-200 ${textColor}`}
+          disabled={!liquidationPrice || isPartOfSpread}
           onClick={handleCollateralClick({
             address: id,
             amount: Math.abs(amount),
@@ -61,13 +62,13 @@ export const Liquidation = ({
             expiryTimestamp,
             isPut,
             liquidationPrice,
-            series,
+            series: series[0],
             strike: Number(strikes[0]),
             vault,
           })}
         >
           {liquidationPrice && !isPartOfSpread ? (
-            <>
+            <span className="underline">
               <RyskCountUp prefix="$" value={collateral.liquidationPrice} />
               {` (`}
               <RyskCountUp
@@ -75,9 +76,20 @@ export const Liquidation = ({
                 value={collateral.amount}
               />
               {`)`}
-            </>
+            </span>
           ) : (
-            "Fully Collateralised"
+            <span className="block">
+              <p className="leading-8">{`Fully Collateralised`}</p>
+              {isSpread && (
+                <span>
+                  <p className="leading-8">
+                    {`(`}
+                    <RyskCountUp prefix="$" value={collateralAmount} />
+                    {`)`}
+                  </p>
+                </span>
+              )}
+            </span>
           )}
         </button>
       </td>

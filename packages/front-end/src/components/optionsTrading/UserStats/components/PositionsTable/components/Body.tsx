@@ -98,6 +98,7 @@ export const Body = () => {
               entry,
               firstCreated,
               id,
+              isPut,
               isShort,
               mark,
               profitLoss,
@@ -111,12 +112,13 @@ export const Body = () => {
 
             return (
               <motion.tr
-                className="h-11 grid grid-cols-12 items-center text-center capitalize [&_td]:border-l-2 first:[&_td]:border-0 [&_td]:border-gray-500 [&_td]:border-dashed [&_td]:text-2xs [&_td]:xl:text-sm [&_td]:h-full [&_td]:flex [&_td]:items-center [&_td]:justify-center"
+                className="grid grid-cols-12 items-center text-center capitalize [&_td]:border-b [&_td]:border-l-2 first:[&_td]:border-l-0 [&_td]:border-gray-500 [&_td]:border-dashed [&_td]:text-2xs [&_td]:xl:text-sm [&_td]:h-full [&_td]:flex [&_td]:items-center [&_td]:justify-center [&_td]:p-0 group/strategy-icon"
                 key={`${id}-${isShort ? "SHORT" : "LONG"}-${firstCreated}`}
                 layout="position"
                 {...FadeInUpDelayed(Math.min(index * 0.1, 2))}
               >
                 <Series
+                  isPut={isPut}
                   isShort={isShort}
                   series={series}
                   strategyTimestampIndex={strategyTimestampIndex}

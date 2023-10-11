@@ -125,7 +125,7 @@ export const Action = ({
             isShort,
             isSpread,
             longCollateralAddress,
-            series,
+            series: series[0],
             shortUSDCExposure,
             strikes,
             vault: collateral.vault,
