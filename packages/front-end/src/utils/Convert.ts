@@ -1,4 +1,4 @@
-import type { BigNumber } from "ethers";
+import { BigNumber } from "ethers";
 
 import { utils } from "ethers";
 
@@ -58,6 +58,8 @@ export class Convert {
   toUSDC: () => BigNumber;
   toWei: () => BigNumber;
 
+  private static BIG_ZERO = BigNumber.from(0);
+
   public static USDC = 6;
   public static OPYN = 8;
   public static WEI = 18;
@@ -70,7 +72,7 @@ export class Convert {
    *
    * @returns - A new instance of the Convert class.
    */
-  public static fromE27 = (value: BigNumber | string) =>
+  public static fromE27 = (value: BigNumber | string = this.BIG_ZERO) =>
     new Convert(utils.formatUnits(value, this.E27), this.E27);
 
   /**
@@ -93,7 +95,7 @@ export class Convert {
    * @returns - A new instance of the Convert class.
    */
   public static fromOpyn = (
-    value: BigNumber | string,
+    value: BigNumber | string = this.BIG_ZERO,
     decimals: number = this.OPYN
   ) => new Convert(utils.formatUnits(value, this.OPYN), decimals);
 
@@ -116,8 +118,10 @@ export class Convert {
    *
    * @returns - A new instance of the Convert class.
    */
-  public static fromUSDC = (value: BigNumber | string, decimals: number = 4) =>
-    new Convert(utils.formatUnits(value, this.USDC), decimals);
+  public static fromUSDC = (
+    value: BigNumber | string = this.BIG_ZERO,
+    decimals: number = 4
+  ) => new Convert(utils.formatUnits(value, this.USDC), decimals);
 
   /**
    * Public static method to ingest a 1e18 big number.
@@ -127,8 +131,10 @@ export class Convert {
    *
    * @returns - A new instance of the Convert class.
    */
-  public static fromWei = (value: BigNumber | string, decimals: number = 3) =>
-    new Convert(utils.formatUnits(value, this.WEI), decimals);
+  public static fromWei = (
+    value: BigNumber | string = this.BIG_ZERO,
+    decimals: number = 3
+  ) => new Convert(utils.formatUnits(value, this.WEI), decimals);
 
   /**
    * Public static method for numeric rounding.
