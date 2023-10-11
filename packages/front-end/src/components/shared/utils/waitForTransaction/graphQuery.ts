@@ -7,43 +7,43 @@ query ${QueriesEnum.TRANSACTIONS} (
   longBuys: longPositions(
     where: {optionsBoughtTransactions_: {transactionHash: $hash, timestamp_gte: $after}}
   ) {
-    id
+    active
   }
 
   longSells: longPositions(
     where: {optionsSoldTransactions_: {transactionHash: $hash, timestamp_gte: $after}}
   ) {
-    id
+    active
   }
 
   longRedeems: longPositions(
     where: {redeemActions_: {transactionHash: $hash, timestamp_gte: $after}}
   ) {
-    id
+    active
   }
 
   shortBuys: shortPositions(
     where: {optionsBoughtTransactions_: {transactionHash: $hash, timestamp_gte: $after}}
   ) {
-    id
+    active
   }
 
   shortSells: shortPositions(
     where: {optionsSoldTransactions_: {transactionHash: $hash, timestamp_gte: $after}}
   ) {
-    id
+    active
   }
 
   shortSettles: shortPositions(
     where: {settleActions_: {transactionHash: $hash, timestamp_gte: $after}}
   ) {
-    id
+    active
   }
 
   vaultActions(
     where: {transactionHash: $hash, timestamp_gte: $after}
   ) {
-    id
+    block
   }
 }
 `;
