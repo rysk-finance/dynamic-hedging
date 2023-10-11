@@ -8,6 +8,7 @@ import { OptionChainModalActions } from "src/state/types";
 
 export const strategyList = [
   {
+    active: false,
     description: "Works best when price is expected to decrease.",
     Icon: CallCreditSpread,
     label: "Call Credit Spread",
@@ -15,6 +16,7 @@ export const strategyList = [
     selling: true,
   },
   {
+    active: false,
     description: "Works best when price is expected to increase.",
     Icon: PutCreditSpread,
     label: "Put Credit Spread",
@@ -22,6 +24,7 @@ export const strategyList = [
     selling: true,
   },
   {
+    active: true,
     description: "Works best when volatility is expected to increase.",
     Icon: LongStraddle,
     label: "Long Straddle",
@@ -29,6 +32,7 @@ export const strategyList = [
     selling: false,
   },
   {
+    active: true,
     description: "Works best when volatility is expected to increase.",
     Icon: LongStrangle,
     label: "Long Strangle",

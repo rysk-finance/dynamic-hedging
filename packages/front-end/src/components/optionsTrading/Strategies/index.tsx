@@ -5,6 +5,7 @@ import { useMemo } from "react";
 
 import FadeInOut from "src/animation/FadeInOut";
 import { RyskTooltip } from "src/components/shared/RyskToolTip";
+import { useFeatureFlag } from "src/hooks/useFeatureFlag/useFeatureFlag";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType, OptionChainModalActions } from "src/state/types";
 import { strategyList } from "./strategyList";
@@ -17,6 +18,9 @@ export const Strategies = () => {
       userTradingPreferences: { tutorialMode },
     },
   } = useGlobalContext();
+
+  // RYSK-393 spreads feature flag.
+  const [flagActive] = useFeatureFlag("393");
 
   const hasRequiredState = useMemo(
     () => Boolean(activeExpiry && data[activeExpiry]),
@@ -58,24 +62,28 @@ export const Strategies = () => {
           <AnimatePresence>
             {hasRequiredState &&
               strategyList.map(
-                ({ description, Icon, label, modal, selling }) => (
-                  <motion.button
-                    className="flex justify-center py-1 mx-4 group/strategy-icon"
-                    key={label}
-                    onClick={handleClick(modal, selling)}
-                    {...FadeInOut()}
-                  >
-                    <Icon className="h-6 mr-1 my-auto" />
-                    <span className="w-40">
-                      <p className="font-dm-mono text-sm font-medium">
-                        {label}
-                      </p>
-                      <small className="block text-2xs !leading-1">
-                        {description}
-                      </small>
-                    </span>
-                  </motion.button>
-                )
+                ({ active, description, Icon, label, modal, selling }) => {
+                  if (!active && !flagActive) return null;
+
+                  return (
+                    <motion.button
+                      className="flex justify-center py-1 mx-4 group/strategy-icon"
+                      key={label}
+                      onClick={handleClick(modal, selling)}
+                      {...FadeInOut()}
+                    >
+                      <Icon className="h-6 mr-1 my-auto" />
+                      <span className="w-40">
+                        <p className="font-dm-mono text-sm font-medium">
+                          {label}
+                        </p>
+                        <small className="block text-2xs !leading-1">
+                          {description}
+                        </small>
+                      </span>
+                    </motion.button>
+                  );
+                }
               )}
           </AnimatePresence>
         </div>
