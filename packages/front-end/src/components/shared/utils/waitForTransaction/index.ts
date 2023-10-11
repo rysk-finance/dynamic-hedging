@@ -7,15 +7,16 @@ import dayjs from "dayjs";
 import { RyskApolloClient } from "src/clients/Apollo/Apollo";
 import { transactionsQuery } from "./graphQuery";
 
-const TIMEOUT = 12;
+const ATTEMPT_DEBOUNCE = 5000;
+const MAX_TIMEOUT = 60000;
 
 const recursiveCheck = async (
   after: number,
-  attempt: number,
+  timeElapsed: number,
   hash: HexString
 ): Promise<boolean> => {
   // Bail out after 1 minute.
-  if (attempt === TIMEOUT) return true;
+  if (timeElapsed === MAX_TIMEOUT) return true;
 
   const query = gql(transactionsQuery);
   const variables = {
@@ -31,8 +32,8 @@ const recursiveCheck = async (
   const empty = Object.values(data).every((arr) => !arr.length);
 
   if (empty) {
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-    return recursiveCheck(after, attempt + 1, hash);
+    await new Promise((resolve) => setTimeout(resolve, ATTEMPT_DEBOUNCE));
+    return recursiveCheck(after, timeElapsed + ATTEMPT_DEBOUNCE, hash);
   }
 
   return true;
