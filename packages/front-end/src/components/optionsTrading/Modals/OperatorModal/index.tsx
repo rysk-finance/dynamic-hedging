@@ -44,7 +44,7 @@ export const OperatorModal = () => {
 
   return (
     <Modal>
-      <Header>{`Sell Position`}</Header>
+      <Header>{`Set Operator`}</Header>
 
       <div className="w-4/5 xl:w-3/5 mx-auto py-3">
         <p className="text-center pb-3 leading-6">
@@ -59,7 +59,7 @@ export const OperatorModal = () => {
               requiresConnection
               {...FadeInOutQuick}
               {...getButtonProps(
-                "sell",
+                "set",
                 transactionPending || loading,
                 isOperator,
                 handleOperatorApproval
