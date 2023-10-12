@@ -241,6 +241,7 @@ export type GlobalState = {
   adjustingOption?: AdjustingOption;
   closingOption?: ClosingOption;
   selectedOption?: SelectedOption;
+  selectedStrategy?: SelectedStrategy;
   optionChainModalOpen?: OptionChainModal;
   visibleColumns: ColumnNamesSet;
   userTradingPreferences: UserTradingPreferences;
@@ -276,6 +277,7 @@ export enum ActionType {
   SET_COLLATERAL_PREFERENCES,
   SET_ADJUSTING_OPTION,
   SET_SELECTED_OPTION,
+  SET_SELECTED_STRATEGY,
   SET_CLOSING_OPTION,
   SET_OPTION_CHAIN_MODAL_VISIBLE,
   RESET_OPTIONS_CHAIN_STATE,
@@ -360,6 +362,11 @@ export type GlobalAction =
       type: ActionType.SET_SELECTED_OPTION;
       activeExpiry?: string;
       option?: SelectedOption;
+    }
+  | {
+      type: ActionType.SET_SELECTED_STRATEGY;
+      buyOrSell?: BuyOrSell;
+      strategy?: OptionChainModal;
     }
   | {
       type: ActionType.SET_ADJUSTING_OPTION;
@@ -466,11 +473,17 @@ export type OptionChainModal =
   (typeof OptionChainModalActions)[keyof typeof OptionChainModalActions];
 
 export type CallOrPut = "call" | "put";
+type BuyOrSell = "buy" | "sell";
 
 export interface SelectedOption {
-  buyOrSell: "sell" | "buy";
+  buyOrSell: BuyOrSell;
   callOrPut: CallOrPut;
   strikeOptions: StrikeOptions;
+}
+
+export interface SelectedStrategy {
+  buyOrSell?: BuyOrSell;
+  strategy?: OptionChainModal;
 }
 
 export interface AdjustingOption {

@@ -6,14 +6,14 @@ import { useMemo } from "react";
 import FadeInOut from "src/animation/FadeInOut";
 import { RyskTooltip } from "src/components/shared/RyskToolTip";
 import { useGlobalContext } from "src/state/GlobalContext";
-import { ActionType, OptionChainModalActions } from "src/state/types";
+import { ActionType } from "src/state/types";
 import { strategyList } from "./strategyList";
 
 export const Strategies = () => {
   const {
     dispatch,
     state: {
-      options: { activeExpiry, data, loading, isOperator },
+      options: { activeExpiry, data, loading },
       userTradingPreferences: { tutorialMode },
     },
   } = useGlobalContext();
@@ -24,21 +24,11 @@ export const Strategies = () => {
   );
 
   const handleClick = (modal: OptionChainModal, selling: boolean) => () => {
-    if (selling && !isOperator) {
-      dispatch({
-        type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
-        visible: OptionChainModalActions.OPERATOR,
-      });
-
-      return;
-    }
-
-    if (hasRequiredState) {
-      dispatch({
-        type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
-        visible: modal,
-      });
-    }
+    dispatch({
+      type: ActionType.SET_SELECTED_STRATEGY,
+      buyOrSell: selling ? "sell" : "buy",
+      strategy: modal,
+    });
   };
 
   if (!hasRequiredState && !loading)

@@ -109,6 +109,7 @@ export const defaultGlobalState: GlobalState = {
   adjustingOption: undefined,
   closingOption: undefined,
   selectedOption: undefined,
+  selectedStrategy: undefined,
   optionChainModalOpen: undefined,
   visibleColumns: getLocalStorageSet<ColumnNamesSet>(
     LocalStorageKeys.OPTION_CHAIN_FILTERS,
