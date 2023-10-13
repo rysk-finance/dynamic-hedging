@@ -142,6 +142,7 @@ export interface ActivePositions {
   expiryTimestamp: string;
   firstCreated?: string;
   id: HexString;
+  isCreditSpread: boolean;
   isOpen: boolean;
   isPut: boolean;
   isShort: boolean;

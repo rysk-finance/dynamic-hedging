@@ -16,6 +16,30 @@ import { Convert } from "src/utils/Convert";
 import { getLiquidationPrices } from "../../../shared/utils/getLiquidationPrice";
 import { PositionAction } from "../enums";
 
+const calculateBreakEven = (
+  entry: number,
+  entryCollateral: number,
+  isCreditSpread: boolean,
+  isPut: boolean,
+  isSpread: boolean,
+  strikeInt: number,
+  strikeIntCollateral: number
+) => {
+  if (isSpread && isCreditSpread) {
+    return isPut
+      ? strikeInt - (entry + entryCollateral)
+      : strikeInt + (entry - entryCollateral);
+  }
+
+  if (isSpread) {
+    return isPut
+      ? strikeIntCollateral + (entry - entryCollateral)
+      : strikeIntCollateral - (entry + entryCollateral);
+  }
+
+  return isPut ? strikeInt - entry : strikeInt + entry;
+};
+
 const formatCollateralAmount = (
   fallback: number,
   collateralAsset?: UserPositionToken["collateralAsset"],
@@ -196,6 +220,7 @@ export const buildActivePositions = async (
       const isOpen = Convert.fromStr(expiryTimestamp).toInt() > nowToUnix;
       const isShort = Boolean(collateralAsset && "symbol" in collateralAsset);
       const isSpread = Boolean(vault?.longCollateral);
+      const isCreditSpread = isSpread && Boolean(vault?.collateralAmount);
       const amount = Convert.fromWei(netAmount).toInt();
       const net = Math.abs(amount);
       const entry = isShort
@@ -300,10 +325,12 @@ export const buildActivePositions = async (
         valueAtExpiry,
         valueAtExpiryCollateral
       );
+      const totalPaid = net * ((entry + entryCollateral) / 2);
       const returnOnInvestment =
         Math.max(
           isShort
-            ? profitLoss / formatCollateralAmount(0, collateralAsset, vault)
+            ? profitLoss /
+                formatCollateralAmount(totalPaid, collateralAsset, vault)
             : profitLoss / (amount * entry),
           -1
         ) * 100;
@@ -322,9 +349,15 @@ export const buildActivePositions = async (
       return {
         action,
         amount,
-        breakEven: isPut
-          ? strikeInt - (isSpread ? entry + entryCollateral : entry)
-          : strikeInt + (isSpread ? entry - entryCollateral : entry),
+        breakEven: calculateBreakEven(
+          entry,
+          entryCollateral,
+          isCreditSpread,
+          isPut,
+          isSpread,
+          strikeInt,
+          strikeIntCollateral
+        ),
         collateral: {
           amount: formatCollateralAmount(0, collateralAsset, vault),
           asset: collateralAsset?.symbol,
@@ -339,6 +372,7 @@ export const buildActivePositions = async (
         expiryTimestamp,
         firstCreated,
         id,
+        isCreditSpread,
         isOpen,
         isPut,
         isShort,
