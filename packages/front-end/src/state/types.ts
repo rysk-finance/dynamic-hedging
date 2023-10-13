@@ -159,7 +159,7 @@ export interface ActivePositions {
 export interface InactivePositions
   extends Pick<
     ActivePositions,
-    "entry" | "id" | "isPut" | "isShort" | "series"
+    "entry" | "id" | "isCreditSpread" | "isPut" | "isShort" | "series"
   > {
   close: number;
   oraclePrice: number;

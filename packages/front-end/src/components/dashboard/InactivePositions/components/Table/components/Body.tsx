@@ -12,31 +12,44 @@ import { OptionChainModalActions } from "src/state/types";
 const getIcon = (
   collateralSeries: string,
   isPut: boolean,
-  isShort: boolean
+  isShort: boolean,
+  isCreditSpread: boolean
 ) => {
   const commonClasses = "min-w-6 h-6 mx-auto";
 
   switch (true) {
-    case collateralSeries && isPut:
+    case collateralSeries && isPut && isCreditSpread:
       return (
-        <RyskTooltip
-          content={OptionChainModalActions.PUT_CREDIT_SPREAD}
-          disabled={!collateralSeries}
-        >
+        <RyskTooltip content={OptionChainModalActions.PUT_CREDIT_SPREAD}>
           <div className="row-span-2">
             <BullishSpread aria-hidden={true} className={commonClasses} />
           </div>
         </RyskTooltip>
       );
 
-    case collateralSeries && !isPut:
+    case collateralSeries && !isPut && isCreditSpread:
       return (
-        <RyskTooltip
-          content={OptionChainModalActions.CALL_CREDIT_SPREAD}
-          disabled={!collateralSeries}
-        >
+        <RyskTooltip content={OptionChainModalActions.CALL_CREDIT_SPREAD}>
           <div className="row-span-2">
             <BearishSpread aria-hidden={true} className={commonClasses} />
+          </div>
+        </RyskTooltip>
+      );
+
+    case collateralSeries && isPut && !isCreditSpread:
+      return (
+        <RyskTooltip content={OptionChainModalActions.PUT_DEBIT_SPREAD}>
+          <div className="row-span-2">
+            <BearishSpread aria-hidden={true} className={commonClasses} />
+          </div>
+        </RyskTooltip>
+      );
+
+    case collateralSeries && !isPut && !isCreditSpread:
+      return (
+        <RyskTooltip content={OptionChainModalActions.CALL_DEBIT_SPREAD}>
+          <div className="row-span-2">
+            <BullishSpread aria-hidden={true} className={commonClasses} />
           </div>
         </RyskTooltip>
       );
@@ -89,6 +102,7 @@ export const Body = () => {
                 close,
                 entry,
                 id,
+                isCreditSpread,
                 isPut,
                 isShort,
                 oraclePrice,
@@ -116,7 +130,7 @@ export const Body = () => {
                   {...FadeInUpDelayed(Math.min(index * 0.1, 2))}
                 >
                   <td className="w-full !grid grid-cols-3 items-center">
-                    {getIcon(collateralSeries, isPut, isShort)}
+                    {getIcon(collateralSeries, isPut, isShort, isCreditSpread)}
 
                     <span
                       className={`inline-flex items-center mx-auto col-span-2 text-xs 2xl:text-sm ${height} ${

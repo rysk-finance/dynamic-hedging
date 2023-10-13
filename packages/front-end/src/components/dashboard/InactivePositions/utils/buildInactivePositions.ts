@@ -64,10 +64,13 @@ export const buildInactivePositions = (
           longCollateral ? longCollateral?.realizedPnl : "0"
         ).toInt();
 
+        const isCreditSpread = vault?.collateralAmount !== null;
+
         return {
           close: closeCollateral ? (close + closeCollateral) / 2 : close,
           entry: entryCollateral ? (entry + entryCollateral) / 2 : entry,
           id: `${id}-${isShort ? totalPremiumSold : totalPremiumBought}`,
+          isCreditSpread,
           isPut,
           isShort,
           oraclePrice,
