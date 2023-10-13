@@ -1,7 +1,10 @@
 import type { ActivePositions } from "src/state/types";
 
 export interface SeriesProps
-  extends Pick<ActivePositions, "isPut" | "isShort" | "series"> {
+  extends Pick<
+    ActivePositions,
+    "isCreditSpread" | "isPut" | "isShort" | "series"
+  > {
   strategyTimestampIndex: number;
 }
 
