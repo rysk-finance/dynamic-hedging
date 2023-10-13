@@ -2,7 +2,12 @@ import dayjs from "dayjs";
 
 import { Discord, Github, Twitter } from "src/Icons";
 import { AppPaths } from "src/config/appPaths";
-import { DISCORD_LINK, GITHUB_LINK, TWITTER_LINK } from "src/config/links";
+import {
+  BLOG_LINK,
+  DISCORD_LINK,
+  GITHUB_LINK,
+  TWITTER_LINK,
+} from "src/config/links";
 import {
   getContractAddress,
   shorthandContractAddress,
@@ -72,7 +77,7 @@ export const footerData = [
     links: [
       {
         label: "Rysk blog",
-        href: "https://blog.rysk.finance",
+        href: BLOG_LINK,
       },
       {
         label: "Press kit",
