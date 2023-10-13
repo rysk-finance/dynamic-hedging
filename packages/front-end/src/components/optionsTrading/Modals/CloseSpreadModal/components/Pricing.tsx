@@ -131,7 +131,7 @@ export const Pricing = ({ positionData, size }: PricingProps) => {
           </RyskTooltip>
         </span>
 
-        <span className="flex">
+        <span className="flex pb-2 border-gray-600 border-b">
           <p className="mr-auto">{`Premium received:`}</p>
           <RyskTooltip
             content="The total amount of USDC you will receive from selling this position."
@@ -145,36 +145,40 @@ export const Pricing = ({ positionData, size }: PricingProps) => {
           </RyskTooltip>
         </span>
 
-        <span className="flex">
-          <p className="mr-auto">{`Collateral released:`}</p>
-          <RyskTooltip
-            content="The total amount of collateral you will receive back."
-            disabled={!tutorialMode}
-            placement="left"
-          >
-            <p className="font-medium">
-              <RyskCountUp
-                format={collateralType === "USDC" ? "USD" : "ETH"}
-                value={collateralReleased}
-              />
-              {collateralType === "USDC" ? ` USDC` : ` WETH`}
-            </p>
-          </RyskTooltip>
-        </span>
+        {Boolean(collateralReleased || remainingCollateral) && (
+          <>
+            <span className="flex pt-2">
+              <p className="mr-auto">{`Collateral released:`}</p>
+              <RyskTooltip
+                content="The total amount of collateral you will receive back."
+                disabled={!tutorialMode}
+                placement="left"
+              >
+                <p className="font-medium">
+                  <RyskCountUp
+                    format={collateralType === "USDC" ? "USD" : "ETH"}
+                    value={collateralReleased}
+                  />
+                  {collateralType === "USDC" ? ` USDC` : ` WETH`}
+                </p>
+              </RyskTooltip>
+            </span>
 
-        <span className="flex pb-2 border-gray-600 border-b">
-          <p className="mr-auto">{`Collateral remaining:`}</p>
-          <RyskTooltip
-            content="The total amount of collateral that will remain in the vault for this position."
-            disabled={!tutorialMode}
-            placement="left"
-          >
-            <p className="font-medium">
-              <RyskCountUp value={remainingCollateral} />
-              {" USDC"}
-            </p>
-          </RyskTooltip>
-        </span>
+            <span className="flex pb-2 border-gray-600 border-b">
+              <p className="mr-auto">{`Collateral remaining:`}</p>
+              <RyskTooltip
+                content="The total amount of collateral that will remain in the vault for this position."
+                disabled={!tutorialMode}
+                placement="left"
+              >
+                <p className="font-medium">
+                  <RyskCountUp value={remainingCollateral} />
+                  {" USDC"}
+                </p>
+              </RyskTooltip>
+            </span>
+          </>
+        )}
 
         <div>
           <span className="flex pt-2">
