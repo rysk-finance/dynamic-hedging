@@ -37,11 +37,23 @@ export const closeSpread = async (
   vaultId: BigNumber
 ) => {
   const [shortAcceptablePremium, longAcceptablePremium] = acceptablePremium;
+  const isCredit = !collateral.isZero();
 
   const shortSeries: OptionSeries = {
     ...optionSeries,
     strike: Convert.fromStr(short).toWei(),
   };
+
+  const requiredShortData = [
+    burnShortOption(amount, shortOTokenAddress, userAddress, vaultId),
+    withdrawLongOption(
+      amount,
+      exchangeAddress,
+      longOTokenAddress,
+      userAddress,
+      vaultId
+    ),
+  ];
 
   const txData = [
     {
@@ -53,17 +65,17 @@ export const closeSpread = async (
     },
     {
       operation: OperationType.OpynAction,
-      operationQueue: [
-        burnShortOption(amount, shortOTokenAddress, userAddress, vaultId),
-        withdrawLongOption(
-          amount,
-          exchangeAddress,
-          longOTokenAddress,
-          userAddress,
-          vaultId
-        ),
-        withdrawCollateral(collateral, collateralAddress, userAddress, vaultId),
-      ],
+      operationQueue: isCredit
+        ? [
+            ...requiredShortData,
+            withdrawCollateral(
+              collateral,
+              collateralAddress,
+              userAddress,
+              vaultId
+            ),
+          ]
+        : requiredShortData,
     },
     {
       operation: OperationType.RyskAction,
