@@ -37,6 +37,7 @@ export const Pricing = ({
     fee,
     hasRequiredCapital,
     isCredit,
+    isPut,
     now,
     quotes,
     remainingBalance,
@@ -73,7 +74,8 @@ export const Pricing = ({
     return getAvailableStrikes(
       Object.entries(data[activeExpiry!]),
       strikes,
-      strategy
+      strategy,
+      isPut
     );
   }, [data, strikes]);
 
