@@ -1,8 +1,7 @@
 import type { BigNumber } from "ethers";
 import type { Dispatch, SetStateAction } from "react";
 
-import { OptionChainModalActions } from "src/state/types";
-
+import { CallOrPut, OptionChainModalActions } from "src/state/types";
 
 // [SHORT, LONG]
 export type StrategyStrikesTuple = [string, string];
@@ -15,12 +14,14 @@ export interface PositionDataState {
   exposure: number;
   fee: number;
   hasRequiredCapital: boolean;
+  isCredit: boolean;
   isPut: boolean;
   now: string;
   premium: number;
   quotes: [number, number];
   remainingBalance: number;
   requiredApproval: string;
+  side: CallOrPut;
   slippage: number;
   strikes: [number, number];
 }
@@ -28,7 +29,9 @@ export interface PositionDataState {
 export interface ModalProps {
   strategy:
     | OptionChainModalActions.CALL_CREDIT_SPREAD
-    | OptionChainModalActions.PUT_CREDIT_SPREAD;
+    | OptionChainModalActions.CALL_DEBIT_SPREAD
+    | OptionChainModalActions.PUT_CREDIT_SPREAD
+    | OptionChainModalActions.PUT_DEBIT_SPREAD;
 }
 
 export interface InfoProps extends ModalProps {

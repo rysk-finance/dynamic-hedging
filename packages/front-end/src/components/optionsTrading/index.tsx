@@ -31,6 +31,7 @@ export const OptionsTradingContent = () => {
       ADJUST_COLLATERAL,
       BUY,
       CALL_CREDIT_SPREAD,
+      CALL_DEBIT_SPREAD,
       CLOSE_LONG,
       CLOSE_SHORT,
       CLOSE_SPREAD,
@@ -38,6 +39,7 @@ export const OptionsTradingContent = () => {
       LONG_STRANGLE,
       OPERATOR,
       PUT_CREDIT_SPREAD,
+      PUT_DEBIT_SPREAD,
       SELL,
     } = OptionChainModalActions;
 
@@ -50,6 +52,9 @@ export const OptionsTradingContent = () => {
 
       case CALL_CREDIT_SPREAD:
         return <SpreadModal key={modalType} strategy={CALL_CREDIT_SPREAD} />;
+
+      case CALL_DEBIT_SPREAD:
+        return <SpreadModal key={modalType} strategy={CALL_DEBIT_SPREAD} />;
 
       case CLOSE_LONG:
         return <CloseOptionModal key={modalType} />;
@@ -75,6 +80,9 @@ export const OptionsTradingContent = () => {
 
       case PUT_CREDIT_SPREAD:
         return <SpreadModal key={modalType} strategy={PUT_CREDIT_SPREAD} />;
+
+      case PUT_DEBIT_SPREAD:
+        return <SpreadModal key={modalType} strategy={PUT_DEBIT_SPREAD} />;
 
       case SELL:
         return <SellOptionModal key={modalType} />;

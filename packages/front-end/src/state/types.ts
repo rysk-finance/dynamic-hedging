@@ -459,6 +459,7 @@ export enum OptionChainModalActions {
   ADJUST_COLLATERAL = "Adjust Collateral",
   BUY = "Buy",
   CALL_CREDIT_SPREAD = "Call Credit Spread",
+  CALL_DEBIT_SPREAD = "Call Debit Spread",
   CLOSE_LONG = "Close Long",
   CLOSE_SHORT = "Close Short",
   CLOSE_SPREAD = "Close Spread",
@@ -466,6 +467,7 @@ export enum OptionChainModalActions {
   LONG_STRANGLE = "Long Strangle",
   OPERATOR = "Operator",
   PUT_CREDIT_SPREAD = "Put Credit Spread",
+  PUT_DEBIT_SPREAD = "Put Debit Spread",
   SELL = "Sell",
 }
 

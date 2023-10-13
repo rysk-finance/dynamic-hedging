@@ -135,6 +135,7 @@ export const SpreadModal = ({ strategy }: ModalProps) => {
           addresses.collateral,
           addresses.exchange,
           positionData.exposure,
+          positionData.isCredit,
           longOTokenAddress,
           optionSeries,
           refresh,
@@ -206,7 +207,7 @@ export const SpreadModal = ({ strategy }: ModalProps) => {
       </Wrapper>
 
       <Disclaimer>
-        {`You are about to make a trade using your USDC balance to collateralise the options and receive a USDC premium for the trade. This strategy will open one CALL and sell one CALL for each position. Please ensure this is what you want because the action is irreversible.`}
+        {`You are about to make a trade using your USDC balance to collateralise the options and receive a USDC premium for the trade. This strategy will open one ${positionData.side.toUpperCase()} and sell one ${positionData.side.toUpperCase()} for each position. Please ensure this is what you want because the action is irreversible.`}
       </Disclaimer>
     </Modal>
   );

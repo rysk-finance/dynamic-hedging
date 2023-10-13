@@ -1,21 +1,22 @@
+import type { ModalProps } from "../types";
+
 import { OptionChainModalActions, StrikeOptions } from "src/state/types";
 
 export const getAvailableStrikes = (
   strikes: [string, StrikeOptions][],
   selectedStrikes: [number, number],
-  strategy:
-    | OptionChainModalActions.CALL_CREDIT_SPREAD
-    | OptionChainModalActions.PUT_CREDIT_SPREAD
+  strategy: ModalProps["strategy"]
 ) => {
   const [selectedShort, selectedLong] = selectedStrikes;
-  const isCallCreditSpread =
-    strategy === OptionChainModalActions.CALL_CREDIT_SPREAD;
+  const isBearishSpread =
+    strategy === OptionChainModalActions.CALL_CREDIT_SPREAD ||
+    strategy === OptionChainModalActions.PUT_DEBIT_SPREAD;
 
   return strikes.reduce(
     ([short, long]: [string[], string[]], [strike, strikeOptions]) => {
       const strikeInt = parseInt(strike);
 
-      if (isCallCreditSpread) {
+      if (isBearishSpread) {
         const { call } = strikeOptions;
         const callSelectable = !call?.buy.disabled && call?.buy.quote.quote;
 

@@ -36,13 +36,14 @@ export const Pricing = ({
     collateral,
     fee,
     hasRequiredCapital,
+    isCredit,
     now,
     quotes,
     remainingBalance,
     strikes,
   } = positionData;
 
-  const strikesSelected = strikes && strikes[0] && strikes[1];
+  const strikesSelected = strikes[0] && strikes[1];
   const [shortQuote, longQuote] = quotes;
 
   const errorMessage = useMemo(() => {
@@ -145,25 +146,29 @@ export const Pricing = ({
         <AnimatePresence>
           {strikesSelected && (
             <motion.div layout="position" {...FadeInUpDelayed(0.05)}>
-              <span className="flex pt-2">
-                <p className="mr-auto">{`Collateral required:`}</p>
+              {isCredit && (
+                <>
+                  <span className="flex pt-2">
+                    <p className="mr-auto">{`Collateral required:`}</p>
 
-                <RyskTooltip
-                  content="The total amount of collateral required to cover the position."
-                  disabled={!tutorialMode}
-                  placement="left"
-                >
-                  <p className="font-medium">
-                    <RyskCountUp value={collateral} />
-                    {` USDC`}
-                  </p>
-                </RyskTooltip>
-              </span>
+                    <RyskTooltip
+                      content="The total amount of collateral required to cover the position."
+                      disabled={!tutorialMode}
+                      placement="left"
+                    >
+                      <p className="font-medium">
+                        <RyskCountUp value={collateral} />
+                        {` USDC`}
+                      </p>
+                    </RyskTooltip>
+                  </span>
 
-              <span className="flex pb-2 border-gray-600 border-b">
-                <p className="mr-auto">{`Liquidation Price:`}</p>
-                <p className="font-medium">{`Fully Collateralised`}</p>
-              </span>
+                  <span className="flex pb-2 border-gray-600 border-b">
+                    <p className="mr-auto">{`Liquidation Price:`}</p>
+                    <p className="font-medium">{`Fully Collateralised`}</p>
+                  </span>
+                </>
+              )}
 
               <span className="flex pt-2">
                 <p className="mr-auto">{`Net premium received:`}</p>

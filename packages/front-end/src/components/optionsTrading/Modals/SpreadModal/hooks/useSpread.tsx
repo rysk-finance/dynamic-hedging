@@ -34,8 +34,15 @@ export const useSpread = (
     },
   } = useGlobalContext();
 
-  // Determine strategy side.
-  const isPut = strategy === OptionChainModalActions.PUT_CREDIT_SPREAD;
+  // Determine strategy side and type.
+  const isCredit = [
+    OptionChainModalActions.PUT_CREDIT_SPREAD,
+    OptionChainModalActions.CALL_CREDIT_SPREAD,
+  ].includes(strategy);
+  const isPut = [
+    OptionChainModalActions.PUT_CREDIT_SPREAD,
+    OptionChainModalActions.PUT_DEBIT_SPREAD,
+  ].includes(strategy);
   const side: CallOrPut = isPut ? "put" : "call";
 
   // Addresses.
@@ -67,12 +74,14 @@ export const useSpread = (
     exposure: 0,
     fee: 0,
     hasRequiredCapital: false,
+    isCredit,
     isPut,
     now: dateTimeNow(),
     premium: 0,
     quotes: [0, 0],
     remainingBalance: 0,
     requiredApproval: "",
+    side,
     slippage: 0,
     strikes: strikes.map(Number) as [number, number],
   });
@@ -114,8 +123,10 @@ export const useSpread = (
 
           const shortInt = convertShort.toInt();
           const longInt = convertLong.toInt();
-          const collateral =
-            Math.max(longInt - shortInt, shortInt - longInt) * amount;
+          // Might not need to worry about this check.
+          const collateral = isCredit
+            ? Math.max(longInt - shortInt, shortInt - longInt) * amount
+            : 0;
 
           const netPremium = shortQuote.premium - longQuote.premium;
           const remainingBalance =
@@ -132,9 +143,13 @@ export const useSpread = (
             .toOpyn()
             .lte(allowanceOToken.amount);
 
-          const breakEven = isPut
-            ? shortInt - netPremium
-            : shortInt + netPremium;
+          const breakEven = isCredit
+            ? isPut
+              ? shortInt - netPremium
+              : shortInt + netPremium
+            : isPut
+            ? longInt + netPremium
+            : longInt - netPremium;
 
           const exposure =
             data[activeExpiry!][longInt][side]?.exposure.net || 0;
@@ -150,12 +165,14 @@ export const useSpread = (
             exposure,
             fee: shortQuote.fee + longQuote.fee,
             hasRequiredCapital: balanceUSDC > requiredCapital,
+            isCredit,
             isPut,
             now: dateTimeNow(),
             premium: shortQuote.premium - longQuote.premium,
             quotes: [shortQuote.quote, longQuote.quote],
             remainingBalance,
             requiredApproval: String(requiredCapital),
+            side,
             slippage: shortQuote.slippage - longQuote.slippage,
             strikes: [Number(short), Number(long)],
           });
@@ -176,12 +193,14 @@ export const useSpread = (
             exposure: 0,
             fee: 0,
             hasRequiredCapital: false,
+            isCredit,
             isPut,
             now: dateTimeNow(),
             premium: 0,
             quotes: [0, 0],
             remainingBalance: balances.USDC,
             requiredApproval: "",
+            side,
             slippage: 0,
             strikes: strikes.map(Number) as [number, number],
           });

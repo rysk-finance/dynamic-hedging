@@ -1,7 +1,7 @@
 import type { SeriesProps } from "./types";
 
 import { DownChevron, Link, UpChevron } from "src/Icons";
-import { CallCreditSpread, PutCreditSpread } from "src/Icons/Strategy";
+import { BearishSpread, BullishSpread } from "src/Icons/Strategy";
 import { RyskTooltip } from "src/components/shared/RyskToolTip";
 import { OptionChainModalActions } from "src/state/types";
 
@@ -20,7 +20,7 @@ const getIcon = (
           disabled={!collateralSeries}
         >
           <div className="row-span-2">
-            <PutCreditSpread aria-hidden={true} className={commonClasses} />
+            <BullishSpread aria-hidden={true} className={commonClasses} />
           </div>
         </RyskTooltip>
       );
@@ -32,7 +32,7 @@ const getIcon = (
           disabled={!collateralSeries}
         >
           <div className="row-span-2">
-            <CallCreditSpread aria-hidden={true} className={commonClasses} />
+            <BearishSpread aria-hidden={true} className={commonClasses} />
           </div>
         </RyskTooltip>
       );
