@@ -5,7 +5,6 @@ import { useMemo } from "react";
 
 import FadeInOut from "src/animation/FadeInOut";
 import { RyskTooltip } from "src/components/shared/RyskToolTip";
-import { useFeatureFlag } from "src/hooks/useFeatureFlag/useFeatureFlag";
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType, OptionChainModalActions } from "src/state/types";
 import { strategyList } from "./strategyList";
@@ -18,9 +17,6 @@ export const Strategies = () => {
       userTradingPreferences: { tutorialMode },
     },
   } = useGlobalContext();
-
-  // RYSK-393 spreads feature flag.
-  const [flagActive] = useFeatureFlag("393");
 
   const hasRequiredState = useMemo(
     () => Boolean(activeExpiry && data[activeExpiry]),
@@ -63,7 +59,7 @@ export const Strategies = () => {
             {hasRequiredState &&
               strategyList.map(
                 ({ active, description, Icon, label, modal, selling }) => {
-                  if (!active && !flagActive) return null;
+                  if (!active) return null;
 
                   return (
                     <motion.button
