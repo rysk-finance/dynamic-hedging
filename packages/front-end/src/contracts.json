@@ -2,7 +2,7 @@
   "arbitrum": {
     "OpynController": "0x594bD4eC29F7900AE29549c140Ac53b5240d4019",
     "OpynOracle": "0xBA1880CFFE38DD13771CB03De896460baf7dA1E7",
-    "OpynNewCalculator": "0x749a3624ad2a001F935E3319743f53Ecc7466358",
+    "OpynNewCalculator": "0x268544E8dC0B016aAbda5DFa633c7EC4362AeD45",
     "OpynOptionRegistry": "0x8Bc23878981a207860bA4B185fD065f4fd3c7725",
     "priceFeed": "0x7f86AC0c38bbc3211c610abE3841847fe19590A4",
     "liquidityPool": "0x217749d9017cB87712654422a1F5856AAA147b80",
