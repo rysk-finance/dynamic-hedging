@@ -6,6 +6,13 @@ import {
 } from "src/Icons/Strategy";
 import { OptionChainModalActions } from "src/state/types";
 
+export const Outlooks = {
+  ALL: "All",
+  BEARISH: "Bearish",
+  BULLISH: "Bullish",
+  NEUTRAL: "Neutral",
+} as const;
+
 export const strategyList = [
   {
     active: true,
@@ -13,6 +20,7 @@ export const strategyList = [
     Icon: BearishSpread,
     label: "Call Credit Spread",
     modal: OptionChainModalActions.CALL_CREDIT_SPREAD,
+    outlook: Outlooks.BEARISH,
     selling: true,
   },
   {
@@ -21,6 +29,7 @@ export const strategyList = [
     Icon: BullishSpread,
     label: "Put Credit Spread",
     modal: OptionChainModalActions.PUT_CREDIT_SPREAD,
+    outlook: Outlooks.BULLISH,
     selling: true,
   },
   {
@@ -29,6 +38,7 @@ export const strategyList = [
     Icon: BearishSpread,
     label: "Put Debit Spread",
     modal: OptionChainModalActions.PUT_DEBIT_SPREAD,
+    outlook: Outlooks.BEARISH,
     selling: true,
   },
   {
@@ -37,6 +47,7 @@ export const strategyList = [
     Icon: BullishSpread,
     label: "Call Debit Spread",
     modal: OptionChainModalActions.CALL_DEBIT_SPREAD,
+    outlook: Outlooks.BULLISH,
     selling: true,
   },
   {
@@ -45,6 +56,7 @@ export const strategyList = [
     Icon: LongStraddle,
     label: "Long Straddle",
     modal: OptionChainModalActions.LONG_STRADDLE,
+    outlook: Outlooks.NEUTRAL,
     selling: false,
   },
   {
@@ -53,6 +65,7 @@ export const strategyList = [
     Icon: LongStrangle,
     label: "Long Strangle",
     modal: OptionChainModalActions.LONG_STRANGLE,
+    outlook: Outlooks.NEUTRAL,
     selling: false,
   },
-];
+] as const;
