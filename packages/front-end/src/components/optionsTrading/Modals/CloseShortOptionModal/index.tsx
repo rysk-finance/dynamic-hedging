@@ -100,14 +100,19 @@ export const CloseShortOptionModal = () => {
     setTransactionPending(true);
 
     try {
-      if (addresses.token && addresses.user && vaultId) {
+      if (
+        addresses.token &&
+        addresses.user &&
+        addresses.collateral &&
+        vaultId
+      ) {
         const amount = Convert.fromStr(amountToSell).toWei();
 
         const hash = await closeShort(
           positionData.acceptablePremium,
           amount,
           addresses.exchange,
-          addresses.collateral!,
+          addresses.collateral,
           positionData.collateralToRemove,
           refresh,
           addresses.token,
@@ -155,7 +160,10 @@ export const CloseShortOptionModal = () => {
           <span className="flex">
             <Label className="flex items-center justify-center select-none cursor-pointer w-min border-black border-r-2 px-2">
               <Checkbox
-                checked={amountToSell === Convert.fromInt(positionData.totalSize).toStr()}
+                checked={
+                  amountToSell ===
+                  Convert.fromInt(positionData.totalSize).toStr()
+                }
                 name="close-max"
                 onChange={handleCloseMax}
               />

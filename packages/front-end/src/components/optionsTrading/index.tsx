@@ -3,7 +3,7 @@ import { useMemo } from "react";
 
 import { OptionChainModalActions } from "src/state/types";
 
-import { useMinuteUpdate } from "src/components/optionsTrading/hooks/useMinuteUpdate";
+import { useHourUpdate } from "src/components/optionsTrading/hooks/useHourUpdate";
 import { AssetPriceInfo } from "./AssetPriceInfo";
 import { Chain } from "./Chain";
 import { ExpiryDatePicker } from "./ExpiryDatePicker";
@@ -12,9 +12,11 @@ import { AdjustCollateralModal } from "./Modals/AdjustCollateralModal";
 import { BuyOptionModal } from "./Modals/BuyOptionModal";
 import { CloseOptionModal } from "./Modals/CloseOptionModal";
 import { CloseShortOptionModal } from "./Modals/CloseShortOptionModal";
+import { CloseSpreadModal } from "./Modals/CloseSpreadModal";
 import { LongStraddleStrangleModal } from "./Modals/LongStraddleStrangleModal";
 import { OperatorModal } from "./Modals/OperatorModal";
 import { SellOptionModal } from "./Modals/SellOptionModal";
+import { SpreadModal } from "./Modals/SpreadModal";
 import { Strategies } from "./Strategies";
 import { UserStats } from "./UserStats";
 import { useModal } from "./hooks/useModal";
@@ -22,17 +24,20 @@ import { useModal } from "./hooks/useModal";
 export const OptionsTradingContent = () => {
   const [modalType] = useModal();
 
-  useMinuteUpdate();
+  useHourUpdate();
 
   const visibleModal = useMemo(() => {
     const {
       ADJUST_COLLATERAL,
       BUY,
+      CALL_CREDIT_SPREAD,
       CLOSE_LONG,
       CLOSE_SHORT,
+      CLOSE_SPREAD,
       LONG_STRADDLE,
       LONG_STRANGLE,
       OPERATOR,
+      PUT_CREDIT_SPREAD,
       SELL,
     } = OptionChainModalActions;
 
@@ -43,11 +48,17 @@ export const OptionsTradingContent = () => {
       case BUY:
         return <BuyOptionModal key={modalType} />;
 
+      case CALL_CREDIT_SPREAD:
+        return <SpreadModal key={modalType} strategy={CALL_CREDIT_SPREAD} />;
+
       case CLOSE_LONG:
         return <CloseOptionModal key={modalType} />;
 
       case CLOSE_SHORT:
         return <CloseShortOptionModal key={modalType} />;
+
+      case CLOSE_SPREAD:
+        return <CloseSpreadModal key={modalType} />;
 
       case LONG_STRADDLE:
         return (
@@ -61,6 +72,9 @@ export const OptionsTradingContent = () => {
 
       case OPERATOR:
         return <OperatorModal key={modalType} />;
+
+      case PUT_CREDIT_SPREAD:
+        return <SpreadModal key={modalType} strategy={PUT_CREDIT_SPREAD} />;
 
       case SELL:
         return <SellOptionModal key={modalType} />;

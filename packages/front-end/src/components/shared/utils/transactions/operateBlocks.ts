@@ -12,6 +12,8 @@ import { OptionSeries } from "src/types";
 import { Convert } from "src/utils/Convert";
 import { getContractAddress } from "src/utils/helpers";
 
+const BIG_ZERO = BigNumber.from(0);
+
 // The return value must be spread into the queue.
 // This is due to the queue not filtering out empty objects.
 export const issue = (
@@ -23,14 +25,14 @@ export const issue = (
     return [
       {
         actionType: BigNumber.from(RyskActionType.Issue),
-        amount: BigNumber.from(0),
+        amount: BIG_ZERO,
         asset: ZERO_ADDRESS,
         data: ZERO_ADDRESS,
-        indexOrAcceptablePremium: BigNumber.from(0),
+        indexOrAcceptablePremium: BIG_ZERO,
         optionSeries,
         owner: ZERO_ADDRESS,
         secondAddress: ZERO_ADDRESS,
-        vaultId: BigNumber.from(0),
+        vaultId: BIG_ZERO,
       },
     ];
   }
@@ -53,7 +55,7 @@ export const buyOption = (
     optionSeries,
     owner: ZERO_ADDRESS,
     secondAddress: userAddress,
-    vaultId: BigNumber.from(0),
+    vaultId: BIG_ZERO,
   };
 };
 
@@ -64,9 +66,9 @@ export const openVault = (userAddress: HexString, vaultId: BigNumber) => {
     secondAddress: userAddress,
     asset: ZERO_ADDRESS,
     vaultId,
-    amount: BigNumber.from(0),
+    amount: BIG_ZERO,
     optionSeries: EMPTY_SERIES,
-    indexOrAcceptablePremium: BigNumber.from(0),
+    indexOrAcceptablePremium: BIG_ZERO,
     data: utils.hexZeroPad(
       utils.hexlify([OpenVaultCollateralType.Partially]),
       32
@@ -89,7 +91,7 @@ export const depositCollateral = (
     vaultId,
     amount: collateral,
     optionSeries: EMPTY_SERIES,
-    indexOrAcceptablePremium: BigNumber.from(0),
+    indexOrAcceptablePremium: BIG_ZERO,
     data: ZERO_ADDRESS,
   };
 };
@@ -109,7 +111,7 @@ export const mintShortOption = (
     vaultId,
     amount: Convert.fromWei(amount).toOpyn(),
     optionSeries: EMPTY_SERIES,
-    indexOrAcceptablePremium: BigNumber.from(0),
+    indexOrAcceptablePremium: BIG_ZERO,
     data: ZERO_ADDRESS,
   };
 };
@@ -126,7 +128,7 @@ export const sellOption = (
     owner: ZERO_ADDRESS,
     secondAddress: userAddress,
     asset: tokenAddress,
-    vaultId: BigNumber.from(0),
+    vaultId: BIG_ZERO,
     amount,
     optionSeries,
     indexOrAcceptablePremium: acceptablePremium,
@@ -145,10 +147,87 @@ export const closeOption = (
     owner: ZERO_ADDRESS,
     secondAddress: userAddress,
     asset: tokenAddress,
-    vaultId: BigNumber.from(0),
+    vaultId: BIG_ZERO,
     amount,
     optionSeries: EMPTY_SERIES,
     indexOrAcceptablePremium: acceptablePremium,
     data: ZERO_ADDRESS,
+  };
+};
+
+export const depositLongOption = (
+  amount: BigNumber,
+  oTokenAddress: HexString,
+  userAddress: HexString,
+  vaultId: BigNumber
+) => {
+  return {
+    actionType: BigNumber.from(OpynActionType.DepositLongOption),
+    owner: userAddress,
+    secondAddress: userAddress,
+    asset: oTokenAddress,
+    vaultId,
+    amount: Convert.fromWei(amount).toOpyn(),
+    optionSeries: EMPTY_SERIES,
+    indexOrAcceptablePremium: BIG_ZERO,
+    data: ZERO_ADDRESS,
+  };
+};
+
+export const burnShortOption = (
+  amount: BigNumber,
+  oTokenAddress: HexString,
+  userAddress: HexString,
+  vaultId: BigNumber
+) => {
+  return {
+    actionType: BigNumber.from(OpynActionType.BurnShortOption),
+    owner: userAddress,
+    secondAddress: userAddress,
+    asset: oTokenAddress,
+    vaultId: BigNumber.from(vaultId),
+    amount: Convert.fromWei(amount).toOpyn(),
+    optionSeries: EMPTY_SERIES,
+    indexOrAcceptablePremium: BIG_ZERO,
+    data: ZERO_ADDRESS,
+  };
+};
+
+export const withdrawLongOption = (
+  amount: BigNumber,
+  exchangeAddress: HexString,
+  oTokenAddress: HexString,
+  userAddress: HexString,
+  vaultId: BigNumber
+) => {
+  return {
+    actionType: BigNumber.from(OpynActionType.WithdrawLongOption),
+    owner: userAddress,
+    secondAddress: exchangeAddress,
+    asset: oTokenAddress,
+    vaultId,
+    amount: Convert.fromWei(amount).toOpyn(),
+    optionSeries: EMPTY_SERIES,
+    indexOrAcceptablePremium: BIG_ZERO,
+    data: ZERO_ADDRESS,
+  };
+};
+
+export const withdrawCollateral = (
+  collateral: BigNumber,
+  collateralAddress: HexString,
+  userAddress: HexString,
+  vaultId: BigNumber
+) => {
+  return {
+    actionType: BigNumber.from(OpynActionType.WithdrawCollateral),
+    owner: userAddress,
+    secondAddress: userAddress,
+    asset: collateralAddress,
+    vaultId: BigNumber.from(vaultId),
+    amount: collateral,
+    optionSeries: EMPTY_SERIES,
+    indexOrAcceptablePremium: BigNumber.from(0),
+    data: "0x" as HexString,
   };
 };

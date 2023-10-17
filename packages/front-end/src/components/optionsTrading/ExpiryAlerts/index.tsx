@@ -2,11 +2,12 @@ import type { ExpiryAlertsProps } from "./types";
 
 import dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
-import { useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useMemo } from "react";
 
-import { useGlobalContext } from "src/state/GlobalContext";
 import FadeInOut from "src/animation/FadeInOut";
+import { useGlobalContext } from "src/state/GlobalContext";
+import { useMinuteRender } from "../hooks/useMinuteRender";
 
 dayjs.extend(duration);
 
@@ -16,6 +17,8 @@ export const ActiveExpiryAlerts = ({ expiry }: ExpiryAlertsProps) => {
       options: { loading },
     },
   } = useGlobalContext();
+
+  useMinuteRender();
 
   const datetime = dayjs.unix(Number(expiry));
   const duration = dayjs.duration(datetime.diff(dayjs()));

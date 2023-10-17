@@ -17,7 +17,8 @@ const exchangeAddress = getContractAddress("optionExchange");
  */
 export const useAllowance = (
   tokenAddress?: HexString,
-  userAddress?: HexString
+  userAddress?: HexString,
+  spenderAddress: HexString = exchangeAddress
 ) => {
   const [allowance, setAllowance] = useState<AllowanceState>({
     approved: false,
@@ -31,7 +32,7 @@ export const useAllowance = (
           address: tokenAddress,
           abi: erc20ABI,
           functionName: "allowance",
-          args: [userAddress, exchangeAddress],
+          args: [userAddress, spenderAddress],
         });
 
         setAllowance((currentState) => ({ ...currentState, amount }));

@@ -1,4 +1,4 @@
-import type { CloseLongOperation } from "src/components/optionsTrading/Modals/CloseOptionModal/types";
+import type { CloseLongOperation } from "src/components/optionsTrading/Modals/Shared/types";
 
 import { prepareWriteContract, writeContract } from "@wagmi/core";
 import { BigNumber } from "ethers";

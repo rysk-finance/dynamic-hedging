@@ -90,7 +90,6 @@ export const useInitialData = () => {
           userPositions,
           chainData,
           isOperator,
-          userVaults,
           liquidationParameters,
           liquidityPoolInfo,
           oracleHashMap,
@@ -113,7 +112,6 @@ export const useInitialData = () => {
             spotShock: liquidationParameters.spotShock,
             timesToExpiry: liquidationParameters.timesToExpiry,
             userPositions,
-            vaults: userVaults,
             wethOracleHashMap: oracleHashMap,
           });
 

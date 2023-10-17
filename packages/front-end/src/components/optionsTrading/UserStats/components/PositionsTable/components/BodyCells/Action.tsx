@@ -21,9 +21,11 @@ export const Action = ({
   id,
   isPut,
   isShort,
+  isSpread,
+  longCollateralAddress,
   series,
   shortUSDCExposure,
-  strike,
+  strikes,
 }: ActionProps) => {
   const { address } = useAccount();
   const { chain } = useNetwork();
@@ -121,9 +123,11 @@ export const Action = ({
             amount,
             isPut,
             isShort,
-            series,
+            isSpread,
+            longCollateralAddress,
+            series: series[0],
             shortUSDCExposure,
-            strike,
+            strikes,
             vault: collateral.vault,
           },
           chain?.unsupported

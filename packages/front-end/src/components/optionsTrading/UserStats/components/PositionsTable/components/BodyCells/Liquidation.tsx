@@ -11,8 +11,9 @@ export const Liquidation = ({
   expiryTimestamp,
   id,
   isPut,
+  isSpread,
   series,
-  strike,
+  strikes,
 }: LiquidationProps) => {
   const {
     dispatch,
@@ -33,21 +34,26 @@ export const Liquidation = ({
     });
   };
 
-  // Highlight positions where the liquidation price is within 3% of the underlying.
-  const liquidationThreshold = 1.03;
-  const inDanger = ethPrice
-    ? isPut
-      ? ethPrice < liquidationPrice * liquidationThreshold
-      : ethPrice > liquidationPrice / liquidationThreshold
-    : false;
-  const textColor =
-    inDanger && liquidationPrice ? "text-red-900" : "text-black";
+  if (asset && vault) {
+    const isPartOfSpread = Boolean(vault.longCollateral);
 
-  if (asset && collateralAmount && vault) {
+    // Highlight positions where the liquidation price is within 3% of the underlying.
+    const liquidationThreshold = 1.03;
+    const inDanger = ethPrice
+      ? isPut
+        ? ethPrice < liquidationPrice * liquidationThreshold
+        : ethPrice > liquidationPrice / liquidationThreshold
+      : false;
+    const textColor =
+      inDanger && liquidationPrice && !isPartOfSpread
+        ? "text-red-900"
+        : "text-black";
+
     return (
       <td className="col-span-2 font-dm-mono xl:!text-xs 2xl:!text-sm">
         <button
-          className={`w-full h-full decoration-dotted underline ease-in-out duration-200 ${textColor}`}
+          className={`w-full h-full decoration-dotted ease-in-out duration-200 ${textColor}`}
+          disabled={!liquidationPrice || isPartOfSpread}
           onClick={handleCollateralClick({
             address: id,
             amount: Math.abs(amount),
@@ -56,13 +62,13 @@ export const Liquidation = ({
             expiryTimestamp,
             isPut,
             liquidationPrice,
-            series,
-            strike: Number(strike),
+            series: series[0],
+            strike: Number(strikes[0]),
             vault,
           })}
         >
-          {liquidationPrice ? (
-            <>
+          {liquidationPrice && !isPartOfSpread ? (
+            <span className="underline">
               <RyskCountUp prefix="$" value={collateral.liquidationPrice} />
               {` (`}
               <RyskCountUp
@@ -70,9 +76,20 @@ export const Liquidation = ({
                 value={collateral.amount}
               />
               {`)`}
-            </>
+            </span>
           ) : (
-            "Fully Collateralised"
+            <span className="block">
+              <p className="leading-8">{`Fully Collateralised`}</p>
+              {Boolean(collateralAmount) && isSpread && (
+                <span>
+                  <p className="leading-8">
+                    {`(`}
+                    <RyskCountUp prefix="$" value={collateralAmount} />
+                    {`)`}
+                  </p>
+                </span>
+              )}
+            </span>
           )}
         </button>
       </td>

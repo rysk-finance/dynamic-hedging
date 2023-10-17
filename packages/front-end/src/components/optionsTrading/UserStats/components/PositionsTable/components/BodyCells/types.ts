@@ -1,8 +1,7 @@
 import type { ActivePositions } from "src/state/types";
 
-export interface SeriesProps {
-  isShort: boolean;
-  series: string;
+export interface SeriesProps
+  extends Pick<ActivePositions, "isPut" | "isShort" | "series"> {
   strategyTimestampIndex: number;
 }
 
@@ -35,8 +34,9 @@ export interface LiquidationProps
     | "expiryTimestamp"
     | "id"
     | "isPut"
+    | "isSpread"
     | "series"
-    | "strike"
+    | "strikes"
   > {}
 
 export interface BreakEvenProps {
@@ -54,7 +54,9 @@ export interface ActionProps
     | "id"
     | "isPut"
     | "isShort"
+    | "isSpread"
+    | "longCollateralAddress"
     | "series"
     | "shortUSDCExposure"
-    | "strike"
+    | "strikes"
   > {}

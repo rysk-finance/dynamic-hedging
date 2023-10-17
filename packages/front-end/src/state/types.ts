@@ -1,5 +1,5 @@
 import type { ApolloError } from "@apollo/client";
-import type { BigNumber, BigNumberish } from "ethers";
+import type { BigNumber } from "ethers";
 
 import type {
   LiquidateActions,
@@ -103,11 +103,6 @@ interface CollateralPreferences {
   type: CollateralType;
 }
 
-export interface UserVaults {
-  [oTokenAddress: HexString]: string;
-  length: number;
-}
-
 interface Balances {
   ETH: number;
   USDC: number;
@@ -149,23 +144,25 @@ export interface ActivePositions {
   isOpen: boolean;
   isPut: boolean;
   isShort: boolean;
+  isSpread: boolean;
+  longCollateralAddress?: HexString;
   mark: number;
   profitLoss: number;
   returnOnInvestment: number;
-  series: string;
+  series: [string, string];
   shortUSDCExposure?: number;
-  strike: string;
+  strikes: [string, string];
 }
 
-export interface InactivePositions {
+export interface InactivePositions
+  extends Pick<
+    ActivePositions,
+    "entry" | "id" | "isPut" | "isShort" | "series"
+  > {
   close: number;
-  entry: number;
-  id: string;
-  isShort: boolean;
   oraclePrice: number;
   profitLoss?: number;
   returnOnInvestment?: number;
-  series: string;
   size: number;
 }
 
@@ -235,7 +232,6 @@ export type GlobalState = {
     spotShock: SpotShock;
     timesToExpiry: TimesToExpiry;
     userPositions: UserPositions;
-    vaults: UserVaults;
     wethOracleHashMap: WethOracleHashMap;
   };
 
@@ -349,7 +345,6 @@ export type GlobalAction =
       spotShock?: SpotShock;
       timesToExpiry?: TimesToExpiry;
       userPositions?: UserPositions;
-      vaults?: UserVaults;
       wethOracleHashMap?: WethOracleHashMap;
     }
   | {
@@ -455,11 +450,14 @@ export type VaultContext = {
 export enum OptionChainModalActions {
   ADJUST_COLLATERAL = "Adjust Collateral",
   BUY = "Buy",
+  CALL_CREDIT_SPREAD = "Call Credit Spread",
   CLOSE_LONG = "Close Long",
   CLOSE_SHORT = "Close Short",
+  CLOSE_SPREAD = "Close Spread",
   LONG_STRADDLE = "Long Straddle",
   LONG_STRANGLE = "Long Strangle",
   OPERATOR = "Operator",
+  PUT_CREDIT_SPREAD = "Put Credit Spread",
   SELL = "Sell",
 }
 
@@ -492,9 +490,11 @@ export interface ClosingOption {
   amount: number;
   isPut: boolean;
   isShort: boolean;
+  isSpread: boolean;
+  longCollateralAddress?: HexString;
   series: string;
   shortUSDCExposure?: number;
-  strike: string;
+  strikes: [string, string];
   vault?: Vault;
 }
 

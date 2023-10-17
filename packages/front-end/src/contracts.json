@@ -10,6 +10,7 @@
     "optionHandler": "0xc63717c4436043781a63C8c64B02Ff774350e8F8",
     "optionExchange": "0xC117bf3103bd09552F9a721F0B8Bce9843aaE1fa",
     "beyondPricer": "0xeA5Fb118862876f249Ff0b3e7fb25fEb38158def",
+    "marginPool": "0xb9F33349db1d0711d95c1198AcbA9511B8269626",
 
     "DHVLens": "0x8f427c42D00fa69A88D55c09349A2d4914b34376",
     "UserPositionLens": "0x0aEa449aB01102dd867feefa2bB3BA20Ab6c6dbd",
@@ -21,7 +22,7 @@
   "arbitrum-goerli": {
     "OpynController": "0x11a602a5F5D823c103bb8b7184e22391Aae5F4C2",
     "OpynOracle": "0x35578F5A49E1f1Cf34ed780B46A0BdABA23D4C0b",
-    "OpynNewCalculator": "0xcD270e755C2653e806e16dD3f78E16C89B7a1c9e",
+    "OpynNewCalculator": "0x77e06E719f6f9aa2b744A9d9302677d10a4F08D4",
     "OpynOptionRegistry": "0x4E89cc3215AF050Ceb63Ca62470eeC7C1A66F737",
     "priceFeed": "0xf7B1e3a7856067BEcee81FdE0DD38d923b99554D",
     "liquidityPool": "0x0B1Bf5fb77AA36cD48Baa1395Bc2B5fa0f135d8C",
@@ -29,6 +30,7 @@
     "optionHandler": "0x1F63F3B37f818f05ebefaCa11086e5250958e0D8",
     "optionExchange": "0xb672fE86693bF6f3b034730f5d2C77C8844d6b45",
     "beyondPricer": "0xc939df369C0Fc240C975A6dEEEE77d87bCFaC259",
+    "marginPool": "0x0E0Ad3eA82EFAeAFb4476f5E8225b4746B88FD9f",
 
     "DHVLens": "0xAf821Fe803e714C8Ba39aC7C6724862405b74308",
     "UserPositionLens": "0xA839bDb22A19cBf845ad2138F026D9951dF76C3F",

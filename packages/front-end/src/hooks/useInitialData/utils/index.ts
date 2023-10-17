@@ -1,5 +1,6 @@
 import type { InitialDataQuery } from "../types";
 
+import { buildLongCollateralMap } from "./buildLongCollateralMap";
 import { buildOracleHashMap } from "./buildOracleHashMap";
 import { getChainData } from "./getChainData";
 import { getExpiries } from "./getExpiries";
@@ -7,28 +8,30 @@ import { getLiquidationCalculationParameters } from "./getLiquidationCalculation
 import { getLiquidityPoolInfo } from "./getLiquidityPoolInfo";
 import { getOperatorStatus } from "./getOperatorStatus";
 import { getUserPositions } from "./getUserPositions";
-import { getUserVaults } from "./getUserVaults";
 
 export const getInitialData = async (
   data: InitialDataQuery,
   address?: HexString
 ) => {
-  const { longPositions, shortPositions, oracleAsset } = data;
+  const { longCollateral, longPositions, shortPositions, oracleAsset } = data;
+
+  // Build map from longs used as collateral.
+  const longCollateralMap = buildLongCollateralMap(longCollateral);
 
   // Get expiries.
   const validExpiries = await getExpiries();
 
   // Get user positions.
-  const userPositions = getUserPositions([...longPositions, ...shortPositions]);
+  const userPositions = getUserPositions(
+    [...longPositions, ...shortPositions],
+    longCollateralMap
+  );
 
   // Get chain data.
   const chainData = await getChainData(validExpiries, userPositions);
 
   // Get operator status.
   const isOperator = await getOperatorStatus(address);
-
-  // Get all user short position vaults.
-  const userVaults = await getUserVaults(address);
 
   // Get required parameters for calculating liquidation price of shorts.
   const liquidationParameters = await getLiquidationCalculationParameters();
@@ -44,7 +47,6 @@ export const getInitialData = async (
     userPositions,
     chainData,
     isOperator,
-    userVaults,
     liquidationParameters,
     liquidityPoolInfo,
     oracleHashMap,

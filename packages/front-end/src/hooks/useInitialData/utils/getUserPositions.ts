@@ -1,9 +1,12 @@
 import type { UserPositions } from "src/state/types";
-import type { OptionsTransaction, Position } from "../types";
+import type { LongCollateralMap, OptionsTransaction, Position } from "../types";
 
 import { Convert } from "src/utils/Convert";
 
-export const getUserPositions = (positions: Position[]): UserPositions => {
+export const getUserPositions = (
+  positions: Position[],
+  longCollateralMap: LongCollateralMap
+): UserPositions => {
   return positions.reduce(
     (
       positions,
@@ -48,6 +51,17 @@ export const getUserPositions = (positions: Position[]): UserPositions => {
 
       const firstCreated = isShort ? sold[0].timestamp : bought[0].timestamp;
 
+      // Get total premiums for long oTokens used as collateral where relevant.
+      const longCollateral = vault
+        ? longCollateralMap[vault.vaultId]
+        : undefined;
+      const totalPremiumBoughtCollateral = longCollateral
+        ? _getPremium(longCollateral.optionsBoughtTransactions, true)
+        : 0;
+      const totalPremiumSoldCollateral = longCollateral
+        ? _getPremium(longCollateral.optionsSoldTransactions, false)
+        : 0;
+
       const token = {
         ...oToken,
         active,
@@ -61,7 +75,18 @@ export const getUserPositions = (positions: Position[]): UserPositions => {
         settleActions,
         totalPremiumBought,
         totalPremiumSold,
-        vault,
+        vault: vault
+          ? {
+              ...vault,
+              longCollateral: longCollateral
+                ? {
+                    ...longCollateral,
+                    totalPremiumBought: totalPremiumBoughtCollateral,
+                    totalPremiumSold: totalPremiumSoldCollateral,
+                  }
+                : undefined,
+            }
+          : undefined,
       };
 
       const hasCollateral = Boolean(token.collateralAsset);

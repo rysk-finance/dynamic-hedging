@@ -27,7 +27,7 @@ export const SellOptionModal = () => {
     state: {
       collateralPreferences,
       geoData: { blocked },
-      options: { activeExpiry, refresh, vaults },
+      options: { activeExpiry, refresh },
       selectedOption,
       userTradingPreferences: { approvals },
     },
@@ -108,8 +108,7 @@ export const SellOptionModal = () => {
           optionSeries,
           addresses.token,
           refresh,
-          addresses.user,
-          vaults
+          addresses.user
         );
 
         if (hash) {

@@ -1,10 +1,65 @@
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 
 import { DownChevron, UpChevron } from "src/Icons";
+import { CallCreditSpread, PutCreditSpread } from "src/Icons/Strategy";
 import FadeInUpDelayed from "src/animation/FadeInUpDelayed";
 import Resize from "src/animation/Resize";
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
+import { RyskTooltip } from "src/components/shared/RyskToolTip";
 import { useGlobalContext } from "src/state/GlobalContext";
+import { OptionChainModalActions } from "src/state/types";
+
+const getIcon = (
+  collateralSeries: string,
+  isPut: boolean,
+  isShort: boolean
+) => {
+  const commonClasses = "min-w-6 h-6 mx-auto";
+
+  switch (true) {
+    case collateralSeries && isPut:
+      return (
+        <RyskTooltip
+          content={OptionChainModalActions.PUT_CREDIT_SPREAD}
+          disabled={!collateralSeries}
+        >
+          <div className="row-span-2">
+            <PutCreditSpread aria-hidden={true} className={commonClasses} />
+          </div>
+        </RyskTooltip>
+      );
+
+    case collateralSeries && !isPut:
+      return (
+        <RyskTooltip
+          content={OptionChainModalActions.CALL_CREDIT_SPREAD}
+          disabled={!collateralSeries}
+        >
+          <div className="row-span-2">
+            <CallCreditSpread aria-hidden={true} className={commonClasses} />
+          </div>
+        </RyskTooltip>
+      );
+
+    case isShort:
+      return (
+        <DownChevron
+          aria-hidden={true}
+          className={`${commonClasses} stroke-red-900`}
+          strokeWidth={2}
+        />
+      );
+
+    default:
+      return (
+        <UpChevron
+          aria-hidden={true}
+          className={`${commonClasses} stroke-green-1100`}
+          strokeWidth={2}
+        />
+      );
+  }
+};
 
 export const Body = () => {
   const {
@@ -34,6 +89,7 @@ export const Body = () => {
                 close,
                 entry,
                 id,
+                isPut,
                 isShort,
                 oraclePrice,
                 profitLoss,
@@ -42,9 +98,9 @@ export const Body = () => {
               },
               index
             ) => {
-              const dynamicSeriesClasses = isShort
-                ? "text-red-900"
-                : "text-green-1100";
+              const [positionSeries, collateralSeries] = series;
+
+              const height = collateralSeries ? "h-8" : "h-11";
               const dynamicPnLClasses =
                 typeof profitLoss === "number"
                   ? profitLoss < 0
@@ -54,26 +110,29 @@ export const Body = () => {
 
               return (
                 <motion.tr
-                  className="h-11 grid grid-cols-6 items-center text-center capitalize [&_td]:border-l-2 first:[&_td]:border-0 [&_td]:border-gray-500 [&_td]:border-dashed [&_td]:py-2.5 [&_td]:text-2xs [&_td]:xl:text-sm [&_td]:h-full [&_td]:flex [&_td]:items-center [&_td]:justify-center"
+                  className="grid grid-cols-6 items-center text-center capitalize [&_td]:border-b [&_td]:border-l-2 first:[&_td]:border-l-0 [&_td]:border-gray-500 [&_td]:border-dashed [&_td]:text-2xs [&_td]:xl:text-sm [&_td]:h-full [&_td]:flex [&_td]:items-center [&_td]:justify-center [&_td]:p-0 group/strategy-icon"
                   key={id}
                   layout="position"
                   {...FadeInUpDelayed(Math.min(index * 0.1, 2))}
                 >
-                  <td className={`flex justify-center ${dynamicSeriesClasses}`}>
-                    {isShort ? (
-                      <DownChevron
-                        aria-hidden={true}
-                        className="min-w-6 h-6 mx-3 stroke-red-900"
-                        strokeWidth={2}
-                      />
-                    ) : (
-                      <UpChevron
-                        aria-hidden={true}
-                        className="min-w-6 h-6 mx-3 stroke-green 1100"
-                        strokeWidth={2}
-                      />
+                  <td className="w-full !grid grid-cols-3 items-center">
+                    {getIcon(collateralSeries, isPut, isShort)}
+
+                    <span
+                      className={`inline-flex items-center mx-auto col-span-2 text-xs 2xl:text-sm ${height} ${
+                        isShort ? "text-red-900" : "text-green-1100"
+                      }`}
+                    >
+                      {positionSeries}
+                    </span>
+
+                    {collateralSeries && (
+                      <span
+                        className={`inline-flex items-center mx-auto col-span-2 col-start-2 text-xs 2xl:text-sm text-green-1100 ${height}`}
+                      >
+                        {collateralSeries}
+                      </span>
                     )}
-                    <span className="w-2/3">{series}</span>
                   </td>
                   <td className="font-dm-mono">
                     {<RyskCountUp value={size} />}

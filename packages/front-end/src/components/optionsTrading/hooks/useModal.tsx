@@ -56,6 +56,11 @@ export const useModal = () => {
           type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
           visible: OptionChainModalActions.ADJUST_COLLATERAL,
         });
+      } else if (closingOption && closingOption.isSpread) {
+        dispatch({
+          type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
+          visible: OptionChainModalActions.CLOSE_SPREAD,
+        });
       } else if (closingOption && !closingOption.isShort) {
         dispatch({
           type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,

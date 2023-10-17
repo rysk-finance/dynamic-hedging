@@ -21,15 +21,29 @@ export const calculateDelta = (
   const nowToUnix = dayjs().unix();
 
   return positions.reduce(
-    (totalDelta, { expiryTimestamp, isPut, strikePrice, netAmount }) => {
+    (totalDelta, { expiryTimestamp, isPut, strikePrice, netAmount, vault }) => {
+      const expiryData = chainData[expiryTimestamp];
+      const vaultOtoken = vault?.longCollateral?.oToken;
+
       const isOpen = Convert.fromStr(expiryTimestamp).toInt() > nowToUnix;
       const side = isPut ? "put" : "call";
       const size = Convert.fromWei(netAmount).toInt();
       const strike = Convert.fromOpyn(strikePrice).toInt();
-      const chainDataDelta = chainData[expiryTimestamp]?.[strike][side]?.delta;
-      const delta = isOpen && chainDataDelta ? chainDataDelta : 0;
+      const dataDelta = expiryData?.[strike][side]?.delta;
+      const delta = isOpen && dataDelta ? dataDelta : 0;
 
-      return totalDelta + delta * size;
+      totalDelta += delta * size;
+
+      if (vaultOtoken) {
+        const vaultSide = vaultOtoken.isPut ? "put" : "call";
+        const vaultStrike = Convert.fromOpyn(vaultOtoken.strikePrice).toInt();
+        const vaultDataDelta = expiryData?.[vaultStrike][vaultSide]?.delta;
+        const vaultDelta = isOpen && vaultDataDelta ? vaultDataDelta : 0;
+
+        totalDelta += vaultDelta * Math.abs(size);
+      }
+
+      return totalDelta;
     },
     0
   );

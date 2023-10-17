@@ -1,5 +1,3 @@
-import type { BigNumberish } from "ethers";
-
 import type { CollateralType } from "src/state/types";
 
 export interface PositionOToken {
@@ -31,13 +29,6 @@ export interface SettleActions {
 export interface LiquidateActions {
   collateralPayout: string;
 }
-export interface Vault {
-  id: string;
-  vaultId: string;
-  collateralAmount: string;
-  shortAmount: string;
-  collateralAsset: { id: HexString };
-}
 
 export interface Position {
   active: boolean;
@@ -54,6 +45,32 @@ export interface Position {
   vault?: Vault;
 }
 
+export interface LongCollateral
+  extends Pick<
+    Position,
+    | "realizedPnl"
+    | "oToken"
+    | "optionsBoughtTransactions"
+    | "optionsSoldTransactions"
+  > {
+  totalPremiumBought: number;
+  totalPremiumSold: number;
+  vaultId: string;
+}
+
+export interface LongCollateralMap {
+  [vaultID: LongCollateral["vaultId"]]: LongCollateral;
+}
+
+export interface Vault {
+  id: string;
+  vaultId: string;
+  collateralAmount: string;
+  shortAmount: string;
+  collateralAsset: { id: HexString };
+  longCollateral?: LongCollateral;
+}
+
 export interface OraclePrices {
   prices: {
     expiry: string;
@@ -62,6 +79,7 @@ export interface OraclePrices {
 }
 
 export interface InitialDataQuery {
+  longCollateral: LongCollateral[];
   longPositions: Position[];
   shortPositions: Position[];
   oracleAsset: OraclePrices;

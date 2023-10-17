@@ -12,6 +12,7 @@ import { Link } from "./Link";
 import { Loading } from "./Loading";
 import { Minus } from "./Minus";
 import { Plus } from "./Plus";
+import { Refresh } from "./Refresh";
 import { RightArrow } from "./RightArrow";
 import { RyskFavicon } from "./RyskFavicon";
 import { Triangle } from "./Triangle";
@@ -35,6 +36,7 @@ export {
   Loading,
   Minus,
   Plus,
+  Refresh,
   RightArrow,
   RyskFavicon,
   Triangle,

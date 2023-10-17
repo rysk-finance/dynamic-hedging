@@ -6,23 +6,21 @@ query ${QueriesEnum.INITIAL_DATA} (
 ) {
   longPositions(
     first: 1000,
-    where: { account: $address, optionsBoughtTransactions_: { timestamp_gte: $after } }
+    where: { account: $address, optionsBoughtTransactions_: { timestamp_gte: $after }, vaultId: null }
   ) {
     active
     buyAmount
     netAmount
-    redeemActions {
-      block
-    }
     realizedPnl
+
     oToken {
-      createdAt
-      expiryTimestamp
       id
+      expiryTimestamp
       isPut
       strikePrice
       symbol
     }
+
     optionsBoughtTransactions {
       fee
       premium
@@ -31,6 +29,10 @@ query ${QueriesEnum.INITIAL_DATA} (
     optionsSoldTransactions {
       fee
       premium
+    }
+
+    redeemActions {
+      block
     }
   }
   
@@ -42,17 +44,18 @@ query ${QueriesEnum.INITIAL_DATA} (
     sellAmount
     netAmount
     realizedPnl
+
     oToken {
+      id
       collateralAsset {
         symbol
       }
-      createdAt
       expiryTimestamp
-      id
       isPut
       strikePrice
       symbol
     }
+
     optionsBoughtTransactions {
       fee
       premium
@@ -62,12 +65,14 @@ query ${QueriesEnum.INITIAL_DATA} (
       premium
       timestamp
     }
+
     liquidateActions {
       collateralPayout
     }
     settleActions {
       block
     }
+
     vault {
       id
       vaultId
@@ -75,7 +80,7 @@ query ${QueriesEnum.INITIAL_DATA} (
       shortAmount
       collateralAsset {
         id
-      } 
+      }
     }
   }
 
@@ -89,5 +94,33 @@ query ${QueriesEnum.INITIAL_DATA} (
       price
     }
   }
+
+  longCollateral: longPositions(
+    first: 1000,
+    where: { account: $address, optionsBoughtTransactions_: { timestamp_gte: $after }, vaultId_not: null }
+  ) {
+    realizedPnl
+    vaultId
+
+    oToken {
+      id
+      expiryTimestamp
+      isPut
+      strikePrice
+      symbol
+    }
+
+    optionsBoughtTransactions {
+      fee
+      premium
+    }
+    optionsSoldTransactions {
+      fee
+      premium
+    }
+  }
 }
 `;
+
+// TODO:
+// Do I need all `longOToken` data?

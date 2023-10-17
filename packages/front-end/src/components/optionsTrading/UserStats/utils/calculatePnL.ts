@@ -25,6 +25,7 @@ export const calculatePnL = async (
   longPositions: UserPositionToken[] = [],
   shortPositions: UserPositionToken[] = [],
   quotes: QuoteData[],
+  collateralQuotes: QuoteData[],
   wethOracleHashMap: WethOracleHashMap
 ): Promise<[number, number]> => {
   const allPositions = [...longPositions, ...shortPositions];
@@ -48,6 +49,7 @@ export const calculatePnL = async (
         strikePrice,
         totalPremiumBought,
         totalPremiumSold,
+        vault,
       },
       index
     ) => {
@@ -105,9 +107,24 @@ export const calculatePnL = async (
         const entry = totalPremiumSold / sold;
         const adjustedPnl = sold > net ? net * entry : realizedPnL;
 
+        // Vault data for collateralised oTokens.
+        const vaultCollateral = vault?.longCollateral;
+        const vaultRealizedPnL = Convert.fromUSDC(
+          vaultCollateral ? vaultCollateral.realizedPnl : "0"
+        ).toInt();
+        const entryCollateral = vaultCollateral
+          ? vaultCollateral.totalPremiumBought /
+            Convert.fromWei(sellAmount || "0").toInt()
+          : 0;
+        const formattedPnlCollateral = Convert.fromUSDC(
+          vaultCollateral?.realizedPnl || "0"
+        ).toInt();
+        const adjustedCollateralPnL =
+          sold > net ? -(net * entryCollateral) : formattedPnlCollateral;
+
         if (!active && !hasBeenLiquidated) {
           // Manually closed or expired and settled.
-          return [historicalPnL + realizedPnL, activePnL];
+          return [historicalPnL + realizedPnL + vaultRealizedPnL, activePnL];
         } else if (!active && hasBeenLiquidated) {
           // Liquidated.
           const collateralLost = liquidateActions.reduce(
@@ -125,31 +142,42 @@ export const calculatePnL = async (
           return [historicalPnL + realizedPnL - collateralLost, activePnL];
         } else if (expiriesAt > nowToUnix) {
           // Open positions.
-          const { quote } =
-            quotes[
-              activePositions.findIndex(
-                (pos) =>
-                  pos.id === id &&
-                  pos.collateralAsset?.symbol === collateralAsset?.symbol
-              )
-            ];
-
+          const qIndex = activePositions.findIndex(
+            (pos) =>
+              pos.id === id &&
+              pos.collateralAsset?.symbol === collateralAsset?.symbol
+          );
+          const { quote } = quotes[qIndex];
           const value = adjustedPnl - quote;
 
-          return [historicalPnL + value, activePnL + value];
+          const { quote: collateralQuote } = collateralQuotes[qIndex];
+          const collateralValue = adjustedCollateralPnL + collateralQuote;
+
+          return [
+            historicalPnL + value + collateralValue,
+            activePnL + value + collateralValue,
+          ];
         } else {
           // Expired but not yet settled.
           const priceAtExpiry = wethOracleHashMap[expiryTimestamp];
           const strike = Convert.fromOpyn(strikePrice).toInt();
+          const collateralStrike = Convert.fromOpyn(
+            vaultCollateral?.oToken.strikePrice || strikePrice
+          ).toInt();
 
           const valueAtExpiry = isPut
             ? Math.max(strike - priceAtExpiry, 0)
             : Math.max(priceAtExpiry - strike, 0);
+          const valueAtExpiryCollateral = isPut
+            ? Math.max(collateralStrike - priceAtExpiry, 0)
+            : Math.max(priceAtExpiry - collateralStrike, 0);
 
-          return [
-            historicalPnL + adjustedPnl + valueAtExpiry * positionSize,
-            activePnL,
-          ];
+          const short = adjustedPnl + valueAtExpiry * positionSize;
+          const long =
+            adjustedCollateralPnL +
+            valueAtExpiryCollateral * Math.abs(positionSize);
+
+          return [historicalPnL + short + long, activePnL];
         }
       }
     },
