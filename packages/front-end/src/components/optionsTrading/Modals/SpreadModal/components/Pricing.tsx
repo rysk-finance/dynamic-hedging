@@ -37,10 +37,8 @@ export const Pricing = ({
     fee,
     hasRequiredCapital,
     now,
-    premium,
     quotes,
     remainingBalance,
-    slippage,
     strikes,
   } = positionData;
 
@@ -168,74 +166,28 @@ export const Pricing = ({
               </span>
 
               <span className="flex pt-2">
-                <p className="mr-auto">{`Premium:`}</p>
-                <RyskTooltip
-                  content="The amount of USDC required per contract."
-                  disabled={!tutorialMode}
-                  placement="left"
-                >
-                  <p className="font-medium">
-                    <RyskCountUp value={premium} />
-                    {` USDC`}
-                  </p>
-                </RyskTooltip>
-              </span>
-
-              <span className="flex">
-                <p className="mr-auto">{`Fee:`}</p>
-                <RyskTooltip
-                  content="The total fee that Rysk collects per contract."
-                  disabled={!tutorialMode}
-                  placement="left"
-                >
-                  <p className="font-medium">
-                    <RyskCountUp value={fee} />
-                    {` USDC`}
-                  </p>
-                </RyskTooltip>
-              </span>
-
-              <span className="flex">
-                <p className="mr-auto">{`Price impact:`}</p>
-                <RyskTooltip
-                  content="The slippage of total premium based on trade size."
-                  disabled={!tutorialMode}
-                  placement="left"
-                >
-                  <p className="font-medium">
-                    <RyskCountUp value={slippage} />
-                    {` %`}
-                  </p>
-                </RyskTooltip>
-              </span>
-
-              <small className="block leading-6 text-gray-600 border-gray-600 border-b">
-                {`Premium and fees are per option.`}
-              </small>
-
-              <span className="flex pt-2">
-                <p className="mr-auto">{`Total to pay:`}</p>
-                <RyskTooltip
-                  content="The total amount of USDC required to open this position."
-                  disabled={!tutorialMode}
-                  placement="left"
-                >
-                  <p className="font-medium">
-                    <RyskCountUp value={longQuote} />
-                    {` USDC`}
-                  </p>
-                </RyskTooltip>
-              </span>
-
-              <span className="flex">
-                <p className="mr-auto">{`Premium received:`}</p>
+                <p className="mr-auto">{`Net premium received:`}</p>
                 <RyskTooltip
                   content="The total amount of USDC you will receive from selling this position."
                   disabled={!tutorialMode}
                   placement="left"
                 >
                   <p className="font-medium">
-                    <RyskCountUp value={shortQuote} />
+                    <RyskCountUp value={shortQuote - longQuote} />
+                    {` USDC`}
+                  </p>
+                </RyskTooltip>
+              </span>
+
+              <span className="flex">
+                <p className="mr-auto">{`Total fee:`}</p>
+                <RyskTooltip
+                  content="The total fee that Rysk collects per contract."
+                  disabled={!tutorialMode}
+                  placement="left"
+                >
+                  <p className="font-medium">
+                    <RyskCountUp value={Number(size) * fee} />
                     {` USDC`}
                   </p>
                 </RyskTooltip>
