@@ -15,7 +15,7 @@ import { NewMarginCalculator } from "../../types"
 // 5. Transfer ownership of the margin calculator to the governor multisig
 // 6. Set Margin calculator on address book
 // 7. Deploy new Controller contract
-// 8. Call setController on the address book using the newly deployed contract 
+// 8. Call setController on the address book using the newly deployed contract, this initialises the proxy
 // 9. Call initialize on the new Controller Implementation contract to make sure no one else can call it
 // 10. Call refreshConfiguration on the Controller Proxy contract and ensure that the proxy is pointing to the correct addresses
 // 11. Open some trades, create some of the new spreads etc.
