@@ -34,7 +34,7 @@ export const Liquidation = ({
     });
   };
 
-  if (asset && collateralAmount && vault) {
+  if (asset && vault) {
     const isPartOfSpread = Boolean(vault.longCollateral);
 
     // Highlight positions where the liquidation price is within 3% of the underlying.
@@ -80,7 +80,7 @@ export const Liquidation = ({
           ) : (
             <span className="block">
               <p className="leading-8">{`Fully Collateralised`}</p>
-              {isSpread && (
+              {Boolean(collateralAmount) && isSpread && (
                 <span>
                   <p className="leading-8">
                     {`(`}

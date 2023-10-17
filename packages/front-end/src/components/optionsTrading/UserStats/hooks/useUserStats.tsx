@@ -77,7 +77,7 @@ export const useUserStats = () => {
             strike: Convert.fromInt(0).toWei(),
             isPut: false,
             orderSize: 0,
-            isSell: false,
+            isSell: true,
             collateral: "USDC",
           };
         })

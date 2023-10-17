@@ -21,7 +21,7 @@ const formatCollateralAmount = (
   collateralAsset?: UserPositionToken["collateralAsset"],
   vault?: Vault
 ) => {
-  if (vault && collateralAsset) {
+  if (vault && vault.collateralAmount && collateralAsset) {
     if (collateralAsset.symbol === "WETH") {
       return Convert.fromWei(vault.collateralAmount).toInt();
     } else {
@@ -160,7 +160,7 @@ export const buildActivePositions = async (
           callOrPut: isPut ? "put" : "call",
           collateral: formatCollateralAmount(0, collateralAsset, vault),
           collateralAddress:
-            (vault?.collateralAsset.id as HexString) || ZERO_ADDRESS,
+            (vault?.collateralAsset?.id as HexString) || ZERO_ADDRESS,
           expiry: Convert.fromStr(expiryTimestamp).toInt(),
           strikePrice: Convert.fromOpyn(strikePrice).toInt(),
         };
