@@ -67,7 +67,7 @@ export const useUserStats = () => {
               strike: Convert.fromOpyn(strikePrice).toWei(),
               isPut,
               orderSize: Math.abs(Convert.fromWei(netAmount).toInt()),
-              isSell: false,
+              isSell: true,
               collateral: "USDC",
             };
           }
@@ -77,7 +77,7 @@ export const useUserStats = () => {
             strike: Convert.fromInt(0).toWei(),
             isPut: false,
             orderSize: 0,
-            isSell: true,
+            isSell: false,
             collateral: "USDC",
           };
         })
