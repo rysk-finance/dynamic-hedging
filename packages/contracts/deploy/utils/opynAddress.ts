@@ -8,7 +8,8 @@ export const getAddresses = (network: string) => {
 				exchange: "0xC117bf3103bd09552F9a721F0B8Bce9843aaE1fa",
 				controller: "0x594bD4eC29F7900AE29549c140Ac53b5240d4019",
                 oracle: "0xBA1880CFFE38DD13771CB03De896460baf7dA1E7",
-                feeRecipient: "0xB2dc03Adde4cA78c9FD13b789d48a06Abe8d3cDC"
+                feeRecipient: "0xB2dc03Adde4cA78c9FD13b789d48a06Abe8d3cDC",
+				governor: "0xFBdE2e477Ed031f54ed5Ad52f35eE43CD82cF2A6"
 			}
 		case "arbitrumGoerli":
 			return {

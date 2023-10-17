@@ -36,25 +36,26 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
 	]
 
 	const expiryToValueCalls = [
-		ethers.utils.parseUnits("0.137310398921181", 27),
-		ethers.utils.parseUnits("0.21532271007278914", 27),
-		ethers.utils.parseUnits("0.28537036027751395", 27),
-		ethers.utils.parseUnits("0.3483113205978359", 27),
-		ethers.utils.parseUnits("0.4214755691406809", 27),
-		ethers.utils.parseUnits("0.49055405840298094", 27),
-		ethers.utils.parseUnits("0.5301302667777277", 27)
+		ethers.utils.parseUnits("0.136113558844652341526790144", 27),
+		ethers.utils.parseUnits("0.204187799962679547344715776", 27),
+		ethers.utils.parseUnits("0.286851404906056194342256640", 27),
+		ethers.utils.parseUnits("0.346254939021579129148407808", 27),
+		ethers.utils.parseUnits("0.410351170012979402983342080", 27),
+		ethers.utils.parseUnits("0.468023268960227811617931264", 27),
+		ethers.utils.parseUnits("0.519059121881823487446745088", 27)
 	]
 
 	const expiryToValuePuts = [
-		ethers.utils.parseUnits("0.16097528948543374", 27),
-		ethers.utils.parseUnits("0.23027824327552782", 27),
-		ethers.utils.parseUnits("0.3056523951032439", 27),
-		ethers.utils.parseUnits("0.38082167009044565", 27),
-		ethers.utils.parseUnits("0.4539548883445394", 27),
-		ethers.utils.parseUnits("0.5238145515841939", 27),
-		ethers.utils.parseUnits("0.5678502236865992", 27)
+		ethers.utils.parseUnits("0.152631225060838257058643968", 27),
+		ethers.utils.parseUnits("0.220077115543755132474753024", 27),
+		ethers.utils.parseUnits("0.300379400622110384259596288", 27),
+		ethers.utils.parseUnits("0.379097031746117355062689792", 27),
+		ethers.utils.parseUnits("0.441358135813662669482754048", 27),
+		ethers.utils.parseUnits("0.499819416147169665479606272", 27),
+		ethers.utils.parseUnits("0.559059596620901987634905088", 27)
 	]
 	const fee = ethers.utils.parseEther("0.05")
+	
 	const addresses = getAddresses(hre.network.name)
 
 
@@ -71,103 +72,103 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
 		addresses.addressBook
 	)
 	// pause the exchange and controller
-	await controllerProxy.setSystemFullyPaused(true)
+	// await controllerProxy.setSystemFullyPaused(true)
 	// await exchange.pause()
 
 	// deploy the margin calculator
 
-	const calculator = await (await ethers.getContractFactory("NewMarginCalculator")).deploy(addresses.oracle, addressBook.address) as NewMarginCalculator
+	// const calculator = await (await ethers.getContractFactory("NewMarginCalculator")).deploy(addresses.oracle, addressBook.address) as NewMarginCalculator
 
-	console.log(`Margin Calculator deployed to: ${calculator.address}`)
+	// console.log(`Margin Calculator deployed to: ${calculator.address}`)
 
-	try {
-		await hre.run("verify:verify", {
-			address: calculator.address,
-			constructorArguments: [
-				addresses.oracle,
-				addressBook.address
-			]
-		})
-		console.log("MC verified")
-	} catch (verificationError) {
-		console.log({ verificationError })
-	}
-	// set product spot shock values
-	// usd collateralised calls
-	await calculator.setSpotShock(
-		addresses.weth,
-		addresses.usdc,
-		addresses.usdc,
-		false,
-		productSpotShockValue
-	)
-	// usd collateralised puts
-	await calculator.setSpotShock(
-		addresses.weth,
-		addresses.usdc,
-		addresses.usdc,
-		true,
-		productSpotShockValue
-	)
-	// eth collateralised calls
-	await calculator.setSpotShock(
-		addresses.weth,
-		addresses.usdc,
-		addresses.weth,
-		false,
-		productSpotShockValue
-	)
-	// eth collateralised puts
-	await calculator.setSpotShock(
-		addresses.weth,
-		addresses.usdc,
-		addresses.weth,
-		true,
-		productSpotShockValue
-	)
-	// set expiry to value values
-	// usd collateralised calls
-	await calculator.setUpperBoundValues(
-		addresses.weth,
-		addresses.usdc,
-		addresses.usdc,
-		false,
-		timeToExpiry,
-		expiryToValueCalls
-	)
-	// usd collateralised puts
-	await calculator.setUpperBoundValues(
-		addresses.weth,
-		addresses.usdc,
-		addresses.usdc,
-		true,
-		timeToExpiry,
-		expiryToValuePuts
-	)
-	// eth collateralised calls
-	await calculator.setUpperBoundValues(
-		addresses.weth,
-		addresses.usdc,
-		addresses.weth,
-		false,
-		timeToExpiry,
-		expiryToValueCalls
-	)
-	// eth collateralised puts
-	await calculator.setUpperBoundValues(
-		addresses.weth,
-		addresses.usdc,
-		addresses.weth,
-		true,
-		timeToExpiry,
-		expiryToValuePuts
-	)
+	// try {
+	// 	await hre.run("verify:verify", {
+	// 		address: calculator.address,
+	// 		constructorArguments: [
+	// 			addresses.oracle,
+	// 			addressBook.address
+	// 		]
+	// 	})
+	// 	console.log("MC verified")
+	// } catch (verificationError) {
+	// 	console.log({ verificationError })
+	// }
+	// // set product spot shock values
+	// // usd collateralised calls
+	// await calculator.setSpotShock(
+	// 	addresses.weth,
+	// 	addresses.usdc,
+	// 	addresses.usdc,
+	// 	false,
+	// 	productSpotShockValue, { gasLimit: 100000000 }
+	// )
+	// // usd collateralised puts
+	// await calculator.setSpotShock(
+	// 	addresses.weth,
+	// 	addresses.usdc,
+	// 	addresses.usdc,
+	// 	true,
+	// 	productSpotShockValue, { gasLimit: 100000000 }
+	// )
+	// // eth collateralised calls
+	// await calculator.setSpotShock(
+	// 	addresses.weth,
+	// 	addresses.usdc,
+	// 	addresses.weth,
+	// 	false,
+	// 	productSpotShockValue, { gasLimit: 100000000 }
+	// )
+	// // eth collateralised puts
+	// await calculator.setSpotShock(
+	// 	addresses.weth,
+	// 	addresses.usdc,
+	// 	addresses.weth,
+	// 	true,
+	// 	productSpotShockValue, { gasLimit: 100000000 }
+	// )
+	// // set expiry to value values
+	// // usd collateralised calls
+	// await calculator.setUpperBoundValues(
+	// 	addresses.weth,
+	// 	addresses.usdc,
+	// 	addresses.usdc,
+	// 	false,
+	// 	timeToExpiry,
+	// 	expiryToValueCalls, { gasLimit: 100000000 }
+	// )
+	// // usd collateralised puts
+	// await calculator.setUpperBoundValues(
+	// 	addresses.weth,
+	// 	addresses.usdc,
+	// 	addresses.usdc,
+	// 	true,
+	// 	timeToExpiry,
+	// 	expiryToValuePuts, { gasLimit: 100000000 }
+	// )
+	// // eth collateralised calls
+	// await calculator.setUpperBoundValues(
+	// 	addresses.weth,
+	// 	addresses.usdc,
+	// 	addresses.weth,
+	// 	false,
+	// 	timeToExpiry,
+	// 	expiryToValueCalls, { gasLimit: 100000000 }
+	// )
+	// // eth collateralised puts
+	// await calculator.setUpperBoundValues(
+	// 	addresses.weth,
+	// 	addresses.usdc,
+	// 	addresses.weth,
+	// 	true,
+	// 	timeToExpiry,
+	// 	expiryToValuePuts, { gasLimit: 100000000 }
+	// )
 
-	// set the fee and fee recipient
-	await calculator.setFee(fee)
-	await calculator.setFeeRecipient(addresses.feeRecipient)
-
-	await addressBook.setMarginCalculator(calculator.address)
+	// // set the fee and fee recipient
+	// await calculator.setFee(fee, { gasLimit: 100000000 })
+	// await calculator.setFeeRecipient(addresses.feeRecipient, { gasLimit: 100000000 })
+	// await calculator.transferOwnership(addresses.governor, { gasLimit: 100000000 })
+	// await addressBook.setMarginCalculator(calculator.address)
 
 	// deploy controller
 	// deploy Controller & set address
@@ -183,13 +184,13 @@ const func: DeployFunction = async (hre: HardhatRuntimeEnvironment) => {
 	} catch (verificationError) {
 		console.log({ verificationError })
 	}
-	await addressBook.setController(controllerImpl.address)
-	await controllerImpl.initialize(addressBook.address, deployer)
-	await controllerProxy.refreshConfiguration()
+	// await addressBook.setController(controllerImpl.address)
+	// await controllerImpl.initialize(addressBook.address, deployer, { gasLimit: 100000000 })
+	// await controllerProxy.refreshConfiguration()
 
 	// unpause the system
 	// await exchange.unpause()
-	await controllerProxy.setSystemFullyPaused(false)
+	// await controllerProxy.setSystemFullyPaused(false)
 }
 
 export default func
