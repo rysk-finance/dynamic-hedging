@@ -13,11 +13,11 @@ export const COLLATERAL_DOCS =
 
 export const STRATEGY_LINKS = {
   CALL_CREDIT_SPREAD:
-    "https://optionalpha.com/strategies/bear-call-credit-spread",
+    "https://docs.rysk.finance/getting-started/dynamic-hedging-vault-dhv/bespoke-strategy-construction#call-credit-spread",
   LONG_STRADDLE:
     "https://docs.rysk.finance/getting-started/dynamic-hedging-vault-dhv/bespoke-strategy-construction#long-straddle",
   LONG_STRANGLE:
     "https://docs.rysk.finance/getting-started/dynamic-hedging-vault-dhv/bespoke-strategy-construction#long-strangle",
   PUT_CREDIT_SPREAD:
-    "https://optionalpha.com/strategies/bull-put-credit-spread",
+    "https://docs.rysk.finance/getting-started/dynamic-hedging-vault-dhv/bespoke-strategy-construction#put-credit-spread",
 };
