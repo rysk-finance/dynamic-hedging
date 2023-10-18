@@ -41,6 +41,7 @@ export const Pricing = ({
     now,
     quotes,
     remainingBalance,
+    slippage,
     strikes,
   } = positionData;
 
@@ -148,6 +149,70 @@ export const Pricing = ({
         <AnimatePresence>
           {strikesSelected && (
             <motion.div layout="position" {...FadeInUpDelayed(0.05)}>
+              <span className="flex pt-2">
+                <p className="mr-auto">
+                  {isCredit ? "Net premium received:" : "Net premium paid:"}
+                </p>
+                <RyskTooltip
+                  content="The total amount of USDC you will receive from selling this position."
+                  disabled={!tutorialMode}
+                  placement="left"
+                >
+                  <p className="font-medium">
+                    <RyskCountUp
+                      value={
+                        isCredit
+                          ? shortQuote - longQuote
+                          : longQuote - shortQuote
+                      }
+                    />
+                    {` USDC`}
+                  </p>
+                </RyskTooltip>
+              </span>
+
+              <span className="flex">
+                <p className="mr-auto">{`Price impact:`}</p>
+                <RyskTooltip
+                  content="The slippage of total premium based on trade size."
+                  disabled={!tutorialMode}
+                  placement="left"
+                >
+                  <p className="font-medium">
+                    <RyskCountUp value={slippage} />
+                    {` %`}
+                  </p>
+                </RyskTooltip>
+              </span>
+
+              <span className="flex">
+                <p className="mr-auto">{`Total fee:`}</p>
+                <RyskTooltip
+                  content="The total fee that Rysk collects per contract."
+                  disabled={!tutorialMode}
+                  placement="left"
+                >
+                  <p className="font-medium">
+                    <RyskCountUp value={Number(size) * fee} />
+                    {` USDC`}
+                  </p>
+                </RyskTooltip>
+              </span>
+
+              <span className="flex pb-2 border-gray-600 border-b">
+                <p className="mr-auto">{`Break even:`}</p>
+                <RyskTooltip
+                  content="The price at which your position will break even if held to expiry."
+                  disabled={!tutorialMode}
+                  placement="left"
+                >
+                  <p className="font-medium">
+                    <RyskCountUp value={breakEven} />
+                    {` USDC`}
+                  </p>
+                </RyskTooltip>
+              </span>
+
               {isCredit && (
                 <>
                   <span className="flex pt-2">
@@ -173,48 +238,6 @@ export const Pricing = ({
               )}
 
               <span className="flex pt-2">
-                <p className="mr-auto">{`Net premium received:`}</p>
-                <RyskTooltip
-                  content="The total amount of USDC you will receive from selling this position."
-                  disabled={!tutorialMode}
-                  placement="left"
-                >
-                  <p className="font-medium">
-                    <RyskCountUp value={shortQuote - longQuote} />
-                    {` USDC`}
-                  </p>
-                </RyskTooltip>
-              </span>
-
-              <span className="flex">
-                <p className="mr-auto">{`Total fee:`}</p>
-                <RyskTooltip
-                  content="The total fee that Rysk collects per contract."
-                  disabled={!tutorialMode}
-                  placement="left"
-                >
-                  <p className="font-medium">
-                    <RyskCountUp value={Number(size) * fee} />
-                    {` USDC`}
-                  </p>
-                </RyskTooltip>
-              </span>
-
-              <span className="flex">
-                <p className="mr-auto">{`Break even:`}</p>
-                <RyskTooltip
-                  content="The price at which your position will break even if held to expiry."
-                  disabled={!tutorialMode}
-                  placement="left"
-                >
-                  <p className="font-medium">
-                    <RyskCountUp value={breakEven} />
-                    {` USDC`}
-                  </p>
-                </RyskTooltip>
-              </span>
-
-              <span className="flex">
                 <p className="mr-auto">{`Balance after:`}</p>
                 <p className="font-medium">
                   <RyskCountUp value={remainingBalance} />

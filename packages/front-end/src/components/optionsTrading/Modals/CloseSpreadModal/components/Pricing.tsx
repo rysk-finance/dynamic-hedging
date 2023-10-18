@@ -26,9 +26,9 @@ export const Pricing = ({ positionData, size }: PricingProps) => {
     collateralType,
     fee,
     hasRequiredCapital,
+    isCredit,
     isPut,
     now,
-    premium,
     quotes,
     remainingBalance,
     remainingCollateral,
@@ -36,9 +36,15 @@ export const Pricing = ({ positionData, size }: PricingProps) => {
     strikes,
   } = positionData;
 
+  const [shortQuote, longQuote] = quotes;
+
   const strategyName = isPut
-    ? OptionChainModalActions.PUT_CREDIT_SPREAD
-    : OptionChainModalActions.CALL_CREDIT_SPREAD;
+    ? isCredit
+      ? OptionChainModalActions.PUT_CREDIT_SPREAD
+      : OptionChainModalActions.PUT_DEBIT_SPREAD
+    : isCredit
+    ? OptionChainModalActions.CALL_CREDIT_SPREAD
+    : OptionChainModalActions.CALL_DEBIT_SPREAD;
 
   const errorMessage = useMemo(() => {
     switch (true) {
@@ -69,85 +75,57 @@ export const Pricing = ({ positionData, size }: PricingProps) => {
       />
 
       <div className="w-4/5 xl:w-3/5 mx-auto py-3">
-        <div>
-          <span className="flex">
-            <p className="mr-auto">{`Premium:`}</p>
-            <RyskTooltip
-              content="The amount of USDC received per contract."
-              disabled={!tutorialMode}
-              placement="left"
-            >
-              <p className="font-medium">
-                <RyskCountUp value={premium} />
-                {` USDC`}
-              </p>
-            </RyskTooltip>
-          </span>
-
-          <span className="flex">
-            <p className="mr-auto">{`Fee:`}</p>
-            <RyskTooltip
-              content="The total fee that Rysk collects per contract."
-              disabled={!tutorialMode}
-              placement="left"
-            >
-              <p className="font-medium">
-                <RyskCountUp value={fee} />
-                {` USDC`}
-              </p>
-            </RyskTooltip>
-          </span>
-
-          <span className="flex">
-            <p className="mr-auto">{`Price impact:`}</p>
-            <RyskTooltip
-              content="The slippage of total premium based on trade size."
-              disabled={!tutorialMode}
-              placement="left"
-            >
-              <p className="font-medium">
-                <RyskCountUp value={slippage} />
-                {` %`}
-              </p>
-            </RyskTooltip>
-          </span>
-
-          <small className="block leading-6 text-gray-600 border-gray-600 border-b">
-            {`Premium and fees are per option.`}
-          </small>
-        </div>
-
-        <span className="flex pt-2">
-          <p className="mr-auto">{`Premium paid:`}</p>
+        <span className="flex">
+          <p className="mr-auto">
+            {isCredit ? "Net premium paid:" : "Net premium received:"}
+          </p>
           <RyskTooltip
-            content="The total amount of USDC required to close this position."
+            content="The amount of USDC received per contract."
             disabled={!tutorialMode}
             placement="left"
           >
             <p className="font-medium">
-              <RyskCountUp value={quotes[0]} />
+              <RyskCountUp
+                value={
+                  isCredit ? shortQuote - longQuote : longQuote - shortQuote
+                }
+              />
               {` USDC`}
             </p>
           </RyskTooltip>
         </span>
 
-        <span className="flex pb-2 border-gray-600 border-b">
-          <p className="mr-auto">{`Premium received:`}</p>
+        <span className="flex">
+          <p className="mr-auto">{`Price impact:`}</p>
           <RyskTooltip
-            content="The total amount of USDC you will receive from selling this position."
+            content="The slippage of total premium based on trade size."
             disabled={!tutorialMode}
             placement="left"
           >
             <p className="font-medium">
-              <RyskCountUp value={quotes[1]} />
+              <RyskCountUp value={slippage} />
+              {` %`}
+            </p>
+          </RyskTooltip>
+        </span>
+
+        <span className="flex pb-2">
+          <p className="mr-auto">{`Total fee:`}</p>
+          <RyskTooltip
+            content="The total fee that Rysk collects per contract."
+            disabled={!tutorialMode}
+            placement="left"
+          >
+            <p className="font-medium">
+              <RyskCountUp value={Number(size) * fee} />
               {` USDC`}
             </p>
           </RyskTooltip>
         </span>
 
-        {Boolean(collateralReleased || remainingCollateral) && (
+        {isCredit && (
           <>
-            <span className="flex pt-2">
+            <span className="flex pt-2 border-gray-600 border-t">
               <p className="mr-auto">{`Collateral released:`}</p>
               <RyskTooltip
                 content="The total amount of collateral you will receive back."
@@ -181,7 +159,7 @@ export const Pricing = ({ positionData, size }: PricingProps) => {
         )}
 
         <div>
-          <span className="flex pt-2">
+          <span className="flex pt-2 border-gray-600 border-t">
             <p className="mr-auto">{`Balances after:`}</p>
             <p className="font-medium">
               <RyskCountUp value={remainingBalance} />

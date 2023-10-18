@@ -123,7 +123,6 @@ export const useSpread = (
 
           const shortInt = convertShort.toInt();
           const longInt = convertLong.toInt();
-          // Might not need to worry about this check.
           const collateral = isCredit
             ? Math.max(longInt - shortInt, shortInt - longInt) * amount
             : 0;
@@ -173,7 +172,9 @@ export const useSpread = (
             remainingBalance,
             requiredApproval: String(requiredCapital),
             side,
-            slippage: shortQuote.slippage - longQuote.slippage,
+            slippage: isCredit
+              ? shortQuote.slippage - longQuote.slippage
+              : longQuote.slippage - shortQuote.slippage,
             strikes: [Number(short), Number(long)],
           });
           setAllowanceUSDC((currentState) => ({
