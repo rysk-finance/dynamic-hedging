@@ -39,7 +39,7 @@ export const Info = ({ positionData, strategy }: InfoProps) => {
 
       <p className="flex text-center text-sm justify-center">
         <a
-          className="flex !text-cyan-dark-compliant py-3"
+          className="flex !text-cyan-dark-compliant py-2"
           href={link}
           target="_blank"
           rel="noopener noreferrer"

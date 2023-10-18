@@ -45,7 +45,7 @@ export const Pricing = ({ positionData, size }: PricingProps) => {
     <div className="flex flex-col">
       <Symbol {...positionData} />
 
-      <div className="w-4/5 xl:w-3/5 mx-auto py-3">
+      <div className="w-4/5 xl:w-3/5 mx-auto py-2">
         <span className="flex">
           <p className="mr-auto">{`Premium received:`}</p>
           <RyskTooltip

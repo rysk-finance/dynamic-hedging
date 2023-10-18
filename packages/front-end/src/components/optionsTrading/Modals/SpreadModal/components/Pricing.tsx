@@ -95,7 +95,7 @@ export const Pricing = ({
 
   return (
     <div className="flex flex-col">
-      <div className="w-4/5 xl:w-3/5 mx-auto py-3">
+      <div className="w-4/5 xl:w-3/5 mx-auto py-2">
         <span className="flex">
           <p className="mr-auto my-auto">{`Short strike:`}</p>
           <RyskTooltip

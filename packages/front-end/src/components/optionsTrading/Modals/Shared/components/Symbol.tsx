@@ -19,7 +19,7 @@ export const Symbol = ({
 }: SymbolProps) => {
   const strikeFormatted = strike ? `$${strike}` : "";
   const callOrPutFormatted = strategyName || callOrPut || "";
-  const divPadding = children ? "pt-3" : "py-3";
+  const divPadding = children ? "pt-2" : "py-2";
 
   return (
     <div
