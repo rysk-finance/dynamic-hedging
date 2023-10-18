@@ -14,7 +14,7 @@ Users can interact with options functionality via the operate function. The oper
 
 ### ```operate(CombinedActions.OperationProcedures[] memory _operationProcedures) ``` 
 
-The operate function takes a list of OperationProcedures this is a struct that contains the operation type which is either Opyn or Rysk and a list of CombinedActions.ActionArgs which is the struct ActionArgs shown below. The function _runActions will loop through the list of operation procedures, it will pre-process any opyn actions by first converting the actions from the generic CombinedActions.ActionArgs to the opyn specific OpynActions.ActionArgs, which are then dispatched to the rysk-opyn gamma protocol controller and will process rysk actions after first converting them from the generic CombinedActions.ActionArgs to the rysk specific RyskActions.ActionArgs seperately. Conversion of the generic ActionArgs struct to the specific ActionArgs structs occurs in CombinedActions.sol.
+The operate function takes a list of OperationProcedures this is a struct that contains the operation type which is either Opyn or Rysk and a list of CombinedActions.ActionArgs which is the struct ActionArgs shown below. The function _runActions will loop through the list of operation procedures, it will pre-process any opyn actions by first converting the actions from the generic CombinedActions.ActionArgs to the opyn specific OpynActions.ActionArgs, which are then dispatched to the rysk-opyn gamma protocol controller and will process rysk actions after first converting them from the generic CombinedActions.ActionArgs to the rysk specific RyskActions.ActionArgs separately. Conversion of the generic ActionArgs struct to the specific ActionArgs structs occurs in CombinedActions.sol.
 This allows a user to string together opyn actions such as creating an otoken vault and minting an otoken with selling an option to the rysk protocol as well as a diverse range of structured products in a single transaction.
 
 operate runs 2 functions:
@@ -40,11 +40,11 @@ struct ActionArgs {
         address owner;
         // address which we move assets from or to (depending on the action type)
         address secondAddress;
-        // asset that is to be transfered
+        // asset that is to be transferred
         address asset;
         // index of the vault that is to be modified (if any)
         uint256 vaultId;
-        // amount of asset that is to be transfered
+        // amount of asset that is to be transferred
         uint256 amount;
         // option series (if any)
         Types.OptionSeries optionSeries;
@@ -68,7 +68,7 @@ CHECK ON ALL ACTIONS: OWNER - It is checked that the owner param is the msg.send
 - *BurnShortOption*: Check the second address is the sender, this ensures the sender is burning otokens from their own wallet and nowhere else
 - *DepositLongOption*: Check the second address is the sender, this ensures the sender is depositing otokens from their own wallet and nowhere else
 - *WithdrawLongOption*: Check the secondAddress which represents the recipient of the withdrawn long short options, FOR UX PURPOSES the user can specify the exchange as the recipient. This will store the otokens in the exchange on behalf of the user for the duration of the transaction, this balance must be used by the end of the tx or the tx will revert.
-- *DepositCollateral*: Check the secondAddress which represents the depositor of collateral. FOR UX PURPOSES the user can specify the exchange as the depositor (or themselves). If they select the exchange then the collateral is transferred from the user to the exchange before being sent to the gamma protocol (this prevents a seperate collateral Approve tx to the MarginPool contract as the user just needs to approve the exchange contract).
+- *DepositCollateral*: Check the secondAddress which represents the depositor of collateral. FOR UX PURPOSES the user can specify the exchange as the depositor (or themselves). If they select the exchange then the collateral is transferred from the user to the exchange before being sent to the gamma protocol (this prevents a separate collateral Approve tx to the MarginPool contract as the user just needs to approve the exchange contract).
 - *WithdrawCollateral*: No further preprocessing
 - *SettleVault*: No further preprocessing
 - *Redeem*: completely forbidden to reduce scope

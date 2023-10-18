@@ -53,7 +53,7 @@ The spread function is only applied to options the DHV sells and reflects the co
 required to back the short option, as well as delta hedging costs incurred by the DHV as a result of
 the delta exposure of the tx.
 
-The cost of collateral postion of the spread is calculated as `c * (1 + r)^t -c` where c is the
+The cost of collateral position of the spread is calculated as `c * (1 + r)^t -c` where c is the
 collateral requirements of the short options, t is the duration of the option in years, and r the
 collateral lending rate (governance settable variable). It is only applied to contracts that result
 in a net short position for the DHV. For example, if the DHV is long 10 contracts of this particular

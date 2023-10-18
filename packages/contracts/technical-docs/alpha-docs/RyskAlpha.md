@@ -54,7 +54,7 @@ Update stores is the function that tells the Portfolio values feed any new posit
 
 An EnumerableSet.AddressSet by OpenZeppelin is used as it is easier to clean and much easier to search through.
 
-Update stores can theoretically be pushed to by any set of contracts, meaning that a buyside products could also be used and could share the same liquidityPool liquidity and be represented by the same portfolio. Long exposure and short exposure are updated seperately and they are ints so that reducing positions is easily done via `updateStores`.
+Update stores can theoretically be pushed to by any set of contracts, meaning that a buyside products could also be used and could share the same liquidityPool liquidity and be represented by the same portfolio. Long exposure and short exposure are updated separately and they are ints so that reducing positions is easily done via `updateStores`.
 
 ### `syncLooper() external` *Only Accessible by keeper or above*
 
@@ -74,7 +74,7 @@ This is a more manual process, it takes an address and an index. It checks the a
 
 ### `accountLiquidatedSeries(addressseries) external` *Only Accessible by keeper or above*
 
-This function is used to fix accounting in the stores if a series gets liquidated. This is mostly here to deal with the edge case that a vault does get liquidated. It first checks that the series exists in the stores then it checks that the stores have short exposure, if it does then it will check for the vault id in the option registry, if it exists then we know the liquidity pool had this position. Then in order to match the records of that vault we set the stores to the e18 version of the short amount in that opyn vault, the reason we do not set it to 0 is because partial liquidations are possible. This function would NEED to be called when a liquidation has occured so should be managed by a bot, however it is likely that guardian protocols would have kicked in if a liquidation has occured (protocol has paused).
+This function is used to fix accounting in the stores if a series gets liquidated. This is mostly here to deal with the edge case that a vault does get liquidated. It first checks that the series exists in the stores then it checks that the stores have short exposure, if it does then it will check for the vault id in the option registry, if it exists then we know the liquidity pool had this position. Then in order to match the records of that vault we set the stores to the e18 version of the short amount in that opyn vault, the reason we do not set it to 0 is because partial liquidations are possible. This function would NEED to be called when a liquidation has occurred so should be managed by a bot, however it is likely that guardian protocols would have kicked in if a liquidation has occurred (protocol has paused).
 
 ### `migrate(_migrateContract) external` *Only Accessible by Governance*
 

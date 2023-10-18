@@ -54,7 +54,7 @@ This function is used to tell that LiquidityPool that a liquidation of a vault c
 
 ### ```setLiquidityPool() external onlyOwner ```
 
-This function sets the liquidity pool that is used for collateral transfer, oToken transfers and liquidity pool accessable functionality.
+This function sets the liquidity pool that is used for collateral transfer, oToken transfers and liquidity pool accessible functionality.
 
 ### ```setHealthThresholds() external onlyOwner ```
 

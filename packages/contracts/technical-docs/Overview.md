@@ -18,7 +18,7 @@ Exchange via the OptionExchange: This is a contract that is authorised to intera
 
 Options are priced by the BeyondPricer.sol described in BeyondPricer.md.
 
-Then the liquidityPool will take the instruction from the handler, process it and pass it to the optionsRegistry for processing on the [opyn-rysk gamma protocol](https://github.com/rysk-finance/GammaProtocol) alongside any funds needed to collateralise the option positon if it is a write operation.
+Then the liquidityPool will take the instruction from the handler, process it and pass it to the optionsRegistry for processing on the [opyn-rysk gamma protocol](https://github.com/rysk-finance/GammaProtocol) alongside any funds needed to collateralise the option position if it is a write operation.
 
 The pool can hedge its delta off using other derivatives such as perps or spot by using contracts known as hedging reactors these reactors take funds directly from the liquidityPool.
 
