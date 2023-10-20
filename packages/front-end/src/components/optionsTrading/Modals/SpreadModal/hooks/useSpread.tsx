@@ -76,6 +76,7 @@ export const useSpread = (
     hasRequiredCapital: false,
     isCredit,
     isPut,
+    netQuote: 0,
     now: dateTimeNow(),
     premium: 0,
     quotes: [0, 0],
@@ -127,9 +128,10 @@ export const useSpread = (
             ? Math.max(longInt - shortInt, shortInt - longInt) * amount
             : 0;
 
-          const netPremium = shortQuote.premium - longQuote.premium;
+          const netQuote = shortQuote.quote - longQuote.quote;
+          const netQuotePerContract = netQuote / amount;
           const remainingBalance =
-            balanceUSDC === 0 ? 0 : balanceUSDC + netPremium - collateral;
+            balanceUSDC === 0 ? 0 : balanceUSDC + netQuote - collateral;
 
           const approvalBuffer = 1.005;
           const requiredCapital =
@@ -144,11 +146,11 @@ export const useSpread = (
 
           const breakEven = isCredit
             ? isPut
-              ? shortInt - netPremium
-              : shortInt + netPremium
+              ? shortInt - netQuotePerContract
+              : shortInt + netQuotePerContract
             : isPut
-            ? longInt + netPremium
-            : longInt - netPremium;
+            ? longInt + netQuotePerContract
+            : longInt - netQuotePerContract;
 
           const exposure =
             data[activeExpiry!][longInt][side]?.exposure.net || 0;
@@ -166,6 +168,7 @@ export const useSpread = (
             hasRequiredCapital: balanceUSDC > requiredCapital,
             isCredit,
             isPut,
+            netQuote,
             now: dateTimeNow(),
             premium: shortQuote.premium - longQuote.premium,
             quotes: [shortQuote.quote, longQuote.quote],
@@ -196,6 +199,7 @@ export const useSpread = (
             hasRequiredCapital: false,
             isCredit,
             isPut,
+            netQuote: 0,
             now: dateTimeNow(),
             premium: 0,
             quotes: [0, 0],

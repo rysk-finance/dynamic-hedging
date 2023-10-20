@@ -16,6 +16,7 @@ export interface PositionDataState {
   hasRequiredCapital: boolean;
   isCredit: boolean;
   isPut: boolean;
+  netQuote: number;
   now: string;
   premium: number;
   quotes: [number, number];
