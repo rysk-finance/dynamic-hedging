@@ -34,7 +34,6 @@ dayjs.extend(LocalizedFormat);
 export const CloseOptionModal = () => {
   const {
     state: {
-      geoData: { blocked },
       options: { refresh },
       userTradingPreferences: { tutorialMode },
     },
@@ -169,8 +168,7 @@ export const CloseOptionModal = () => {
               !addresses.user ||
               !addresses.token ||
               transactionPending ||
-              loading ||
-              blocked
+              loading
             }
             {...FadeInOutQuick}
             {...getButtonProps(
@@ -184,7 +182,7 @@ export const CloseOptionModal = () => {
         </AnimatePresence>
       </Wrapper>
 
-      <Disclaimer>
+      <Disclaimer closing>
         {`You are about to sell some or all of your position. Please ensure this is what you want because the action is irreversible.`}
       </Disclaimer>
     </Modal>

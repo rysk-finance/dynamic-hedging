@@ -35,7 +35,6 @@ dayjs.extend(LocalizedFormat);
 export const CloseShortOptionModal = () => {
   const {
     state: {
-      geoData: { blocked },
       options: { refresh },
       userTradingPreferences: { approvals, tutorialMode },
     },
@@ -183,8 +182,7 @@ export const CloseShortOptionModal = () => {
               !addresses.token ||
               !positionData.hasRequiredCapital ||
               transactionPending ||
-              loading ||
-              blocked
+              loading
             }
             {...FadeInOutQuick}
             {...getButtonProps(
@@ -198,7 +196,7 @@ export const CloseShortOptionModal = () => {
         </AnimatePresence>
       </Wrapper>
 
-      <Disclaimer>
+      <Disclaimer closing>
         {`You are about to close some or all of your position. Please ensure this is what you want because the action is irreversible.`}
       </Disclaimer>
     </Modal>
