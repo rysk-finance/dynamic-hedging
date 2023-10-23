@@ -32,7 +32,6 @@ import { useSpreadPositionData } from "./hooks/useSpreadPositionData";
 export const CloseSpreadModal = () => {
   const {
     state: {
-      geoData: { blocked },
       options: { activeExpiry, refresh },
       userTradingPreferences: { approvals, tutorialMode },
     },
@@ -220,8 +219,7 @@ export const CloseSpreadModal = () => {
               !addresses.tokens ||
               !positionData.hasRequiredCapital ||
               transactionPending ||
-              loading ||
-              blocked
+              loading
             }
             {...FadeInOutQuick}
             {...getButtonProps(
@@ -235,7 +233,7 @@ export const CloseSpreadModal = () => {
         </AnimatePresence>
       </Wrapper>
 
-      <Disclaimer>
+      <Disclaimer closing>
         {`You are about to close some or all of your position. Please ensure this is what you want because the action is irreversible.`}
       </Disclaimer>
     </Modal>
