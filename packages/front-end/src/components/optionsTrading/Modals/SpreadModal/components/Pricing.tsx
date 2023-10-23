@@ -66,7 +66,7 @@ export const Pricing = ({
         return "Final balance cannot be negative.";
 
       case !hasRequiredCapital && Boolean(quote):
-        return "Insufficient balance to cover collateral.";
+        return "Insufficient balance to cover transaction.";
 
       case utilisationHigh:
         return "DHV utilisation is high. Some TXs may fail.";
