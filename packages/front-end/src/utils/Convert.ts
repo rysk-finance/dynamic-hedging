@@ -58,8 +58,7 @@ export class Convert {
   toUSDC: () => BigNumber;
   toWei: () => BigNumber;
 
-  private static BIG_ZERO = BigNumber.from(0);
-
+  public static BIG_ZERO = BigNumber.from(0);
   public static USDC = 6;
   public static OPYN = 8;
   public static WEI = 18;
