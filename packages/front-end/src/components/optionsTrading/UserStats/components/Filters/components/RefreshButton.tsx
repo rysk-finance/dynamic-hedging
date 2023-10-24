@@ -49,7 +49,7 @@ export const RefreshButton = () => {
 
   return (
     <button
-      className="mr-auto py-1.5"
+      className="mr-2 py-1.5"
       disabled={refreshDisabled}
       onClick={handleRefreshClick}
     >
@@ -58,7 +58,7 @@ export const RefreshButton = () => {
           refreshDisabled ? "opacity-40" : ""
         }`}
       >
-        <small className="leading-6 mr-2">{`Update positions: `}</small>
+        <small className="leading-6 mr-2">{`Update positions`}</small>
         <Refresh />
       </span>
     </button>
