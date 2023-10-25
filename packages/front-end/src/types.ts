@@ -31,6 +31,7 @@ type RyskContractAddresses = {
 };
 
 type ExternalContractAddresses = {
+  ARB: string;
   USDC: string;
   WETH: string;
   ETHUSDAggregator: string;
