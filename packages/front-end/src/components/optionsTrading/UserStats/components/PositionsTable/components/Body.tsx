@@ -78,15 +78,15 @@ export const Body = () => {
       .filter((position) => (hideExpired ? position.isOpen : position));
   }, [activePositions, hideExpired, isAscending, sort]);
 
-  const compactOffHeight = sortedActivePositions.length <= 5 ? 222 : "auto";
+  const compactOffHeight = sortedActivePositions.length <= 5 ? 227 : "auto";
 
   return (
     <LayoutGroup>
       <motion.tbody
         className="block w-[150%] lg:w-full border-b-2 border-black border-dashed overflow-y-scroll rysk-scrollbar rysk-scrollbar-padded"
         {...Resize(
-          compact ? compactOffHeight : 222,
-          compact ? 222 : compactOffHeight
+          compact ? compactOffHeight : 227,
+          compact ? 227 : compactOffHeight
         )}
       >
         <AnimatePresence>
