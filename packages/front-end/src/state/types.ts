@@ -11,6 +11,7 @@ import type {
 
 import { Dispatch } from "react";
 
+import { PositionAction } from "src/components/optionsTrading/UserStats/enums";
 import { ActivePositionSort } from "./constants";
 
 export type AppSettings = {
@@ -126,7 +127,7 @@ export interface WethOracleHashMap {
 }
 
 export interface ActivePositions {
-  action: string;
+  action: PositionAction;
   amount: number;
   breakEven: number;
   collateral: {

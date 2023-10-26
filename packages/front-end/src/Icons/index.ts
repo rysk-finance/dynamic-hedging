@@ -6,6 +6,7 @@ import { Discord } from "./Discord";
 import { DownChevron } from "./DownChevron";
 import { Ether } from "./Ether";
 import { Github } from "./Github";
+import { Handshake } from "./Handshake";
 import { Info } from "./Info";
 import { LeftArrow } from "./LeftArrow";
 import { Link } from "./Link";
@@ -30,6 +31,7 @@ export {
   DownChevron,
   Ether,
   Github,
+  Handshake,
   Info,
   LeftArrow,
   Link,

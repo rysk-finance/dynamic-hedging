@@ -5,6 +5,7 @@ import {
 } from "src/state/localStorage";
 import { ActionType } from "src/state/types";
 import { SimpleToggle } from "../../../../shared/SimpleToggle";
+import { ExpiredButton } from "./components/ExpiredButton";
 import { RefreshButton } from "./components/RefreshButton";
 
 export const Filters = () => {
@@ -62,6 +63,7 @@ export const Filters = () => {
   return (
     <div className="flex justify-end select-none">
       <RefreshButton />
+      <ExpiredButton />
 
       <span
         className="flex items-center cursor-pointer mr-8 py-3"
