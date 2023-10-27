@@ -24,6 +24,7 @@ export const buildInactivePositions = (
         redeemActions,
         sellAmount,
         settleActions,
+        strikePrice,
         symbol,
         totalPremiumBought,
         totalPremiumSold,
@@ -64,7 +65,14 @@ export const buildInactivePositions = (
           longCollateral ? longCollateral?.realizedPnl : "0"
         ).toInt();
 
-        const isCreditSpread = vault?.collateralAmount !== null;
+        const strike = Convert.fromOpyn(strikePrice).toInt();
+        const strikeCollateral = Convert.fromOpyn(
+          vault?.longCollateral?.oToken.strikePrice
+        ).toInt();
+
+        const isCreditSpread =
+          (isPut && strike > strikeCollateral) ||
+          (!isPut && strike < strikeCollateral);
 
         return {
           close: closeCollateral ? (close + closeCollateral) / 2 : close,
