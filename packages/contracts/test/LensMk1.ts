@@ -311,7 +311,7 @@ describe("Lens", async () => {
 		})
 		it("SETUP: deploy quant exposure lens contract", async () => {
 			const lensFactory = await ethers.getContractFactory("QuantPositionLensMK1")
-			quantLens = (await lensFactory.deploy(optionProtocol.address)) as QuantPositionLensMK1
+			quantLens = (await lensFactory.deploy(optionProtocol.address, catalogue.address, usd.address, weth.address)) as QuantPositionLensMK1
 		})
 	})
 	describe("Purchase a bunch of random options", async () => {
@@ -759,7 +759,7 @@ describe("Lens", async () => {
 		describe("Hit the quant Lens", async () => {
 			it("ping the lens contract", async () => {
 				const lensVals = await quantLens.DHVPosDrill()
-				console.log({lensVals})
+				// console.log({lensVals})
 				// console.log(lensVals[0])
 				// console.log(lensVals[2])
 			})
