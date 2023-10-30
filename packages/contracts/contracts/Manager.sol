@@ -287,7 +287,7 @@ contract Manager is AccessControl {
 	}
 
 	function setBidAskIVSpread(uint256 _bidAskIVSpread) external {
-		_isProxyManager();
+		_isKeeper();
 		beyondPricer.setBidAskIVSpread(_bidAskIVSpread);
 	}
 
