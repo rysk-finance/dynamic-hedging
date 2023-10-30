@@ -1,11 +1,12 @@
-import { Signer } from "ethers"
 import hre, { ethers } from "hardhat"
 
-
 //	Arbitrum mainnet specific contract addresses. Change for other networks
-const authorityAddress = "0x0c83E447dc7f4045b8717d5321056D4e9E86dCD2"
-const liquidityPoolAddress = "0xC10B976C671Ce9bFf0723611F01422ACbAe100A5"
-const optionHandlerAddress = "0xA802795269588bf33739816f76B53fD6cd099b27"
+const authorityAddress = "0x74948DAf8Beb3d14ddca66d205bE3bc58Df39aC9"
+const liquidityPoolAddress = "0x217749d9017cB87712654422a1F5856AAA147b80"
+const optionHandlerAddress = "0xc63717c4436043781a63C8c64B02Ff774350e8F8"
+const catalogueAddress = "0x44227Dc2a1d71FC07DC254Dfd42B1C44aFF12168"
+const exchangeAddress = "0xC117bf3103bd09552F9a721F0B8Bce9843aaE1fa"
+const beyondPricerAddress = "0xeA5Fb118862876f249Ff0b3e7fb25fEb38158def"
 
 async function main() {
 	const [deployer] = await ethers.getSigners()
@@ -14,21 +15,49 @@ async function main() {
 
 	console.log("Account balance:", (await deployer.getBalance()).toString())
 	// deploy system
-	let deployParams = await deployManager(deployer, authorityAddress, liquidityPoolAddress, optionHandlerAddress)
+	let deployParams = await deployManager(
+		authorityAddress,
+		liquidityPoolAddress,
+		optionHandlerAddress,
+		catalogueAddress,
+		exchangeAddress,
+		beyondPricerAddress
+	)
 	console.log("system deployed")
-        const manager = deployParams.manager
+	console.log("manager address: ", deployParams.manager.address)
 }
 
 // --------- DEPLOY RYSK SYSTEM ----------------
 
-export async function deployManager(deployer: Signer, authorityAddress: String, liquidityPoolAddress: String, optionHandlerAddress: String) {
+export async function deployManager(
+	authorityAddress: String,
+	liquidityPoolAddress: String,
+	optionHandlerAddress: String,
+	catalogueAddress: String,
+	exchangeAddress: String,
+	beyondPricerAddress: String
+) {
 	const managerFactory = await ethers.getContractFactory("Manager")
-	const manager = await managerFactory.deploy(authorityAddress, liquidityPoolAddress, optionHandlerAddress)
+	const manager = await managerFactory.deploy(
+		authorityAddress: String,
+		liquidityPoolAddress,
+		optionHandlerAddress,
+		catalogueAddress,
+		exchangeAddress,
+		beyondPricerAddress
+	)
 	console.log("manager deployed")
 	try {
 		await hre.run("verify:verify", {
 			address: manager.address,
-			constructorArguments: [authorityAddress, liquidityPoolAddress, optionHandlerAddress]
+			constructorArguments: [
+				authorityAddress,
+				liquidityPoolAddress,
+				optionHandlerAddress,
+				catalogueAddress,
+				exchangeAddress,
+				beyondPricerAddress
+			]
 		})
 		console.log("manager verified")
 	} catch (err: any) {
@@ -38,7 +67,7 @@ export async function deployManager(deployer: Signer, authorityAddress: String, 
 		}
 	}
 	return {
-        manager
+		manager
 	}
 }
 
@@ -48,4 +77,3 @@ main()
 		console.error(error)
 		process.exit(1)
 	})
-
