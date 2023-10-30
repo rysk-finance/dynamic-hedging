@@ -77,6 +77,14 @@ const proposedSeries = {
 	underlying: WETH_ADDRESS[chainId],
 	collateral: USDC_ADDRESS[chainId]
 }
+const proposedSeries2 = {
+	expiration: expiration,
+	strike: toWei("2001"),
+	isPut: CALL_FLAVOR,
+	strikeAsset: USDC_ADDRESS[chainId],
+	underlying: WETH_ADDRESS[chainId],
+	collateral: USDC_ADDRESS[chainId]
+}
 const tinyAmount = toOpyn("0.01")
 
 describe("Actions tests", async () => {
@@ -902,13 +910,14 @@ describe("Actions tests", async () => {
 			).to.be.revertedWithCustomError(exchange, "UnauthorisedSender")
 			await usd.approve(exchange.address, 0)
 		})
-		it("SUCCEED: OPYN mint short option with collateral deposited via exchange then deposits the long option from sender in vault 1", async () => {
+		it("SUCCEED: OPYN mint short option with collateral deposited via exchange then deposits the long option from sender in vault", async () => {
 			const margin = toUSDC("1000")
-			const otoken = await exchange.callStatic.createOtoken(proposedSeries)
+			const otoken = await exchange.callStatic.createOtoken(proposedSeries2)
 			const otokenERC = (await ethers.getContractAt("Otoken", otoken)) as Otoken
+			await exchange.createOtoken(proposedSeries2)
 			await otokenERC.approve(MARGIN_POOL[chainId], tinyAmount)
-			await exchange.createOtoken(proposedSeries)
 			usd.approve(exchange.address, margin)
+			console.log(vaultIdCounter)
 			await exchange.operate([
 				{
 					operation: 0,
@@ -956,7 +965,7 @@ describe("Actions tests", async () => {
 							owner: senderAddress,
 							secondAddress: senderAddress,
 							asset: otoken,
-							vaultId: 1,
+							vaultId: 8,
 							amount: tinyAmount,
 							optionSeries: emptySeries,
 							indexOrAcceptablePremium: 0,
@@ -967,14 +976,15 @@ describe("Actions tests", async () => {
 			])
 			const vaultId = await controller.getAccountVaultCounter(senderAddress)
 			const vaultDetails = await controller.getVaultWithDetails(senderAddress, vaultId)
+			const vault2Details = await controller.getVaultWithDetails(senderAddress, 8)
 			expect(vaultId).to.equal(vaultIdCounter)
 			expect(vaultDetails[1]).to.equal(1)
 			expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
 			expect(vaultDetails[0].shortAmounts[0]).to.equal(tinyAmount)
 			expect(vaultDetails[0].shortOtokens[0]).to.equal(otoken)
-			const vault1Details = await controller.getVaultWithDetails(senderAddress, 1)
-			expect(vault1Details[0].longAmounts[0]).to.equal(tinyAmount)
-			expect(vault1Details[0].longOtokens[0]).to.equal(otoken)
+			expect(vault2Details[0].longAmounts[0]).to.equal(tinyAmount)
+			expect(vault2Details[0].longOtokens[0]).to.equal(otoken)
+
 			vaultIdCounter++
 		})
 		it("REVERTS: OPYN mint short option with collateral deposited via exchange then deposits the long option from sender in vault 1", async () => {
@@ -1045,12 +1055,12 @@ describe("Actions tests", async () => {
 			await usd.approve(exchange.address, 0)
 			await otokenERC.approve(MARGIN_POOL[chainId], 0)
 		})
-		it("SUCCEED: OPYN mint short option with collateral deposited via exchange then deposits the long option from sender in vault 1 and withdraws to sender", async () => {
+		it("SUCCEED: OPYN mint short option with collateral deposited via exchange and withdraws long option from vault 8", async () => {
 			const margin = toUSDC("1000")
-			const otoken = await exchange.callStatic.createOtoken(proposedSeries)
+			const otoken = await exchange.callStatic.createOtoken(proposedSeries2)
 			const otokenERC = (await ethers.getContractAt("Otoken", otoken)) as Otoken
 			await otokenERC.approve(MARGIN_POOL[chainId], tinyAmount)
-			await exchange.createOtoken(proposedSeries)
+			await exchange.createOtoken(proposedSeries2)
 			usd.approve(exchange.address, margin)
 			await exchange.operate([
 				{
@@ -1099,7 +1109,7 @@ describe("Actions tests", async () => {
 							owner: senderAddress,
 							secondAddress: senderAddress,
 							asset: otoken,
-							vaultId: 1,
+							vaultId: 8,
 							amount: tinyAmount,
 							optionSeries: emptySeries,
 							indexOrAcceptablePremium: 0,
@@ -1115,7 +1125,7 @@ describe("Actions tests", async () => {
 			expect(vaultDetails[0].collateralAmounts[0]).to.equal(margin)
 			expect(vaultDetails[0].shortAmounts[0]).to.equal(tinyAmount)
 			expect(vaultDetails[0].shortOtokens[0]).to.equal(otoken)
-			const vault1Details = await controller.getVaultWithDetails(senderAddress, 1)
+			const vault1Details = await controller.getVaultWithDetails(senderAddress, 8)
 			expect(vault1Details[0].longAmounts[0]).to.equal(0)
 			expect(vault1Details[0].longOtokens[0]).to.equal(ZERO_ADDRESS)
 			vaultIdCounter++
