@@ -17,7 +17,8 @@ import {
 	Oracle,
 	Otoken as IOToken,
 	VaultCollateralMulticall,
-	WETH
+	WETH,
+	Authority
 } from "../types"
 import { OptionRegistry, OptionSeriesStruct } from "../types/OptionRegistry"
 import {
@@ -49,6 +50,7 @@ let liquidityPool: LiquidityPoolAdjustCollateralTest
 let controller: NewController
 let newCalculator: NewMarginCalculator
 let oracle: Contract
+let authority: Authority
 let multicall: VaultCollateralMulticall
 let optionRegistry: OptionRegistry
 let optionRegistryETH: OptionRegistry
@@ -141,7 +143,9 @@ describe("Gelato Options registry Vault Health", function () {
 		// deploy libraries
 		const interactionsFactory = await ethers.getContractFactory("OpynInteractions")
 		const interactions = await interactionsFactory.deploy()
-		const computeFactory = await hre.ethers.getContractFactory("contracts/libraries/OptionsCompute.sol:OptionsCompute")
+		const computeFactory = await hre.ethers.getContractFactory(
+			"contracts/libraries/OptionsCompute.sol:OptionsCompute"
+		)
 		const compute = await computeFactory.deploy()
 		// deploy options registry
 		const optionRegistryFactory = await ethers.getContractFactory("OptionRegistry", {
@@ -151,7 +155,7 @@ describe("Gelato Options registry Vault Health", function () {
 			}
 		})
 		const authorityFactory = await hre.ethers.getContractFactory("Authority")
-		const authority = await authorityFactory.deploy(senderAddress, senderAddress, senderAddress)
+		authority = await authorityFactory.deploy(senderAddress, senderAddress, senderAddress)
 		// get and transfer weth
 		weth = (await ethers.getContractAt(
 			"contracts/interfaces/WETH.sol:WETH",
@@ -195,7 +199,7 @@ describe("Gelato Options registry Vault Health", function () {
 		const signer = (await ethers.getSigners())[0]
 		const multicallFactory = await ethers.getContractFactory("VaultCollateralMulticall")
 		multicall = (await multicallFactory.deploy(
-			signer.address,
+			authority.address,
 			optionRegistry.address
 		)) as VaultCollateralMulticall
 		await optionRegistry.setKeeper(multicall.address, true)
@@ -578,8 +582,24 @@ describe("Gelato Options registry Vault Health", function () {
 			.add(marginReq2.sub(vaultCollat2))
 			.add(marginReq4.sub(vaultCollat4))
 
+		// Check keeper system works
+		const keeperAddress = "0x55fe002aeff02f77364de339a1292923a15844b8"
+		await hre.network.provider.request({
+			method: "hardhat_impersonateAccount",
+			params: [keeperAddress]
+		})
+		// user is not keeper. Tx should fail
+		await expect(
+			multicall.connect(await ethers.getSigner(keeperAddress)).adjustVaults([1, 2, 3, 4])
+		).to.be.revertedWithCustomError(multicall, "NotKeeper")
+
+		// set address as keeper
+		await multicall.setKeeper(keeperAddress, true)
+		// tx now passes
 		// throw vault 3 in even though it is healthy
-		const tx = await multicall.adjustVaults([1, 2, 3, 4])
+		const tx = await multicall
+			.connect(await ethers.getSigner(keeperAddress))
+			.adjustVaults([1, 2, 3, 4])
 		await tx.wait()
 		let vaultIdsAfter: number[] = await checkAllVaultHealths(4)
 		// all vaults are healthy
@@ -625,14 +645,5 @@ describe("Gelato Options registry Vault Health", function () {
 			id.toNumber()
 		)
 		expect(multicallUnhealthyVaultsAfter.join("")).to.eq("0000")
-	})
-	it("can change the executor", async () => {
-		expect(await multicall.executorAddress()).to.eq(senderAddress)
-		await multicall.setExecutor(ZERO_ADDRESS)
-		expect(await multicall.executorAddress()).to.eq(ZERO_ADDRESS)
-		await expect(multicall.setExecutor(senderAddress)).to.be.revertedWithCustomError(
-			multicall,
-			"invalidMsgSender"
-		)
 	})
 })
