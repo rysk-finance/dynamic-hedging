@@ -57,7 +57,7 @@ export const Pricing = ({
       case size && Number(size) > MAX_TRADE_SIZE:
         return "Trade size must be between 0.1 and 1000.";
 
-      case quote <= 0:
+      case Boolean(size && strikesSelected && quote <= 0):
         return `${
           isCredit ? "Net premium received" : "Net premium paid"
         } cannot be negative.`;
