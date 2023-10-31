@@ -39,7 +39,7 @@ export async function deployManager(
 ) {
 	const managerFactory = await ethers.getContractFactory("Manager")
 	const manager = await managerFactory.deploy(
-		authorityAddress: String,
+		authorityAddress,
 		liquidityPoolAddress,
 		optionHandlerAddress,
 		catalogueAddress,
