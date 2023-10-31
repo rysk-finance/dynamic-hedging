@@ -142,6 +142,7 @@ export interface ActivePositions {
   expiryTimestamp: string;
   firstCreated?: string;
   id: HexString;
+  isCreditSpread: boolean;
   isOpen: boolean;
   isPut: boolean;
   isShort: boolean;
@@ -158,7 +159,7 @@ export interface ActivePositions {
 export interface InactivePositions
   extends Pick<
     ActivePositions,
-    "entry" | "id" | "isPut" | "isShort" | "series"
+    "entry" | "id" | "isCreditSpread" | "isPut" | "isShort" | "series"
   > {
   close: number;
   oraclePrice: number;
@@ -241,6 +242,7 @@ export type GlobalState = {
   adjustingOption?: AdjustingOption;
   closingOption?: ClosingOption;
   selectedOption?: SelectedOption;
+  selectedStrategy?: SelectedStrategy;
   optionChainModalOpen?: OptionChainModal;
   visibleColumns: ColumnNamesSet;
   userTradingPreferences: UserTradingPreferences;
@@ -276,6 +278,7 @@ export enum ActionType {
   SET_COLLATERAL_PREFERENCES,
   SET_ADJUSTING_OPTION,
   SET_SELECTED_OPTION,
+  SET_SELECTED_STRATEGY,
   SET_CLOSING_OPTION,
   SET_OPTION_CHAIN_MODAL_VISIBLE,
   RESET_OPTIONS_CHAIN_STATE,
@@ -360,6 +363,11 @@ export type GlobalAction =
       type: ActionType.SET_SELECTED_OPTION;
       activeExpiry?: string;
       option?: SelectedOption;
+    }
+  | {
+      type: ActionType.SET_SELECTED_STRATEGY;
+      buyOrSell?: BuyOrSell;
+      strategy?: OptionChainModal;
     }
   | {
       type: ActionType.SET_ADJUSTING_OPTION;
@@ -452,6 +460,7 @@ export enum OptionChainModalActions {
   ADJUST_COLLATERAL = "Adjust Collateral",
   BUY = "Buy",
   CALL_CREDIT_SPREAD = "Call Credit Spread",
+  CALL_DEBIT_SPREAD = "Call Debit Spread",
   CLOSE_LONG = "Close Long",
   CLOSE_SHORT = "Close Short",
   CLOSE_SPREAD = "Close Spread",
@@ -459,6 +468,7 @@ export enum OptionChainModalActions {
   LONG_STRANGLE = "Long Strangle",
   OPERATOR = "Operator",
   PUT_CREDIT_SPREAD = "Put Credit Spread",
+  PUT_DEBIT_SPREAD = "Put Debit Spread",
   SELL = "Sell",
 }
 
@@ -466,11 +476,17 @@ export type OptionChainModal =
   (typeof OptionChainModalActions)[keyof typeof OptionChainModalActions];
 
 export type CallOrPut = "call" | "put";
+type BuyOrSell = "buy" | "sell";
 
 export interface SelectedOption {
-  buyOrSell: "sell" | "buy";
+  buyOrSell: BuyOrSell;
   callOrPut: CallOrPut;
   strikeOptions: StrikeOptions;
+}
+
+export interface SelectedStrategy {
+  buyOrSell?: BuyOrSell;
+  strategy?: OptionChainModal;
 }
 
 export interface AdjustingOption {

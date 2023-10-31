@@ -36,14 +36,17 @@ export const Pricing = ({
     collateral,
     fee,
     hasRequiredCapital,
+    isCredit,
+    isPut,
+    netQuote,
     now,
-    quotes,
     remainingBalance,
+    slippage,
     strikes,
   } = positionData;
 
-  const strikesSelected = strikes && strikes[0] && strikes[1];
-  const [shortQuote, longQuote] = quotes;
+  const strikesSelected = strikes[0] && strikes[1];
+  const quote = isCredit ? netQuote : Math.abs(netQuote);
 
   const errorMessage = useMemo(() => {
     switch (true) {
@@ -54,11 +57,16 @@ export const Pricing = ({
       case size && Number(size) > MAX_TRADE_SIZE:
         return "Trade size must be between 0.1 and 1000.";
 
-      case remainingBalance <= 0 && Boolean(quotes[0]) && Boolean(quotes[1]):
+      case quote <= 0:
+        return `${
+          isCredit ? "Net premium received" : "Net premium paid"
+        } cannot be negative.`;
+
+      case remainingBalance <= 0 && Boolean(quote):
         return "Final balance cannot be negative.";
 
-      case !hasRequiredCapital && Boolean(quotes[0]) && Boolean(quotes[1]):
-        return "Insufficient balance to cover collateral.";
+      case !hasRequiredCapital && Boolean(quote):
+        return "Insufficient balance to cover transaction.";
 
       case utilisationHigh:
         return "DHV utilisation is high. Some TXs may fail.";
@@ -72,7 +80,8 @@ export const Pricing = ({
     return getAvailableStrikes(
       Object.entries(data[activeExpiry!]),
       strikes,
-      strategy
+      strategy,
+      isPut
     );
   }, [data, strikes]);
 
@@ -91,7 +100,7 @@ export const Pricing = ({
 
   return (
     <div className="flex flex-col">
-      <div className="w-4/5 xl:w-3/5 mx-auto py-3">
+      <div className="w-4/5 xl:w-3/5 mx-auto py-2">
         <span className="flex">
           <p className="mr-auto my-auto">{`Short strike:`}</p>
           <RyskTooltip
@@ -146,35 +155,31 @@ export const Pricing = ({
           {strikesSelected && (
             <motion.div layout="position" {...FadeInUpDelayed(0.05)}>
               <span className="flex pt-2">
-                <p className="mr-auto">{`Collateral required:`}</p>
-
-                <RyskTooltip
-                  content="The total amount of collateral required to cover the position."
-                  disabled={!tutorialMode}
-                  placement="left"
-                >
-                  <p className="font-medium">
-                    <RyskCountUp value={collateral} />
-                    {` USDC`}
-                  </p>
-                </RyskTooltip>
-              </span>
-
-              <span className="flex pb-2 border-gray-600 border-b">
-                <p className="mr-auto">{`Liquidation Price:`}</p>
-                <p className="font-medium">{`Fully Collateralised`}</p>
-              </span>
-
-              <span className="flex pt-2">
-                <p className="mr-auto">{`Net premium received:`}</p>
+                <p className="mr-auto">
+                  {isCredit ? "Net premium received:" : "Net premium paid:"}
+                </p>
                 <RyskTooltip
                   content="The total amount of USDC you will receive from selling this position."
                   disabled={!tutorialMode}
                   placement="left"
                 >
                   <p className="font-medium">
-                    <RyskCountUp value={shortQuote - longQuote} />
+                    <RyskCountUp value={quote} />
                     {` USDC`}
+                  </p>
+                </RyskTooltip>
+              </span>
+
+              <span className="flex">
+                <p className="mr-auto">{`Price impact:`}</p>
+                <RyskTooltip
+                  content="The slippage of total premium based on trade size."
+                  disabled={!tutorialMode}
+                  placement="left"
+                >
+                  <p className="font-medium">
+                    <RyskCountUp value={slippage} />
+                    {` %`}
                   </p>
                 </RyskTooltip>
               </span>
@@ -193,7 +198,7 @@ export const Pricing = ({
                 </RyskTooltip>
               </span>
 
-              <span className="flex">
+              <span className="flex pb-2 border-gray-600 border-b">
                 <p className="mr-auto">{`Break even:`}</p>
                 <RyskTooltip
                   content="The price at which your position will break even if held to expiry."
@@ -207,7 +212,31 @@ export const Pricing = ({
                 </RyskTooltip>
               </span>
 
-              <span className="flex">
+              {isCredit && (
+                <>
+                  <span className="flex pt-2">
+                    <p className="mr-auto">{`Collateral required:`}</p>
+
+                    <RyskTooltip
+                      content="The total amount of collateral required to cover the position."
+                      disabled={!tutorialMode}
+                      placement="left"
+                    >
+                      <p className="font-medium">
+                        <RyskCountUp value={collateral} />
+                        {` USDC`}
+                      </p>
+                    </RyskTooltip>
+                  </span>
+
+                  <span className="flex pb-2 border-gray-600 border-b">
+                    <p className="mr-auto">{`Liquidation Price:`}</p>
+                    <p className="font-medium">{`Fully Collateralised`}</p>
+                  </span>
+                </>
+              )}
+
+              <span className="flex pt-2">
                 <p className="mr-auto">{`Balance after:`}</p>
                 <p className="font-medium">
                   <RyskCountUp value={remainingBalance} />

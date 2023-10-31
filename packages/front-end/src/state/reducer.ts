@@ -119,6 +119,15 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
         },
         selectedOption: action.option,
       };
+    case ActionType.SET_SELECTED_STRATEGY:
+      return {
+        ...state,
+        selectedStrategy: {
+          ...state.selectedStrategy,
+          buyOrSell: action.buyOrSell,
+          strategy: action.strategy,
+        },
+      };
     case ActionType.SET_ADJUSTING_OPTION:
       return {
         ...state,
@@ -142,6 +151,7 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
         closingOption: defaultGlobalState.closingOption,
         selectedOption: defaultGlobalState.selectedOption,
         optionChainModalOpen: defaultGlobalState.optionChainModalOpen,
+        selectedStrategy: defaultGlobalState.selectedStrategy,
       };
     case ActionType.CHANGE_FROM_BUYING_OR_SELLING:
       if (state.selectedOption) {

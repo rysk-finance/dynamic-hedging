@@ -13,6 +13,7 @@ export interface PositionDataState {
   exposure: number;
   fee: number;
   hasRequiredCapital: boolean;
+  isCredit: boolean;
   isPut: boolean;
   now: string;
   operation: CloseLongOperation;

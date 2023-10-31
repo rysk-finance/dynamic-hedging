@@ -80,7 +80,7 @@ export const Liquidation = ({
           ) : (
             <span className="block">
               <p className="leading-8">{`Fully Collateralised`}</p>
-              {Boolean(collateralAmount) && isSpread && (
+              {Boolean(collateralAmount && isSpread) && (
                 <span>
                   <p className="leading-8">
                     {`(`}

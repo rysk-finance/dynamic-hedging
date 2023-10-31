@@ -33,16 +33,8 @@ export const Pricing = ({
     },
   } = useGlobalContext();
 
-  const {
-    breakEven,
-    fee,
-    now,
-    premium,
-    quote,
-    remainingBalance,
-    slippage,
-    strikes,
-  } = positionData;
+  const { breakEven, fee, now, quote, remainingBalance, slippage, strikes } =
+    positionData;
 
   const isStrangle = strategy === OptionChainModalActions.LONG_STRANGLE;
   const strikesSelected = strikes && strikes[0] && strikes[1];
@@ -97,7 +89,7 @@ export const Pricing = ({
 
   return (
     <div className="flex flex-col">
-      <div className="w-4/5 xl:w-3/5 mx-auto py-3">
+      <div className="w-4/5 xl:w-3/5 mx-auto py-2">
         <span className="flex">
           <p className="mr-auto my-auto">
             {isStrangle ? `Put strike:` : `Strike:`}
@@ -156,28 +148,14 @@ export const Pricing = ({
           {strikesSelected && (
             <motion.div layout="position" {...FadeInUpDelayed(0.05)}>
               <span className="flex pt-2">
-                <p className="mr-auto">{`Premium:`}</p>
+                <p className="mr-auto">{`Premium paid:`}</p>
                 <RyskTooltip
                   content="The amount of USDC required per contract."
                   disabled={!tutorialMode}
                   placement="left"
                 >
                   <p className="font-medium">
-                    <RyskCountUp value={premium} />
-                    {` USDC`}
-                  </p>
-                </RyskTooltip>
-              </span>
-
-              <span className="flex">
-                <p className="mr-auto">{`Fee:`}</p>
-                <RyskTooltip
-                  content="The total fee that Rysk collects per contract."
-                  disabled={!tutorialMode}
-                  placement="left"
-                >
-                  <p className="font-medium">
-                    <RyskCountUp value={fee} />
+                    <RyskCountUp value={quote} />
                     {` USDC`}
                   </p>
                 </RyskTooltip>
@@ -197,11 +175,21 @@ export const Pricing = ({
                 </RyskTooltip>
               </span>
 
-              <small className="block leading-6 text-gray-600 border-gray-600 border-b">
-                {`Premium and fees are per option.`}
-              </small>
+              <span className="flex">
+                <p className="mr-auto">{`Fee:`}</p>
+                <RyskTooltip
+                  content="The total fee that Rysk collects per contract."
+                  disabled={!tutorialMode}
+                  placement="left"
+                >
+                  <p className="font-medium">
+                    <RyskCountUp value={fee} />
+                    {` USDC`}
+                  </p>
+                </RyskTooltip>
+              </span>
 
-              <span className="flex pt-2">
+              <span className="flex pb-2 border-gray-600 border-b">
                 <p className="mr-auto">{`Break even:`}</p>
                 <RyskTooltip
                   content="The price at which your position will break even if held to expiry. The first value is for the CALL and the second is for the PUT."
@@ -212,20 +200,6 @@ export const Pricing = ({
                     <RyskCountUp value={breakEven[0]} />
                     {` USDC / `}
                     <RyskCountUp value={breakEven[1]} />
-                    {` USDC`}
-                  </p>
-                </RyskTooltip>
-              </span>
-
-              <span className="flex pb-2 border-gray-600 border-b">
-                <p className="mr-auto">{`Total to pay:`}</p>
-                <RyskTooltip
-                  content="The total amount of USDC required to open this position."
-                  disabled={!tutorialMode}
-                  placement="left"
-                >
-                  <p className="font-medium">
-                    <RyskCountUp value={quote} />
                     {` USDC`}
                   </p>
                 </RyskTooltip>

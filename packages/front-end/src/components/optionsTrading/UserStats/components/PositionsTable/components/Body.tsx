@@ -98,6 +98,7 @@ export const Body = () => {
               entry,
               firstCreated,
               id,
+              isCreditSpread,
               isPut,
               isShort,
               mark,
@@ -118,6 +119,7 @@ export const Body = () => {
                 {...FadeInUpDelayed(Math.min(index * 0.1, 2))}
               >
                 <Series
+                  isCreditSpread={isCreditSpread}
                   isPut={isPut}
                   isShort={isShort}
                   series={series}

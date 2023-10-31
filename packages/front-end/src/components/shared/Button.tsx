@@ -2,11 +2,7 @@ import type { HTMLMotionProps } from "framer-motion";
 
 import { useConnectModal, useChainModal } from "@rainbow-me/rainbowkit";
 import { motion } from "framer-motion";
-import { useCallback } from "react";
 import { useAccount, useNetwork } from "wagmi";
-
-import { useGlobalContext } from "../../state/GlobalContext";
-import { ActionType } from "../../state/types";
 
 export interface ButtonProps extends HTMLMotionProps<"button"> {
   color?: "white" | "black";
@@ -22,22 +18,6 @@ export const Button = ({
   const { openChainModal } = useChainModal();
   const { isDisconnected } = useAccount();
   const { chain } = useNetwork();
-
-  const { dispatch } = useGlobalContext();
-
-  const handleMouseEnter = useCallback(() => {
-    dispatch({
-      type: ActionType.SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE,
-      isActive: true,
-    });
-  }, [dispatch]);
-
-  const handleMouseLeave = useCallback(() => {
-    dispatch({
-      type: ActionType.SET_CONNECT_WALLET_INDICATOR_IS_ACTIVE,
-      isActive: false,
-    });
-  }, [dispatch]);
 
   const getDynamicProps = () => {
     switch (true) {
@@ -70,8 +50,6 @@ export const Button = ({
       <motion.button
         className={`border-black border-2 text-sm px-2 py-1 !bg-black text-white ${props.className}`}
         id={props.id}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
         {...getDynamicProps()}
       />
     );

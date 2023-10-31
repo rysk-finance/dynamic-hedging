@@ -25,6 +25,7 @@ export const useModal = () => {
       optionChainModalOpen,
       options: { activeExpiry, data, isOperator },
       selectedOption,
+      selectedStrategy,
     },
     dispatch,
   } = useGlobalContext();
@@ -51,42 +52,68 @@ export const useModal = () => {
   // Dispatcher for opening modals.
   useEffect(() => {
     if (activeExpiry && data[activeExpiry]) {
-      if (adjustingOption) {
-        dispatch({
-          type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
-          visible: OptionChainModalActions.ADJUST_COLLATERAL,
-        });
-      } else if (closingOption && closingOption.isSpread) {
-        dispatch({
-          type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
-          visible: OptionChainModalActions.CLOSE_SPREAD,
-        });
-      } else if (closingOption && !closingOption.isShort) {
-        dispatch({
-          type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
-          visible: OptionChainModalActions.CLOSE_LONG,
-        });
-      } else if (closingOption && closingOption.isShort) {
-        dispatch({
-          type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
-          visible: OptionChainModalActions.CLOSE_SHORT,
-        });
-      } else if (selectedOption?.buyOrSell === "buy") {
-        dispatch({
-          type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
-          visible: OptionChainModalActions.BUY,
-        });
-      } else if (selectedOption?.buyOrSell === "sell" && !isOperator) {
-        dispatch({
-          type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
-          visible: OptionChainModalActions.OPERATOR,
-        });
-      } else if (selectedOption?.buyOrSell === "sell" && isOperator) {
-        dispatch({
-          type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
-          visible: OptionChainModalActions.SELL,
-        });
+      switch (true) {
+        case Boolean(adjustingOption):
+          dispatch({
+            type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
+            visible: OptionChainModalActions.ADJUST_COLLATERAL,
+          });
+          break;
+
+        case closingOption && closingOption.isSpread:
+          dispatch({
+            type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
+            visible: OptionChainModalActions.CLOSE_SPREAD,
+          });
+          break;
+
+        case closingOption && !closingOption.isShort:
+          dispatch({
+            type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
+            visible: OptionChainModalActions.CLOSE_LONG,
+          });
+          break;
+
+        case closingOption && closingOption.isShort:
+          dispatch({
+            type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
+            visible: OptionChainModalActions.CLOSE_SHORT,
+          });
+          break;
+
+        case selectedOption?.buyOrSell === "sell" && !isOperator:
+        case selectedStrategy?.buyOrSell === "sell" && !isOperator:
+          dispatch({
+            type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
+            visible: OptionChainModalActions.OPERATOR,
+          });
+          break;
+
+        case selectedOption?.buyOrSell === "buy":
+          dispatch({
+            type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
+            visible: OptionChainModalActions.BUY,
+          });
+          break;
+
+        case selectedOption?.buyOrSell === "sell":
+          dispatch({
+            type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
+            visible: OptionChainModalActions.SELL,
+          });
+          break;
+
+        case Boolean(selectedStrategy?.strategy):
+          dispatch({
+            type: ActionType.SET_OPTION_CHAIN_MODAL_VISIBLE,
+            visible: selectedStrategy?.strategy,
+          });
+          break;
+
+        default:
+          break;
       }
+
       return;
     }
   }, [
@@ -95,6 +122,8 @@ export const useModal = () => {
     closingOption,
     isOperator,
     selectedOption,
+    optionChainModalOpen,
+    selectedStrategy,
   ]);
 
   return [optionChainModalOpen] as const;

@@ -27,6 +27,7 @@ export const openSpread = async (
   collateralAddress: HexString,
   exchangeAddress: HexString,
   exposure: number,
+  isCredit: boolean,
   longOTokenAddress: HexString,
   optionSeries: Omit<OptionSeries, "strike">,
   refresh: () => void,
@@ -52,7 +53,7 @@ export const openSpread = async (
     strike: Convert.fromStr(long).toWei(),
   };
 
-  const requiredShortData = [
+  const requiredCreditShortData = [
     depositCollateral(
       collateral,
       collateralAddress,
@@ -60,6 +61,9 @@ export const openSpread = async (
       userAddress,
       vaultId
     ),
+  ];
+
+  const requiredShortData = [
     mintShortOption(
       amount,
       exchangeAddress,
@@ -81,7 +85,15 @@ export const openSpread = async (
     {
       operation: OperationType.OpynAction,
       operationQueue: hasVault
-        ? requiredShortData
+        ? isCredit
+          ? [...requiredCreditShortData, ...requiredShortData]
+          : [...requiredShortData]
+        : isCredit
+        ? [
+            openVault(userAddress, vaultId),
+            ...requiredCreditShortData,
+            ...requiredShortData,
+          ]
         : [openVault(userAddress, vaultId), ...requiredShortData],
     },
     {

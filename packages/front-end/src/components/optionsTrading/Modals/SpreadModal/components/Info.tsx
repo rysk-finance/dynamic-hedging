@@ -5,13 +5,27 @@ import { STRATEGY_LINKS } from "src/config/links";
 import { Symbol } from "../../Shared/components/Symbol";
 import { OptionChainModalActions } from "src/state/types";
 
+const details = {
+  [OptionChainModalActions.CALL_CREDIT_SPREAD]: {
+    link: STRATEGY_LINKS.CALL_CREDIT_SPREAD,
+    outlook: "Bearish",
+  },
+  [OptionChainModalActions.CALL_DEBIT_SPREAD]: {
+    link: STRATEGY_LINKS.CALL_DEBIT_SPREAD,
+    outlook: "Bullish",
+  },
+  [OptionChainModalActions.PUT_CREDIT_SPREAD]: {
+    link: STRATEGY_LINKS.PUT_CREDIT_SPREAD,
+    outlook: "Bullish",
+  },
+  [OptionChainModalActions.PUT_DEBIT_SPREAD]: {
+    link: STRATEGY_LINKS.PUT_DEBIT_SPREAD,
+    outlook: "Bearish",
+  },
+};
+
 export const Info = ({ positionData, strategy }: InfoProps) => {
-  const isCallCreditSpread =
-    strategy === OptionChainModalActions.CALL_CREDIT_SPREAD;
-  const link = isCallCreditSpread
-    ? STRATEGY_LINKS.CALL_CREDIT_SPREAD
-    : STRATEGY_LINKS.PUT_CREDIT_SPREAD;
-  const outlook = isCallCreditSpread ? "Bearish" : "Bullish";
+  const { link, outlook } = details[strategy];
 
   return (
     <Symbol
@@ -25,7 +39,7 @@ export const Info = ({ positionData, strategy }: InfoProps) => {
 
       <p className="flex text-center text-sm justify-center">
         <a
-          className="flex !text-cyan-dark-compliant py-3"
+          className="flex !text-cyan-dark-compliant py-2"
           href={link}
           target="_blank"
           rel="noopener noreferrer"

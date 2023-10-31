@@ -1,15 +1,15 @@
-import { CallCreditSpread } from "./CallCreditSpread";
+import { BearishSpread } from "./BearishSpread";
 import { LongStraddle } from "./LongStraddle";
 import { LongStrangle } from "./LongStrangle";
-import { PutCreditSpread } from "./PutCreditSpread";
+import { BullishSpread } from "./BullishSpread";
 import { ShortStraddle } from "./ShortStraddle";
 import { ShortStrangle } from "./ShortStrangle";
 
 export {
-  CallCreditSpread,
+  BearishSpread,
   LongStraddle,
   LongStrangle,
-  PutCreditSpread,
+  BullishSpread,
   ShortStraddle,
   ShortStrangle,
 };

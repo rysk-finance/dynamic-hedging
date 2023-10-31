@@ -11,7 +11,7 @@ import { capitalise } from "src/utils/caseConvert";
  * @param handleTransaction - Function to handle the transaction - optional.
  */
 export const getButtonProps = (
-  action: "buy" | "close" | "deposit" | "open" | "sell" | "withdraw",
+  action: "buy" | "close" | "deposit" | "open" | "sell" | "set" | "withdraw",
   transactionPending: boolean,
   isApproved: boolean | [boolean, boolean],
   handleApprove: () => Promise<void>,
@@ -25,6 +25,14 @@ export const getButtonProps = (
         ),
         key: "pending",
         title: "Transaction pending.",
+      };
+
+    case action === "set":
+      return {
+        children: capitalise(action),
+        key: action,
+        onClick: handleApprove,
+        title: `Click to ${action}.`,
       };
 
     case Array.isArray(isApproved) && !isApproved[0] && Boolean(handleApprove):

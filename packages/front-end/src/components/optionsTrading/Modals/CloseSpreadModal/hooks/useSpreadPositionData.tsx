@@ -42,6 +42,11 @@ export const useSpreadPositionData = (amountToClose: string) => {
     marginPoolAddress
   );
 
+  // Vault data.
+  const vault = closingOption?.vault;
+  const vaultId = vault?.vaultId;
+  const isCredit = Boolean(vault?.longCollateral && vault?.collateralAmount);
+
   // User position state.
   const [positionData, setPositionData] = useState<PositionDataState>({
     acceptablePremium: [BigNumber.from(0), BigNumber.from(0)],
@@ -53,6 +58,7 @@ export const useSpreadPositionData = (amountToClose: string) => {
     exposure: 0,
     fee: 0,
     hasRequiredCapital: false,
+    isCredit,
     isPut: Boolean(closingOption?.isPut),
     now: dateTimeNow(),
     operation: "sell",
@@ -68,9 +74,6 @@ export const useSpreadPositionData = (amountToClose: string) => {
 
   const [loading, setLoading] = useState(false);
   const [debouncedLoading] = useDebounce(loading, 300);
-
-  const vault = closingOption?.vault;
-  const vaultId = vault?.vaultId;
 
   // Get user position data.
   useEffect(() => {
@@ -170,6 +173,7 @@ export const useSpreadPositionData = (amountToClose: string) => {
               exposure: closingOption.shortUSDCExposure || 0,
               fee: shortQuote.fee + longQuote.fee,
               hasRequiredCapital,
+              isCredit,
               isPut: closingOption.isPut,
               now,
               operation: closingOption?.shortUSDCExposure ? "close" : "sell",
@@ -201,6 +205,7 @@ export const useSpreadPositionData = (amountToClose: string) => {
               exposure: 0,
               fee: 0,
               hasRequiredCapital: false,
+              isCredit,
               isPut: closingOption.isPut,
               now,
               operation: "sell",
