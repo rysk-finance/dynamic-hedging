@@ -120,6 +120,13 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         address receiver
     );
 
+    event UniswapAssetsCollected(
+        uint256 burn0,
+        uint256 burn1,
+        uint256 fee0,
+        uint256 fee1
+    );
+
     constructor(
     address _factory,
     address _collateralAsset,
@@ -243,7 +250,6 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             // if the current price is below the lower tick
             if (tick < currentPosition.activeLowerTick) {
                 _withdraw(currentPosition.activeLowerTick, currentPosition.activeUpperTick, liquidity);
-                //todo emit amounts collected
             } else {
                 revert CustomErrors.RangeOrderNotFilled();
             }
@@ -713,6 +719,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         fee1 = collect1 - burn1;
         // mark no current position
         delete currentPosition;
+        emit UniswapAssetsCollected(burn0, burn1, fee0, fee1);
     }
 
     /// @notice Withdraws all liquidity from a range order and collection outstanding fees
