@@ -35,8 +35,6 @@ import {
 import { WETH } from "../types/WETH"
 import { LiquidityPool } from "../types/LiquidityPool"
 import { arbitrum as addresses } from "../contracts.json"
-import { sign } from "crypto"
-import { min } from "bn.js"
 
 enum Direction {
 	ABOVE = 0,
@@ -672,7 +670,9 @@ describe("UniswapV3RangeOrderReactor", () => {
 	it("Reverts when trying to fulfill a range order that is partially filled", async () => {
 		const reactorDelta = Number(fromWei(await liquidityPoolDummy.getDelta()))
 		let poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
-		const balancesBefore = await uniswapV3RangeOrderReactor.getUnderlyingBalances()
+		// transfer usdc to reactor to test it's not removed
+		await usdcContract.connect(signers[1]).transfer(uniswapV3RangeOrderReactor.address, toUSDC("100"))
+		const usdcBalance = await usdcContract.balanceOf(uniswapV3RangeOrderReactor.address)
 		const weth_usdc_price_before = poolInfo.token1Price.toFixed()
 		const amountToSwap = toUSDC("6000000")
 		await usdcContract.connect(signers[1]).approve(uniswapRouter.address, amountToSwap)
@@ -700,6 +700,7 @@ describe("UniswapV3RangeOrderReactor", () => {
 		const reactorDeltaAfter = Number(fromWei(await liquidityPoolDummy.getDelta()))
 
 		const fulfillAttempt = uniswapV3RangeOrderReactor.fulfillActiveRangeOrder()
+		const usdcBalanceAfter = await usdcContract.balanceOf(uniswapV3RangeOrderReactor.address)
 		expect(fulfillAttempt).to.be.revertedWithCustomError(
 			uniswapV3RangeOrderReactor,
 			"RangeOrderNotFilled"
@@ -707,6 +708,8 @@ describe("UniswapV3RangeOrderReactor", () => {
 		expect(tick).to.be.gt(activeLowerTick)
 		expect(tickAfter).to.be.lt(activeUpperTick)
 		expect(reactorDeltaAfter).to.be.lt(reactorDelta)
+		// no collateral should be transfered when a fulfill fails
+		expect(usdcBalanceAfter).to.be.eq(usdcBalance)
 	})
 
 	it("Allows for rehedging after range order is partially filled", async () => {
@@ -722,7 +725,6 @@ describe("UniswapV3RangeOrderReactor", () => {
 	it("It fulfills when rehedge moves through range", async () => {
 		const reactorDelta = Number(fromWei(await liquidityPoolDummy.getDelta()))
 		let poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
-		const balancesBefore = await uniswapV3RangeOrderReactor.getUnderlyingBalances()
 		const weth_usdc_price_before = poolInfo.token1Price.toFixed()
 		const amountToSwap = toUSDC("10000000")
 		await usdcContract.connect(signers[1]).approve(uniswapRouter.address, amountToSwap)
@@ -747,9 +749,13 @@ describe("UniswapV3RangeOrderReactor", () => {
 		const { tick: tickAfter } = await uniswapUSDCWETHPool.slot0()
 		const { activeLowerTick, activeUpperTick } = await uniswapV3RangeOrderReactor.currentPosition()
 		const balances = await uniswapV3RangeOrderReactor.getUnderlyingBalances()
+		const usdcBalanceBefore = balances.amount0Current
 		const reactorDeltaAfter = Number(fromWei(await liquidityPoolDummy.getDelta()))
+		const LpUsdcBalanceBefore = await usdcContract.balanceOf(liquidityPoolDummy.address)
 
 		const fulfillAttempt = await uniswapV3RangeOrderReactor.fulfillActiveRangeOrder()
+		const balancesAfer = await uniswapV3RangeOrderReactor.getUnderlyingBalances()
+		const usdcBalanceAfter = balancesAfer.amount0Current
 		const receipt = await fulfillAttempt.wait()
 		const [collectEvent] = getMatchingEvents(receipt, UNISWAP_POOL_COLLECT)
 		const { activeLowerTick: activeLowerAfter, activeUpperTick: activeUpperAfter } =
@@ -759,18 +765,26 @@ describe("UniswapV3RangeOrderReactor", () => {
 		// USDC amount
 		const amountOut = Number(fromUSDC(collectEvent.amount0))
 		const fillPrice = amountOut / 0.3
+		const LpUsdcBalanceAfter = await usdcContract.balanceOf(liquidityPoolDummy.address)
+		const lpUsdcBalanceAfterExpectation = LpUsdcBalanceBefore.add(usdcBalanceBefore)
 		// Amount of delta hedged
 		expect(deltaDifference).to.eq(0.3)
 		expect(fillPrice).to.be.gt(average)
 		expect(tickAfter).to.be.lt(activeLowerTick)
 		expect(activeLowerAfter).to.be.eq(0)
 		expect(activeUpperAfter).to.be.eq(0)
+		// collateral should be transfered when a fulfill succeeds
+		expect(usdcBalanceAfter).to.be.lt(usdcBalanceBefore)
+		expect(LpUsdcBalanceAfter).to.be.eq(lpUsdcBalanceAfterExpectation)
 	})
 
 	it("withdraws partial excess USDC to liquidity pool", async () => {
+		const withdrawAmount = toUSDC("1000")
+		await usdcContract
+			.connect(signers[1])
+			.transfer(uniswapV3RangeOrderReactor.address, withdrawAmount)
 		const usdcBalance = await usdcContract.balanceOf(uniswapV3RangeOrderReactor.address)
 		const usdcBalanceLp = await usdcContract.balanceOf(liquidityPoolDummy.address)
-		const withdrawAmount = toUSDC("1000")
 		const withdrawTx = await liquidityPoolDummy.withdraw(withdrawAmount)
 		const receipt = await withdrawTx.wait()
 		const usdcBalanceAfter = await usdcContract.balanceOf(uniswapV3RangeOrderReactor.address)
@@ -780,6 +794,8 @@ describe("UniswapV3RangeOrderReactor", () => {
 	})
 
 	it("Allows the guardian to recover an erc20 token directly", async () => {
+		const initAmount = toUSDC("1000")
+		await usdcContract.connect(signers[1]).transfer(uniswapV3RangeOrderReactor.address, initAmount)
 		const usdcBalance = await usdcContract.balanceOf(uniswapV3RangeOrderReactor.address)
 		// ensure there is a balance to recover for the test to be valid
 		expect(usdcBalance).to.be.gt(0)

@@ -116,7 +116,8 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     );
 
     event Withdraw(
-        uint256 amount
+        uint256 amount,
+        address receiver
     );
 
     constructor(
@@ -242,10 +243,13 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
             // if the current price is below the lower tick
             if (tick < currentPosition.activeLowerTick) {
                 _withdraw(currentPosition.activeLowerTick, currentPosition.activeUpperTick, liquidity);
+                //todo emit amounts collected
             } else {
                 revert CustomErrors.RangeOrderNotFilled();
             }
         }
+        // after withdrawing liquidity send back collateral to parent pool
+        _transferCollateralBalanceToParentPool();
     }
 
     /// @notice compute total underlying holdings of the vault token supply
@@ -317,12 +321,12 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         }
         if (_amount <= balance) {
             SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, _amount);
-            emit Withdraw(_amount);
+            emit Withdraw(_amount, msg.sender);
             // return in collateral format
             return _amount;
         } else {
             SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, balance);
-            emit Withdraw(balance);
+            emit Withdraw(balance, msg.sender);
             // return in collateral format
             return balance;
         }
@@ -631,6 +635,19 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
      */
     function _inActivePosition() private view returns (bool) {
         return currentPosition.activeLowerTick != currentPosition.activeUpperTick;
+    }
+
+    /**
+     * @notice use to transfer collateral balance to the parent liquidity pool
+     */
+
+    function _transferCollateralBalanceToParentPool() internal {
+        uint256 balance = ERC20(collateralAsset).balanceOf(address(this));
+        if (balance == 0) {
+            return;
+        }
+        SafeTransferLib.safeTransfer(ERC20(collateralAsset), parentLiquidityPool, balance);
+        emit Withdraw(balance, parentLiquidityPool); 
     }
 
     /**
