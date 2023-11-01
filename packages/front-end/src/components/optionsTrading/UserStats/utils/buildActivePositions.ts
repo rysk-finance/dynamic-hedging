@@ -18,23 +18,22 @@ import { PositionAction } from "../enums";
 
 const calculateBreakEven = (
   entry: number,
-  entryCollateral: number,
+
   isCreditSpread: boolean,
   isPut: boolean,
   isSpread: boolean,
+  spreadEntry: number,
   strikeInt: number,
   strikeIntCollateral: number
 ) => {
   if (isSpread && isCreditSpread) {
-    return isPut
-      ? strikeInt - (entry + entryCollateral)
-      : strikeInt + (entry - entryCollateral);
+    return isPut ? strikeInt - spreadEntry : strikeInt + spreadEntry;
   }
 
   if (isSpread) {
     return isPut
-      ? strikeIntCollateral + (entry - entryCollateral)
-      : strikeIntCollateral - (entry + entryCollateral);
+      ? strikeIntCollateral - spreadEntry
+      : strikeIntCollateral + spreadEntry;
   }
 
   return isPut ? strikeInt - entry : strikeInt + entry;
@@ -287,6 +286,16 @@ export const buildActivePositions = async (
         ? sellCollateral.disabled || !sellCollateral.quote.quote
         : false;
 
+      // Get net credit/debit for spreads
+      const spreadEntry = isCreditSpread
+        ? entry - entryCollateral
+        : entryCollateral - entry;
+
+      // Get net mark for spreads.
+      const spreadMark = isCreditSpread
+        ? mark - markCollateral
+        : markCollateral - mark;
+
       // Adjust P/L for partially closed positions.
       const bought = Convert.fromWei(buyAmount || "0").toInt();
       const sold = Convert.fromWei(sellAmount || "0").toInt();
@@ -351,10 +360,10 @@ export const buildActivePositions = async (
         amount,
         breakEven: calculateBreakEven(
           entry,
-          entryCollateral,
           isCreditSpread,
           isPut,
           isSpread,
+          spreadEntry,
           strikeInt,
           strikeIntCollateral
         ),
@@ -368,7 +377,7 @@ export const buildActivePositions = async (
         delta: isSpread
           ? deltaCollateral * net + delta * amount
           : delta * amount,
-        entry: entryCollateral ? (entry + entryCollateral) / 2 : entry,
+        entry: entryCollateral ? spreadEntry : entry,
         expiryTimestamp,
         firstCreated,
         id,
@@ -378,7 +387,7 @@ export const buildActivePositions = async (
         isShort,
         isSpread,
         longCollateralAddress: longCollateral?.oToken.id,
-        mark: markCollateral ? (mark + markCollateral) / 2 : mark,
+        mark: markCollateral ? spreadMark : mark,
         profitLoss,
         returnOnInvestment,
         series: [series.join("-"), seriesCollateral.join("-")],
