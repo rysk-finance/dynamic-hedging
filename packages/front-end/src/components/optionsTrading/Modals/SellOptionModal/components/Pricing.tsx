@@ -108,7 +108,7 @@ export const Pricing = ({ loading, positionData, size }: PricingProps) => {
           placement="left"
         >
           <p className="font-medium">
-            <RyskCountUp value={Number(size) * fee} />
+            <RyskCountUp value={fee} />
             {` USDC`}
           </p>
         </RyskTooltip>

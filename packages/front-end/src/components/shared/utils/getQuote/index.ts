@@ -80,7 +80,7 @@ export const getQuotes = async (
       };
     }
 
-    const fee = Convert.fromUSDC(forOne.totalFees).toInt();
+    const fee = Convert.fromUSDC(forOrder.totalFees).toInt();
     const premium = Convert.fromUSDC(forOne.totalPremium).toInt();
     const quoteForOne = Convert.fromUSDC(
       isSell
