@@ -95,7 +95,7 @@ export const getUserPositions = (
       if (!key) {
         positions[expiryTimestamp] = {
           netAmount,
-          isLong: isLong && active,
+          isLong: (isLong || Boolean(longCollateral)) && active,
           isShort: isShort && active,
           activeTokens: active ? [token] : [],
           inactiveTokens: !active ? [token] : [],
