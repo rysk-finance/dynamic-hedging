@@ -198,6 +198,9 @@ export const globalReducer: Reducer<GlobalState, GlobalAction> = (
             returnFormat:
               action.activePositionsFilters?.returnFormat ??
               state.userStats.activePositionsFilters.returnFormat,
+            fees:
+              action.activePositionsFilters?.fees ??
+              state.userStats.activePositionsFilters.fees,
             isAscending:
               action.activePositionsFilters?.isAscending ??
               state.userStats.activePositionsFilters.isAscending,

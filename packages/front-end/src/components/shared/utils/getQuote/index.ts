@@ -81,7 +81,7 @@ export const getQuotes = async (
     }
 
     const fee = Convert.fromUSDC(forOrder.totalFees).toInt();
-    const premium = Convert.fromUSDC(forOne.totalPremium).toInt();
+    const premium = Convert.fromUSDC(forOrder.totalPremium).toInt();
     const quoteForOne = Convert.fromUSDC(
       isSell
         ? forOne.totalPremium.sub(forOne.totalFees)

@@ -13,7 +13,7 @@ export const Filters = () => {
     dispatch,
     state: {
       userStats: {
-        activePositionsFilters: { compact, hideExpired, returnFormat },
+        activePositionsFilters: { compact, fees, hideExpired, returnFormat },
       },
     },
   } = useGlobalContext();
@@ -60,10 +60,33 @@ export const Filters = () => {
     });
   };
 
+  const handleFeesClick = () => {
+    const activePositionsFilters = { fees: !fees };
+
+    setLocalStorageObject(
+      LocalStorageKeys.ACTIVE_POSITIONS_FILTERS_FEES,
+      activePositionsFilters
+    );
+
+    dispatch({
+      type: ActionType.SET_USER_STATS,
+      activePositionsFilters,
+    });
+  };
+
   return (
     <div className="flex justify-end select-none">
       <RefreshButton />
       <ExpiredButton />
+
+      <span
+        className="flex items-center cursor-pointer mr-8 py-3"
+        onClick={handleFeesClick}
+      >
+        <SimpleToggle isActive={fees}>
+          {`Show ${returnFormat ? "P/L" : "ROI"} with fees:`}
+        </SimpleToggle>
+      </span>
 
       <span
         className="flex items-center cursor-pointer mr-8 py-3"

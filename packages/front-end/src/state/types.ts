@@ -149,8 +149,8 @@ export interface ActivePositions {
   isSpread: boolean;
   longCollateralAddress?: HexString;
   mark: number;
-  profitLoss: number;
-  returnOnInvestment: number;
+  profitLoss: [number, number];
+  returnOnInvestment: [number, number];
   series: [string, string];
   shortUSDCExposure?: number;
   strikes: [string, string];
@@ -178,6 +178,7 @@ export interface UserStats {
     hideExpired: boolean;
     isAscending: boolean;
     returnFormat: boolean;
+    fees: boolean;
     sort: ActivePositionsSortType;
   };
   delta: number;
@@ -408,6 +409,7 @@ export type GlobalAction =
         compact?: boolean;
         hideExpired?: boolean;
         returnFormat?: boolean;
+        fees?: boolean;
         isAscending?: boolean;
         sort?: ActivePositionsSortType;
       };
