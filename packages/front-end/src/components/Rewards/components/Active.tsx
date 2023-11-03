@@ -20,7 +20,7 @@ const rewardPrograms = [
       {
         external: true,
         href: "https://medium.rysk.finance/arbitrum-stip-rewards-for-rysk-6929609e85d7",
-        label: "Learn more about the Arbitrum STIP rewards.",
+        label: "Learn more about the rewards.",
       },
       {
         external: false,
