@@ -6,7 +6,7 @@ import { BigNumber } from "ethers";
 
 import { OptionExchangeABI } from "src/abis/OptionExchange_ABI";
 import { waitForTransactionOrTimer } from "src/components/shared/utils/waitForTransaction";
-import { GAS_MULTIPLIER } from "src/config/constants";
+import { GAS_MULTIPLIER, ZERO_ADDRESS } from "src/config/constants";
 import OperationType from "src/enums/OperationType";
 import { Convert } from "src/utils/Convert";
 import { buyOption, issue } from "./operateBlocks";
@@ -39,9 +39,21 @@ export const openLongStraddleStrangle = async (
       operation: OperationType.RyskAction,
       operationQueue: [
         ...issue(optionSeries.collateral, putExposure, putSeries),
-        buyOption(acceptablePremium, amount, putSeries, userAddress),
+        buyOption(
+          acceptablePremium,
+          amount,
+          ZERO_ADDRESS,
+          putSeries,
+          userAddress
+        ),
         ...issue(optionSeries.collateral, callExposure, callSeries),
-        buyOption(acceptablePremium, amount, callSeries, userAddress),
+        buyOption(
+          acceptablePremium,
+          amount,
+          ZERO_ADDRESS,
+          callSeries,
+          userAddress
+        ),
       ],
     },
   ];
