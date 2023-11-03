@@ -30,7 +30,7 @@ const rewardPrograms = [
       {
         external: false,
         href: "/",
-        label: "Start trading now.",
+        label: "Trade options now to earn rewards.",
       },
     ],
     title: "Arbitrum STIP",
