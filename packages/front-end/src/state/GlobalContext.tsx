@@ -149,7 +149,7 @@ export const defaultGlobalState: GlobalState = {
 
   // User stats
   userStats: {
-    activePnL: 0,
+    activePnL: [0, 0],
     activePositions: [],
     activePositionsFilters: {
       ...getLocalStorageObject<
@@ -178,7 +178,7 @@ export const defaultGlobalState: GlobalState = {
       }),
     },
     delta: 0,
-    historicalPnL: 0,
+    historicalPnL: [0, 0],
     inactivePositions: [],
     inactivePositionsFilters: getLocalStorageObject<
       UserStats["inactivePositionsFilters"]

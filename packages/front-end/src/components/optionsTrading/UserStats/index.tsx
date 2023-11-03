@@ -15,6 +15,7 @@ export const UserStats = () => {
       userStats: {
         activePnL,
         activePositions,
+        activePositionsFilters: { fees },
         delta,
         historicalPnL,
         loading: statsLoading,
@@ -23,6 +24,8 @@ export const UserStats = () => {
   } = useGlobalContext();
 
   useUserStats();
+
+  const feeIndex = Number(!fees);
 
   return (
     <AnimatePresence mode="wait">
@@ -50,7 +53,7 @@ export const UserStats = () => {
             title="P/L (active)"
           >
             <p className="text-lg xl:text-2xl mb-2">
-              {<RyskCountUp prefix="$" value={activePnL} />}
+              {<RyskCountUp prefix="$" value={activePnL[feeIndex]} />}
             </p>
           </Card>
           <Card
@@ -60,7 +63,7 @@ export const UserStats = () => {
             title="P/L (historical)"
           >
             <p className="text-lg xl:text-2xl mb-2">
-              <RyskCountUp prefix="$" value={historicalPnL} />
+              <RyskCountUp prefix="$" value={historicalPnL[feeIndex]} />
             </p>
           </Card>
           <Card

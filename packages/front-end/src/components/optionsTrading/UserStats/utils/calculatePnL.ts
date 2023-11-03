@@ -7,8 +7,10 @@ import { Convert } from "src/utils/Convert";
 
 /**
  * Calculate P/L value for all historical positions.
- * Index 0 - Historical P/L.
- * Index 1 - Active P/L.
+ * Index 0 - Historical P/L with fees.
+ * Index 1 - Historical P/L without fees.
+ * Index 2 - Active P/L with fees.
+ * Index 3 - Active P/L without fees.
  *
  * @param ethPrice - Ether price from global state.
  * @param activePositions - List of active user positions.
@@ -17,7 +19,7 @@ import { Convert } from "src/utils/Convert";
  * @param quotes - List of quote data for active positions.
  * @param wethOracleHashMap - Oracle Ether price HashMap from global state.
  *
- * @returns Promise<[number, number]>
+ * @returns Promise<[number, number, number, number]>
  */
 export const calculatePnL = async (
   ethPrice: number,
@@ -27,14 +29,19 @@ export const calculatePnL = async (
   quotes: QuoteData[],
   collateralQuotes: QuoteData[],
   wethOracleHashMap: WethOracleHashMap
-): Promise<[number, number]> => {
+): Promise<[number, number, number, number]> => {
   const allPositions = [...longPositions, ...shortPositions];
 
-  if (!allPositions.length || !ethPrice) return [0, 0];
+  if (!allPositions.length || !ethPrice) return [0, 0, 0, 0];
 
   return allPositions.reduce(
     (
-      [historicalPnL, activePnL],
+      [
+        historicalPnLWithFees,
+        historicalPnLWithoutFees,
+        activePnLWithFees,
+        activePnLWithoutFees,
+      ],
       {
         active,
         buyAmount,
@@ -68,18 +75,29 @@ export const calculatePnL = async (
 
         if (!active) {
           // Manually closed or expired and redeemed.
-          return [historicalPnL + realizedPnL, activePnL];
+          return [
+            historicalPnLWithFees + realizedPnL,
+            historicalPnLWithoutFees + realizedPnL,
+            activePnLWithFees,
+            activePnLWithFees,
+          ];
         } else if (expiriesAt > nowToUnix) {
           // Open positions.
-          const { quote } =
+          const { premium, quote } =
             quotes[
               activePositions.findIndex(
                 (pos) => pos.id === id && !pos.collateralAsset?.symbol
               )
             ];
-          const value = adjustedPnl + quote;
+          const valueWithFees = adjustedPnl + quote;
+          const valueWithoutFees = adjustedPnl + premium;
 
-          return [historicalPnL + value, activePnL + value];
+          return [
+            historicalPnLWithFees + valueWithFees,
+            historicalPnLWithoutFees + valueWithoutFees,
+            activePnLWithFees + valueWithFees,
+            activePnLWithoutFees + valueWithoutFees,
+          ];
         } else {
           // Expired but not yet redeemed.
           const priceAtExpiry = wethOracleHashMap[expiryTimestamp];
@@ -89,9 +107,13 @@ export const calculatePnL = async (
             ? Math.max(strike - priceAtExpiry, 0)
             : Math.max(priceAtExpiry - strike, 0);
 
+          const total = adjustedPnl + valueAtExpiry * positionSize;
+
           return [
-            historicalPnL + adjustedPnl + valueAtExpiry * positionSize,
-            activePnL,
+            historicalPnLWithFees + total,
+            historicalPnLWithoutFees + total,
+            activePnLWithFees,
+            activePnLWithoutFees,
           ];
         }
       } else {
@@ -124,7 +146,14 @@ export const calculatePnL = async (
 
         if (!active && !hasBeenLiquidated) {
           // Manually closed or expired and settled.
-          return [historicalPnL + realizedPnL + vaultRealizedPnL, activePnL];
+          const realizedTotal = realizedPnL + vaultRealizedPnL;
+
+          return [
+            historicalPnLWithFees + realizedTotal,
+            historicalPnLWithoutFees + realizedTotal,
+            activePnLWithFees,
+            activePnLWithoutFees,
+          ];
         } else if (!active && hasBeenLiquidated) {
           // Liquidated.
           const collateralLost = liquidateActions.reduce(
@@ -139,7 +168,14 @@ export const calculatePnL = async (
             0
           );
 
-          return [historicalPnL + realizedPnL - collateralLost, activePnL];
+          const realizedTotal = realizedPnL - collateralLost;
+
+          return [
+            historicalPnLWithFees + realizedTotal,
+            historicalPnLWithoutFees + realizedTotal,
+            activePnLWithFees,
+            activePnLWithoutFees,
+          ];
         } else if (expiriesAt > nowToUnix) {
           // Open positions.
           const qIndex = activePositions.findIndex(
@@ -147,15 +183,25 @@ export const calculatePnL = async (
               pos.id === id &&
               pos.collateralAsset?.symbol === collateralAsset?.symbol
           );
-          const { quote } = quotes[qIndex];
-          const value = adjustedPnl - quote;
+          const { premium, quote } = quotes[qIndex];
+          const valueWithFees = adjustedPnl - quote;
+          const valueWithoutFees = adjustedPnl - premium;
 
-          const { quote: collateralQuote } = collateralQuotes[qIndex];
+          const { premium: collateralPremium, quote: collateralQuote } =
+            collateralQuotes[qIndex];
           const collateralValue = adjustedCollateralPnL + collateralQuote;
+          const collateralValueWithoutFees =
+            adjustedCollateralPnL + collateralPremium;
+
+          const feesTotal = valueWithFees + collateralValue;
+          const withoutFeesTotal =
+            valueWithoutFees + collateralValueWithoutFees;
 
           return [
-            historicalPnL + value + collateralValue,
-            activePnL + value + collateralValue,
+            historicalPnLWithFees + feesTotal,
+            historicalPnLWithoutFees + withoutFeesTotal,
+            activePnLWithFees + feesTotal,
+            activePnLWithoutFees + withoutFeesTotal,
           ];
         } else {
           // Expired but not yet settled.
@@ -177,10 +223,17 @@ export const calculatePnL = async (
             adjustedCollateralPnL +
             valueAtExpiryCollateral * Math.abs(positionSize);
 
-          return [historicalPnL + short + long, activePnL];
+          const total = short + long;
+
+          return [
+            historicalPnLWithFees + total,
+            historicalPnLWithoutFees + total,
+            activePnLWithFees,
+            activePnLWithoutFees,
+          ];
         }
       }
     },
-    [0, 0]
+    [0, 0, 0, 0]
   );
 };

@@ -171,7 +171,7 @@ export interface InactivePositions
 export type ActivePositionsSortType = keyof typeof ActivePositionSort;
 
 export interface UserStats {
-  activePnL: number;
+  activePnL: [number, number]; // [withFees, withoutFees]
   activePositions: ActivePositions[];
   activePositionsFilters: {
     compact: boolean;
@@ -182,7 +182,7 @@ export interface UserStats {
     sort: ActivePositionsSortType;
   };
   delta: number;
-  historicalPnL: number;
+  historicalPnL: [number, number]; // [withFees, withoutFees]
   inactivePositions: InactivePositions[];
   inactivePositionsFilters: {
     compact: boolean;
@@ -403,7 +403,7 @@ export type GlobalAction =
     }
   | {
       type: ActionType.SET_USER_STATS;
-      activePnL?: number;
+      activePnL?: [number, number]; // [withFees, withoutFees]
       activePositions?: ActivePositions[];
       activePositionsFilters?: {
         compact?: boolean;
@@ -414,7 +414,7 @@ export type GlobalAction =
         sort?: ActivePositionsSortType;
       };
       delta?: number;
-      historicalPnL?: number;
+      historicalPnL?: [number, number]; // [withFees, withoutFees]
       inactivePositions?: InactivePositions[];
       inactivePositionsFilters?: {
         compact?: boolean;
