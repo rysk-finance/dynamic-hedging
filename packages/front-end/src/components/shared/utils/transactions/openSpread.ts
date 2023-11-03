@@ -79,7 +79,13 @@ export const openSpread = async (
       operation: OperationType.RyskAction,
       operationQueue: [
         ...issue(optionSeries.collateral, exposure, longSeries),
-        buyOption(longAcceptablePremium, amount, longSeries, userAddress),
+        buyOption(
+          longAcceptablePremium,
+          amount,
+          ZERO_ADDRESS,
+          longSeries,
+          userAddress
+        ),
       ],
     },
     {
