@@ -17,7 +17,7 @@ export interface PositionDataState {
   isPut: boolean;
   now: string;
   operation: CloseLongOperation;
-  premium: number;
+  premiums: [number, number];
   quotes: [number, number];
   remainingBalance: number;
   remainingCollateral: number;

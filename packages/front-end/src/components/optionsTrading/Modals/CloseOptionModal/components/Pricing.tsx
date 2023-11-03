@@ -22,7 +22,7 @@ export const Pricing = ({ positionData, size }: PricingProps) => {
     maxCloseSize,
     now,
     orderTooBig,
-    quote,
+    premium,
     remainingBalance,
     slippage,
   } = positionData;
@@ -54,7 +54,7 @@ export const Pricing = ({ positionData, size }: PricingProps) => {
             placement="left"
           >
             <p className="font-medium">
-              <RyskCountUp value={quote} />
+              <RyskCountUp value={premium} />
               {` USDC`}
             </p>
           </RyskTooltip>

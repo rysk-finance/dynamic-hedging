@@ -32,7 +32,7 @@ export const Pricing = ({
     fee,
     hasRequiredCapital,
     now,
-    quote,
+    premium,
     remainingBalanceUSDC,
     remainingBalanceWETH,
     slippage,
@@ -46,10 +46,10 @@ export const Pricing = ({
       case size && Number(size) > MAX_TRADE_SIZE:
         return "Trade size must be between 0.1 and 1000.";
 
-      case !hasRequiredCapital && Boolean(quote):
+      case !hasRequiredCapital && Boolean(premium):
         return "Insufficient balance to cover collateral.";
 
-      case remainingBalanceUSDC <= 0 && Boolean(quote):
+      case remainingBalanceUSDC <= 0 && Boolean(premium):
         return "Final balance cannot be negative.";
 
       case utilisationHigh:
@@ -73,7 +73,7 @@ export const Pricing = ({
             placement="left"
           >
             <p className="font-medium">
-              <RyskCountUp value={quote} />
+              <RyskCountUp value={premium} />
               {` USDC`}
             </p>
           </RyskTooltip>

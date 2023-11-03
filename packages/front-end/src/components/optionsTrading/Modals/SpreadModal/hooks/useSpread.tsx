@@ -76,7 +76,7 @@ export const useSpread = (
     hasRequiredCapital: false,
     isCredit,
     isPut,
-    netQuote: 0,
+    netPremium: 0,
     now: dateTimeNow(),
     premium: 0,
     quotes: [0, 0],
@@ -128,10 +128,10 @@ export const useSpread = (
             ? Math.max(longInt - shortInt, shortInt - longInt) * amount
             : 0;
 
-          const netQuote = shortQuote.quote - longQuote.quote;
-          const netQuotePerContract = netQuote / amount;
+          const netPremium = shortQuote.premium - longQuote.premium;
+          const netPremiumPerContract = netPremium / amount;
           const remainingBalance =
-            balanceUSDC === 0 ? 0 : balanceUSDC + netQuote - collateral;
+            balanceUSDC === 0 ? 0 : balanceUSDC + netPremium - collateral;
 
           const approvalBuffer = 1.005;
           const requiredCapital =
@@ -146,11 +146,11 @@ export const useSpread = (
 
           const breakEven = isCredit
             ? isPut
-              ? shortInt - netQuotePerContract
-              : shortInt + netQuotePerContract
+              ? shortInt - netPremiumPerContract
+              : shortInt + netPremiumPerContract
             : isPut
-            ? longInt + netQuotePerContract
-            : longInt - netQuotePerContract;
+            ? longInt + netPremiumPerContract
+            : longInt - netPremiumPerContract;
 
           const exposure =
             data[activeExpiry!][longInt][side]?.exposure.net || 0;
@@ -168,7 +168,7 @@ export const useSpread = (
             hasRequiredCapital: balanceUSDC > requiredCapital,
             isCredit,
             isPut,
-            netQuote,
+            netPremium: netPremium,
             now: dateTimeNow(),
             premium: shortQuote.premium - longQuote.premium,
             quotes: [shortQuote.quote, longQuote.quote],
@@ -199,7 +199,7 @@ export const useSpread = (
             hasRequiredCapital: false,
             isCredit,
             isPut,
-            netQuote: 0,
+            netPremium: 0,
             now: dateTimeNow(),
             premium: 0,
             quotes: [0, 0],

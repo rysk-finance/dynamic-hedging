@@ -33,7 +33,7 @@ export const Pricing = ({
     },
   } = useGlobalContext();
 
-  const { breakEven, fee, now, quote, remainingBalance, slippage, strikes } =
+  const { breakEven, fee, now, premium, remainingBalance, slippage, strikes } =
     positionData;
 
   const isStrangle = strategy === OptionChainModalActions.LONG_STRANGLE;
@@ -51,7 +51,7 @@ export const Pricing = ({
       case size && Number(size) > MAX_TRADE_SIZE:
         return "Trade size must be between 0.1 and 1000.";
 
-      case remainingBalance <= 0 && Boolean(quote):
+      case remainingBalance <= 0 && Boolean(premium):
         return "Final balance cannot be negative.";
 
       case utilisationHigh:
@@ -155,7 +155,7 @@ export const Pricing = ({
                   placement="left"
                 >
                   <p className="font-medium">
-                    <RyskCountUp value={quote} />
+                    <RyskCountUp value={premium} />
                     {` USDC`}
                   </p>
                 </RyskTooltip>

@@ -29,14 +29,14 @@ export const Pricing = ({ positionData, size }: PricingProps) => {
     isCredit,
     isPut,
     now,
-    quotes,
+    premiums,
     remainingBalance,
     remainingCollateral,
     slippage,
     strikes,
   } = positionData;
 
-  const [shortQuote, longQuote] = quotes;
+  const [shortPremium, longPremium] = premiums;
 
   const strategyName = isPut
     ? isCredit
@@ -52,10 +52,10 @@ export const Pricing = ({ positionData, size }: PricingProps) => {
       case size && Number(size) > MAX_TRADE_SIZE:
         return "Trade size must be between 0.1 and 1000.";
 
-      case !hasRequiredCapital && Boolean(quotes[0]):
+      case !hasRequiredCapital && Boolean(shortPremium):
         return "Insufficient balance to cover collateral.";
 
-      case remainingBalance <= 0 && Boolean(quotes[0]):
+      case remainingBalance <= 0 && Boolean(shortPremium):
         return "Final balance cannot be negative.";
 
       case utilisationHigh:
@@ -87,7 +87,9 @@ export const Pricing = ({ positionData, size }: PricingProps) => {
             <p className="font-medium">
               <RyskCountUp
                 value={
-                  isCredit ? shortQuote - longQuote : longQuote - shortQuote
+                  isCredit
+                    ? shortPremium - longPremium
+                    : longPremium - shortPremium
                 }
               />
               {` USDC`}

@@ -30,7 +30,7 @@ export const Pricing = ({ loading, positionData, size }: PricingProps) => {
     hasRequiredCapital,
     liquidationPrice,
     now,
-    quote,
+    premium,
     remainingBalanceUSDC,
     remainingBalanceWETH,
     slippage,
@@ -56,10 +56,10 @@ export const Pricing = ({ loading, positionData, size }: PricingProps) => {
       case !full && amount < 1.1:
         return "Collateral multiplier must be at least 1.1x.";
 
-      case negativeBalance && Boolean(quote):
+      case negativeBalance && Boolean(premium):
         return "Final balance cannot be negative.";
 
-      case !hasRequiredCapital && Boolean(quote):
+      case !hasRequiredCapital && Boolean(premium):
         return "Insufficient balance to cover collateral.";
 
       case utilisationHigh:
@@ -80,7 +80,7 @@ export const Pricing = ({ loading, positionData, size }: PricingProps) => {
           placement="left"
         >
           <p className="font-medium">
-            <RyskCountUp value={quote} />
+            <RyskCountUp value={premium} />
             {` USDC`}
           </p>
         </RyskTooltip>
@@ -166,10 +166,10 @@ export const Pricing = ({ loading, positionData, size }: PricingProps) => {
               {...FadeInOutQuick}
             >
               <RyskCountUp
-                fallback={collateralFull && quote ? "" : "-"}
-                value={collateralFull && quote ? 0 : liquidationPrice}
+                fallback={collateralFull && premium ? "" : "-"}
+                value={collateralFull && premium ? 0 : liquidationPrice}
               />
-              {collateralFull && quote ? `Fully Collateralised` : ` USDC`}
+              {collateralFull && premium ? `Fully Collateralised` : ` USDC`}
             </motion.p>
           </RyskTooltip>
         </AnimatePresence>

@@ -190,7 +190,7 @@ export const SpreadModal = ({ strategy }: ModalProps) => {
             !Number(amountToOpen) ||
             Number(amountToOpen) < MIN_TRADE_SIZE ||
             Number(amountToOpen) > MAX_TRADE_SIZE ||
-            Math.abs(positionData.netQuote) <= 0 ||
+            Math.abs(positionData.netPremium) <= 0 ||
             !addresses.user ||
             positionData.remainingBalance < 0 ||
             transactionPending ||

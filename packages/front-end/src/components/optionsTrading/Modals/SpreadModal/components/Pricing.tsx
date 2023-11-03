@@ -38,7 +38,7 @@ export const Pricing = ({
     hasRequiredCapital,
     isCredit,
     isPut,
-    netQuote,
+    netPremium,
     now,
     remainingBalance,
     slippage,
@@ -46,7 +46,7 @@ export const Pricing = ({
   } = positionData;
 
   const strikesSelected = strikes[0] && strikes[1];
-  const quote = isCredit ? netQuote : Math.abs(netQuote);
+  const premium = isCredit ? netPremium : Math.abs(netPremium);
 
   const errorMessage = useMemo(() => {
     switch (true) {
@@ -57,15 +57,15 @@ export const Pricing = ({
       case size && Number(size) > MAX_TRADE_SIZE:
         return "Trade size must be between 0.1 and 1000.";
 
-      case Boolean(size && strikesSelected && quote <= 0):
+      case Boolean(size && strikesSelected && premium <= 0):
         return `${
           isCredit ? "Net premium received" : "Net premium paid"
         } cannot be negative.`;
 
-      case remainingBalance <= 0 && Boolean(quote):
+      case remainingBalance <= 0 && Boolean(premium):
         return "Final balance cannot be negative.";
 
-      case !hasRequiredCapital && Boolean(quote):
+      case !hasRequiredCapital && Boolean(premium):
         return "Insufficient balance to cover transaction.";
 
       case utilisationHigh:
@@ -164,7 +164,7 @@ export const Pricing = ({
                   placement="left"
                 >
                   <p className="font-medium">
-                    <RyskCountUp value={quote} />
+                    <RyskCountUp value={premium} />
                     {` USDC`}
                   </p>
                 </RyskTooltip>
