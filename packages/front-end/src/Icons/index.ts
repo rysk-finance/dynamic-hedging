@@ -1,3 +1,4 @@
+import { ARB } from "./ARB";
 import { Change } from "./Change";
 import { ChevronUpDown } from "./ChevronUpDown";
 import { Close } from "./Close";
@@ -23,6 +24,7 @@ import { UpChevron } from "./UpChevron";
 import { WETH } from "./WETH";
 
 export {
+  ARB,
   Change,
   ChevronUpDown,
   Close,

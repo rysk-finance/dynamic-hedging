@@ -1,4 +1,4 @@
-import { Route, Routes, Navigate } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 
 import ApolloProvider from "./clients/Apollo/Apollo";
@@ -8,14 +8,15 @@ import { Header } from "./components/Header";
 import { Init } from "./components/Init";
 import { MobileWarning } from "./components/MobileWarning";
 import { AppPaths } from "./config/appPaths";
+import { useScrollToTop } from "./hooks/useScrollToTop";
 import { Dashboard } from "./pages/Dashboard";
 import { OTC } from "./pages/OTC";
 import { OptionsTrading } from "./pages/OptionsTrading";
 import { PrivacyPolicy } from "./pages/PrivacyPolicy";
+import { Rewards } from "./pages/Rewards";
 import { TermsOfService } from "./pages/TermsOfService";
 import { Vault } from "./pages/Vault";
 import { GlobalContextProvider } from "./state/GlobalContext";
-import { useScrollToTop } from "./hooks/useScrollToTop";
 
 import "react-toastify/dist/ReactToastify.css";
 import "./App.css";
@@ -41,6 +42,7 @@ function App() {
                     path={AppPaths.PRIVACY_POLICY}
                     element={<PrivacyPolicy />}
                   />
+                  <Route path={AppPaths.REWARDS} element={<Rewards />} />
                   <Route
                     path={AppPaths.TERMS_OF_SERVICE}
                     element={<TermsOfService />}

@@ -16,6 +16,7 @@ const links = [
   { id: "header-options", path: AppPaths.TRADE, label: "Trade Options" },
   { id: "header-vault", path: AppPaths.VAULT, label: "Vault" },
   { id: "header-dashboard", path: AppPaths.DASHBOARD, label: "Dashboard" },
+  { id: "header-rewards", path: AppPaths.REWARDS, label: "Rewards" },
 ];
 
 export const Header = () => {
