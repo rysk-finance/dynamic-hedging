@@ -7,7 +7,11 @@ import { BigNumber } from "ethers";
 
 import { OptionExchangeABI } from "src/abis/OptionExchange_ABI";
 import { waitForTransactionOrTimer } from "src/components/shared/utils/waitForTransaction";
-import { EMPTY_SERIES, GAS_MULTIPLIER } from "src/config/constants";
+import {
+  EMPTY_SERIES,
+  GAS_MULTIPLIER,
+  ZERO_ADDRESS,
+} from "src/config/constants";
 import OperationType from "src/enums/OperationType";
 import { Convert } from "src/utils/Convert";
 import {
@@ -60,7 +64,13 @@ export const closeSpread = async (
       operation: OperationType.RyskAction,
       operationQueue: [
         ...issue(optionSeries.collateral, exposure, shortSeries),
-        buyOption(shortAcceptablePremium, amount, shortSeries, userAddress),
+        buyOption(
+          shortAcceptablePremium,
+          amount,
+          ZERO_ADDRESS,
+          shortSeries,
+          userAddress
+        ),
       ],
     },
     {

@@ -28,7 +28,13 @@ export const closeShort = async (
     {
       operation: OperationType.RyskAction,
       operationQueue: [
-        buyOption(acceptablePremium, amount, EMPTY_SERIES, userAddress),
+        buyOption(
+          acceptablePremium,
+          amount,
+          tokenAddress,
+          EMPTY_SERIES,
+          userAddress
+        ),
       ],
     },
     {
