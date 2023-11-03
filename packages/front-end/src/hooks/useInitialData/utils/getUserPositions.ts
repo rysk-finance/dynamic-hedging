@@ -13,6 +13,7 @@ export const getUserPositions = (
       {
         active,
         buyAmount,
+        fees,
         liquidateActions,
         netAmount,
         oToken,
@@ -66,6 +67,7 @@ export const getUserPositions = (
         ...oToken,
         active,
         buyAmount,
+        fees,
         firstCreated,
         liquidateActions,
         netAmount,

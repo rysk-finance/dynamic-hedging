@@ -32,6 +32,7 @@ export interface UserPositionToken extends PositionOToken {
   totalPremiumSold: number;
   liquidateActions?: LiquidateActions[];
   realizedPnl: string;
+  fees: string;
   redeemActions?: RedeemActions[];
   sellAmount?: string;
   settleActions?: SettleActions[];

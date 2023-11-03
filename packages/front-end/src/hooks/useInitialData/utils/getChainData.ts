@@ -155,8 +155,6 @@ export const getChainData = async (
             },
           } as CallSide | PutSide;
 
-          // console.log(expiry, strikeUSDC, side, sell.premiumTooSmall);
-
           return sideData;
         },
         {} as {

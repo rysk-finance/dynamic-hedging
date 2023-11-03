@@ -47,6 +47,7 @@ export const calculatePnL = async (
         buyAmount,
         collateralAsset,
         expiryTimestamp,
+        fees,
         id,
         isPut,
         liquidateActions,
@@ -62,11 +63,13 @@ export const calculatePnL = async (
     ) => {
       const positionSize = Convert.fromWei(netAmount).toInt();
 
+      const fee = Convert.fromUSDC(fees).toInt();
+      const realizedPnL = Convert.fromUSDC(realizedPnl).toInt();
+
       if (index < longPositions.length) {
         // Longs
         const expiriesAt = Convert.fromStr(expiryTimestamp).toInt();
         const nowToUnix = dayjs().unix();
-        const realizedPnL = Convert.fromUSDC(realizedPnl).toInt();
 
         const net = Math.abs(Convert.fromWei(netAmount).toInt());
         const bought = Convert.fromWei(buyAmount || "0").toInt();
@@ -75,8 +78,9 @@ export const calculatePnL = async (
 
         if (!active) {
           // Manually closed or expired and redeemed.
+
           return [
-            historicalPnLWithFees + realizedPnL,
+            historicalPnLWithFees + realizedPnL - fee,
             historicalPnLWithoutFees + realizedPnL,
             activePnLWithFees,
             activePnLWithFees,
@@ -89,7 +93,7 @@ export const calculatePnL = async (
                 (pos) => pos.id === id && !pos.collateralAsset?.symbol
               )
             ];
-          const valueWithFees = adjustedPnl + quote;
+          const valueWithFees = adjustedPnl + quote - fee;
           const valueWithoutFees = adjustedPnl + premium;
 
           return [
@@ -110,7 +114,7 @@ export const calculatePnL = async (
           const total = adjustedPnl + valueAtExpiry * positionSize;
 
           return [
-            historicalPnLWithFees + total,
+            historicalPnLWithFees + total - fee,
             historicalPnLWithoutFees + total,
             activePnLWithFees,
             activePnLWithoutFees,
@@ -120,7 +124,6 @@ export const calculatePnL = async (
         // Shorts
         const expiriesAt = Convert.fromStr(expiryTimestamp).toInt();
         const nowToUnix = dayjs().unix();
-        const realizedPnL = Convert.fromUSDC(realizedPnl).toInt();
         const hasBeenLiquidated =
           liquidateActions && Boolean(liquidateActions?.length);
 
@@ -131,6 +134,7 @@ export const calculatePnL = async (
 
         // Vault data for collateralised oTokens.
         const vaultCollateral = vault?.longCollateral;
+        const vaultFee = Convert.fromUSDC(vaultCollateral?.fees).toInt();
         const vaultRealizedPnL = Convert.fromUSDC(
           vaultCollateral ? vaultCollateral.realizedPnl : "0"
         ).toInt();
@@ -144,12 +148,14 @@ export const calculatePnL = async (
         const adjustedCollateralPnL =
           sold > net ? -(net * entryCollateral) : formattedPnlCollateral;
 
+        const feeTotal = fee + vaultFee;
+
         if (!active && !hasBeenLiquidated) {
           // Manually closed or expired and settled.
           const realizedTotal = realizedPnL + vaultRealizedPnL;
 
           return [
-            historicalPnLWithFees + realizedTotal,
+            historicalPnLWithFees + realizedTotal - feeTotal,
             historicalPnLWithoutFees + realizedTotal,
             activePnLWithFees,
             activePnLWithoutFees,
@@ -171,7 +177,7 @@ export const calculatePnL = async (
           const realizedTotal = realizedPnL - collateralLost;
 
           return [
-            historicalPnLWithFees + realizedTotal,
+            historicalPnLWithFees + realizedTotal - feeTotal,
             historicalPnLWithoutFees + realizedTotal,
             activePnLWithFees,
             activePnLWithoutFees,
@@ -189,11 +195,12 @@ export const calculatePnL = async (
 
           const { premium: collateralPremium, quote: collateralQuote } =
             collateralQuotes[qIndex];
-          const collateralValue = adjustedCollateralPnL + collateralQuote;
+          const collateralValueWithFees =
+            adjustedCollateralPnL + collateralQuote;
           const collateralValueWithoutFees =
             adjustedCollateralPnL + collateralPremium;
 
-          const feesTotal = valueWithFees + collateralValue;
+          const feesTotal = valueWithFees + collateralValueWithFees - feeTotal;
           const withoutFeesTotal =
             valueWithoutFees + collateralValueWithoutFees;
 
@@ -226,7 +233,7 @@ export const calculatePnL = async (
           const total = short + long;
 
           return [
-            historicalPnLWithFees + total,
+            historicalPnLWithFees + total - feeTotal,
             historicalPnLWithoutFees + total,
             activePnLWithFees,
             activePnLWithoutFees,

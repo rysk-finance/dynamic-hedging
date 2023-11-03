@@ -12,6 +12,7 @@ query ${QueriesEnum.INITIAL_DATA} (
     buyAmount
     netAmount
     realizedPnl
+    fees
 
     oToken {
       id
@@ -44,6 +45,7 @@ query ${QueriesEnum.INITIAL_DATA} (
     sellAmount
     netAmount
     realizedPnl
+    fees
 
     oToken {
       id
@@ -100,6 +102,7 @@ query ${QueriesEnum.INITIAL_DATA} (
     where: { account: $address, optionsBoughtTransactions_: { timestamp_gte: $after }, vaultId_not: null }
   ) {
     realizedPnl
+    fees
     vaultId
 
     oToken {
