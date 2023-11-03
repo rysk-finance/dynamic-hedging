@@ -121,6 +121,3 @@ query ${QueriesEnum.INITIAL_DATA} (
   }
 }
 `;
-
-// TODO:
-// Do I need all `longOToken` data?
