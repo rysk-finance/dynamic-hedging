@@ -41,13 +41,14 @@ export const issue = (
 export const buyOption = (
   acceptablePremium: BigNumber,
   amount: BigNumber,
+  asset: HexString,
   optionSeries: OptionSeries,
   userAddress: HexString
 ) => {
   return {
     actionType: BigNumber.from(RyskActionType.BuyOption),
     amount,
-    asset: ZERO_ADDRESS,
+    asset,
     data: ZERO_ADDRESS,
     indexOrAcceptablePremium: acceptablePremium,
     optionSeries,
