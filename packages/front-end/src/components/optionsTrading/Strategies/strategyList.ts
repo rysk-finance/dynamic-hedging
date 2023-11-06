@@ -33,7 +33,7 @@ export const strategyList = [
     selling: true,
   },
   {
-    active: false,
+    active: true,
     description: "Works best when price is expected to decrease.",
     Icon: BearishSpread,
     label: "Put Debit Spread",
@@ -42,7 +42,7 @@ export const strategyList = [
     selling: true,
   },
   {
-    active: false,
+    active: true,
     description: "Works best when price is expected to increase.",
     Icon: BullishSpread,
     label: "Call Debit Spread",

@@ -8,7 +8,7 @@ import FadeInOut from "src/animation/FadeInOut";
 import FadeInUpDelayed from "src/animation/FadeInUpDelayed";
 import { RyskModal } from "src/components/shared/RyskModal";
 import { RyskTooltip } from "src/components/shared/RyskToolTip";
-import { useFeatureFlag } from "src/hooks/useFeatureFlag/useFeatureFlag";
+
 import { useGlobalContext } from "src/state/GlobalContext";
 import { ActionType } from "src/state/types";
 import { strategyList } from "./strategyList";
@@ -21,9 +21,6 @@ export const Strategies = () => {
       userTradingPreferences: { tutorialMode },
     },
   } = useGlobalContext();
-
-  // RYSK-393 spreads feature flag.
-  const [flagActive] = useFeatureFlag("393");
 
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -64,7 +61,7 @@ export const Strategies = () => {
               {hasRequiredState &&
                 strategyList.map(
                   ({ active, description, Icon, label, modal, selling }) => {
-                    if (!active && !flagActive) return null;
+                    if (!active) return null;
 
                     return (
                       <motion.button
@@ -121,7 +118,7 @@ export const Strategies = () => {
                   { active, description, Icon, label, modal, outlook, selling },
                   index
                 ) => {
-                  if (!active && !flagActive) return null;
+                  if (!active) return null;
 
                   return (
                     <motion.button
