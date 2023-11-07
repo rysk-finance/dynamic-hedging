@@ -13,6 +13,7 @@ export const getUserPositions = (
       {
         active,
         buyAmount,
+        fees,
         liquidateActions,
         netAmount,
         oToken,
@@ -66,6 +67,7 @@ export const getUserPositions = (
         ...oToken,
         active,
         buyAmount,
+        fees,
         firstCreated,
         liquidateActions,
         netAmount,
@@ -95,7 +97,7 @@ export const getUserPositions = (
       if (!key) {
         positions[expiryTimestamp] = {
           netAmount,
-          isLong: isLong && active,
+          isLong: (isLong || Boolean(longCollateral)) && active,
           isShort: isShort && active,
           activeTokens: active ? [token] : [],
           inactiveTokens: !active ? [token] : [],

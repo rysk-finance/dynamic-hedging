@@ -18,7 +18,6 @@ import { PositionAction } from "../enums";
 
 const calculateBreakEven = (
   entry: number,
-
   isCreditSpread: boolean,
   isPut: boolean,
   isSpread: boolean,
@@ -62,20 +61,27 @@ const calculateProfitLoss = (
   isOpen: boolean,
   isShort: boolean,
   isSpread: boolean,
+  premium: number,
+  premiumCollateral: number,
   quote: number,
   quoteCollateral: number,
   valueAtExpiry: number,
   valueAtExpiryCollateral: number
-) => {
+): [number, number] => {
+  // [with fees, without fees]
+
   if (isOpen) {
     if (isSpread) {
-      return adjustedPnl - quote + (adjustedCollateralPnL + quoteCollateral);
+      return [
+        adjustedPnl - quote + (adjustedCollateralPnL + quoteCollateral),
+        adjustedPnl - premium + (adjustedCollateralPnL + premiumCollateral),
+      ];
     }
 
     if (isShort) {
-      return adjustedPnl - quote;
+      return [adjustedPnl - quote, adjustedPnl - premium];
     } else {
-      return adjustedPnl + quote;
+      return [adjustedPnl + quote, adjustedPnl + premium];
     }
   }
 
@@ -84,10 +90,13 @@ const calculateProfitLoss = (
     const long =
       adjustedCollateralPnL + valueAtExpiryCollateral * Math.abs(amount);
 
-    return short + long;
+    return [short + long, short + long];
   }
 
-  return adjustedPnl + valueAtExpiry * amount;
+  return [
+    adjustedPnl + valueAtExpiry * amount,
+    adjustedPnl + valueAtExpiry * amount,
+  ];
 };
 
 /**
@@ -313,8 +322,9 @@ export const buildActivePositions = async (
           : formattedPnlCollateral;
 
       // P/L calcs.
-      const { quote } = quotes[index];
-      const { quote: quoteCollateral } = collateralQuotes[index];
+      const { premium, quote } = quotes[index];
+      const { premium: premiumCollateral, quote: quoteCollateral } =
+        collateralQuotes[index];
       const priceAtExpiry = wethOracleHashMap[expiryTimestamp];
       const valueAtExpiry = isPut
         ? Math.max(strikeInt - priceAtExpiry, 0)
@@ -329,20 +339,30 @@ export const buildActivePositions = async (
         isOpen,
         isShort,
         isSpread,
+        premium,
+        premiumCollateral,
         quote,
         quoteCollateral,
         valueAtExpiry,
         valueAtExpiryCollateral
       );
       const totalPaid = net * ((entry + entryCollateral) / 2);
-      const returnOnInvestment =
+      const returnOnInvestment: [number, number] = [
         Math.max(
           isShort
-            ? profitLoss /
+            ? profitLoss[0] /
                 formatCollateralAmount(totalPaid, collateralAsset, vault)
-            : profitLoss / (amount * entry),
+            : profitLoss[0] / (amount * entry),
           -1
-        ) * 100;
+        ) * 100,
+        Math.max(
+          isShort
+            ? profitLoss[1] /
+                formatCollateralAmount(totalPaid, collateralAsset, vault)
+            : profitLoss[1] / (amount * entry),
+          -1
+        ) * 100,
+      ];
 
       const action = getAction(
         disabled || disabledCollateral,

@@ -39,6 +39,7 @@ export interface Position {
   optionsBoughtTransactions: OptionsTransaction[];
   optionsSoldTransactions: OptionsTransaction[];
   realizedPnl: string;
+  fees: string;
   redeemActions?: RedeemActions[];
   sellAmount?: string;
   settleActions?: SettleActions[];
@@ -48,6 +49,7 @@ export interface Position {
 export interface LongCollateral
   extends Pick<
     Position,
+    | "fees"
     | "realizedPnl"
     | "oToken"
     | "optionsBoughtTransactions"

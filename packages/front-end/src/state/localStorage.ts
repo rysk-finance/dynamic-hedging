@@ -1,5 +1,6 @@
 export enum LocalStorageKeys {
   ACTIVE_POSITIONS_FILTERS_COMPACT = "rysk-apfc",
+  ACTIVE_POSITIONS_FILTERS_FEES = "rysk-apff",
   ACTIVE_POSITIONS_FILTERS_HIDE_EXPIRED = "rysk-apfhe",
   ACTIVE_POSITIONS_FILTERS_SORTING = "rysk-apfs",
   ACTIVE_POSITIONS_RETURN_FORMAT = "rysk-aprf",

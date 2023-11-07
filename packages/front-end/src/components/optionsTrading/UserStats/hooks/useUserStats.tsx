@@ -94,7 +94,12 @@ export const useUserStats = () => {
         wethOracleHashMap
       );
 
-      const [historicalPnL, activePnL] = await calculatePnL(
+      const [
+        historicalPnLWithFees,
+        historicalPnLWithoutFees,
+        activePnLWithFees,
+        activePnLWithoutFees,
+      ] = await calculatePnL(
         ethPrice,
         active,
         longs,
@@ -106,7 +111,18 @@ export const useUserStats = () => {
 
       const delta = calculateDelta(data, active);
 
-      return { activePnL, activePositions, delta, historicalPnL };
+      return {
+        activePnL: [activePnLWithFees, activePnLWithoutFees] as [
+          number,
+          number,
+        ],
+        activePositions,
+        delta,
+        historicalPnL: [historicalPnLWithFees, historicalPnLWithoutFees] as [
+          number,
+          number,
+        ],
+      };
     };
 
     dispatch({ type: ActionType.SET_USER_STATS, loading: true });
@@ -114,10 +130,10 @@ export const useUserStats = () => {
     if (isDisconnected) {
       dispatch({
         type: ActionType.SET_USER_STATS,
-        activePnL: 0,
+        activePnL: [0, 0],
         activePositions: [],
         delta: 0,
-        historicalPnL: 0,
+        historicalPnL: [0, 0],
       });
     } else if (
       Object.values(data).length &&

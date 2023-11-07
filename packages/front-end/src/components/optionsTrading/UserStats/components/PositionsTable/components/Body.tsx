@@ -22,6 +22,7 @@ export const Body = () => {
         activePositions,
         activePositionsFilters: {
           compact,
+          fees,
           hideExpired,
           isAscending,
           returnFormat,
@@ -65,9 +66,19 @@ export const Body = () => {
               : second.delta - first.delta;
 
           case ActivePositionSort.PnL:
-            return isAscending
-              ? first.profitLoss - second.profitLoss
-              : second.profitLoss - first.profitLoss;
+            const index = Number(!fees);
+
+            if (returnFormat) {
+              return isAscending
+                ? first.profitLoss[index] - second.profitLoss[index]
+                : second.profitLoss[index] - first.profitLoss[index];
+            } else {
+              return isAscending
+                ? first.returnOnInvestment[index] -
+                    second.returnOnInvestment[index]
+                : second.returnOnInvestment[index] -
+                    first.returnOnInvestment[index];
+            }
 
           default:
             return isAscending
@@ -76,7 +87,7 @@ export const Body = () => {
         }
       })
       .filter((position) => (hideExpired ? position.isOpen : position));
-  }, [activePositions, hideExpired, isAscending, sort]);
+  }, [activePositions, fees, hideExpired, isAscending, returnFormat, sort]);
 
   const compactOffHeight = sortedActivePositions.length <= 5 ? 227 : "auto";
 
@@ -130,6 +141,7 @@ export const Body = () => {
                 <ProfitLoss
                   profitLoss={returnFormat ? profitLoss : returnOnInvestment}
                   suffix={returnFormat ? undefined : " %"}
+                  withFees={fees}
                 />
                 <Entry entry={entry} />
                 <Mark mark={mark} />

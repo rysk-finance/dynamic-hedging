@@ -20,7 +20,7 @@ export const Pricing = ({ positionData, size }: PricingProps) => {
     },
   } = useGlobalContext();
 
-  const { breakEven, fee, now, quote, remainingBalance, slippage } =
+  const { breakEven, fee, now, premium, remainingBalance, slippage } =
     positionData;
 
   const errorMessage = useMemo(() => {
@@ -29,7 +29,7 @@ export const Pricing = ({ positionData, size }: PricingProps) => {
       case size && Number(size) > MAX_TRADE_SIZE:
         return "Trade size must be between 0.1 and 1000.";
 
-      case remainingBalance <= 0 && Boolean(quote):
+      case remainingBalance <= 0 && Boolean(premium):
         return "Final balance cannot be negative.";
 
       case utilisationHigh:
@@ -53,7 +53,7 @@ export const Pricing = ({ positionData, size }: PricingProps) => {
             placement="left"
           >
             <p className="font-medium">
-              <RyskCountUp value={quote} />
+              <RyskCountUp value={premium} />
               {` USDC`}
             </p>
           </RyskTooltip>
@@ -81,7 +81,7 @@ export const Pricing = ({ positionData, size }: PricingProps) => {
             placement="left"
           >
             <p className="font-medium">
-              <RyskCountUp value={Number(size) * fee} />
+              <RyskCountUp value={fee} />
               {` USDC`}
             </p>
           </RyskTooltip>

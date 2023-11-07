@@ -17,8 +17,9 @@ export interface DeltaProps {
 }
 
 export interface ProfitLossProps {
-  profitLoss: number;
+  profitLoss: [number, number];
   suffix?: string;
+  withFees: boolean;
 }
 
 export interface EntryProps {

@@ -32,6 +32,7 @@ export interface UserPositionToken extends PositionOToken {
   totalPremiumSold: number;
   liquidateActions?: LiquidateActions[];
   realizedPnl: string;
+  fees: string;
   redeemActions?: RedeemActions[];
   sellAmount?: string;
   settleActions?: SettleActions[];
@@ -149,8 +150,8 @@ export interface ActivePositions {
   isSpread: boolean;
   longCollateralAddress?: HexString;
   mark: number;
-  profitLoss: number;
-  returnOnInvestment: number;
+  profitLoss: [number, number];
+  returnOnInvestment: [number, number];
   series: [string, string];
   shortUSDCExposure?: number;
   strikes: [string, string];
@@ -171,17 +172,18 @@ export interface InactivePositions
 export type ActivePositionsSortType = keyof typeof ActivePositionSort;
 
 export interface UserStats {
-  activePnL: number;
+  activePnL: [number, number]; // [withFees, withoutFees]
   activePositions: ActivePositions[];
   activePositionsFilters: {
     compact: boolean;
     hideExpired: boolean;
     isAscending: boolean;
     returnFormat: boolean;
+    fees: boolean;
     sort: ActivePositionsSortType;
   };
   delta: number;
-  historicalPnL: number;
+  historicalPnL: [number, number]; // [withFees, withoutFees]
   inactivePositions: InactivePositions[];
   inactivePositionsFilters: {
     compact: boolean;
@@ -402,17 +404,18 @@ export type GlobalAction =
     }
   | {
       type: ActionType.SET_USER_STATS;
-      activePnL?: number;
+      activePnL?: [number, number]; // [withFees, withoutFees]
       activePositions?: ActivePositions[];
       activePositionsFilters?: {
         compact?: boolean;
         hideExpired?: boolean;
         returnFormat?: boolean;
+        fees?: boolean;
         isAscending?: boolean;
         sort?: ActivePositionsSortType;
       };
       delta?: number;
-      historicalPnL?: number;
+      historicalPnL?: [number, number]; // [withFees, withoutFees]
       inactivePositions?: InactivePositions[];
       inactivePositionsFilters?: {
         compact?: boolean;
