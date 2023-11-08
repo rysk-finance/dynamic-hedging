@@ -35,7 +35,6 @@ export const RyskCountUp = ({
     <>
       {`${prefix} `}
       <CountUp
-      
         decimalPlaces={RyskCountUpDecimals[format]}
         decimalSeparator={"."}
         duration={0.3}

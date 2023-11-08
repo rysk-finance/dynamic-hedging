@@ -4,6 +4,6 @@ export interface BlockState {
 }
 
 export interface SubgraphStatusResponse {
-  block: number;
+  block: string;
   synced: boolean;
 }

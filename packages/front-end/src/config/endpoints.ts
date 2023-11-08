@@ -8,8 +8,6 @@ export const endpoints = {
 };
 
 const deployment = process.env.REACT_APP_SUBGRAPH_URL
-  ? `?deployment=arbitrum${
-      process.env.REACT_APP_SUBGRAPH_URL.split("arbitrum")[1].split("/gn")[0]
-    }`
+  ? `?deployment=${process.env.REACT_APP_SUBGRAPH_URL.split("name/")[1]}`
   : "";
-export const SUBGRAPH_STATUS = `https://api.rysk.finance/subgraph-status${deployment}`;
+export const SUBGRAPH_STATUS = `https://www.rysk.finance/api/subgraph-status/${deployment}`;

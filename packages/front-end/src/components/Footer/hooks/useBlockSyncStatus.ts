@@ -25,7 +25,7 @@ export const useBlockSyncStatus = () => {
       typedFetch<SubgraphStatusResponse>(SUBGRAPH_STATUS)
         .then(({ block, synced }) => {
           setBlockState({
-            block,
+            block: Number(block),
             synced,
           });
         })
