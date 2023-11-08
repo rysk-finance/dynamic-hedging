@@ -113,7 +113,7 @@ export const useSpreadPositionData = (amountToClose: string) => {
 
             // Calculate collateral to remove and remaining collateral.
             const collateralAmount = BigNumber.from(
-              vault?.collateralAmount || "1"
+              vault?.collateralAmount || "0"
             );
             const shortAmount = BigNumber.from(vault?.shortAmount || "0");
 
