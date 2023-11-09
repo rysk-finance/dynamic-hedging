@@ -23,7 +23,7 @@ export const useCollateralData = (
       adjustingOption,
       balances,
       ethPrice,
-      options: { activeExpiry, spotShock, timesToExpiry },
+      options: { spotShock, timesToExpiry },
     },
   } = useGlobalContext();
 
@@ -37,6 +37,7 @@ export const useCollateralData = (
 
   // User position state.
   const [collateralData, setCollateralData] = useState<CollateralDataState>({
+    amount: amountToAdjust,
     asset: "USDC",
     callOrPut: adjustingOption?.isPut ? "put" : "call",
     collateral: adjustingOption?.collateralAmount || 0,
@@ -125,6 +126,7 @@ export const useCollateralData = (
             Math.abs(liquidationPrice - ethPrice) < ethPrice * 0.03;
 
           setCollateralData({
+            amount: amountToAdjust,
             asset: USDCCollateral ? "USDC" : "WETH",
             callOrPut,
             collateral: newCollateral,
@@ -141,6 +143,7 @@ export const useCollateralData = (
           setAllowance((currentState) => ({ ...currentState, approved }));
         } else {
           setCollateralData({
+            amount: amountToAdjust,
             asset: USDCCollateral ? "USDC" : "WETH",
             callOrPut: adjustingOption?.isPut ? "put" : "call",
             collateral: adjustingOption?.collateralAmount || 0,

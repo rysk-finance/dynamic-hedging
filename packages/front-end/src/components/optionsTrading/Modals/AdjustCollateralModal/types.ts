@@ -3,6 +3,7 @@ import type { Dispatch, SetStateAction } from "react";
 import type { CallOrPut, CollateralType } from "src/state/types";
 
 export interface CollateralDataState {
+  amount: string;
   asset: CollateralType;
   callOrPut?: CallOrPut;
   collateral: number;

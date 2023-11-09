@@ -81,8 +81,8 @@ export const AdjustCollateralModal = () => {
       if (adjustingOption && addresses.user && addresses.token) {
         const amount =
           adjustingOption.asset === "USDC"
-            ? Convert.fromStr(collateralData.requiredApproval).toUSDC()
-            : Convert.fromStr(collateralData.requiredApproval).toWei();
+            ? Convert.fromStr(collateralData.amount).toUSDC()
+            : Convert.fromStr(collateralData.amount).toWei();
 
         const hash = await adjustCollateral(
           amount,
