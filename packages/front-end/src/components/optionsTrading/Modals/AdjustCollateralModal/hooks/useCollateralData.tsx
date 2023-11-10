@@ -121,9 +121,10 @@ export const useCollateralData = (
             : true;
 
           const disabled =
-            (adjustingOption.isPut && liquidationPrice > ethPrice) ||
-            (!adjustingOption.isPut && liquidationPrice < ethPrice) ||
-            Math.abs(liquidationPrice - ethPrice) < ethPrice * 0.03;
+            !isDepositing &&
+            ((adjustingOption.isPut && liquidationPrice > ethPrice) ||
+              (!adjustingOption.isPut && liquidationPrice < ethPrice) ||
+              Math.abs(liquidationPrice - ethPrice) < ethPrice * 0.03);
 
           setCollateralData({
             amount: amountToAdjust,
