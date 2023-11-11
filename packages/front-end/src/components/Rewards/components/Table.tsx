@@ -6,6 +6,7 @@ import { ARB } from "src/Icons";
 import { RyskCountUp } from "src/components/shared/RyskCountUp";
 import { Convert } from "src/utils/Convert";
 import { shorthandContractAddress } from "src/utils/helpers";
+import { TOTAl_RECIPIENTS } from "../constants";
 
 export const Table = ({ recipients }: TableProps) => {
   const { address } = useAccount();
@@ -25,6 +26,7 @@ export const Table = ({ recipients }: TableProps) => {
         <tbody>
           {recipients.map(({ id, totalTokens, totalValue }, index) => {
             const isUser = id === address?.toLowerCase();
+            const position = index < TOTAl_RECIPIENTS ? `# ${index + 1}` : "";
 
             return (
               <tr
@@ -34,7 +36,7 @@ export const Table = ({ recipients }: TableProps) => {
                 {isUser && (
                   <td className="absolute w-full bg-cyan/20 animate-pulse" />
                 )}
-                <td>{`# ${index + 1}`}</td>
+                <td>{position}</td>
                 <td>{shorthandContractAddress(id)}</td>
                 <td>
                   <ARB className="w-6 h-6 m-auto flex-1 pl-8" />

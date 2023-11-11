@@ -1,22 +1,40 @@
 import type { RewardsQuery, UseAirdropDataValues } from "../types";
 
 import { gql, useQuery } from "@apollo/client";
+import { useAccount } from "wagmi";
 
 import { QueriesEnum } from "src/clients/Apollo/Queries";
+import { ZERO_ADDRESS } from "src/config/constants";
 import { Convert } from "src/utils/Convert";
 import { logError } from "src/utils/logError";
+import { TOTAl_RECIPIENTS } from "../constants";
 
 /**
  * Hook to fetch graph data for airdrops.
- * Returns the list of airdrop recipients, the total tokens distributed and their total USD value.
  *
- * @returns [totalTokens, totalValue] - [total tokens distributed, total USD value of those tokens]
+ * Returns the list of airdrop recipients, the total number of recipients, the total tokens distributed and their total USD value.
+ *
+ * @returns [recipients, totalRecipients, totalArb, totalValue]
  */
 export const useAirdropData = (): UseAirdropDataValues => {
+  const { address } = useAccount();
+
   const { data } = useQuery<RewardsQuery>(
     gql(`
-      query ${QueriesEnum.REWARDS} {
-        airdropRecipients (first: 100, orderBy: totalValue, orderDirection: desc) {
+      query ${QueriesEnum.REWARDS} (
+        $address: String,
+      ) {
+        airdropRecipients (first: ${TOTAl_RECIPIENTS}, orderBy: totalValue, orderDirection: desc) {
+          id
+          totalTokens
+          totalValue
+        }
+        airdropStat(id: "0") {
+          totalArb
+          totalRecipients
+          totalValue
+        }
+        user: airdropRecipient(id: $address) {
           id
           totalTokens
           totalValue
@@ -25,20 +43,24 @@ export const useAirdropData = (): UseAirdropDataValues => {
     `),
     {
       onError: logError,
+      variables: {
+        address: address?.toLowerCase() || ZERO_ADDRESS,
+      },
     }
   );
 
-  if (!data) return [[], 0, 0];
+  if (!data) return [[], 0, 0, 0];
 
-  const [totalTokens, totalValue] = data.airdropRecipients.reduce(
-    ([totalTokens, totalValue], recipient) => {
-      const tokens = Convert.fromWei(recipient.totalTokens).toInt();
-      const value = Convert.fromStr(recipient.totalValue).toInt();
-
-      return [totalTokens + tokens, totalValue + value];
-    },
-    [0, 0]
+  const userInTop = Boolean(
+    data.airdropRecipients.find(({ id }) => id === data.user?.id)
   );
 
-  return [data.airdropRecipients, totalTokens, totalValue];
+  return [
+    !data.user || userInTop
+      ? data.airdropRecipients
+      : [...data.airdropRecipients, data.user],
+    Number(data.airdropStat?.totalRecipients),
+    Convert.fromWei(data.airdropStat?.totalArb).toInt(),
+    Number(data.airdropStat?.totalValue),
+  ];
 };
