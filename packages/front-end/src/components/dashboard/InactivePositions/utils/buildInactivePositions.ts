@@ -74,9 +74,16 @@ export const buildInactivePositions = (
           (isPut && strike > strikeCollateral) ||
           (!isPut && strike < strikeCollateral);
 
+        const closeEntry = isCreditSpread
+          ? close - closeCollateral
+          : closeCollateral - close;
+        const spreadEntry = isCreditSpread
+          ? entry - entryCollateral
+          : entryCollateral - entry;
+
         return {
-          close: closeCollateral ? (close + closeCollateral) / 2 : close,
-          entry: entryCollateral ? (entry + entryCollateral) / 2 : entry,
+          close: closeCollateral ? closeEntry : close,
+          entry: entryCollateral ? spreadEntry : entry,
           id: `${id}-${isShort ? totalPremiumSold : totalPremiumBought}`,
           isCreditSpread,
           isPut,
