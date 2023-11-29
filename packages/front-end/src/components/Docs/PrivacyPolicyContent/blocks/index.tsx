@@ -27,7 +27,7 @@ export const Processing = () => (
 
     <p>
       {`and email at `}
-      <a href="mailto:legal@rysk.finance">{`legal@rysk.finance`}</a>
+      <a href="mailto:privacy@rysk.finance">{`privacy@rysk.finance`}</a>
       {`.`}
     </p>
   </>
