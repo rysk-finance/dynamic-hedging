@@ -3,7 +3,7 @@ import { MainSection } from "../../shared/MainSection";
 export const Intro = () => (
   <MainSection>
     <p>
-      {`These terms and conditions (these "Terms") constitute a binding legal agreement between each individual, entity, group or association who views, interacts, links to or otherwise uses or derives any benefit from the Site (as defined below) ("Users") and Rysk (the owner/operator of the Site) and each of its successors and assigns (the "Site Operator").`}
+      {`These terms and conditions (these "Terms") constitute a binding legal agreement between each individual, entity, group or association who views, interacts, links to or otherwise uses or derives any benefit from the Site (as defined below) ("Users") and Ksyr Foundation (the owner/operator of the Site) and each of its successors and assigns (the "Site Operator").`}
     </p>
 
     <p>
