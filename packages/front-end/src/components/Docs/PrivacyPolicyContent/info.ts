@@ -20,10 +20,10 @@ import {
 } from "./blocks";
 
 // ISO Format.
-export const lastUpdated = dayjs("2023-07-03");
+export const lastUpdated = dayjs("2023-11-29");
 
 export const intro = [
-  "The following Privacy Policy (hereinafter “Privacy Policy”) explains how Rysk collects and uses any information You submit when using the Site, as defined within the Rysk Terms of Service (hereinafter “User Terms”), available at the following link: https://app.rysk.finance. This Privacy Policy should be read in conjunction with the User Terms, in which it is integrated.",
+  "The following Privacy Policy (hereinafter “Privacy Policy”) explains how Ksyr Foundation (“Ksyr“) collects and uses any information You submit when using the Site, as defined within the Rysk Terms of Service (hereinafter “User Terms”), available at the following link: https://app.rysk.finance. This Privacy Policy should be read in conjunction with the User Terms, in which it is integrated.",
   "All capitalized proper nouns not defined in this Privacy Policy meet the same definitions and have the same meanings set out in the User Terms.",
   "Please, review the Privacy Policy periodically, as it may be subject to changes.",
   "In case you do not agree with or accept our Privacy Policy in its entirety, you must not access or use the Interface.",

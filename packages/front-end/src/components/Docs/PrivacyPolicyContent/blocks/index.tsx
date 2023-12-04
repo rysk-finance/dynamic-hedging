@@ -1,33 +1,33 @@
 export const DataCollected = () => (
   <>
-    <p>{`Rysk may collect the following information from you when you access or use the Interface:`}</p>
+    <p>{`Ksyr may collect the following information from you when you access or use the Interface:`}</p>
 
     <ul>
       <li>{`Digital Wallet address, transaction history  and other associated information.`}</li>
       <li>{`Interactions with the Interface, including but not limited to usage data and preferences.`}</li>
       <li>{`Online identifiers, like computer and browser information, operating system, data usage, IP address, and data transferred.`}</li>
-      <li>{`Information provided by third parties or publicly accessible databases which Rysk may combine with other information collected.`}</li>
+      <li>{`Information provided by third parties or publicly accessible databases which Ksyr may combine with other information collected.`}</li>
     </ul>
   </>
 );
 
 export const Processing = () => (
   <>
-    <p>{`The legal person that determines the purposes and means of the processing of personal data is Rysk, with principal office in:`}</p>
+    <p>{`The legal person that determines the purposes and means of the processing of personal data is Ksyr, with principal office in:`}</p>
 
     <address>
-      {`Elgin Avenue,`}
+      {`Boulevard Costa del Este,`}
       <br />
-      {`George Town,`}
+      {`Financial Park building, level 17,`}
       <br />
-      {`Grand Cayman KY1-9001,`}
+      {`Juan Diaz,`}
       <br />
-      {`Cayman Islands`}
+      {`Republic of Panama`}
     </address>
 
     <p>
       {`and email at `}
-      <a href="mailto:legal@rysk.finance">{`legal@rysk.finance`}</a>
+      <a href="mailto:privacy@rysk.finance">{`privacy@rysk.finance`}</a>
       {`.`}
     </p>
   </>
@@ -35,9 +35,9 @@ export const Processing = () => (
 
 export const UseOfYourData = () => (
   <>
-    <p>{`Where applicable, Rysk will use any data collected as directed by you and in accordance with the User Terms.`}</p>
+    <p>{`Where applicable, Ksyr will use any data collected as directed by you and in accordance with the User Terms.`}</p>
 
-    <p>{`Furthermore, Rysk may use your data in the following ways:`}</p>
+    <p>{`Furthermore, Ksyr may use your data in the following ways:`}</p>
 
     <ul>
       <li>{`to provide any services offered by the Interface, to process transactions, to maintain, develop and operate the Interface;`}</li>
@@ -46,9 +46,9 @@ export const UseOfYourData = () => (
       <li>{`to respond to third-party, legal, and governmental inquiries and to investigate any illegal or fraudulent activity;`}</li>
       <li>{`to enhance or improve our users’ experiences;`}</li>
       <li>{`to send you and receive information via selected communication methods as set forth within the User Terms or where requested by you;`}</li>
-      <li>{`to notify you of additional Rysk services and updates;`}</li>
+      <li>{`to notify you of additional Ksyr services and updates;`}</li>
       <li>{`to assist in maintaining the functionality, safety, and security of the Interface;`}</li>
-      <li>{`to share your information with third-party contractors hired by Rysk to perform functions and provide services to us such as infrastructure providers, Blockchain technology providers, marketing providers, and other vendors Rysk uses to make available the Interface;`}</li>
+      <li>{`to share your information with third-party contractors hired by Ksyr to perform functions and provide services to us such as infrastructure providers, Blockchain technology providers, marketing providers, and other vendors Ksyr uses to make available the Interface;`}</li>
       <li>{`to release to governmental entities, authorities, or legal claimants as required.`}</li>
     </ul>
   </>
@@ -56,10 +56,10 @@ export const UseOfYourData = () => (
 
 export const Analytics = () => (
   <>
-    <p>{`Third party analytics tools collect or use information about your use of the Interface, which helps Rysk to improve it.`}</p>
+    <p>{`Third party analytics tools collect or use information about your use of the Interface, which helps Ksyr to improve it.`}</p>
 
     <p>
-      {`Rysk wants to process as little personal information as possible when you use the Interface. That is why we have chosen Fathom Analytics for Interface analytics, which does not use cookies and does comply with the GDPR, ePrivacy (including PECR), COPPA and CCPA. By using this privacy-friendly website analytics software, your IP address is only briefly processed, and Rysk (running this website) has no way of identifying you. As per the CCPA, your personal information is de-identified. You can read more about this on Fathom Analytics' website, available at the following link: `}
+      {`Ksyr wants to process as little personal information as possible when you use the Interface. That is why we have chosen Fathom Analytics for Interface analytics, which does not use cookies and does comply with the GDPR, ePrivacy (including PECR), COPPA and CCPA. By using this privacy-friendly website analytics software, your IP address is only briefly processed, and Ksyr (running this website) has no way of identifying you. As per the CCPA, your personal information is de-identified. You can read more about this on Fathom Analytics' website, available at the following link: `}
       <a
         href="https://usefathom.com/"
         rel="noopener noreferrer"
@@ -85,11 +85,11 @@ export const Analytics = () => (
 export const GovernmentalEntities = () => (
   <>
     <p>
-      {`Rysk may combine any data collected with information made available in third-party databases and public sources. Rysk may use such information to address claims, to respond to governmental inquires or requests, or to investigate issues. Furthermore, such information may be shared with governmental entities including criminal, civil and regulatory agencies.`}
+      {`Ksyr may combine any data collected with information made available in third-party databases and public sources. Ksyr may use such information to address claims, to respond to governmental inquires or requests, or to investigate issues. Furthermore, such information may be shared with governmental entities including criminal, civil and regulatory agencies.`}
     </p>
 
     <p>
-      {`Please, be aware that Rysk may keep copies of your information subject to our internal retention policies for the purposes of abiding by Applicable Laws or to prevent fraud or injury to a third-party.`}
+      {`Please, be aware that Ksyr may keep copies of your information subject to our internal retention policies for the purposes of abiding by Applicable Laws or to prevent fraud or injury to a third-party.`}
     </p>
   </>
 );
@@ -107,7 +107,7 @@ export const Cookies = () => (
     <ul>
       <li>
         <em>{`"First-party cookies"`}</em>
-        {` are cookies set by Rysk (or on Rysk behalf) on Rysk site.`}
+        {` are cookies set by Ksyr (or on Ksyr behalf) on Ksyr site.`}
       </li>
       <li>
         <em>{`"Third-party cookies"`}</em>
@@ -150,11 +150,11 @@ export const AccessingAndEditingYourInformation = () => (
 export const OptOut = () => (
   <>
     <p>
-      {`If you decide to provide Rysk with your contact information, you agree that Rysk may send you communications via emails or other methods.`}
+      {`If you decide to provide Ksyr with your contact information, you agree that Ksyr may send you communications via emails or other methods.`}
     </p>
 
     <p>
-      {`However, you may choose to unsubscribe from certain communications by notifying Rysk that you no longer wish to receive them. If so, Rysk will endeavor to honor such requests promptly.`}
+      {`However, you may choose to unsubscribe from certain communications by notifying Ksyr that you no longer wish to receive them. If so, Ksyr will endeavor to honor such requests promptly.`}
     </p>
 
     <p>
@@ -176,7 +176,7 @@ export const ThirdParty = () => (
     </p>
 
     <p>
-      {`Rysk bears no responsibility for the information collected or used by any third-party website.`}
+      {`Ksyr bears no responsibility for the information collected or used by any third-party website.`}
     </p>
 
     <p>
@@ -233,7 +233,7 @@ export const Rights = () => (
 
 export const SecurityMeasures = () => (
   <p>
-    {`Rysk makes reasonable attempts to protect your data by using physical and electronic safeguards, such as encryption. However, as the Interface relies on Blockchain Technology and electronic infrastructure on which Rysk has no control, Rysk cannot guarantee the security or privacy of the information submitted. For this reason, Rysk recommends that you use anti-virus software, firewalls, and other precautions in order to protect yourself from security and privacy threats.`}
+    {`Ksyr makes reasonable attempts to protect your data by using physical and electronic safeguards, such as encryption. However, as the Interface relies on Blockchain Technology and electronic infrastructure on which Ksyr has no control, Ksyr cannot guarantee the security or privacy of the information submitted. For this reason, Ksyr recommends that you use anti-virus software, firewalls, and other precautions in order to protect yourself from security and privacy threats.`}
   </p>
 );
 
@@ -245,24 +245,24 @@ export const AgeCompliance = () => (
 
 export const InternationalTransfer = () => (
   <p>
-    {`Your information may be transferred to - and maintained on - computers located outside of your state, province, country, or other governmental jurisdiction where the privacy laws may not be as protective as those in your jurisdiction. Your consent to this Privacy Policy followed by your submission of such information represents your agreement to that transfer. Information that is submitted to Rysk will be collected, processed, stored, disclosed, and disposed of in accordance with applicable UK law and this Policy. In addition, such information may be stored on servers located outside your resident jurisdiction. United Kingdom law may not provide the degree of protection for information that is available in other countries.`}
+    {`Your information may be transferred to - and maintained on - computers located outside of your state, province, country, or other governmental jurisdiction where the privacy laws may not be as protective as those in your jurisdiction. Your consent to this Privacy Policy followed by your submission of such information represents your agreement to that transfer. Information that is submitted to Ksyr will be collected, processed, stored, disclosed, and disposed of in accordance with applicable law and this Policy.`}
   </p>
 );
 
 export const MergerAndAcquisition = () => (
   <p>
-    {`In the event that Rysk is involved in a bankruptcy, merger, acquisition, reorganization or sale of assets, your data may be transferred as part of that transaction. Please, be aware that once the data is transferred your privacy rights may be subject to change.`}
+    {`In the event that Ksyr is involved in a bankruptcy, merger, acquisition, reorganization or sale of assets, your data may be transferred as part of that transaction. Please, be aware that once the data is transferred your privacy rights may be subject to change.`}
   </p>
 );
 
 export const Amendments = () => (
   <>
     <p>
-      {`As provided under the User Terms, Rysk may amend this Privacy Policy from time to time.`}
+      {`As provided under the User Terms, Ksyr may amend this Privacy Policy from time to time.`}
     </p>
 
     <p>
-      {`When Rysk amends this Privacy Policy, it will modify the date of this Policy or it may contact you. In order to continue to use our Interface, you must agree to the amendments. If you do not agree, you must immediately cease using our Interface.`}
+      {`When Ksyr amends this Privacy Policy, it will modify the date of this Policy or it may contact you. In order to continue to use our Interface, you must agree to the amendments. If you do not agree, you must immediately cease using our Interface.`}
     </p>
   </>
 );
