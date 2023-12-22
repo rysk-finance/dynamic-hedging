@@ -46,6 +46,12 @@ export const DateList = ({
         {expiries.map((timestamp, index) => {
           const datetime = dayjs.unix(Number(timestamp));
           const duration = dayjs.duration(datetime.diff(dayjs()));
+          const days = Math.floor(duration.asDays());
+          const daysAsHours = days * 24
+          const hours = Math.floor(duration.asHours() - daysAsHours);
+          const minutes = Math.floor(
+            duration.asMinutes() - (daysAsHours + hours) * 60
+          );
 
           const [min, max] = visibleRange;
           const positions = userPositions[timestamp];
@@ -90,9 +96,7 @@ export const DateList = ({
                   <small className={`text-2xs xl:text-xs mt-1 `}>
                     {duration.asDays() < 1
                       ? `Untradeable`
-                      : `${Math.floor(
-                          duration.asDays()
-                        )}d ${duration.hours()}h ${duration.minutes()}m`}
+                      : `${days}d ${hours}h ${minutes}m`}
                   </small>
                 </button>
               </motion.li>
