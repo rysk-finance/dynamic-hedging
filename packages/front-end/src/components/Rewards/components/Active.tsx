@@ -7,19 +7,19 @@ const rewardPrograms = [
   {
     dates: {
       start: dayjs.unix(1698998400),
-      end: dayjs.unix(1707465600),
+      end: dayjs.unix(1711699200),
     },
     info: (
       <>
         {`The Arbitrum short term incentive program will provide `}
-        <b>{`35.6k ARB`}</b>
+        <b>{`12.9k ARB`}</b>
         {` per week, split evenly between liquidity providers and traders. Anyone with a deposit in the DHV when the weekly epoch is executed will be eligible for rewards. Equally, every contract traded during the epoch will be eligible to earn a share of the weekly rewards based on different trading params. To find out more about eligibility and distribution, deposit into the vault, or make a trade, please follow the link below.`}
       </>
     ),
     links: [
       {
         external: true,
-        href: "https://medium.rysk.finance/arbitrum-stip-rewards-for-rysk-6929609e85d7",
+        href: "https://medium.rysk.finance/arbitrum-stip-rewards-for-rysk-extended-until-march-29th-2024-2236f94cc7c6",
         label: "Learn more about the rewards.",
       },
       {
