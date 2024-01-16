@@ -116,7 +116,15 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     );
 
     event Withdraw(
-        uint256 amount
+        uint256 amount,
+        address receiver
+    );
+
+    event UniswapAssetsCollected(
+        uint256 burn0,
+        uint256 burn1,
+        uint256 fee0,
+        uint256 fee1
     );
 
     constructor(
@@ -246,6 +254,8 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
                 revert CustomErrors.RangeOrderNotFilled();
             }
         }
+        // after withdrawing liquidity send back collateral to parent pool
+        _transferCollateralBalanceToParentPool();
     }
 
     /// @notice compute total underlying holdings of the vault token supply
@@ -317,12 +327,12 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         }
         if (_amount <= balance) {
             SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, _amount);
-            emit Withdraw(_amount);
+            emit Withdraw(_amount, msg.sender);
             // return in collateral format
             return _amount;
         } else {
             SafeTransferLib.safeTransfer(ERC20(collateralAsset), msg.sender, balance);
-            emit Withdraw(balance);
+            emit Withdraw(balance, msg.sender);
             // return in collateral format
             return balance;
         }
@@ -634,6 +644,19 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
     }
 
     /**
+     * @notice use to transfer collateral balance to the parent liquidity pool
+     */
+
+    function _transferCollateralBalanceToParentPool() internal {
+        uint256 balance = ERC20(collateralAsset).balanceOf(address(this));
+        if (balance == 0) {
+            return;
+        }
+        SafeTransferLib.safeTransfer(ERC20(collateralAsset), parentLiquidityPool, balance);
+        emit Withdraw(balance, parentLiquidityPool); 
+    }
+
+    /**
      * @notice transfer tokens from the parent liquidity pool
      * @param token the address of the token to transfer
      * @param amountDesired the amount of tokens to transfer
@@ -696,6 +719,7 @@ contract UniswapV3RangeOrderReactor is IUniswapV3MintCallback, IHedgingReactor, 
         fee1 = collect1 - burn1;
         // mark no current position
         delete currentPosition;
+        emit UniswapAssetsCollected(burn0, burn1, fee0, fee1);
     }
 
     /// @notice Withdraws all liquidity from a range order and collection outstanding fees
