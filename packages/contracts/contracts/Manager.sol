@@ -434,9 +434,9 @@ contract Manager is AccessControl {
 
 		int256 distance;
 		if (position.activeRangeAboveTick) {
-			distance = int256(position.activeUpperTick - tick);
+			distance = tick < position.activeLowerTick ? int256(0) : int256(position.activeUpperTick - tick);
 		} else {
-			distance = int256(tick - position.activeLowerTick);
+			distance = tick > position.activeUpperTick ? int256(0) : int256(tick - position.activeLowerTick);
 		}
 
 		// Clamp the distance to be within the range [0, totalRange]

@@ -1528,4 +1528,67 @@ describe("UniswapV3RangeOrderReactor Arbitrum Integration Tests", () => {
 		const receiptExit = await exitRangeTx.wait()
 		expect(deltaLimitAfterExit).to.eq(expectedAfterExitDeltaLimit)
 	})
+
+	it("Allows a keeper via Manager contract to exit unfilled active range above tick range order and reclaim delta - Arbitrum", async () => {
+		// give delta allowance to keeper
+		manager = manager.connect(governor)
+		const deltaLimitBefore = await manager.deltaLimit(keeperAddress)
+		const deltaLimitAmount = toWei("50")
+		await manager.setDeltaLimit([deltaLimitAmount], [keeperAddress])
+		const deltaLimitAfterDeltaGrant = await manager.deltaLimit(keeperAddress)
+		expect(deltaLimitAfterDeltaGrant).to.eq(deltaLimitAmount)
+		// impersonate keeper
+		manager = manager.connect(keeper)
+		// enter a new range order
+		const deltaAmount = toWei("1")
+		const hedgeDeltaTx = await manager.rebalancePortfolioDelta(deltaAmount, 3)
+		const receipt = await hedgeDeltaTx.wait()
+		const [mintEvent] = getMatchingEvents(receipt, UNISWAP_POOL_MINT) as unknown as [MintEvent]
+		const { activeLowerTick, activeUpperTick } = await uniswapV3RangeOrderReactor.currentPosition()
+		const parentPoolAddress = await uniswapV3RangeOrderReactor.pool()
+		uniswapUSDCWETHPool = uniswapUSDCWETHPool.attach(parentPoolAddress)
+		expect(activeLowerTick).to.not.eq(activeUpperTick)
+		expect(mintEvent.tickLower).to.eq(activeLowerTick)
+		expect(mintEvent.tickUpper).to.eq(activeUpperTick)
+		// move parent pool price in to partial fill of range
+		let poolInfo = await getPoolInfo(uniswapUSDCWETHPool)
+		const amountToSwap = toUSDC("1")
+		// needs to be swaping usdc for weth
+		usdcContract = usdcContract.attach(nativeUSDC)
+		// impersonate whale
+		await network.provider.request({
+			method: "hardhat_impersonateAccount",
+			params: [nativeUSDCWhaleAddress]
+		})
+		nativeUSDCWhale = await ethers.getSigner(nativeUSDCWhaleAddress)
+		await usdcContract.connect(nativeUSDCWhale).approve(uniswapRouter.address, amountToSwap)
+		uniswapRouter = uniswapRouter.connect(nativeUSDCWhale)
+		// setup swap trade params
+		let params = {
+			tokenIn: poolInfo.token1.address, // USDC
+			tokenOut: poolInfo.token0.address, // WETH
+			fee: poolInfo.fee,
+			recipient: nativeUSDCWhaleAddress,
+			deadline: Math.floor(Date.now() / 1000) + 60 * 10,
+			amountIn: amountToSwap,
+			amountOutMinimum: 0,
+			sqrtPriceLimitX96: 0
+		}
+
+		const swapTx = await uniswapRouter.exactInputSingle(params, { gasLimit: 5000000 })
+		const receiptSwap = await swapTx.wait()
+		const { tick } = await uniswapUSDCWETHPool.slot0()
+		expect(tick).to.be.lt(activeLowerTick)
+		expect(tick).to.be.lt(activeUpperTick)
+		const deltaLimitAfterSwap = await manager.deltaLimit(keeperAddress)
+		const deltaUsed = deltaLimitAfterDeltaGrant.sub(deltaLimitAfterSwap)
+
+		const percentageOfRange = 0
+		let deltaReclaimedBigNum = deltaUsed
+		const exitRangeTx = await manager.exitActiveRangeOrder(3)
+		const deltaLimitAfterExit = await manager.deltaLimit(keeperAddress)
+		const expectedAfterExitDeltaLimit = deltaLimitAfterSwap.add(deltaReclaimedBigNum)
+		const receiptExit = await exitRangeTx.wait()
+		expect(deltaLimitAfterExit).to.eq(expectedAfterExitDeltaLimit)
+	})
 })
